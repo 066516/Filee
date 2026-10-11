@@ -181,6 +181,38 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public void Streams_the_target_takes_as_they_are_are_copied()
+    {
+        var phone = new MediaInfo(TimeSpan.FromSeconds(10), new VideoStreamInfo(1920, 1080, 1, -90, 30, "hevc", "yuv420p10le"),
+            new AudioStreamInfo(2, 44100, "aac"), null);
+        var mp4 = Args("mp4", info: phone);
+        Assert.Equal("copy", After(mp4, "-c:v"));
+        Assert.Equal("hvc1", After(mp4, "-tag:v")); // Apple plays HEVC in MP4 only under this tag
+        Assert.Equal("copy", After(mp4, "-c:a"));
+        Assert.DoesNotContain("-vf", mp4);
+        Assert.Equal("+faststart", After(mp4, "-movflags"));
+
+        // WebM takes neither HEVC nor AAC.
+        var webm = Args("webm", info: phone);
+        Assert.Equal(("libvpx-vp9", "libopus"), (After(webm, "-c:v"), After(webm, "-c:a")));
+
+        // Re-encoded: scaled down (the portrait video is 1920 high as shown), a small file asked for, a pixel format
+        // players don't decode.
+        Assert.Equal("libx264", After(Args("mp4", new MediaOptions { MaxHeight = 1080 }, phone), "-c:v"));
+        Assert.Equal("copy", After(Args("mp4", new MediaOptions { MaxHeight = 2160 }, phone), "-c:v"));
+        Assert.Equal("libx264", After(Args("mp4", new MediaOptions { Quality = MediaQuality.Small }, phone), "-c:v"));
+        var yuv444 = phone with { Video = phone.Video! with { Codec = "h264", PixelFormat = "yuv444p" } };
+        Assert.Equal("libx264", After(Args("mp4", info: yuv444), "-c:v"));
+
+        // Audio alone is re-encoded when the container does not take it or the preset sets bitrate or channels.
+        var pcm = phone with { Audio = new AudioStreamInfo(2, 48000, "pcm_s16le") };
+        Assert.Equal(("copy", "aac"), (After(Args("mp4", info: pcm), "-c:v"), After(Args("mp4", info: pcm), "-c:a")));
+        Assert.Equal("aac", After(Args("mov", new MediaOptions { AudioBitrateKbps = 128 }, phone), "-c:a"));
+        Assert.Equal("aac", After(Args("mov", new MediaOptions { AudioChannels = 1 }, phone), "-c:a"));
+        Assert.Equal("copy", After(Args("mov", new MediaOptions { AudioChannels = 2 }, phone), "-c:a"));
+    }
+
+    [Fact]
     public void Dvd_and_dv_frames_are_letterboxed_into_the_nearest_tv_shape()
     {
         // 16:9 source: fills the anamorphic 16:9 NTSC frame.
@@ -289,9 +321,10 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
             """;
         var info = MediaInfo.Parse(json);
         Assert.Equal(12.48, info.Duration!.Value.TotalSeconds, 3);
-        Assert.Equal(new VideoStreamInfo(1920, 1080, 1, -90, 30000 / 1001.0), info.Video);
+        Assert.Equal(new VideoStreamInfo(1920, 1080, 1, -90, 30000 / 1001.0, "h264"), info.Video);
         Assert.Equal(9 / 16.0, info.Video!.DisplayAspect, 3);
-        Assert.Equal(new AudioStreamInfo(2, 48000), info.Audio);
+        Assert.Equal(1920, info.Video.DisplayHeight);
+        Assert.Equal(new AudioStreamInfo(2, 48000, "aac"), info.Audio);
         Assert.Equal(2, info.CoverStreamIndex);
 
         var raw = MediaInfo.Parse("""{ "streams": [ { "index": 0, "codec_type": "audio", "channels": 1, "sample_rate": "8000" } ], "format": {} }""");
@@ -446,6 +479,42 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
             }
         });
         Assert.Empty(failures);
+    }
+
+    [Fact]
+    public async Task An_iphone_hdr_mov_is_rewrapped_into_mp4_without_re_encoding()
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        // Like an iPhone video: HEVC Main 10 with HLG (BT.2020) in MOV, recorded sideways with a display matrix, AAC sound.
+        var hevc = await MakeClipAsync(folder, "hevc.mov", seconds: 2, size: "640x360",
+            extra: ["-c:v", "libx265", "-pix_fmt", "yuv420p10le",
+                    "-x265-params", "colorprim=bt2020:transfer=arib-std-b67:colormatrix=bt2020nc:log-level=error", "-c:a", "aac"]);
+        var phone = Path.Combine(folder, "phone.mov");
+        await RunAsync(Tools!.Value.Ffmpeg, ["-hide_banner", "-nostdin", "-v", "error", "-y", "-display_rotation", "90", "-i", hevc, "-c", "copy", phone]);
+
+        var mp4 = await ConvertAsync(phone, "mp4");
+        var result = await ProcessRunner.RunAsync(Tools.Value.Ffprobe,
+            ["-v", "error", "-show_entries", "stream=codec_type,codec_name,codec_tag_string,pix_fmt,color_transfer,nb_frames:stream_side_data=rotation",
+             "-of", "json", mp4], TimeSpan.FromMinutes(1), CancellationToken.None);
+        using var json = JsonDocument.Parse(result.StandardOutput);
+        var video = json.RootElement.GetProperty("streams").EnumerateArray().Single(s => s.GetProperty("codec_type").GetString() == "video");
+        Assert.Equal("hevc", video.GetProperty("codec_name").GetString());
+        Assert.Equal("hvc1", video.GetProperty("codec_tag_string").GetString());
+        Assert.Equal("yuv420p10le", video.GetProperty("pix_fmt").GetString()); // 10-bit HDR kept
+        Assert.Equal("arib-std-b67", video.GetProperty("color_transfer").GetString());
+        Assert.Contains("rotation", video.GetProperty("side_data_list").ToString()); // still shown upright
+        Assert.Equal("50", video.GetProperty("nb_frames").GetString()); // every frame, none re-encoded or dropped
+
+        // The coded pictures are the source's, byte for byte.
+        async Task<string> Hash(string file)
+        {
+            var hash = await ProcessRunner.RunAsync(Tools.Value.Ffmpeg,
+                ["-hide_banner", "-v", "error", "-i", file, "-map", "0:v", "-c", "copy", "-f", "hash", "-hash", "md5", "-"],
+                TimeSpan.FromMinutes(1), CancellationToken.None);
+            return hash.StandardOutput.Trim();
+        }
+        Assert.Equal(await Hash(phone), await Hash(mp4));
     }
 
     [Fact]
@@ -705,7 +774,8 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.True(converter.GetStatus().IsAvailable);
 
         var recorder = new Recorder();
-        var outputs = await converter.ConvertAsync(Step(source, "mp4", "mkv", folder, new MediaOptions { Quality = MediaQuality.High }), recorder, CancellationToken.None);
+        // Small: H.264 + AAC in MKV would otherwise only be rewrapped, which takes too little time to report progress.
+        var outputs = await converter.ConvertAsync(Step(source, "mp4", "mkv", folder, new MediaOptions { Quality = MediaQuality.Small }), recorder, CancellationToken.None);
 
         Assert.True(File.Exists(Assert.Single(outputs)));
         var values = recorder.Values.ToList();

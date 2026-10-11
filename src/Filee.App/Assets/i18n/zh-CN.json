@@ -312,6 +312,7 @@
   "presets.target_folder": "文件夹（解压缩）",
   "presets.group.media": "视频和音频",
   "presets.media_quality": "质量",
+  "presets.media_quality_hint": "新格式能直接容纳其编码的视频（如 iPhone MOV → MP4）只会重新封装：画质无损、保留 HDR，几秒即可完成。“小”总会重新编码以减小文件。",
   "presets.media_quality.High": "高（文件较大）",
   "presets.media_quality.Balanced": "均衡",
   "presets.media_quality.Small": "小（便于分享）",

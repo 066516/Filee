@@ -312,6 +312,7 @@
   "presets.target_folder": "Folder (extract archives)",
   "presets.group.media": "Video & audio",
   "presets.media_quality": "Quality",
+  "presets.media_quality_hint": "A video whose codecs the new format takes as they are (an iPhone MOV → MP4) is only rewrapped: no quality lost, HDR kept, done in seconds. Small always re-encodes to make the file smaller.",
   "presets.media_quality.High": "High (larger files)",
   "presets.media_quality.Balanced": "Balanced",
   "presets.media_quality.Small": "Small (for sharing)",
