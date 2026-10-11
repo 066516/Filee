@@ -2,10 +2,10 @@
   "_comment": "Downloadable conversion engines: pinned URL + SHA-256. Used by the app (Settings > Engines, first-run setup) and by build/fetch-engines.ps1. Bumping a version = change url, sha256 and size together.",
   "components": {
     "rhwp": {
-      "version": "0.8.6",
-      "url": "https://github.com/edwardkim/rhwp/releases/download/v0.8.6/rhwp-v0.8.6-windows-x86_64.zip",
-      "sha256": "867E0A84B778EBDA92B88433EDE301818EAEA21E7D58EB77FF9A732F41D170D9",
-      "size": 10270410,
+      "version": "0.8.7",
+      "url": "https://github.com/edwardkim/rhwp/releases/download/v0.8.7/rhwp-v0.8.7-windows-x86_64.zip",
+      "sha256": "F7AC326E98F595AE8FECD8DA7A614EE9A37DB77BDF938782A8E07C9DA473EC6F",
+      "size": 19796112,
       "kind": "zip"
     },
     "7zip": {
@@ -76,10 +76,10 @@
     "linux-x64": {
       "components": {
         "rhwp": {
-          "version": "0.8.6",
-          "url": "https://github.com/edwardkim/rhwp/releases/download/v0.8.6/rhwp-v0.8.6-linux-x86_64.tar.gz",
-          "sha256": "458DE22A6B9B86088DFDCD59552D4E8FAB5362A64578C64761FA28DF9BE45E9A",
-          "size": 10092553,
+          "version": "0.8.7",
+          "url": "https://github.com/edwardkim/rhwp/releases/download/v0.8.7/rhwp-v0.8.7-linux-x86_64.tar.gz",
+          "sha256": "F1E541A25CFE76B6BC1DAF18BF9C1F9A5AC5E03E2C01B188DAAF54107214F631",
+          "size": 14678662,
           "kind": "tar.gz"
         },
         "7zip": {
@@ -115,10 +115,10 @@
     "linux-arm64": {
       "components": {
         "rhwp": {
-          "version": "0.8.6",
-          "url": "https://github.com/edwardkim/rhwp/releases/download/v0.8.6/rhwp-v0.8.6-linux-aarch64.tar.gz",
-          "sha256": "1288AA5609A67574A6B1372397BEF9A8941FDA9AD16B1224342512F915AE016E",
-          "size": 9330223,
+          "version": "0.8.7",
+          "url": "https://github.com/edwardkim/rhwp/releases/download/v0.8.7/rhwp-v0.8.7-linux-aarch64.tar.gz",
+          "sha256": "C4A70F5ED11B99586EE89D1AC9069145D58A0831D00E87858BB01626E2EBF313",
+          "size": 13842675,
           "kind": "tar.gz"
         },
         "7zip": {
@@ -154,10 +154,10 @@
     "osx-x64": {
       "components": {
         "rhwp": {
-          "version": "0.8.6",
-          "url": "https://github.com/edwardkim/rhwp/releases/download/v0.8.6/rhwp-v0.8.6-macos-x86_64.tar.gz",
-          "sha256": "A9581617E7CCAB75481B9D36069D28C46E30A543A1FB0AA9FF581567A25321B8",
-          "size": 9776200,
+          "version": "0.8.7",
+          "url": "https://github.com/edwardkim/rhwp/releases/download/v0.8.7/rhwp-v0.8.7-macos-x86_64.tar.gz",
+          "sha256": "07B1A5EA570E410D1B52B4D848A94F00C64674E84004883C62EFAD7DAAB61DA4",
+          "size": 14156825,
           "kind": "tar.gz"
         },
         "7zip": {
@@ -193,10 +193,10 @@
     "osx-arm64": {
       "components": {
         "rhwp": {
-          "version": "0.8.6",
-          "url": "https://github.com/edwardkim/rhwp/releases/download/v0.8.6/rhwp-v0.8.6-macos-aarch64.tar.gz",
-          "sha256": "7D8928FAEB03F00C35C8028F0B562F08F3DA22BEF86F750E0D7E0CD19344EAA3",
-          "size": 8972945,
+          "version": "0.8.7",
+          "url": "https://github.com/edwardkim/rhwp/releases/download/v0.8.7/rhwp-v0.8.7-macos-aarch64.tar.gz",
+          "sha256": "6ED46AA63F6D10C447842999F73ABC59CF9586C5645FEFC5E763BD6A6D43662D",
+          "size": 12941874,
           "kind": "tar.gz"
         },
         "7zip": {

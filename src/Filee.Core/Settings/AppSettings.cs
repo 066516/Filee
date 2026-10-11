@@ -70,6 +70,9 @@ public sealed class AppSettings
     /// <summary>Newest version the user was already told about, so the update notice shows once per release.</summary>
     public string? NotifiedUpdateVersion { get; set; }
 
+    /// <summary>Engine package id → the new version the engine update notice was shown for (once per version).</summary>
+    public Dictionary<string, string> NotifiedEngineVersions { get; set; } = [];
+
     /// <summary>Temporarily disable all trigger gestures (tray "Pause").</summary>
     public bool Paused { get; set; }
 

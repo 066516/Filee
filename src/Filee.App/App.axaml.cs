@@ -137,6 +137,26 @@ public partial class App : Application
         };
         updates.UpdateFailed += async (_, _) => await AppHost.Get<WindowService>().ShowUpdateFailedAsync();
         updates.StartPeriodicChecks(() => store.Settings.CheckForUpdates, TimeSpan.FromSeconds(20));
+        DispatcherTimer.RunOnce(() => NotifyEngineUpdates(store), TimeSpan.FromSeconds(25));
+    }
+
+    /// <summary>
+    /// Engines the user downloaded that are older than the versions this Filee pins (it was updated since): one
+    /// notice per new version, only to people who installed that engine, and only while update checks are on.
+    /// </summary>
+    private static void NotifyEngineUpdates(UserDataStore store)
+    {
+        if (!store.Settings.CheckForUpdates)
+            return;
+        var downloads = AppHost.Get<EngineDownloadService>();
+        downloads.RefreshStatus();
+        var outdated = downloads.Outdated;
+        if (!outdated.Any(p => store.Settings.NotifiedEngineVersions.GetValueOrDefault(p.Package.Id) != p.Version))
+            return;
+        foreach (var package in outdated)
+            store.Settings.NotifiedEngineVersions[package.Package.Id] = package.Version ?? "";
+        store.SaveSettings();
+        AppHost.Get<WindowService>().ShowEngineUpdateNotice(outdated);
     }
 
     /// <summary>Applies everything derived from settings. Called at start-up and whenever settings are saved.</summary>
