@@ -14,6 +14,15 @@ find it, what it does and doesn't do.
   another, e.g. to post a whole document at once. Use **Long image** on the PDF donut (PNG), or tick "Stack the pages
   into one tall image" in any image preset. Pages of different widths are centred; a result taller than the format
   stores (JPG 65,500 px, WebP 16,383 px) or very large is scaled down to fit. TIFF and GIF keep one page per frame.
+- **Photos → video in full colour.** HEIC, JPG, PNG, AVIF and other pictures → MP4, MOV or WEBM (with FFmpeg) used
+  to pass through a GIF, which leaves 256 colours and bands skies and skin. They now go straight from a full-size PNG:
+  a 5-second still video at the photo's own size, with its colours (Display P3 photos stay P3) and transparent areas
+  in black. Only photos over about 36 megapixels (48 MP phone cameras) are scaled down, to the largest picture H.264
+  and VP9 players decode. Animated GIF/WebP and PDF pages still become a moving video or a slideshow.
+- **Save images as HEIC** (with FFmpeg). Any image Filee reads → HEIC, the format iPhones take photos in: about a
+  quarter of a JPG's size at the same quality, stored in 512-pixel tiles like a phone photo, upright, with the colour
+  profile and Exif kept. The **HEIC** preset is on the Presets page (quality 80); add it to a donut to use it.
+  Transparent areas are filled with the preset's background colour.
 
 ## 1.9.0
 

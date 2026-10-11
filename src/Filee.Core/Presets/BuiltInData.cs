@@ -27,6 +27,7 @@ public static class BuiltInData
         new() { Id = "to-ico", Name = "ICO", TargetFormat = "ico" },
         new() { Id = "to-gif", Name = "GIF", TargetFormat = "gif" },
         new() { Id = "to-avif", Name = "AVIF", TargetFormat = "avif", Image = { Quality = 60 } },
+        new() { Id = "to-heic", Name = "HEIC", TargetFormat = "heic", Image = { Quality = 80 } },
         new()
         {
             Id = "half-size", NameKey = "preset.half_size", TargetFormat = SameAsSource,

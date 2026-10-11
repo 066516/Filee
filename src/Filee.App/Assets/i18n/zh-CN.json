@@ -78,7 +78,7 @@
   "engine.cad.description": "AutoCAD 图纸：DWG ↔ DXF，并可转为 PDF、SVG 和 PNG。",
   "engine.archive.description": "解压 ZIP、7Z、RAR、TAR、GZ、ISO 等压缩文件，重新打包为 ZIP、7Z 或 TAR.GZ，或把多个文件压缩成一个（7-Zip）。",
   "engine.ebook.description": "电子书：EPUB、MOBI、AZW3、FB2 和漫画（CBZ、CBR）转为 PDF、EPUB、DOCX 和文本；文档和 Markdown 转为 EPUB；PDF 转为 CBZ。",
-  "engine.ffmpeg.description": "视频和音频：MP4、MOV、MKV、WEBM、AVI、MP3、M4A、WAV、FLAC 等；可提取视频中的声音，也能制作 GIF。",
+  "engine.ffmpeg.description": "视频和音频：MP4、MOV、MKV、WEBM、AVI、MP3、M4A、WAV、FLAC 等；可提取视频中的声音、制作 GIF，还能把图片保存为 HEIC。",
   "engine.pandoc.description": "Markdown 和 HTML ↔ ODT、RTF，DOCX → Markdown，以及 reStructuredText、LaTeX ↔ Markdown、HTML、DOCX、ODT。",
   "engine.ghostscript.description": "EPS、PostScript 和旧版 Illustrator 文件转为 PDF 和图片；PDF 转为 EPS 和 PS。",
   "engine.calibre.description": "少见的电子书格式（LIT、LRF、CHM、PDB、RB…）以及 Kindle 输出（MOBI、AZW3）。",

@@ -131,7 +131,7 @@ Dolphin. Ubuntu 24.04 is the tested baseline; `INSTALL.txt` in the package lists
 
 | From | To |
 |---|---|
-| **Images**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM; HEIC, GIMP XCF, camera RAW (CR2, CR3, NEF, ARW, DNG, …) read | any of these, PDF, resized, grayscale |
+| **Images**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC; GIMP XCF, camera RAW (CR2, CR3, NEF, ARW, DNG, …) read | any of these (HEIC⁵), PDF, resized, grayscale |
 | **Vector**: SVG, SVGZ, EMF, WMF, AI · EPS, PS¹ · CDR, VSD, CGM, ODG² | PDF (vector), PNG and other images, SVG ↔ SVGZ, PDF → EPS/PS¹ |
 | **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ; merge, split, page ranges |
 | **Documents**: DOCX, DOCM, DOTX, EML · DOC, ODT, RTF, WPS, WPD, Pages, …² | PDF, DOCX, HWPX, EPUB, TXT, HTML |

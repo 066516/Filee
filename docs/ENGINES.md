@@ -5,7 +5,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 
 | Engine | How it gets there | Handles |
 |---|---|---|
-| ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM ↔ each other; HEIC, XCF, camera RAW (LibRaw) and EMF/WMF (Windows) read |
+| ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM ↔ each other; HEIC (written with FFmpeg), XCF, camera RAW (LibRaw) and EMF/WMF (Windows) read |
 | Vector graphics | built in (Svg.Skia, SkiaSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, PDF-compatible AI → PDF |
 | ICNS | built in | images → ICNS (16–1024 px), ICNS → images |
 | PDFsharp | built in (library) | images → PDF, merge, split, page ranges |
@@ -26,7 +26,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats |
 | Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, reStructuredText and LaTeX ↔ Markdown/HTML/DOCX/ODT (and → RTF, EPUB, TXT) |
 | Ghostscript | **optional download** (~20 MB, 31 MB on disk) | EPS/PS → PDF, PDF → EPS/PS, PostScript-based AI → PDF (images through PDF and PDFium) |
-| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video, video → animated GIF or a still frame, audio extraction, audio ↔ audio, GIF → MP4/WEBM/MOV |
+| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video, video → animated GIF or a still frame, audio extraction, audio ↔ audio, GIF and photos → MP4/WEBM/MOV, images → HEIC |
 | Calibre | **optional download** (~216 MB, 660 MB on disk) | rare e-book formats: LIT, LRF, CHM, PDB, PML, RB, SNB, TCR, OEB → EPUB; EPUB → MOBI, AZW3, LIT, LRF, PDB, PML, RB, SNB, TCR |
 
 DOCX, XLSX, XLS, ODS and PPTX → PDF need neither Microsoft Office nor LibreOffice: they are read in-process, written as HWPX
@@ -484,7 +484,8 @@ Filee (with the GPL source offer), then an `engines.json` component and an optio
 ## FFmpeg
 
 `Media/FfmpegConverter.cs` converts every video format to every video format, to animated GIF, to a still PNG frame
-and to every audio format (the sound track); every audio format to every audio format; and GIF to MP4, WEBM and MOV.
+and to every audio format (the sound track); every audio format to every audio format; and GIF and PNG to MP4, WEBM
+and MOV.
 Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on MP3 files.
 
 - The download is the gyan.dev **9.0.2 "full_build-shared"** Windows build (GPL-3.0, run as a separate program).
@@ -524,5 +525,25 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   (FFmpeg's encoders use every core themselves).
 - Video → PNG writes one still frame (a tenth into the video, where the picture has usually faded in); the image
   engines turn it into JPG, WEBP, PDF, …. The GIF edge costs more, so these routes never go through an animated GIF
-  of the whole video. Images and PDFs → MP4/WEBM/MOV are possible through GIF (a slideshow of the PDF's pages, a
-  single frame for a photo).
+  of the whole video.
+- Pictures → MP4/WEBM/MOV go through a full-size PNG from the image engines (HEIC → PNG → MOV): a 5-second still at
+  30 fps, one quality step above the preset (identical frames cost almost nothing; x264 `-tune stillimage`). The
+  PNG's ICC profile is read (`-flags2 +icc_profiles`), so primaries and transfer are tagged as the photo's (Display
+  P3 stays P3); RGB → BT.709 YUV in TV range; transparency is premultiplied onto black. The size is kept (made even)
+  unless it exceeds H.264/VP9 level 6.2 (8192 × 4352 pixels, 16384 per side) or the preset's maximum height. The
+  image engines' still picture → GIF edges cost 12 (`ImageEncoder.Edge`) and PNG → video 11, so a photo takes the
+  PNG route (21 < 22) while animated GIF/WebP, multi-page TIFF and PDF keep the GIF route (20): a moving video or a
+  slideshow of the pages.
+- **Images → HEIC** (`Heic/HeicWriter.cs`): ImageMagick has no HEVC encoder and FFmpeg no HEIF muxer, so the work is
+  split. ImageMagick reads any image it knows and applies the preset (orientation, resize, metadata; transparency is
+  flattened onto the background colour, HEIC alpha needs an auxiliary picture Filee does not write) and writes an
+  8-bit PNG. FFmpeg pads it to whole 512 × 512 tiles with its own edge pixels (`fillborders`), converts to BT.601
+  full-range 4:2:0 like JPEG and cameras, cuts the tiles (`untile`) and has x265 encode each as an IDR picture of
+  the Main profile (`-force_key_frames expr:1 -forced-idr 1`, `open-gop=0`; with `keyint=1` x265 would signal the
+  "Main Intra" range extensions profile, which the `heic` brand does not allow and Windows decodes wrongly). Pictures
+  up to 512 × 512 are one coded picture. Quality 1–100 maps to CRF 50 − 0.4 × quality (90 → 14, 80 → 18).
+  `HevcStream` splits the Annex B output and builds the hvcC record; `HeifFile` writes ftyp `heic`/`mif1`, a grid
+  item cropping the tiles to the picture size, hidden tile items, `ispe`/`pixi`, the ICC profile as `colr prof` (or
+  `nclx` sRGB, BT.601 full range when there is none) and Exif (orientation reset to 1, thumbnail removed) as a `cdsc`
+  item. Checked with libheif (Magick.NET), FFmpeg's HEIF demuxer and Windows' HEIF/HEVC extensions; a smooth 2000 ×
+  1500 picture is a quarter the size of a JPG at the same PSNR.

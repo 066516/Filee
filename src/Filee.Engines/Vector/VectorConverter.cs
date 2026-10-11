@@ -23,7 +23,7 @@ public sealed class VectorConverter : IConverter
         new("svgz", "pdf"),
         new("svg", "svgz"),
         new("svgz", "svg"),
-        .. ImageEncoder.Writable.SelectMany(target => new ConversionEdge[] { new("svg", target), new("svgz", target) }),
+        .. ImageEncoder.Writable.SelectMany(target => new[] { ImageEncoder.Edge("svg", target), ImageEncoder.Edge("svgz", target) }),
         // Illustrator files are PDF inside (or PostScript, see ConvertIllustratorAsync).
         new("ai", "pdf"),
     ];

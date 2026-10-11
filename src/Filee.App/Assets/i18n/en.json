@@ -78,7 +78,7 @@
   "engine.cad.description": "AutoCAD drawings: DWG ↔ DXF, and both to PDF, SVG and PNG.",
   "engine.archive.description": "Extracts ZIP, 7Z, RAR, TAR, GZ, ISO and other archives, repacks them as ZIP, 7Z or TAR.GZ and compresses files into one archive (7-Zip).",
   "engine.ebook.description": "E-books: EPUB, MOBI, AZW3, FB2 and comics (CBZ, CBR) to PDF, EPUB, DOCX and text; documents and Markdown to EPUB; PDF to CBZ.",
-  "engine.ffmpeg.description": "Video and audio: MP4, MOV, MKV, WEBM, AVI, MP3, M4A, WAV, FLAC and more; extracts the sound of videos and makes GIFs.",
+  "engine.ffmpeg.description": "Video and audio: MP4, MOV, MKV, WEBM, AVI, MP3, M4A, WAV, FLAC and more; extracts the sound of videos, makes GIFs and saves images as HEIC.",
   "engine.pandoc.description": "Markdown and HTML ↔ ODT and RTF, DOCX → Markdown, and reStructuredText and LaTeX ↔ Markdown, HTML, DOCX and ODT.",
   "engine.ghostscript.description": "EPS, PostScript and older Illustrator files to PDF and images; PDF to EPS and PS.",
   "engine.calibre.description": "Rare e-book formats (LIT, LRF, CHM, PDB, RB…) and Kindle output (MOBI, AZW3).",

@@ -27,7 +27,7 @@ public sealed record Choice<T>(T Value, string Label, string? Detail = null) : I
 
 public sealed partial class PresetEditorViewModel : ObservableObject
 {
-    private static readonly HashSet<string> LossyTargets = ["jpg", "webp", "avif"];
+    private static readonly HashSet<string> LossyTargets = ["jpg", "webp", "avif", "heic"];
 
     /// <summary>Audio targets without a bitrate or quality to choose.</summary>
     private static readonly HashSet<string> LosslessAudioTargets = ["wav", "flac", "aiff"];

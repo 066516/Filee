@@ -339,12 +339,15 @@ internal static class SettingsMigrations
             }
         }
 
-        // v9: PDF → one tall image (all pages stacked), on the PDF donut after JPG (issue #50).
+        // v9: PDF → one tall image (all pages stacked), on the PDF donut after JPG (issue #50), and a HEIC preset
+        //     (written with FFmpeg), on no donut like AVIF.
         if (from < 9)
         {
-            if (presets.All(p => p.Id != "pdf-long-image"))
+            foreach (var id in new[] { "pdf-long-image", "to-heic" })
             {
-                presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == "pdf-long-image"));
+                if (presets.Any(p => p.Id == id))
+                    continue;
+                presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == id));
                 changed = true;
             }
             changed |= Offer(presets, profiles, "pdf", "pdf-long-image", "to-jpg");

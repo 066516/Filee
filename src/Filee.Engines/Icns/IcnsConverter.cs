@@ -18,7 +18,7 @@ public sealed class IcnsConverter : IConverter
     public IReadOnlyList<ConversionEdge> Edges { get; } =
     [
         .. ImageEncoder.Sources.Select(source => new ConversionEdge(source, "icns")),
-        .. ImageEncoder.Writable.Select(target => new ConversionEdge("icns", target)),
+        .. ImageEncoder.Writable.Select(target => ImageEncoder.Edge("icns", target)),
     ];
 
     public EngineStatus GetStatus() => EngineStatus.Available(version: EngineVersions.BuiltIn);

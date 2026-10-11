@@ -19,7 +19,7 @@ public sealed class MagickImageConverter : IConverter, ITiffMerger
     public IReadOnlyList<ConversionEdge> Edges { get; } =
         (from source in ImageEncoder.Sources
          from target in ImageEncoder.Writable
-         select new ConversionEdge(source, target)).ToList();
+         select ImageEncoder.Edge(source, target)).ToList();
 
     public EngineStatus GetStatus() =>
         EngineStatus.Available(MagickNET.ImageMagickVersion,

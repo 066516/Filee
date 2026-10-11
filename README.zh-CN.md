@@ -118,7 +118,7 @@ Nautilus、Nemo、Thunar 或 Dolphin 的右键菜单。测试基准为 Ubuntu 24
 
 | 源格式 | 目标格式 |
 |---|---|
-| **图片**：JPG、PNG、WEBP、AVIF、TIFF、BMP、GIF、ICO、ICNS、JPEG XL、JPEG 2000、PSD/PSB、TGA、PPM；HEIC、GIMP XCF、相机 RAW（CR2、CR3、NEF、ARW、DNG 等）仅读取 | 上述格式互转、PDF、缩放、灰度 |
+| **图片**：JPG、PNG、WEBP、AVIF、TIFF、BMP、GIF、ICO、ICNS、JPEG XL、JPEG 2000、PSD/PSB、TGA、PPM、HEIC；GIMP XCF、相机 RAW（CR2、CR3、NEF、ARW、DNG 等）仅读取 | 上述格式互转（HEIC⁵）、PDF、缩放、灰度 |
 | **矢量图**：SVG、SVGZ、EMF、WMF、AI · EPS、PS¹ · CDR、VSD、CGM、ODG² | PDF（矢量）、PNG 等图片、SVG ↔ SVGZ、PDF → EPS/PS¹ |
 | **PDF** | DOCX、HWPX、TXT、PNG、JPG、TIFF、CBZ；合并、拆分、页码范围 |
 | **文档**：DOCX、DOCM、DOTX、EML · DOC、ODT、RTF、WPS、WPD、Pages 等² | PDF、DOCX、HWPX、EPUB、TXT、HTML |

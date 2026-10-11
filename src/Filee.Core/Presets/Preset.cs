@@ -82,7 +82,7 @@ public enum TiffCompression
 /// <summary>Raster image encoding options.</summary>
 public sealed class ImageOptions
 {
-    /// <summary>Lossy quality 1-100 (JPG, WEBP, AVIF).</summary>
+    /// <summary>Lossy quality 1-100 (JPG, WEBP, AVIF, HEIC).</summary>
     public int Quality { get; set; } = 90;
 
     public ResizeMode Resize { get; set; } = ResizeMode.None;
