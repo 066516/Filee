@@ -6,6 +6,15 @@ version it publishes under "What's Changed" in the GitHub release notes, above t
 Add a `## <version>` section before tagging a release. Write what someone using Filee notices: what's new, where to
 find it, what it does and doesn't do.
 
+## 1.10.0
+
+### New
+
+- **PDF → one long image** (issue #50). A multi-page PDF becomes a single tall image with the pages one under
+  another, e.g. to post a whole document at once. Use **Long image** on the PDF donut (PNG), or tick "Stack the pages
+  into one tall image" in any image preset. Pages of different widths are centred; a result taller than the format
+  stores (JPG 65,500 px, WebP 16,383 px) or very large is scaled down to fit. TIFF and GIF keep one page per frame.
+
 ## 1.9.0
 
 ### New

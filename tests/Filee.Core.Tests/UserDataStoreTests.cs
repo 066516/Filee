@@ -174,6 +174,24 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_8_libraries_get_the_long_image_preset_after_jpg()
+    {
+        // As written by 1.9.0: no "Long image" preset, and the PDF donut without it.
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "pdf-long-image");
+        var profiles = BuiltInData.CreateProfiles();
+        var pdf = profiles.Single(p => p.Id == "pdf");
+        pdf.PresetIds.Remove("pdf-long-image");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(8, presets, profiles));
+
+        var longImage = presets.Single(p => p.Id == "pdf-long-image");
+        Assert.True(longImage.Pdf.CombinePages);
+        Assert.Equal(pdf.PresetIds.IndexOf("to-jpg") + 1, pdf.PresetIds.IndexOf("pdf-long-image"));
+        Assert.False(SettingsMigrations.ApplyToLibrary(8, presets, profiles)); // once only
+    }
+
+    [Fact]
     public void Catalog_migration_ignores_extensions_checked_on_mixed_profiles()
     {
         // Schema-5 data where the user already limited a mixed-files donut to MP3 and JPG: those checks must not

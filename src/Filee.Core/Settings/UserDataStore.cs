@@ -338,6 +338,17 @@ internal static class SettingsMigrations
                 changed = true;
             }
         }
+
+        // v9: PDF → one tall image (all pages stacked), on the PDF donut after JPG (issue #50).
+        if (from < 9)
+        {
+            if (presets.All(p => p.Id != "pdf-long-image"))
+            {
+                presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == "pdf-long-image"));
+                changed = true;
+            }
+            changed |= Offer(presets, profiles, "pdf", "pdf-long-image", "to-jpg");
+        }
         return changed;
     }
 

@@ -162,6 +162,9 @@ public sealed class PdfOptions
     /// <summary>For PDF → PDF: write every page as its own file.</summary>
     public bool SplitPages { get; set; }
 
+    /// <summary>For PDF → image: stack the pages into one tall image instead of one image per page.</summary>
+    public bool CombinePages { get; set; }
+
     public PdfOptions Clone() => (PdfOptions)MemberwiseClone();
 }
 
