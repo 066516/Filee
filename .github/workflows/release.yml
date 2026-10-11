@@ -61,8 +61,24 @@ jobs:
         shell: pwsh
         run: ./build/fetch-engines.ps1 -Only rhwp,pandoc,7zip
 
+      # Built first and tested like CI: the UI tests on their own with crash and hang blame (a crash names the
+      # running test and leaves a dump in TestResults), then the rest.
+      - name: Build
+        run: dotnet build Filee.slnx -c Release
+
+      - name: Test UI on its own
+        run: dotnet test tests/Filee.App.Tests --no-build -c Release --blame-crash --blame-hang-timeout 5m --logger "console;verbosity=normal" --results-directory TestResults/app
+
       - name: Test
-        run: dotnet test Filee.slnx -c Release
+        run: dotnet test Filee.slnx --no-build -c Release
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-windows
+          path: TestResults/
+          if-no-files-found: ignore
 
       # Publishes the app (Release, self-contained, ReadyToRun) with the Explorer menu extension and the bundled rhwp
       # and 7-Zip, then compiles the installer (portable Inno Setup, pinned and verified) and zips the portable copy.

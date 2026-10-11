@@ -36,6 +36,11 @@ jobs:
       - name: Check formatting
         run: dotnet format Filee.slnx --verify-no-changes --no-restore --severity warn
 
+      # The release embeds the Noto fonts, so the tests run with them here too: the headless UI tests load them.
+      - name: Fonts
+        shell: pwsh
+        run: ./build/fetch-fonts.ps1
+
       - name: Build
         run: dotnet build Filee.slnx --no-restore -c Release
 
@@ -66,6 +71,11 @@ jobs:
         shell: pwsh
         run: ./build/fetch-engines.ps1 -Only rhwp,pandoc,7zip
 
+      # The UI tests on their own first, as the release runs them (there they crashed with 0xC0000005): a crash
+      # names the test that was running and leaves a dump in TestResults.
+      - name: Test UI on its own
+        run: dotnet test tests/Filee.App.Tests --no-build -c Release --blame-crash --blame-hang-timeout 5m --logger "console;verbosity=normal" --results-directory TestResults/app
+
       - name: Test
         run: dotnet test Filee.slnx --no-build -c Release --logger "trx" --results-directory TestResults
 
@@ -73,6 +83,14 @@ jobs:
       - name: Check installer script
         shell: pwsh
         run: ./build/build-installer.ps1 -CheckOnly
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-windows
+          path: TestResults/
+          if-no-files-found: ignore
 
       - name: Upload UI screenshots
         if: always()
