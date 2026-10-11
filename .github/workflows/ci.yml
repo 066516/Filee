@@ -36,6 +36,11 @@ jobs:
       - name: Check formatting
         run: dotnet format Filee.slnx --verify-no-changes --no-restore --severity warn
 
+      # The release embeds the Noto fonts, so the tests run with them here too: the headless UI tests load them.
+      - name: Fonts
+        shell: pwsh
+        run: ./build/fetch-fonts.ps1
+
       - name: Build
         run: dotnet build Filee.slnx --no-restore -c Release
 
