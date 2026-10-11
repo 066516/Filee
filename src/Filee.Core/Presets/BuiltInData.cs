@@ -50,6 +50,11 @@ public static class BuiltInData
         },
         new()
         {
+            Id = "pdf-long-image", NameKey = "preset.long_image", TargetFormat = "png",
+            Pdf = { CombinePages = true }, Output = { FileNamePattern = "{name}_long" },
+        },
+        new()
+        {
             Id = "pdf-split", NameKey = "preset.split_pdf", TargetFormat = "pdf",
             Pdf = { SplitPages = true }, Output = { Location = OutputLocation.Subfolder, SubfolderName = "{name}" },
         },
@@ -167,7 +172,7 @@ public static class BuiltInData
         {
             Id = "pdf", NameKey = "profile.pdf",
             Extensions = ["pdf"],
-            PresetIds = ["to-png", "to-jpg", "to-docx", "to-txt", "to-md", "to-epub", "to-hwpx", "to-hwp", "to-tiff", "pdf-split", "merge-pdf"],
+            PresetIds = ["to-png", "to-jpg", "pdf-long-image", "to-docx", "to-txt", "to-md", "to-epub", "to-hwpx", "to-hwp", "to-tiff", "pdf-split", "merge-pdf"],
         },
         new()
         {

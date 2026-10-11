@@ -104,6 +104,7 @@
   "preset.grayscale": "灰度",
   "preset.merge_pdf": "合并 PDF",
   "preset.split_pdf": "拆分 PDF",
+  "preset.long_image": "长图",
   "preset.extract": "解压",
   "preset.zip_all": "打包成一个 ZIP",
 
@@ -304,6 +305,8 @@
   "presets.page_range": "页面",
   "presets.page_range_hint": "全部，或如 1-3, 5",
   "presets.split": "每页一个文件",
+  "presets.combine_pages_hint": "所有页面上下相接，生成一张图片，适合一次性发布整份文档。过长时会缩小到该格式能保存的高度（JPG 65,500 像素，WebP 16,383 像素）。",
+  "presets.combine_pages": "把所有页面上下拼成一张长图（转换 PDF 时）",
   "presets.group.document": "文档",
   "presets.pdfa": "PDF/A（长期存档）",
   "presets.target_folder": "文件夹（解压缩）",

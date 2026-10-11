@@ -106,6 +106,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _renderDpi = _edit.Pdf.RenderDpi;
         _pageRange = _edit.Pdf.PageRange;
         _splitPages = _edit.Pdf.SplitPages;
+        _combinePages = _edit.Pdf.CombinePages;
         _pdfA = _edit.Document.PdfA;
         _subfolderName = _edit.Output.SubfolderName;
         _customFolder = _edit.Output.CustomFolder;
@@ -134,7 +135,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowImage), nameof(ShowQuality), nameof(ShowTiff), nameof(ShowMultiPageTiff), nameof(ShowWebp), nameof(ShowIco),
-        nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowPdfSplit),
+        nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
         nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
         nameof(ShowAudioChannels), nameof(ShowWav),
         nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote))]
@@ -188,6 +189,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private int _renderDpi;
     [ObservableProperty] private string _pageRange;
     [ObservableProperty] private bool _splitPages;
+
+    /// <summary>PDF → image: one tall image of all pages.</summary>
+    [ObservableProperty] private bool _combinePages;
     [ObservableProperty] private bool _pdfA;
     [ObservableProperty] private string _subfolderName;
     [ObservableProperty] private string _customFolder;
@@ -220,6 +224,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowPdf => TargetCategory is not (FormatCategory.Video or FormatCategory.Audio or FormatCategory.Archive or FormatCategory.Font);
     public bool ShowPdfBuild => TargetId == "pdf";
     public bool ShowPdfSplit => TargetId == "pdf";
+
+    /// <summary>PDF → a single-image format: the pages can be stacked into one tall image (TIFF and GIF keep pages).</summary>
+    public bool ShowPdfCombine => TargetCategory == FormatCategory.Image && TargetId is not ("tiff" or "gif" or "ico" or "icns" or "svg" or "pdf");
     public bool ShowDocument => TargetId == "pdf";
     public bool ShowMedia => ShowMediaQuality || ShowMaxHeight || ShowRemoveAudio || ShowAudioChannels;
     /// <summary>Mono / stereo for every audio target but AMR, which is mono by definition.</summary>
@@ -282,6 +289,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         pdf.RenderDpi = Math.Clamp(RenderDpi, 36, 1200);
         pdf.PageRange = PageRange.Trim();
         pdf.SplitPages = SplitPages;
+        pdf.CombinePages = CombinePages;
         _original.Document.PdfA = PdfA;
 
         var media = _original.Media;

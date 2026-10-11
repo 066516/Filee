@@ -219,6 +219,43 @@ public class ImageAndPdfTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public async Task Pdf_pages_stack_into_one_tall_image()
+    {
+        // Issue #50: an 8-page PDF gave 8 pictures; "Long image" gives one with the pages one under another.
+        var dir = fx.NewFolder();
+        var pdf = (await fx.ConvertAsync([EngineFixture.MakeMultiPageTiff(dir, 3)], new Preset { TargetFormat = "pdf" })).Outputs.Single();
+        using var firstPage = new MagickImage((await fx.ConvertAsync([pdf], new Preset { TargetFormat = "png", Pdf = { RenderDpi = 72, PageRange = "1" } })).Outputs.Single());
+
+        var job = await fx.ConvertAsync([pdf], new Preset { TargetFormat = "png", Pdf = { RenderDpi = 72, CombinePages = true }, Output = { FileNamePattern = "{name}_long" } });
+
+        AssertDone(job);
+        Assert.Equal("pages_long.png", Path.GetFileName(job.Outputs.Single()));
+        using var tall = new MagickImage(job.Outputs.Single());
+        Assert.Equal(firstPage.Width, tall.Width);
+        Assert.Equal(firstPage.Height * 3, tall.Height);
+    }
+
+    [Theory]
+    [InlineData("jpg", 65_500)]
+    [InlineData("webp", 16_383)]
+    public void A_stack_taller_than_the_format_stores_is_scaled_down(string target, int limit)
+    {
+        // 40 A4 pages at 300 dpi: about 140,000 px tall.
+        var pages = Enumerable.Range(0, 40).Select(_ => (IMagickImage<byte>)new MagickImage(MagickColors.SkyBlue, 2480, 3508)).ToList();
+        try
+        {
+            using var tall = Filee.Engines.Pdf.PdfiumConverter.Stack(pages, target);
+            Assert.True(tall.Height <= limit, $"{tall.Height} px");
+            Assert.True((long)tall.Width * tall.Height <= Filee.Engines.Pdf.PdfiumConverter.MaxStackedPixels);
+            Assert.InRange(tall.Width / (double)tall.Height, 2480 / (3508.0 * 40) * 0.95, 2480 / (3508.0 * 40) * 1.05); // pages keep their shape
+        }
+        finally
+        {
+            pages.ForEach(p => p.Dispose());
+        }
+    }
+
+    [Fact]
     public async Task Merge_images_into_one_pdf()
     {
         var dir = fx.NewFolder();
