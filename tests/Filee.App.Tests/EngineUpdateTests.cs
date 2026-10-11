@@ -52,10 +52,19 @@ public class EngineUpdateTests
         var updated = 0;
         var notice = new EngineUpdateNoticeWindow("FFmpeg 8.0 · LibreOffice 26.8", () => updated++);
         notice.Show();
-        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        for (var i = 0; i < 40; i++)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        }
 
-        var frame = notice.CaptureRenderedFrame();
-        frame?.Save(Path.Combine(TestServices.ScreenshotDirectory, "engine-update-notice-ko.png"));
+        // Disposed here: a frame left to the finalizer crashed the test process on Windows (0xC0000005).
+        using (var frame = notice.CaptureRenderedFrame())
+        {
+            Assert.NotNull(frame);
+            using var stream = File.Create(Path.Combine(TestServices.ScreenshotDirectory, "engine-update-notice-ko.png"));
+            frame.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+        }
         var update = notice.GetVisualDescendants().OfType<Avalonia.Controls.Button>()
             .First(b => b.Classes.Contains("accent"));
         update.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
