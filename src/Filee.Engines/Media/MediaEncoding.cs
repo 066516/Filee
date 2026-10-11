@@ -80,8 +80,20 @@ internal static class MediaEncoding
         ["voc"] = new("voc", null, "pcm_s16le"),
     };
 
-    /// <summary>Formats an animated GIF can be turned into.</summary>
-    public static IReadOnlyList<string> GifToVideoTargets { get; } = ["mp4", "webm", "mov"];
+    /// <summary>Formats an animated GIF or a still picture (PNG) can be turned into.</summary>
+    public static IReadOnlyList<string> PictureToVideoTargets { get; } = ["mp4", "webm", "mov"];
+
+    /// <summary>How long a video made of one still picture shows it.</summary>
+    public static TimeSpan StillDuration { get; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// The largest picture H.264 and VP9 at level 6.2 (their highest) allow: 8192 × 4352, about 35.6 megapixels.
+    /// Larger photos (48 MP phone cameras) are scaled down to it, or many players refuse the video.
+    /// </summary>
+    private const long MaxVideoPixels = 8192L * 4352;
+
+    /// <summary>The longest side VP9 level 6.2 allows (H.264 allows 16880), for panoramas within the pixel limit.</summary>
+    private const int MaxVideoSide = 16384;
 
     /// <summary>Audio targets that can carry a cover picture (album art) copied from the source.</summary>
     private static readonly HashSet<string> CoverTargets = ["mp3", "m4a", "m4b", "flac"];
@@ -481,6 +493,55 @@ internal static class MediaEncoding
         ];
     }
 
+    // ───────────────────────── Still picture → video ─────────────────────────
+
+    /// <summary>
+    /// A video that shows the PNG <paramref name="input"/> for <see cref="StillDuration"/>. The image engines write
+    /// that PNG at full size and colour, so pictures never pass through a 256-colour GIF on their way to video.
+    /// </summary>
+    /// <remarks>
+    /// The PNG's ICC profile or colour chunks give the primaries and transfer (a Display P3 photo stays P3 in the
+    /// video); RGB becomes BT.709 YUV in TV range, tagged as such. Transparent areas turn black, like the bars around
+    /// a video. 30 frames per second play everywhere; identical frames cost x264 (tuned for stills) and VP9 almost
+    /// nothing, so the quality is one step above the preset's (Balanced encodes like High): the file is about the
+    /// size of one picture either way.
+    /// </remarks>
+    public static IReadOnlyList<FfmpegPass> PlanStill(string input, string output, string target, MediaOptions options, MediaInfo info)
+    {
+        var picture = info.Video ?? throw new InvalidOperationException("The file has no picture.");
+        if (!PictureToVideoTargets.Contains(target))
+            throw new NotSupportedException($"FFmpeg does not turn pictures into '{target}'.");
+        var spec = VideoTargets[target];
+        var quality = options.Quality == MediaQuality.Small ? MediaQuality.Balanced : MediaQuality.High;
+
+        List<string> args =
+        [
+            .. Common, "-flags2", "+icc_profiles", "-loop", "1", "-framerate", "30", "-i", input, "-map", "0:V:0",
+            "-t", StillDuration.TotalSeconds.ToString(CultureInfo.InvariantCulture),
+            "-vf", $"premultiply=inplace=1,{StillScale(picture, options.MaxHeight)}:out_color_matrix=bt709:out_range=tv,format=yuv420p",
+            .. VideoCodecArguments(target, spec.VideoCodec!, quality, picture, pal: false),
+        ];
+        if (spec.VideoCodec == "libx264")
+            args.AddRange(["-tune", "stillimage"]);
+        args.AddRange(["-colorspace", "bt709", "-an", .. ContainerArguments(target), "-f", spec.Muxer, "-progress", "pipe:1", output]);
+        return [new FfmpegPass(args, 1)];
+    }
+
+    /// <summary>
+    /// The picture's own size, made even (4:2:0) and scaled down only to <paramref name="maxHeight"/> or to what video
+    /// players decode (<see cref="MaxVideoPixels"/>, <see cref="MaxVideoSide"/>), keeping the aspect ratio.
+    /// </summary>
+    internal static string StillScale(VideoStreamInfo picture, int maxHeight)
+    {
+        double width = picture.Width, height = picture.Height;
+        if (width <= 0 || height <= 0)
+            return ScaleFilter(maxHeight) + ":flags=lanczos";
+        var factor = Math.Min(1, Math.Min(Math.Sqrt(MaxVideoPixels / (width * height)), MaxVideoSide / Math.Max(width, height)));
+        if (maxHeight > 0)
+            factor = Math.Min(factor, Math.Max(16, maxHeight) / height);
+        return $"scale={EvenDown(width * factor)}:{EvenDown(height * factor)}:flags=lanczos";
+    }
+
     // ───────────────────────── Helpers ─────────────────────────
 
     private static T Choose<T>(MediaQuality quality, T high, T balanced, T small) => quality switch
@@ -493,4 +554,7 @@ internal static class MediaEncoding
     private static string Text(int value) => value.ToString(CultureInfo.InvariantCulture);
 
     private static int Even(double value) => Math.Max(2, (int)Math.Round(value / 2) * 2);
+
+    /// <summary>The even number at or below <paramref name="value"/> (a tiny rounding margin keeps 1080.0000001 at 1080).</summary>
+    private static int EvenDown(double value) => Math.Max(2, (int)Math.Floor(value / 2 + 1e-6) * 2);
 }

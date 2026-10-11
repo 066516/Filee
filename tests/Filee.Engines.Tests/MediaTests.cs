@@ -49,6 +49,7 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [InlineData("amr", "mp3")]
     [InlineData("gif", "mp4")]
     [InlineData("gif", "webm")]
+    [InlineData("png", "mov")]
     [InlineData("rm", "mp4")]
     [InlineData("dss", "mp3")]
     public void Media_conversions_take_one_ffmpeg_step(string from, string to)
@@ -68,6 +69,29 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         var route = Planner().Plan(from, to);
         Assert.NotNull(route);
         Assert.Equal([("ffmpeg", from, "png"), (imageEngine, "png", to)], route.Steps.Select(s => (s.Converter.Id, s.From, s.To)));
+    }
+
+    [Theory]
+    [InlineData("heic", "mov", "magick")]
+    [InlineData("jpg", "mp4", "magick")]
+    [InlineData("avif", "webm", "magick")]
+    [InlineData("svg", "mov", "vector")]
+    public void Photos_reach_video_as_a_full_colour_png_not_a_gif(string from, string to, string imageEngine)
+    {
+        var route = Planner().Plan(from, to);
+        Assert.NotNull(route);
+        Assert.Equal([(imageEngine, from, "png"), ("ffmpeg", "png", to)], route.Steps.Select(s => (s.Converter.Id, s.From, s.To)));
+    }
+
+    [Theory]
+    [InlineData("pdf", "mp4", "pdfium")] // a slideshow of the pages
+    [InlineData("webp", "mov", "magick")] // an animated WebP keeps moving
+    [InlineData("tiff", "webm", "magick")]
+    public void Animations_and_pages_still_reach_video_through_gif(string from, string to, string imageEngine)
+    {
+        var route = Planner().Plan(from, to);
+        Assert.NotNull(route);
+        Assert.Equal([(imageEngine, from, "gif"), ("ffmpeg", "gif", to)], route.Steps.Select(s => (s.Converter.Id, s.From, s.To)));
     }
 
     [Fact]
@@ -205,6 +229,36 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Contains("fps=12,scale=w='min(iw,480)':h='min(ih,200)'", After(second, "-filter_complex"));
         Assert.Contains("paletteuse", After(second, "-filter_complex"));
     }
+
+    [Fact]
+    public void A_still_picture_is_shown_for_five_seconds_at_full_size()
+    {
+        var photo = new MediaInfo(null, new VideoStreamInfo(4033, 3025, 1, 0, 25), null, null);
+        var mov = MediaEncoding.PlanStill("in.png", "out.mov", "mov", new MediaOptions(), photo).Single().Arguments;
+        Assert.Equal(["-loop", "1", "-framerate", "30", "-i", "in.png"], mov.SkipWhile(a => a != "-loop").Take(6));
+        Assert.Equal("+icc_profiles", After(mov, "-flags2"));
+        Assert.Equal("5", After(mov, "-t"));
+        Assert.Equal("premultiply=inplace=1,scale=4032:3024:flags=lanczos:out_color_matrix=bt709:out_range=tv,format=yuv420p", After(mov, "-vf"));
+        Assert.Equal(("libx264", "18", "stillimage", "bt709"), (After(mov, "-c:v"), After(mov, "-crf"), After(mov, "-tune"), After(mov, "-colorspace")));
+        Assert.Contains("-an", mov);
+        Assert.Equal("mov", After(mov, "-f"));
+
+        var webm = MediaEncoding.PlanStill("in.png", "out.webm", "webm", new MediaOptions { Quality = MediaQuality.Small }, photo).Single().Arguments;
+        Assert.Equal(("libvpx-vp9", "32"), (After(webm, "-c:v"), After(webm, "-crf"))); // one step up: Small → Balanced
+        Assert.DoesNotContain("-tune", webm);
+
+        Assert.Throws<NotSupportedException>(() => MediaEncoding.PlanStill("in.png", "out.avi", "avi", new MediaOptions(), photo));
+    }
+
+    [Theory]
+    [InlineData(4032, 3024, 0, "scale=4032:3024")]
+    [InlineData(1001, 751, 0, "scale=1000:750")] // even sides for 4:2:0
+    [InlineData(4032, 3024, 720, "scale=960:720")]
+    [InlineData(8064, 6048, 0, "scale=6894:5170")] // 48 MP: down to the 35.6 MP H.264/VP9 level 6.2 limit
+    [InlineData(30000, 2000, 0, "scale=16384:1092")] // panorama: at most 16384 wide
+    [InlineData(0, 0, 0, "scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'")]
+    public void Still_pictures_are_scaled_down_only_to_what_players_decode(int width, int height, int maxHeight, string expected) =>
+        Assert.Equal(expected + ":flags=lanczos", MediaEncoding.StillScale(new VideoStreamInfo(width, height, 1, 0, 25), maxHeight));
 
     [Fact]
     public void Missing_streams_are_reported_clearly()
@@ -411,6 +465,48 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal("h264", mp4.Video?.Codec);
         Assert.Equal((480, 270), (mp4.Video!.Width, mp4.Video.Height));
         Assert.InRange(mp4.Duration, 1.5, 2.5);
+    }
+
+    [Fact]
+    public async Task A_photo_becomes_a_still_video_in_full_colour()
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        // Odd-sized gradient with a transparent corner, as a JPG (→ PNG → MOV) and a PNG (→ WEBM).
+        var png = EngineFixture.MakeImage(folder, "photo.png", ImageMagick.MagickFormat.Png, 1001, 751);
+        var jpg = Path.Combine(folder, "photo.jpg");
+        using (var source = new ImageMagick.MagickImage(png))
+            source.Write(jpg, ImageMagick.MagickFormat.Jpeg);
+
+        foreach (var (input, target, codec) in new[] { (jpg, "mov", "h264"), (png, "webm", "vp9") })
+        {
+            var video = await ConvertAsync(input, target);
+            var probed = await ProbeAsync(video);
+            Assert.Equal(codec, probed.Video?.Codec);
+            Assert.Equal((1000, 750), (probed.Video!.Width, probed.Video.Height));
+            Assert.InRange(probed.Duration, 4.9, 5.1);
+            Assert.Null(probed.Audio);
+
+            var frame = Path.Combine(folder, $"frame-{target}.png");
+            await RunAsync(Tools!.Value.Ffmpeg, ["-hide_banner", "-nostdin", "-v", "error", "-y", "-i", video, "-frames:v", "1", frame]);
+            using var picture = new ImageMagick.MagickImage(frame);
+            // Colours stay put (BT.709 both ways): the middle is halfway between #7F77DD and #1D9E75.
+            var middle = picture.GetPixels().GetPixel(500, 375).ToColor()!;
+            Assert.InRange(middle.R, 0x4E - 6, 0x4E + 6);
+            Assert.InRange(middle.G, 0x8A - 6, 0x8A + 6);
+            Assert.InRange(middle.B, 0xA9 - 6, 0xA9 + 6);
+            if (target == "webm")
+                Assert.True(picture.GetPixels().GetPixel(10, 10).ToColor()!.R < 16, "the transparent corner turns black");
+        }
+
+        // Every colour of a 64-level colour cube: a GIF on the way would leave at most 256 of them.
+        var cube = Path.Combine(folder, "cube.png");
+        using (var colours = new ImageMagick.MagickImage("hald:8"))
+            colours.Write(cube);
+        var cubeFrame = Path.Combine(folder, "frame-cube.png");
+        await RunAsync(Tools!.Value.Ffmpeg, ["-hide_banner", "-nostdin", "-v", "error", "-y", "-i", await ConvertAsync(cube, "mp4"), "-frames:v", "1", cubeFrame]);
+        using var cubePicture = new ImageMagick.MagickImage(cubeFrame);
+        Assert.True(cubePicture.TotalColors > 10_000, $"{cubePicture.TotalColors} colours");
     }
 
     [Fact]

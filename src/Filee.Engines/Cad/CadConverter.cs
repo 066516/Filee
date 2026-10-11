@@ -39,7 +39,7 @@ public sealed class CadConverter(ILogger? logger = null) : IConverter
         new("dxf", "dwg"),
         .. from source in Sources
            from target in (string[])["pdf", "svg", .. ImageEncoder.Writable]
-           select new ConversionEdge(source, target),
+           select ImageEncoder.Edge(source, target),
     ];
 
     public EngineStatus GetStatus() => EngineStatus.Available("ACadSharp: DWG R13–2018+, DXF", $"{EngineVersions.BuiltIn} · {EngineVersions.Library("ACadSharp", typeof(ACadSharp.CadDocument))}");

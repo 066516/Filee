@@ -78,7 +78,7 @@
   "engine.cad.description": "오토캐드 도면: DWG ↔ DXF, 그리고 둘 다 PDF, SVG, PNG로.",
   "engine.archive.description": "ZIP, 7Z, RAR, TAR, GZ, ISO 등 압축 파일을 풀고, ZIP·7Z·TAR.GZ로 다시 묶거나 여러 파일을 압축 파일 하나로 만들어요(7-Zip).",
   "engine.ebook.description": "전자책: EPUB, MOBI, AZW3, FB2와 만화책(CBZ, CBR)을 PDF, EPUB, DOCX, 텍스트로 바꾸고, 문서와 마크다운은 EPUB으로, PDF는 CBZ로 만들어요.",
-  "engine.ffmpeg.description": "동영상·오디오: MP4, MOV, MKV, WEBM, AVI, MP3, M4A, WAV, FLAC 등. 동영상에서 소리만 뽑거나 GIF도 만들어요.",
+  "engine.ffmpeg.description": "동영상·오디오: MP4, MOV, MKV, WEBM, AVI, MP3, M4A, WAV, FLAC 등. 동영상에서 소리만 뽑거나 GIF를 만들고, 이미지를 HEIC로 저장해요.",
   "engine.pandoc.description": "마크다운·HTML ↔ ODT·RTF, DOCX → 마크다운, reStructuredText·LaTeX ↔ 마크다운·HTML·DOCX·ODT.",
   "engine.ghostscript.description": "EPS, 포스트스크립트, 예전 일러스트레이터 파일을 PDF와 이미지로, PDF를 EPS·PS로.",
   "engine.calibre.description": "드문 전자책 형식(LIT, LRF, CHM, PDB, RB…)과 킨들용 출력(MOBI, AZW3).",

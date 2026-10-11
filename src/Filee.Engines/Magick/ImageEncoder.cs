@@ -24,8 +24,8 @@ internal static class ImageEncoder
     public static readonly string[] Metafiles = ["emf", "wmf"];
 
     /// <summary>
-    /// Image formats ImageMagick can write. HEIC is missing on purpose: the bundled build has no HEVC encoder
-    /// (patent licensing), so we offer AVIF instead.
+    /// Image formats ImageMagick can write. HEIC is missing: the bundled build has no HEVC encoder (patent
+    /// licensing), so HEIC is written with the optional FFmpeg download instead (Heic/HeicWriter).
     /// </summary>
     public static readonly string[] Writable =
     [
@@ -42,12 +42,23 @@ internal static class ImageEncoder
     /// </summary>
     private static readonly HashSet<string> Animated = ["gif", "webp"];
 
+    /// <summary>
+    /// The edge an image engine offers from a picture in <paramref name="source"/> to <paramref name="target"/>. GIF
+    /// holds 256 colours, so a still picture costs more there: it reaches video through a full-colour PNG instead
+    /// (FFmpeg), while animations and multi-page files still go through GIF and keep their frames.
+    /// </summary>
+    public static ConversionEdge Edge(string source, string target) =>
+        new(source, target, target == "gif" && !MultiFrame.Contains(source) && !Animated.Contains(source) ? 12 : 10);
+
     /// <summary>True when frames of <paramref name="sourceFormat"/> are written as one animation in <paramref name="targetFormat"/>.</summary>
     public static bool KeepsAnimation(string sourceFormat, string targetFormat) =>
         Animated.Contains(sourceFormat) && Animated.Contains(targetFormat);
 
-    /// <summary>Formats without an alpha channel: transparent pixels are flattened onto the background colour.</summary>
-    private static readonly HashSet<string> NoAlpha = ["jpg", "ppm"];
+    /// <summary>
+    /// Formats written without an alpha channel: transparent pixels are flattened onto the background colour. HEIC
+    /// could carry alpha as an auxiliary picture; Filee's writer (Heic/HeicWriter) does not.
+    /// </summary>
+    private static readonly HashSet<string> NoAlpha = ["jpg", "ppm", "heic"];
 
     /// <summary>Every format ImageMagick reads as input: the raster formats plus, on Windows, the metafiles.</summary>
     public static IEnumerable<string> Sources =>

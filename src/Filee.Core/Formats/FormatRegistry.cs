@@ -21,7 +21,7 @@ public static class FormatRegistry
         new("gif", "GIF", FormatCategory.Image, ["gif"]),
         new("ico", "ICO", FormatCategory.Image, ["ico"]),
         new("avif", "AVIF", FormatCategory.Image, ["avif"]),
-        new("heic", "HEIC", FormatCategory.Image, ["heic", "heif"], Writable: false),
+        new("heic", "HEIC", FormatCategory.Image, ["heic", "heif"]),
         new("jxl", "JPEG XL", FormatCategory.Image, ["jxl"]),
         new("jp2", "JPEG 2000", FormatCategory.Image, ["jp2", "j2k", "jpf", "jpx"]),
         new("psd", "PSD", FormatCategory.Image, ["psd"]),

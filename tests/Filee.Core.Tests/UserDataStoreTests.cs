@@ -174,11 +174,11 @@ public class UserDataStoreTests
     }
 
     [Fact]
-    public void Version_8_libraries_get_the_long_image_preset_after_jpg()
+    public void Version_8_libraries_get_the_long_image_preset_after_jpg_and_a_heic_preset()
     {
-        // As written by 1.9.0: no "Long image" preset, and the PDF donut without it.
+        // As written by 1.9.0: no "Long image" or HEIC preset, and the PDF donut without the long image.
         var presets = BuiltInData.CreatePresets();
-        presets.RemoveAll(p => p.Id == "pdf-long-image");
+        presets.RemoveAll(p => p.Id is "pdf-long-image" or "to-heic");
         var profiles = BuiltInData.CreateProfiles();
         var pdf = profiles.Single(p => p.Id == "pdf");
         pdf.PresetIds.Remove("pdf-long-image");
@@ -188,6 +188,8 @@ public class UserDataStoreTests
         var longImage = presets.Single(p => p.Id == "pdf-long-image");
         Assert.True(longImage.Pdf.CombinePages);
         Assert.Equal(pdf.PresetIds.IndexOf("to-jpg") + 1, pdf.PresetIds.IndexOf("pdf-long-image"));
+        Assert.Equal("heic", presets.Single(p => p.Id == "to-heic").TargetFormat);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("to-heic"));
         Assert.False(SettingsMigrations.ApplyToLibrary(8, presets, profiles)); // once only
     }
 

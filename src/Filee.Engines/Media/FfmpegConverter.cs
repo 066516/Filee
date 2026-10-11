@@ -1,6 +1,6 @@
 // Video and audio conversion with FFmpeg (GPL-3.0 build, an optional download run as a separate program in
 // engines/ffmpeg): video ↔ video, video → animated GIF or a still frame, audio extraction, audio ↔ audio and
-// GIF → video.
+// GIF or a still picture → video, and images → HEIC (FFmpeg's HEVC encoder, Filee's own container writer).
 // Container and codec choices live in MediaEncoding, the process handling in FfmpegRunner.
 
 using System.Collections.Concurrent;
@@ -8,7 +8,9 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Filee.Core.Conversion;
 using Filee.Core.Formats;
+using Filee.Engines.Heic;
 using Filee.Engines.Infrastructure;
+using Filee.Engines.Magick;
 
 namespace Filee.Engines.Media;
 
@@ -30,11 +32,15 @@ public sealed partial class FfmpegConverter : IConverter
     /// <summary>
     /// Every video format (read by FFmpeg's demuxers) → every video target, animated GIF, a still PNG frame and every
     /// audio target; every audio format → every audio target (including itself: re-encode with another bitrate);
-    /// GIF → MP4, WEBM, MOV. Only formats the pinned build can write are targets (see MediaEncoding).
+    /// GIF and PNG → MP4, WEBM, MOV; every image ImageMagick reads → HEIC. Only formats the pinned build can write
+    /// are targets (see MediaEncoding).
     /// </summary>
     /// <remarks>
     /// The GIF edge costs more (slow, 256 colours), so video → JPG / PDF / TIFF … goes through the still frame
     /// (video → PNG → image engines) and never renders an animated GIF of a whole film just to take one frame of it.
+    /// The other way, a photo (HEIC, JPG, …) reaches video as a full-colour PNG: the image engines' still → GIF edges
+    /// cost 12 (<see cref="Magick.ImageEncoder.Edge"/>), so 10 + 11 beats 12 + 10. Animated GIF/WebP and PDF or TIFF
+    /// pages keep the GIF route (10 + 10), which keeps their frames.
     /// </remarks>
     private static List<ConversionEdge> BuildEdges()
     {
@@ -46,7 +52,10 @@ public sealed partial class FfmpegConverter : IConverter
             .. from source in videos from target in videoTargets select new ConversionEdge(source, target),
             .. videos.Select(source => new ConversionEdge(source, "gif", 15)),
             .. from source in audios from target in MediaEncoding.AudioTargets.Keys select new ConversionEdge(source, target),
-            .. MediaEncoding.GifToVideoTargets.Select(target => new ConversionEdge("gif", target)),
+            .. MediaEncoding.PictureToVideoTargets.Select(target => new ConversionEdge("gif", target)),
+            .. MediaEncoding.PictureToVideoTargets.Select(target => new ConversionEdge("png", target, 11)),
+            // HEIC: ImageMagick reads, x265 encodes, Filee writes the container (see Heic/HeicWriter).
+            .. ImageEncoder.Sources.Select(source => new ConversionEdge(source, "heic")),
         ];
     }
 
@@ -69,6 +78,8 @@ public sealed partial class FfmpegConverter : IConverter
     public async Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
     {
         var (ffmpeg, ffprobe) = _tools ?? Locate() ?? throw new InvalidOperationException("FFmpeg was not found.");
+        if (step.To == "heic")
+            return await HeicWriter.ConvertAsync(ffmpeg, step, progress, cancellationToken);
         var input = Path.GetFullPath(step.InputPath);
         var info = await MediaInfo.ProbeAsync(ffprobe, input, cancellationToken);
         progress?.Report(0.02);
@@ -77,19 +88,25 @@ public sealed partial class FfmpegConverter : IConverter
         if (output is null)
             return [];
 
+        // A PNG is a still picture (from the image engines), shown for a few seconds.
+        var still = step.From == "png";
+
         // Album art for targets FFmpeg can't put a picture stream into (Ogg, Matroska): prepared on the side.
-        var cover = info.CoverStreamIndex is { } coverStream
+        var cover = !still && info.CoverStreamIndex is { } coverStream
             ? await CoverArt.PrepareAsync(ffmpeg, input, coverStream, step.To, step.WorkDirectory, cancellationToken)
             : null;
 
         // Throws for a missing stream before anything is written (an existing file of that name stays untouched).
-        var passes = MediaEncoding.Plan(input, output, step.To, step.Preset.Media, info, step.WorkDirectory, cover);
+        var passes = still
+            ? MediaEncoding.PlanStill(input, output, step.To, step.Preset.Media, info)
+            : MediaEncoding.Plan(input, output, step.To, step.Preset.Media, info, step.WorkDirectory, cover);
+        var duration = still ? MediaEncoding.StillDuration : info.Duration;
         try
         {
             var done = 0.0;
             foreach (var pass in passes)
             {
-                await RunPassAsync(ffmpeg, pass, info.Duration, progress, done, cancellationToken);
+                await RunPassAsync(ffmpeg, pass, duration, progress, done, cancellationToken);
                 done += pass.Weight;
             }
             if (!File.Exists(output) || new FileInfo(output).Length == 0)
