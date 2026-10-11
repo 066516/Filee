@@ -319,6 +319,23 @@ public class HwpxReaderTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.All(inlines.OfType<HTextBox>(), b => Assert.NotNull(b.Anchor));
     }
 
+    [Fact]
+    public void A_picture_background_covers_the_slide()
+    {
+        // Issue #49: a chalkboard picture set as the slide background (Format Background → Picture) was dropped,
+        // leaving white titles on a white page.
+        var pptx = new PptxBuilder();
+        var chalkboard = pptx.Image(Png(MagickColors.DarkSlateGray, 160, 90));
+        pptx.Slide(pptx.Title("채널A, 〈금쪽같은 내새끼〉"), backgroundImage: chalkboard);
+        var dir = fx.NewFolder();
+
+        var read = PptxReader.Read(pptx.Save(Path.Combine(dir, "칠판.pptx")), Path.Combine(dir, "pptx-media"));
+
+        var background = Assert.Single(AllInlines(read.Sections.SelectMany(s => s.Blocks)).OfType<HImage>());
+        Assert.Equal((96000, 54000), (background.Width, background.Height)); // the slide, in HWPUNIT
+        Assert.Equal((0, 0), (background.Anchor!.HorizontalOffset, background.Anchor.VerticalOffset));
+    }
+
     // ───────────────────────── Other producers ─────────────────────────
 
     [Fact]

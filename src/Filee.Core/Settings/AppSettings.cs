@@ -70,6 +70,9 @@ public sealed class AppSettings
     /// <summary>Newest version the user was already told about, so the update notice shows once per release.</summary>
     public string? NotifiedUpdateVersion { get; set; }
 
+    /// <summary>Engine package id → the new version the engine update notice was shown for (once per version).</summary>
+    public Dictionary<string, string> NotifiedEngineVersions { get; set; } = [];
+
     /// <summary>Temporarily disable all trigger gestures (tray "Pause").</summary>
     public bool Paused { get; set; }
 
@@ -110,6 +113,18 @@ public sealed class AppSettings
     /// instead of Filee's download (Settings → Engines).
     /// </summary>
     public Dictionary<string, string> EngineOwnCopies { get; set; } = [];
+
+    /// <summary>
+    /// With LibreOffice installed, presentations (PPTX, PPT, ODP) → PDF go through it instead of the built-in route
+    /// (HWPX writer and rhwp): slide backgrounds and shape positions come out as in PowerPoint.
+    /// </summary>
+    public bool LibreOfficeForSlides { get; set; } = true;
+
+    /// <summary>
+    /// With LibreOffice and H2Orestart installed, HWP / HWPX → PDF go through it instead of rhwp: a way around a
+    /// document rhwp lays out wrong (each engine gets different documents right).
+    /// </summary>
+    public bool LibreOfficeForHwp { get; set; }
 
     /// <summary>Every conversion keeps the created and modified dates of the original, whatever the preset says.</summary>
     public bool KeepFileDates { get; set; }

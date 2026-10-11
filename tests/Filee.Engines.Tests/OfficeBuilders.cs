@@ -197,10 +197,15 @@ internal sealed class PptxBuilder
         return $"rIdImg{_images.Count}";
     }
 
-    /// <summary>Adds a slide from p:spTree children; <paramref name="background"/> is an optional hex colour.</summary>
-    public PptxBuilder Slide(string shapes, string? background = null)
+    /// <summary>
+    /// Adds a slide from p:spTree children; <paramref name="background"/> is an optional hex colour,
+    /// <paramref name="backgroundImage"/> an optional picture (relationship id from <see cref="Image"/>) as the background.
+    /// </summary>
+    public PptxBuilder Slide(string shapes, string? background = null, string? backgroundImage = null)
     {
-        var bg = background is null ? "" : $"<p:bg><p:bgPr><a:solidFill><a:srgbClr val=\"{background.TrimStart('#')}\"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>";
+        var bg = backgroundImage is not null
+            ? $"<p:bg><p:bgPr><a:blipFill dpi=\"0\" rotWithShape=\"1\"><a:blip r:embed=\"{backgroundImage}\"/><a:stretch><a:fillRect/></a:stretch></a:blipFill><a:effectLst/></p:bgPr></p:bg>"
+            : background is null ? "" : $"<p:bg><p:bgPr><a:solidFill><a:srgbClr val=\"{background.TrimStart('#')}\"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>";
         _slides.Add($"<p:sld {Namespaces}><p:cSld>{bg}<p:spTree>{TreeStart}{shapes}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>");
         return this;
     }

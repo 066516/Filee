@@ -62,8 +62,22 @@ public sealed partial class EnginePackageState : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusText), nameof(IsInstalled), nameof(IsBusy), nameof(CanInstall), nameof(CanRemove),
-        nameof(UsesOwnCopy), nameof(CanUseOwnCopy), nameof(ShowsCopyFolder))]
+        nameof(UsesOwnCopy), nameof(CanUseOwnCopy), nameof(ShowsCopyFolder), nameof(CanUpdate))]
     private EnginePackageStatus _status;
+
+    /// <summary>
+    /// Filee's download is installed but older than the version this Filee pins (engines.json changed with an app
+    /// update): <see cref="CanUpdate"/> offers the new one.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StatusText), nameof(CanUpdate))]
+    private bool _isOutdated;
+
+    /// <summary>The version Filee downloads now, e.g. "8.0" for FFmpeg (the package's main component).</summary>
+    public string? Version => EngineDownloads.Components.TryGetValue(Package.Components[0], out var component) ? component.Version : null;
+
+    /// <summary>Filee's download is installed in an older version than the one Filee downloads now.</summary>
+    public bool CanUpdate => Status == EnginePackageStatus.Installed && IsOutdated && EngineDownloads.CanDownload(Package);
 
     /// <summary>Folder of the copy in use while the status is <see cref="EnginePackageStatus.OwnCopy"/>.</summary>
     [ObservableProperty]
@@ -113,7 +127,7 @@ public sealed partial class EnginePackageState : ObservableObject
         EnginePackageStatus.Queued => _loc["engines.state.queued"],
         EnginePackageStatus.Downloading => _loc.Format("engines.state.downloading", (int)Progress),
         EnginePackageStatus.Unpacking => _loc["engines.state.unpacking"],
-        EnginePackageStatus.Installed => _loc["engines.state.installed"],
+        EnginePackageStatus.Installed => IsOutdated ? _loc.Format("engines.state.update_available", Version ?? "") : _loc["engines.state.installed"],
         EnginePackageStatus.OwnCopy => _loc[FromSystem ? "engines.state.system_copy" : "engines.state.own_copy"],
         EnginePackageStatus.Failed => _loc.Format("engines.state.failed", Error ?? ""),
         _ => _loc["engines.state.not_installed"],
@@ -201,6 +215,7 @@ public sealed class EngineDownloadService
         state.OwnCopyFolder = own ?? system;
         state.FromSystem = system is not null;
         state.UpdateNote = null;
+        state.IsOutdated = state.OwnCopyFolder is null && _installer.IsInstalled(state.Package) && !_installer.IsUpToDate(state.Package);
         if (state.OwnCopyFolder is { } folder)
             _ = CheckVersionAsync(state, folder);
         return state.OwnCopyFolder is not null ? EnginePackageStatus.OwnCopy
@@ -219,10 +234,16 @@ public sealed class EngineDownloadService
             state.UpdateNote = _loc.Format("engines.update_recommended", installed.ToString(2), expected.ToString(2)));
     }
 
-    /// <summary>Downloads and installs a package; packages queue up and install one after another.</summary>
+    /// <summary>Filee's downloads that have a newer version now (only engines the user installed).</summary>
+    public IReadOnlyList<EnginePackageState> Outdated => Packages.Where(p => p.CanUpdate).ToList();
+
+    /// <summary>
+    /// Downloads and installs a package, or the new version of an outdated one; packages queue up and install one
+    /// after another.
+    /// </summary>
     public async Task InstallAsync(EnginePackageState state)
     {
-        if (!state.CanInstall)
+        if (!state.CanInstall && !state.CanUpdate)
             return;
         using var cancellation = new CancellationTokenSource();
         state.Cancellation = cancellation;

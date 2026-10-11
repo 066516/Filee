@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Avalonia.Headless.XUnit;
 using Filee.App.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -240,6 +241,40 @@ public class UpdateServiceTests
 
         Assert.Equal(1, reported);
         Assert.Equal(UpdateStep.Failed, updates.Step);
+    }
+
+    [AvaloniaFact] // the check publishes its answer on the UI thread
+    public async Task Update_installs_the_release_that_is_latest_now_not_the_one_found_earlier()
+    {
+        // An earlier check found 9.9.9; 9.9.10 came out before Update was pressed.
+        var updates = new UpdateService(NullLogger<UpdateService>.Instance, new LatestRelease("v9.9.10"));
+        updates.UseRelease(new UpdateService.ReleaseFile("Filee-9.9.9-win-Setup.exe", Base + "Filee-9.9.9-win-Setup.exe", 1),
+            new UpdateService.ReleaseFile("Filee-9.9.9-SHA256SUMS.txt", Base + "Filee-9.9.9-SHA256SUMS.txt", 1));
+        var announced = 0;
+        updates.UpdateFound += (_, _) => announced++;
+
+        Assert.True(await updates.RefreshAsync(announce: false));
+
+        Assert.Equal("Filee-9.9.10-win-Setup.exe", updates.Installer!.Name);
+        Assert.Equal("9.9.10", updates.LatestVersion);
+        Assert.Equal(0, announced); // no second notice while updating
+    }
+
+    /// <summary>GitHub's "latest release" answer for <paramref name="tag"/>, with its installer and checksums.</summary>
+    private sealed class LatestRelease(string tag) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var version = tag.TrimStart('v');
+            var json = $$"""
+                {"tag_name":"{{tag}}","assets":[
+                  {"name":"Filee-{{version}}-win-Setup.exe","browser_download_url":"{{Base}}Filee-{{version}}-win-Setup.exe","size":1234},
+                  {"name":"Filee-{{version}}-SHA256SUMS.txt","browser_download_url":"{{Base}}Filee-{{version}}-SHA256SUMS.txt","size":100}]}
+                """;
+            return Task.FromResult(request.RequestUri!.AbsolutePath.EndsWith("/releases/latest", StringComparison.Ordinal)
+                ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json, Encoding.UTF8, "application/json") }
+                : new HttpResponseMessage(HttpStatusCode.NotFound));
+        }
     }
 
     [Fact]

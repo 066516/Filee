@@ -6,6 +6,28 @@ version it publishes under "What's Changed" in the GitHub release notes, above t
 Add a `## <version>` section before tagging a release. Write what someone using Filee notices: what's new, where to
 find it, what it does and doesn't do.
 
+## 1.9.0
+
+### New
+
+- **Engine updates.** When a Filee update brings a newer version of an engine you downloaded (FFmpeg, LibreOffice,
+  Pandoc, Ghostscript, calibre), a card in the bottom-right corner says so once per version, and Settings → Engines
+  shows "New version" with an **Update** button. Engines you never installed are left alone, and the card follows
+  "Check for updates automatically".
+- **When LibreOffice is installed** (Settings → Engines): presentations (PPTX, PPT, ODP) → PDF now go through
+  LibreOffice, so slide backgrounds and shape positions come out as in PowerPoint; turn it off to use the built-in
+  route. HWP·HWPX → PDF can go through LibreOffice too (off by default), for a document rhwp lays out wrong.
+
+### Fixes
+
+- **Update installed an older release.** A release found by an earlier check stayed the one Update downloaded, even
+  after a newer one came out. Update now asks for the latest release first.
+- **PPTX → PDF, HWPX, images: picture backgrounds were dropped** (issue #49). A slide whose background is a picture
+  (Format Background → Picture) came out white, hiding white titles; the picture now covers the page.
+- **HWP·HWPX → PDF: rhwp 0.8.7.** Among other layout fixes, the header table of two-column exam papers sits at the top
+  of the page again instead of over the first questions (issue #51; another overlap in that file is reported to rhwp
+  as edwardkim/rhwp#7826).
+
 ## 1.8.1
 
 ### New

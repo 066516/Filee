@@ -57,7 +57,7 @@ public sealed class LibreOfficeConverter : IConverter
     {
         _env = env;
         Locate();
-        Edges = BuildEdges(_hasHwpFilter);
+        Edges = BuildEdges(_hasHwpFilter, EngineEnvironment.LibreOfficeForSlides, EngineEnvironment.LibreOfficeForHwp);
     }
 
     public string Id => "libreoffice";
@@ -68,7 +68,7 @@ public sealed class LibreOfficeConverter : IConverter
     public EngineStatus GetStatus()
     {
         Locate();
-        Edges = BuildEdges(_hasHwpFilter);
+        Edges = BuildEdges(_hasHwpFilter, EngineEnvironment.LibreOfficeForSlides, EngineEnvironment.LibreOfficeForHwp);
         return _soffice is null
             ? EngineStatus.Unavailable("engine.reason.not_installed")
             : !EngineEnvironment.UsesFileesCopy("libreoffice")
@@ -240,7 +240,10 @@ public sealed class LibreOfficeConverter : IConverter
         return Draw.Contains(from) ? "draw" : "writer";
     }
 
-    private static List<ConversionEdge> BuildEdges(bool hwp)
+    /// <param name="hwp">H2Orestart is installed (HWP / HWPX import).</param>
+    /// <param name="slides">Presentations → PDF should go through LibreOffice (<see cref="EngineEnvironment.LibreOfficeForSlides"/>).</param>
+    /// <param name="hwpToPdf">HWP / HWPX → PDF should go through LibreOffice (<see cref="EngineEnvironment.LibreOfficeForHwp"/>).</param>
+    internal static List<ConversionEdge> BuildEdges(bool hwp, bool slides, bool hwpToPdf)
     {
         var edges = new List<ConversionEdge>();
         void Add(IEnumerable<string> sources, IEnumerable<string> targets, int cost)
@@ -255,9 +258,13 @@ public sealed class LibreOfficeConverter : IConverter
         // (DOCX / XLSX / PPTX / TXT → PDF through the HWPX writer and rhwp, XLSX ↔ CSV, ...), so it is only used for
         // what nothing else reads or writes (DOC, XLS, PPT, OpenDocument, DOCX output, ...).
         const int Fallback = 25;
+        // Chosen in Settings → Engines: cheap enough to beat the built-in route even at the bottom of the engine list
+        // (its priority adds at most 9; PPTX → HWPX → PDF costs about 32, rhwp's HWP → PDF about 13).
+        const int Preferred = 0;
         Add(Writer, [.. Writer, "pdf", "txt", "html"], Fallback);
         Add(Calc, [.. Calc, "pdf", "html"], Fallback);
-        Add(Impress, [.. Impress, "pdf"], Fallback);
+        Add(Impress, Impress, Fallback);
+        Add(Impress, ["pdf"], slides ? Preferred : Fallback);
         Add(["txt", "html"], ["docx", "odt", "pdf"], Fallback + 3);
         // Formats only LibreOffice reads, to PDF and the editable formats of their kind.
         Add(WriterImport, [.. Writer, "pdf", "txt", "html"], Fallback);
@@ -265,7 +272,10 @@ public sealed class LibreOfficeConverter : IConverter
         Add(ImpressImport, [.. Impress, "pdf"], Fallback);
         Add([.. ImpressGraphics, .. Draw], ["pdf", "odg", "svg", "png"], Fallback);
         if (hwp)
-            Add(["hwp", "hwpx"], ["pdf", "docx", "odt", "rtf"], Fallback + 6);
+        {
+            Add(["hwp", "hwpx"], ["docx", "odt", "rtf"], Fallback + 6);
+            Add(["hwp", "hwpx"], ["pdf"], hwpToPdf ? Preferred : Fallback + 6);
+        }
         return edges;
     }
 

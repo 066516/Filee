@@ -37,6 +37,8 @@
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="12,0,0,0">
                   <Button Classes="accent" Content="{DynamicResource engines.install}" IsVisible="{Binding CanInstall}"
                           Command="{Binding $parent[ItemsControl].((vm:EnginesPageViewModel)DataContext).InstallCommand}" CommandParameter="{Binding}" />
+                  <Button Classes="accent" Content="{DynamicResource engines.update}" IsVisible="{Binding CanUpdate}"
+                          Command="{Binding $parent[ItemsControl].((vm:EnginesPageViewModel)DataContext).InstallCommand}" CommandParameter="{Binding}" />
                   <Button Content="{DynamicResource engines.cancel}" IsVisible="{Binding IsBusy}"
                           Command="{Binding $parent[ItemsControl].((vm:EnginesPageViewModel)DataContext).CancelCommand}" CommandParameter="{Binding}" />
                   <Button Content="{DynamicResource engines.use_own}" IsVisible="{Binding CanUseOwnCopy}" Click="OnUseOwnCopy"
@@ -66,6 +68,21 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
+      <!-- What LibreOffice converts when it is installed, besides the formats only it reads -->
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="{DynamicResource engines.lo_title}" />
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource engines.lo_description}" />
+          <StackPanel Spacing="2">
+            <ToggleSwitch IsChecked="{Binding LibreOfficeForSlides}" OnContent="{DynamicResource engines.lo_slides}" OffContent="{DynamicResource engines.lo_slides}" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,0,0,4" Text="{DynamicResource engines.lo_slides_hint}" />
+          </StackPanel>
+          <StackPanel Spacing="2">
+            <ToggleSwitch IsChecked="{Binding LibreOfficeForHwp}" OnContent="{DynamicResource engines.lo_hwp}" OffContent="{DynamicResource engines.lo_hwp}" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource engines.lo_hwp_hint}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
       <TextBlock Classes="h2" Margin="0,8,0,0" Text="{DynamicResource engines.all_title}" />
     </StackPanel>
 

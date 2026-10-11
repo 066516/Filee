@@ -19,6 +19,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services)
     private ToastWindow? _toast;
     private EngineSetupWindow? _engineSetup;
     private UpdateNoticeWindow? _updateNotice;
+    private EngineUpdateNoticeWindow? _engineNotice;
     private FeedbackNoticeWindow? _feedbackNotice;
 
     public MainWindow? Main => _main;
@@ -86,6 +87,35 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services)
                 _updateNotice = null;
         };
         _updateNotice = notice;
+        notice.Show();
+    }
+
+    /// <summary>
+    /// Says that engines the user downloaded have a newer version. "Update" queues them (one after another) and opens
+    /// Settings → Engines to show the progress.
+    /// </summary>
+    public void ShowEngineUpdateNotice(IReadOnlyList<EnginePackageState> outdated)
+    {
+        _engineNotice?.Close();
+        var downloads = services.GetRequiredService<EngineDownloadService>();
+        var caption = string.Join(" · ", outdated.Select(p => $"{p.Name.Split(" (")[0]} {p.Version}"));
+        var notice = new EngineUpdateNoticeWindow(caption, () =>
+        {
+            foreach (var package in outdated)
+                _ = downloads.InstallAsync(package);
+            ShowMain("engines");
+        })
+        {
+            BottomOffset = _updateNotice is { IsVisible: true } update
+                ? (int)Math.Ceiling(update.Bounds.Height * (update.Screens.Primary?.Scaling ?? 1))
+                : 0,
+        };
+        notice.Closed += (_, _) =>
+        {
+            if (_engineNotice == notice)
+                _engineNotice = null;
+        };
+        _engineNotice = notice;
         notice.Show();
     }
 

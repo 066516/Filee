@@ -54,6 +54,12 @@ public sealed class EngineEnvironment(string dataDirectory)
     /// </summary>
     public static IReadOnlyDictionary<string, string> OwnCopies { get; set; } = new Dictionary<string, string>();
 
+    /// <summary>LibreOffice converts presentations to PDF (Settings → Engines). Re-check the engines after a change.</summary>
+    public static bool LibreOfficeForSlides { get; set; } = true;
+
+    /// <summary>LibreOffice converts HWP / HWPX to PDF instead of rhwp (Settings → Engines). Re-check after a change.</summary>
+    public static bool LibreOfficeForHwp { get; set; }
+
     /// <summary>Programs required by each engine package on the current operating system.</summary>
     public static IReadOnlyDictionary<string, string[]> OwnCopyPrograms { get; } = Programs(OperatingSystem.IsWindows());
 

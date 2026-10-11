@@ -124,6 +124,17 @@ public sealed partial class UpdateService : ObservableObject
     /// <summary>Checks the latest release now. Returns the newer version, or null when up to date or offline.</summary>
     public async Task<string?> CheckAsync(CancellationToken cancellationToken = default)
     {
+        await RefreshAsync(announce: true, cancellationToken);
+        return LatestVersion;
+    }
+
+    /// <summary>
+    /// Asks GitHub for the latest release and keeps its files for <see cref="UpdateAsync"/>. With
+    /// <paramref name="announce"/>, a newer version than before raises <see cref="UpdateFound"/>. False when the
+    /// answer didn't come (offline, an error): what the last check found stays.
+    /// </summary>
+    internal async Task<bool> RefreshAsync(bool announce, CancellationToken cancellationToken = default)
+    {
         try
         {
             var api = RepositoryUrl.TrimEnd('/').Replace("https://github.com/", "https://api.github.com/repos/", StringComparison.OrdinalIgnoreCase)
@@ -132,15 +143,15 @@ public sealed partial class UpdateService : ObservableObject
             if (!response.IsSuccessStatusCode)
             {
                 _log.LogInformation("Update check: {Status}", response.StatusCode); // e.g. 404 before the first release
-                return LatestVersion;
+                return false;
             }
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
             var tag = json.RootElement.TryGetProperty("tag_name", out var value) ? value.GetString() : null;
             var newer = IsNewer(tag, CurrentVersion) ? Normalize(tag!) : null;
             (_installer, _checksums) = FindFiles(json.RootElement);
-            await Dispatcher.UIThread.InvokeAsync(() => Publish(newer));
-            return newer;
+            await Dispatcher.UIThread.InvokeAsync(() => Publish(newer, announce));
+            return true;
         }
         // Offline, DNS failure, timeout, a connection dropped while reading, or an unexpected answer: Filee works
         // offline, so a failed check is only logged and the next one is tried later.
@@ -148,7 +159,7 @@ public sealed partial class UpdateService : ObservableObject
                                        or InvalidOperationException)
         {
             _log.LogInformation("Update check failed: {Message}", ex.Message);
-            return LatestVersion;
+            return false;
         }
     }
 
@@ -180,14 +191,22 @@ public sealed partial class UpdateService : ObservableObject
             OpenDownloadPage();
             return;
         }
+        // The release found by the last check (up to hours ago) may have a newer one after it: ask again, so Update
+        // installs the latest release rather than the one announced earlier. Offline, the earlier answer is used.
+        Step = UpdateStep.Downloading;
+        DownloadPercent = 0;
+        if (await RefreshAsync(announce: false) && !IsUpdateAvailable)
+        {
+            _log.LogInformation("Update: already on the latest release");
+            Step = UpdateStep.Idle;
+            return;
+        }
         if (_installer is null || _checksums is null)
         {
             Fail("release", new InvalidDataException("The latest release has no installer or no checksum file"));
             return;
         }
 
-        Step = UpdateStep.Downloading;
-        DownloadPercent = 0;
         string installer;
         try
         {
@@ -334,13 +353,16 @@ public sealed partial class UpdateService : ObservableObject
         UpdateFailed?.Invoke(this, EventArgs.Empty);
     }
 
-    private void Publish(string? newer)
+    private void Publish(string? newer, bool announce)
     {
         var previous = LatestVersion;
         LatestVersion = newer;
-        if (newer is not null && newer != previous)
+        if (announce && newer is not null && newer != previous)
             UpdateFound?.Invoke(this, newer);
     }
+
+    /// <summary>The installer the next update downloads (tests).</summary>
+    internal ReleaseFile? Installer => _installer;
 
     /// <summary>A file attached to a release.</summary>
     internal sealed record ReleaseFile(string Name, string Url, long Size);
