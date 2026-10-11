@@ -19,6 +19,10 @@ find it, what it does and doesn't do.
   a 5-second still video at the photo's own size, with its colours (Display P3 photos stay P3) and transparent areas
   in black. Only photos over about 36 megapixels (48 MP phone cameras) are scaled down, to the largest picture H.264
   and VP9 players decode. Animated GIF/WebP and PDF pages still become a moving video or a slideshow.
+- **MOV ↔ MP4 without quality loss.** When the new format can hold the video and sound as they are, like an iPhone
+  video (HEVC or H.264 with AAC) going from MOV to MP4, Filee now only rewraps them instead of re-encoding: nothing
+  is lost, HDR and 10-bit colour stay, and it takes seconds. The same goes for MKV, WebM and TS. Choosing a smaller
+  size (e.g. 720p), another audio bitrate or quality **Small** still re-encodes.
 - **Save images as HEIC** (with FFmpeg). Any image Filee reads → HEIC, the format iPhones take photos in: about a
   quarter of a JPG's size at the same quality, stored in 512-pixel tiles like a phone photo, upright, with the colour
   profile and Exif kept. The **HEIC** preset is on the Presets page (quality 80); add it to a donut to use it.

@@ -99,7 +99,8 @@
         <Grid ColumnDefinitions="*,12,*" IsVisible="{Binding ShowMediaQuality}">
           <StackPanel>
             <TextBlock Classes="label" Text="{DynamicResource presets.media_quality}" />
-            <ComboBox ItemsSource="{Binding MediaQualities}" SelectedItem="{Binding MediaQuality}" HorizontalAlignment="Stretch" />
+            <ComboBox ItemsSource="{Binding MediaQualities}" SelectedItem="{Binding MediaQuality}" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="{DynamicResource presets.media_quality_hint}" />
           </StackPanel>
           <StackPanel Grid.Column="2" IsVisible="{Binding ShowMaxHeight}">
             <TextBlock Classes="label" Text="{DynamicResource presets.max_height}" />

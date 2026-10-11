@@ -144,12 +144,24 @@ internal static class MediaEncoding
         if (audio is not null)
             args.AddRange(["-map", "0:a:0"]);
 
-        var pal = IsPal(video.FrameRate);
-        args.AddRange(["-vf", target is "vob" or "dv" ? DvdOrDvFilter(video, pal) : ScaleFilter(options.MaxHeight)]);
-        args.AddRange(VideoCodecArguments(target, spec.VideoCodec!, options.Quality, video, pal));
+        if (CanCopyVideo(target, video, options))
+        {
+            args.AddRange(["-c:v", "copy"]);
+            // Apple plays HEVC in MP4/MOV only under the "hvc1" tag (FFmpeg keeps "hev1" from some sources).
+            if (video.Codec == "hevc" && target is "mp4" or "m4v" or "mov")
+                args.AddRange(["-tag:v", "hvc1"]);
+        }
+        else
+        {
+            var pal = IsPal(video.FrameRate);
+            args.AddRange(["-vf", target is "vob" or "dv" ? DvdOrDvFilter(video, pal) : ScaleFilter(options.MaxHeight)]);
+            args.AddRange(VideoCodecArguments(target, spec.VideoCodec!, options.Quality, video, pal));
+        }
 
         if (audio is null)
             args.Add("-an");
+        else if (CanCopyAudio(target, audio, options))
+            args.AddRange(["-c:a", "copy"]);
         else
             args.AddRange(AudioCodecArguments(target, spec.AudioCodec, options, audio, inVideo: true));
 
@@ -159,6 +171,46 @@ internal static class MediaEncoding
         args.AddRange(["-max_muxing_queue_size", "4096", "-f", spec.Muxer, "-progress", "pipe:1", output]);
         return args;
     }
+
+    /// <summary>
+    /// Codecs a container takes as they are. A video whose streams are listed for the target is only rewrapped
+    /// (stream copy): no quality loss, HDR and 10-bit kept, seconds instead of minutes. iPhone videos (HEVC or H.264
+    /// with AAC in MOV) become MP4 this way. Only codecs the target's usual players handle are listed: MP4/MOV keep to
+    /// what Apple devices and browsers play, WebM to what the WebM specification allows.
+    /// </summary>
+    private static readonly Dictionary<string, (HashSet<string> Video, HashSet<string> Audio)> Remuxable = new()
+    {
+        ["mp4"] = (["h264", "hevc"], ["aac", "alac", "ac3", "eac3", "mp3"]),
+        ["m4v"] = (["h264", "hevc"], ["aac", "alac", "ac3", "eac3", "mp3"]),
+        ["mov"] = (["h264", "hevc", "prores"], ["aac", "alac", "ac3", "eac3", "mp3", "pcm_s16le", "pcm_s24le"]),
+        ["mkv"] = (["h264", "hevc", "vp9", "av1"], ["aac", "alac", "ac3", "eac3", "mp3", "opus", "vorbis", "flac"]),
+        ["webm"] = (["vp8", "vp9", "av1"], ["opus", "vorbis"]),
+        ["ts"] = (["h264", "hevc"], ["aac", "ac3", "eac3", "mp3"]),
+        ["m2ts"] = (["h264", "hevc"], ["aac", "ac3", "eac3"]),
+    };
+
+    /// <summary>Pixel formats players decode in hardware: 4:2:0 at 8 or 10 bits (phones record HDR video as 10-bit).</summary>
+    private static readonly HashSet<string> PlayablePixelFormats = ["yuv420p", "yuvj420p", "yuv420p10le"];
+
+    /// <summary>
+    /// True when the video stream can be copied: the target container takes its codec in a pixel format players
+    /// decode, it needs no scaling down, and the preset does not ask for a small file (Small always re-encodes; High
+    /// and Balanced only describe how a video that has to be encoded anyway is encoded).
+    /// </summary>
+    internal static bool CanCopyVideo(string target, VideoStreamInfo video, MediaOptions options) =>
+        options.Quality != MediaQuality.Small
+        && Remuxable.TryGetValue(target, out var codecs) && video.Codec is { } codec && codecs.Video.Contains(codec)
+        && (codec == "prores" || video.PixelFormat is { } format && PlayablePixelFormats.Contains(format))
+        && !(options.MaxHeight > 0 && video.DisplayHeight > Math.Max(16, options.MaxHeight));
+
+    /// <summary>
+    /// True when the audio stream can be copied: the container takes it, no bitrate is set and the channels stay
+    /// as they are.
+    /// </summary>
+    internal static bool CanCopyAudio(string target, AudioStreamInfo audio, MediaOptions options) =>
+        options.Quality != MediaQuality.Small && options.AudioBitrateKbps <= 0
+        && (options.AudioChannels is not (1 or 2) || options.AudioChannels == audio.Channels)
+        && Remuxable.TryGetValue(target, out var codecs) && audio.Codec is { } codec && codecs.Audio.Contains(codec);
 
     /// <summary>
     /// Scales down to <paramref name="maxHeight"/> (never up) keeping the aspect ratio, and makes both sides even,

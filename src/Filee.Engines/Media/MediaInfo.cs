@@ -13,10 +13,16 @@ namespace Filee.Engines.Media;
 /// <param name="SampleAspect">Pixel aspect ratio (1 for square pixels, 8/9 for NTSC DV 4:3, ...).</param>
 /// <param name="Rotation">Display rotation in degrees from the display matrix (phones record portrait video this way).</param>
 /// <param name="FrameRate">Average frames per second, 0 when unknown.</param>
-internal sealed record VideoStreamInfo(int Width, int Height, double SampleAspect, int Rotation, double FrameRate)
+/// <param name="Codec">FFmpeg's codec name (<c>h264</c>, <c>hevc</c>, …), null when unknown.</param>
+/// <param name="PixelFormat">FFmpeg's pixel format (<c>yuv420p</c>, <c>yuv420p10le</c>, …), null when unknown.</param>
+internal sealed record VideoStreamInfo(int Width, int Height, double SampleAspect, int Rotation, double FrameRate,
+    string? Codec = null, string? PixelFormat = null)
 {
     /// <summary>True when the picture is shown turned by 90° (FFmpeg rotates it upright while decoding).</summary>
     public bool IsRotated => Math.Abs(Rotation % 180) == 90;
+
+    /// <summary>Height of the picture as it is displayed (the width for portrait phone videos).</summary>
+    public int DisplayHeight => IsRotated ? Width : Height;
 
     /// <summary>Width ÷ height as the picture is displayed: pixel aspect and rotation applied.</summary>
     public double DisplayAspect
@@ -32,7 +38,8 @@ internal sealed record VideoStreamInfo(int Width, int Height, double SampleAspec
 }
 
 /// <summary>The first audio stream of a file.</summary>
-internal sealed record AudioStreamInfo(int Channels, int SampleRate);
+/// <param name="Codec">FFmpeg's codec name (<c>aac</c>, <c>opus</c>, …), null when unknown.</param>
+internal sealed record AudioStreamInfo(int Channels, int SampleRate, string? Codec = null);
 
 /// <summary>Summary of a media file.</summary>
 /// <param name="Duration">Playing time, null when the container does not say (raw streams).</param>
@@ -85,10 +92,13 @@ internal sealed record MediaInfo(TimeSpan? Duration, VideoStreamInfo? Video, Aud
                             (int)Number(stream, "height"),
                             Ratio(Text(stream, "sample_aspect_ratio"), ':') is var sar and > 0 ? sar : 1,
                             RotationOf(stream),
-                            FrameRateOf(stream));
+                            FrameRateOf(stream),
+                            Text(stream, "codec_name"),
+                            Text(stream, "pix_fmt"));
                         break;
                     case "audio" when audio is null:
-                        audio = new AudioStreamInfo((int)Number(stream, "channels"), (int)Number(stream, "sample_rate"));
+                        audio = new AudioStreamInfo((int)Number(stream, "channels"), (int)Number(stream, "sample_rate"),
+                            Text(stream, "codec_name"));
                         break;
                 }
             }

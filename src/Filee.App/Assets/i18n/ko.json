@@ -312,6 +312,7 @@
   "presets.target_folder": "폴더 (압축 풀기)",
   "presets.group.media": "동영상·오디오",
   "presets.media_quality": "품질",
+  "presets.media_quality_hint": "새 형식이 코덱을 그대로 담을 수 있는 동영상(아이폰 MOV → MP4 등)은 다시 인코딩하지 않고 포장만 바꿔요. 화질 손실 없이 HDR도 유지되고 몇 초면 끝나요. '작게'는 용량을 줄이려고 항상 다시 인코딩해요.",
   "presets.media_quality.High": "높음 (큰 파일)",
   "presets.media_quality.Balanced": "균형",
   "presets.media_quality.Small": "작게 (공유용)",

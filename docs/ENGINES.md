@@ -509,6 +509,15 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   | MP3 · M4A/M4B · AAC · OGG · OPUS · WEBA · MKA · WMA · MP2 · AC3 · AMR | LAME VBR (V0/V2/V5) or CBR · AAC · AAC (ADTS) · Vorbis · Opus · Opus · Opus · WMA 2 · MP2 · AC-3 · AMR-NB 12.2k (8 kHz mono) |
   | WAV · AIFF · AU · CAF · VOC · FLAC | 16-bit PCM (WAV: 8/16/24/32-bit or 32-bit float; RF64 over 4 GB) · FLAC |
 
+- **Rewrapping instead of re-encoding.** When the target container takes the source's codecs as they are
+  (`MediaEncoding.Remuxable`: H.264/HEVC + AAC, ALAC, AC-3, E-AC-3 or MP3 for MP4/M4V/MOV, also ProRes and PCM for
+  MOV; H.264/HEVC/VP9/AV1 with most audio for MKV; VP8/VP9/AV1 + Opus/Vorbis for WebM; H.264/HEVC for TS/M2TS),
+  the streams are copied (`-c copy`). An iPhone MOV becomes an MP4 in seconds, frame for frame, with 10-bit HDR
+  (HLG, Dolby Vision's HLG base), rotation and colour tags kept. HEVC gets the `hvc1` tag Apple players need. Video
+  is copied only in a pixel format players decode (4:2:0, 8 or 10 bits; ProRes as it is) and when no scaling down
+  is needed; audio only when no bitrate or other channel count is set. Quality *Small* always re-encodes (the user
+  asked for a smaller file); *High* and *Balanced* only set how a stream that has to be encoded is encoded. A
+  stream that can't be copied is encoded as below, the other one is still copied.
 - Preset options (`MediaOptions`): *Quality* picks CRF 18/23/28 (x264), 24/32/38 (VP9), quantizer 2/4/7 (MPEG-4,
   WMV, MPEG-2), Theora 8/6/4 and the audio bitrates (e.g. AAC 256/192/128 kbit/s per stereo pair); *MaxHeight*
   scales down only, keeps the aspect ratio and even sizes; *AudioBitrateKbps* overrides the audio bitrate (snapped to
