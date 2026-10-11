@@ -39,7 +39,9 @@ internal sealed record HevcStream(byte[] Configuration, IReadOnlyList<byte[]> Pi
                         pictures.Add([]);
                     pictures[^1].Add(unit);
                     break;
-                // SEI, access unit delimiters, end of stream: HEIF has no use for them.
+                default:
+                    // SEI, access unit delimiters, end of stream: HEIF has no use for them.
+                    break;
             }
         }
         if (vps is null || sps is null || pps is null || pictures.Count == 0)
