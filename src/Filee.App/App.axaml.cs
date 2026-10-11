@@ -146,6 +146,10 @@ public partial class App : Application
         var ownCopiesChanged = !EngineEnvironment.OwnCopies.OrderBy(p => p.Key).SequenceEqual(settings.EngineOwnCopies.OrderBy(p => p.Key));
         if (ownCopiesChanged)
             EngineEnvironment.OwnCopies = new Dictionary<string, string>(settings.EngineOwnCopies);
+        var routesChanged = EngineEnvironment.LibreOfficeForSlides != settings.LibreOfficeForSlides
+                            || EngineEnvironment.LibreOfficeForHwp != settings.LibreOfficeForHwp;
+        EngineEnvironment.LibreOfficeForSlides = settings.LibreOfficeForSlides;
+        EngineEnvironment.LibreOfficeForHwp = settings.LibreOfficeForHwp;
 
         var loc = AppHost.Get<LocalizationService>();
         if (loc.NeedsUpdate(settings.Language))
@@ -154,7 +158,7 @@ public partial class App : Application
         AppHost.Get<ThemeService>().Apply(settings.Theme, loc.Language);
         AppHost.Get<TriggerService>().Apply(settings);
         AppHost.Get<ConverterCatalog>().Priority = settings.EnginePriority;
-        if (ownCopiesChanged)
+        if (ownCopiesChanged || routesChanged)
         {
             AppHost.Get<ConverterCatalog>().Refresh();
             AppHost.Get<EngineDownloadService>().RefreshStatus();

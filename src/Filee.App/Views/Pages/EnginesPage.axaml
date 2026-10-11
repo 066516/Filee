@@ -66,6 +66,21 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
+      <!-- What LibreOffice converts when it is installed, besides the formats only it reads -->
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="{DynamicResource engines.lo_title}" />
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource engines.lo_description}" />
+          <StackPanel Spacing="2">
+            <ToggleSwitch IsChecked="{Binding LibreOfficeForSlides}" OnContent="{DynamicResource engines.lo_slides}" OffContent="{DynamicResource engines.lo_slides}" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,0,0,4" Text="{DynamicResource engines.lo_slides_hint}" />
+          </StackPanel>
+          <StackPanel Spacing="2">
+            <ToggleSwitch IsChecked="{Binding LibreOfficeForHwp}" OnContent="{DynamicResource engines.lo_hwp}" OffContent="{DynamicResource engines.lo_hwp}" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource engines.lo_hwp_hint}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
       <TextBlock Classes="h2" Margin="0,8,0,0" Text="{DynamicResource engines.all_title}" />
     </StackPanel>
 

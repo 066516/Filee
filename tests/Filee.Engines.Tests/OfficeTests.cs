@@ -273,8 +273,13 @@ public class OfficeTests(EngineFixture fx) : IClassFixture<EngineFixture>
     public void Office_files_convert_without_optional_engines(string from, string to, string engines)
     {
         Assert.Equal(engines.Split(','), BuiltInPlanner("rhwp").Plan(from, to)!.Steps.Select(s => s.Converter.Id));
-        // Built-in conversions win even when LibreOffice is installed.
-        Assert.DoesNotContain(fx.Catalog.CreatePlanner(["libreoffice", "rhwp"]).Plan(from, to)!.Steps, s => s.Converter.Id == "libreoffice");
+        // Built-in conversions win even when LibreOffice is installed, except presentations → PDF, which LibreOffice
+        // lays out like PowerPoint (Settings → Engines, on by default; see LibreOfficeRouteTests).
+        var withLibreOffice = fx.Catalog.CreatePlanner(["libreoffice", "rhwp"]).Plan(from, to)!.Steps;
+        if (from == "pptx" && to == "pdf")
+            Assert.Equal("libreoffice", Assert.Single(withLibreOffice).Converter.Id);
+        else
+            Assert.DoesNotContain(withLibreOffice, s => s.Converter.Id == "libreoffice");
     }
 
     [Theory]
