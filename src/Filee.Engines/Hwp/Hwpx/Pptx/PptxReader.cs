@@ -117,13 +117,8 @@ internal sealed partial class PptxReader
             .WithMap(master?.Element(P + "clrMap")?.Attributes().ToDictionary(a => a.Name.LocalName, a => a.Value));
         var context = new SlideContext(slidePath, slide, layout, layoutPath, master, masterPath, colors, ThemeFonts.From(theme));
 
-        if (Background(context) is { } background)
-        {
-            background.Width = width;
-            background.Height = height;
-            background.Anchor = Anchor(0, 0);
+        if (Background(context, width, height) is { } background)
             output.Add(background);
-        }
 
         // Decorations of the master and the layout (logos, bars) lie under the slide's own objects.
         var showMaster = (string?)slide.Attribute("showMasterSp") is not ("0" or "false")
@@ -140,15 +135,20 @@ internal sealed partial class PptxReader
     private static HAnchor Anchor(int x, int y) =>
         new("PAPER", "LEFT", Math.Max(0, x), "PAPER", "TOP", Math.Max(0, y), "IN_FRONT_OF_TEXT", AllowOverlap: true);
 
-    /// <summary>The first background of slide, layout or master, as a full-page rectangle (null for plain white).</summary>
-    private HShape? Background(SlideContext context)
+    /// <summary>
+    /// The first background of slide, layout or master, as a full-page rectangle, or as a full-page picture for a
+    /// picture background (chalkboards, photos); null for plain white.
+    /// </summary>
+    private HInline? Background(SlideContext context, int width, int height)
     {
-        foreach (var part in new[] { context.Slide, context.Layout, context.Master })
+        foreach (var (part, partPath) in new[] { (context.Slide, context.SlidePath), (context.Layout, context.LayoutPath), (context.Master, context.MasterPath) })
         {
             var bg = part?.Element(P + "cSld")?.Element(P + "bg");
             if (bg is null)
                 continue;
             var properties = bg.Element(P + "bgPr");
+            if (properties?.Element(A + "blipFill") is { } blipFill && partPath is not null)
+                return PictureBackground(partPath, blipFill, width, height);
             string? fill = null;
             HGradient? gradient = null;
             if (properties is not null)
@@ -157,9 +157,27 @@ internal sealed partial class PptxReader
                 fill = context.Colors.Drawing(reference);
             if (gradient is null && (fill is null || fill.Equals("#FFFFFF", StringComparison.OrdinalIgnoreCase)))
                 return null;
-            return new HShape(HShapeKind.Rectangle) { Fill = fill, Gradient = gradient, Line = HBorder.None };
+            return new HShape(HShapeKind.Rectangle)
+            {
+                Fill = fill,
+                Gradient = gradient,
+                Line = HBorder.None,
+                Width = width,
+                Height = height,
+                Anchor = Anchor(0, 0),
+            };
         }
         return null;
+    }
+
+    /// <summary>A picture background stretched over the slide (a tiled one too); null when the picture can't be used.</summary>
+    private HImage? PictureBackground(string partPath, XElement blipFill, int width, int height)
+    {
+        var embed = (string?)blipFill.Element(A + "blip")?.Attribute(R + "embed");
+        var target = _package.Target(partPath, embed);
+        if (target is null || !PictureTypes.Contains(Path.GetExtension(target)) || _package.Extract(target, _mediaFolder) is not { } file)
+            return null;
+        return new HImage(file) { Width = width, Height = height, Anchor = Anchor(0, 0) };
     }
 
     // ───────────────────────── Objects ─────────────────────────
