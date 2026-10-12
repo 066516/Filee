@@ -125,6 +125,41 @@ internal static class ImageEncoder
         return frames;
     }
 
+    /// <summary>
+    /// The longest side a format stores: JPEG 65,535 px (65,500 keeps clear of encoder rounding), WebP 16,383 px,
+    /// AVIF 16,384 px. Other formats take more than any image Filee makes.
+    /// </summary>
+    public static double MaxSide(string targetFormat) => targetFormat switch
+    {
+        "jpg" or "jpeg" => 65_500,
+        "webp" => 16_383,
+        "avif" => 16_384,
+        _ => double.PositiveInfinity,
+    };
+
+    /// <summary>
+    /// Scales an image down until both sides fit <see cref="MaxSide"/>. A 1200 × 74,673 px long image used to fail as
+    /// JPG with "could not write the file" (issue #50).
+    /// </summary>
+    private static void FitFormat(IMagickImage<byte> image, string targetFormat)
+    {
+        var scale = Math.Min(1, MaxSide(targetFormat) / Math.Max(image.Width, image.Height));
+        if (scale < 1)
+            image.Resize((uint)Math.Max(1, Math.Floor(image.Width * scale)), (uint)Math.Max(1, Math.Floor(image.Height * scale)));
+    }
+
+    /// <summary>
+    /// How much <see cref="ApplyOptions"/> resizes a <paramref name="width"/> × <paramref name="height"/> image before
+    /// <see cref="FitFormat"/> (1 when it does not).
+    /// </summary>
+    public static double ResizeScale(double width, double height, ImageOptions options) => options.Resize switch
+    {
+        ResizeMode.Percent when options.ResizePercent > 0 => options.ResizePercent / 100.0,
+        ResizeMode.LongEdge when options.LongEdge > 0 => Math.Min(1, options.LongEdge / Math.Max(width, height)),
+        ResizeMode.Width when options.Width > 0 => Math.Min(1, options.Width / width),
+        _ => 1,
+    };
+
     /// <summary>Applies resize / colour / metadata options to one frame.</summary>
     public static void ApplyOptions(IMagickImage<byte> image, ImageOptions options, string targetFormat)
     {
@@ -139,7 +174,11 @@ internal static class ImageEncoder
                 // Greater = only shrink images that are larger than the box, never upscale.
                 image.Resize(new MagickGeometry((uint)options.LongEdge, (uint)options.LongEdge) { Greater = true });
                 break;
+            case ResizeMode.Width when options.Width > 0 && image.Width > options.Width:
+                image.Resize((uint)options.Width, (uint)Math.Max(1, Math.Round(image.Height * (double)options.Width / image.Width)));
+                break;
         }
+        FitFormat(image, targetFormat);
 
         if (options.Grayscale)
             image.Grayscale();

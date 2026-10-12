@@ -244,7 +244,8 @@ public class ImageAndPdfTests(EngineFixture fx) : IClassFixture<EngineFixture>
         var pages = Enumerable.Range(0, 40).Select(_ => (IMagickImage<byte>)new MagickImage(MagickColors.SkyBlue, 2480, 3508)).ToList();
         try
         {
-            using var tall = Filee.Engines.Pdf.PdfiumConverter.Stack(pages, target);
+            using var tall = Filee.Engines.Pdf.PdfiumConverter.Stack(pages);
+            Filee.Engines.Magick.ImageEncoder.ApplyOptions(tall, new ImageOptions(), target);
             Assert.True(tall.Height <= limit, $"{tall.Height} px");
             Assert.True((long)tall.Width * tall.Height <= Filee.Engines.Pdf.PdfiumConverter.MaxStackedPixels);
             Assert.InRange(tall.Width / (double)tall.Height, 2480 / (3508.0 * 40) * 0.95, 2480 / (3508.0 * 40) * 1.05); // pages keep their shape
@@ -253,6 +254,91 @@ public class ImageAndPdfTests(EngineFixture fx) : IClassFixture<EngineFixture>
         {
             pages.ForEach(p => p.Dispose());
         }
+    }
+
+    [Fact]
+    public async Task An_image_taller_than_a_jpg_holds_is_scaled_down_instead_of_failing()
+    {
+        // Issue #50: a 1200 × 74,673 px long PNG → JPG failed with "could not write the file".
+        var dir = fx.NewFolder();
+        var png = Path.Combine(dir, "long.png");
+        using (var source = new MagickImage(MagickColors.SkyBlue, 12, 70_000))
+            source.Write(png, MagickFormat.Png);
+
+        var job = await fx.ConvertAsync([png], new Preset { TargetFormat = "jpg" });
+
+        AssertDone(job);
+        using var jpg = new MagickImage(job.Outputs.Single());
+        Assert.InRange(jpg.Height, 60_000u, 65_500u);
+    }
+
+    [Fact]
+    public void Width_resize_shrinks_wide_images_and_leaves_narrow_ones()
+    {
+        var options = new ImageOptions { Resize = ResizeMode.Width, Width = 1200 };
+        using var wide = new MagickImage(MagickColors.White, 3000, 1000);
+        using var narrow = new MagickImage(MagickColors.White, 800, 2000);
+
+        Filee.Engines.Magick.ImageEncoder.ApplyOptions(wide, options, "jpg");
+        Filee.Engines.Magick.ImageEncoder.ApplyOptions(narrow, options, "jpg");
+
+        Assert.Equal((1200u, 400u), (wide.Width, wide.Height));
+        Assert.Equal((800u, 2000u), (narrow.Width, narrow.Height));
+    }
+
+    [Fact]
+    public void A_long_image_splits_between_pages_into_parts_the_format_holds()
+    {
+        // Five 6,000 px pages: a WebP holds 16,383 px, so two pages per part; at half width (Width 50 px) all fit.
+        var pages = Enumerable.Range(0, 5).Select(_ => (IMagickImage<byte>)new MagickImage(MagickColors.White, 100, 6000)).ToList();
+        try
+        {
+            var parts = Filee.Engines.Pdf.PdfiumConverter.Split(pages, "webp", new ImageOptions());
+            Assert.Equal([2, 2, 1], parts.Select(p => p.Count));
+
+            var half = Filee.Engines.Pdf.PdfiumConverter.Split(pages, "webp", new ImageOptions { Resize = ResizeMode.Width, Width = 50 });
+            Assert.Equal([5], half.Select(p => p.Count));
+            Assert.Single(Filee.Engines.Pdf.PdfiumConverter.Split(pages, "png", new ImageOptions()));
+        }
+        finally
+        {
+            pages.ForEach(p => p.Dispose());
+        }
+    }
+
+    [Fact]
+    public void Trimming_keeps_the_content_and_a_small_margin()
+    {
+        using var page = new MagickImage(MagickColors.White, 200, 1000);
+        page.Draw(new ImageMagick.Drawing.Drawables().FillColor(MagickColors.Black).Rectangle(20, 400, 180, 499));
+        using var blank = new MagickImage(MagickColors.White, 200, 1000);
+
+        Filee.Engines.Pdf.PdfiumConverter.TrimVertically(page, 72); // margin 12 px at 72 dpi
+        Filee.Engines.Pdf.PdfiumConverter.TrimVertically(blank, 72);
+
+        Assert.Equal((200u, 124u), (page.Width, page.Height));
+        Assert.Equal(24u, blank.Height);
+    }
+
+    [Fact]
+    public async Task Trimmed_long_image_is_shorter_and_a_split_one_names_its_parts()
+    {
+        var dir = fx.NewFolder();
+        var pdf = (await fx.ConvertAsync([EngineFixture.MakeMultiPageTiff(dir, 3)], new Preset { TargetFormat = "pdf" })).Outputs.Single();
+        var full = await fx.ConvertAsync([pdf], new Preset { TargetFormat = "png", Pdf = { RenderDpi = 72, CombinePages = true }, Output = { FileNamePattern = "{name}_full" } });
+        var trimmed = await fx.ConvertAsync([pdf], new Preset { TargetFormat = "png", Pdf = { RenderDpi = 72, CombinePages = true, TrimPageMargins = true }, Output = { FileNamePattern = "{name}_trim" } });
+
+        AssertDone(full);
+        AssertDone(trimmed);
+        using var a = new MagickImage(full.Outputs.Single());
+        using var b = new MagickImage(trimmed.Outputs.Single());
+        Assert.Equal(a.Width, b.Width);
+        Assert.True(b.Height <= a.Height, $"{b.Height} > {a.Height}");
+
+        // A split that fits in one part writes one file without a number.
+        var split = await fx.ConvertAsync([pdf], new Preset { TargetFormat = "jpg", Pdf = { RenderDpi = 72, CombinePages = true, SplitTallImage = true }, Output = { FileNamePattern = "{name}_long" } });
+        AssertDone(split);
+        Assert.Equal("pages_long.jpg", Path.GetFileName(split.Outputs.Single()));
     }
 
     [Fact]

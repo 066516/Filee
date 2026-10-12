@@ -6,6 +6,25 @@ version it publishes under "What's Changed" in the GitHub release notes, above t
 Add a `## <version>` section before tagging a release. Write what someone using Filee notices: what's new, where to
 find it, what it does and doesn't do.
 
+## 1.10.1
+
+### New
+
+- **Long images: trim and split** (issue #50). Two options under "Stack the pages into one tall image" in the PDF
+  part of a preset:
+  - **Cut the blank space above and below each page.** The pages follow each other without wide white gaps; about
+    4 mm stays around the content.
+  - **Split into several images when the stack is too tall for the format.** JPG holds up to 65,500 px and WebP
+    16,383 px. Instead of shrinking the long image to fit, Filee writes several (name_1, name_2, …), split between
+    pages, at full size.
+- **Resize to a width.** "Set the width" next to "Scale by percent" and "Limit the long edge" makes images, and long
+  images, a given number of pixels wide (e.g. 800 or 1200). Smaller images are left as they are.
+
+### Fixed
+
+- Images taller or wider than a format holds (a long PNG → JPG, over 65,500 px) failed with "could not write the
+  file". They are now scaled down to fit (issue #50).
+
 ## 1.10.0
 
 ### New

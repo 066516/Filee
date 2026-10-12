@@ -2,6 +2,7 @@
 // multi-page TIFF or GIF, or (PdfOptions.CombinePages) the pages stacked into one tall image.
 
 using Filee.Core.Conversion;
+using Filee.Core.Presets;
 using Filee.Engines.Infrastructure;
 using Filee.Engines.Magick;
 using ImageMagick;
@@ -58,6 +59,8 @@ public sealed class PdfiumConverter : IConverter
                     var frame = ToMagick(bitmap, dpi);
                     if (stack)
                     {
+                        if (step.Preset.Pdf.TrimPageMargins)
+                            TrimVertically(frame, dpi);
                         collected.Add(frame); // stacked after the loop; the image options apply to the tall image
                         progress?.Report((double)index / pages.Count * 0.8);
                         continue;
@@ -85,12 +88,16 @@ public sealed class PdfiumConverter : IConverter
 
                 if (stack)
                 {
-                    using var tall = Stack(collected, step.To);
-                    ImageEncoder.ApplyOptions(tall, step.Preset.Image, step.To);
-                    if (step.Output.Allocate(extension, null) is { } path)
+                    var parts = step.Preset.Pdf.SplitTallImage ? Split(collected, step.To, step.Preset.Image) : [collected];
+                    for (var part = 0; part < parts.Count; part++)
                     {
-                        tall.Write(path, format);
-                        written.Add(path);
+                        using var tall = Stack(parts[part]);
+                        ImageEncoder.ApplyOptions(tall, step.Preset.Image, step.To); // also scales it to fit the format
+                        if (step.Output.Allocate(extension, parts.Count > 1 ? $"_{part + 1}" : null) is { } path)
+                        {
+                            tall.Write(path, format);
+                            written.Add(path);
+                        }
                     }
                 }
                 else if (collected.Count > 0)
@@ -107,15 +114,15 @@ public sealed class PdfiumConverter : IConverter
         }, cancellationToken);
 
     /// <summary>
-    /// The pages one under another, centred on a white strip as wide as the widest page. Scaled down when the result
-    /// would be taller than the format stores (JPEG 65,500 px, WebP 16,383 px) or larger than
-    /// <see cref="MaxStackedPixels"/>.
+    /// The pages one under another, centred on a white strip as wide as the widest page. Scaled down when larger than
+    /// <see cref="MaxStackedPixels"/>; <see cref="ImageEncoder.ApplyOptions"/> then fits it to what the format stores
+    /// (JPEG 65,500 px, WebP 16,383 px).
     /// </summary>
-    internal static IMagickImage<byte> Stack(IReadOnlyList<IMagickImage<byte>> pages, string target)
+    internal static IMagickImage<byte> Stack(IReadOnlyList<IMagickImage<byte>> pages)
     {
         double width = pages.Max(p => p.Width);
         double height = pages.Sum(p => (double)p.Height);
-        var scale = Math.Min(1, Math.Min(MaxHeight(target) / height, Math.Sqrt(MaxStackedPixels / (width * height))));
+        var scale = Math.Min(1, Math.Sqrt(MaxStackedPixels / (width * height)));
         var stripWidth = (uint)Math.Max(1, Math.Floor(width * scale));
         using var strip = new MagickImageCollection();
         foreach (var page in pages)
@@ -132,14 +139,63 @@ public sealed class PdfiumConverter : IConverter
         return tall;
     }
 
-    /// <summary>The tallest image a format stores; PNG, TIFF and the rest take more than a stack ever needs.</summary>
-    internal static double MaxHeight(string target) => target switch
+    /// <summary>
+    /// Pages in runs short enough for one image of the format after the preset's resize (issue #50: a 44-page
+    /// certificate at 1200 px wide is 74,673 px tall, more than a JPG holds). Runs break between pages; a single page
+    /// taller than the format is a run of its own and is scaled down.
+    /// </summary>
+    internal static List<IReadOnlyList<IMagickImage<byte>>> Split(IReadOnlyList<IMagickImage<byte>> pages, string target, ImageOptions options)
     {
-        "jpg" or "jpeg" => 65_500,
-        "webp" => 16_383,
-        "avif" or "heic" => 16_384,
-        _ => 1_000_000,
-    };
+        double width = pages.Max(p => p.Width);
+        double height = pages.Sum(p => (double)p.Height);
+        var scale = ImageEncoder.ResizeScale(width, height, options) * Math.Min(1, Math.Sqrt(MaxStackedPixels / (width * height)));
+        var limit = ImageEncoder.MaxSide(target) / scale;
+        var parts = new List<IReadOnlyList<IMagickImage<byte>>>();
+        var run = new List<IMagickImage<byte>>();
+        double runHeight = 0;
+        foreach (var page in pages)
+        {
+            if (run.Count > 0 && runHeight + page.Height > limit)
+            {
+                parts.Add(run);
+                run = [];
+                runHeight = 0;
+            }
+            run.Add(page);
+            runHeight += page.Height;
+        }
+        parts.Add(run);
+        return parts;
+    }
+
+    /// <summary>
+    /// Cuts the blank rows above and below a page's content, keeping about 4 mm so text does not touch the next page.
+    /// A blank page shrinks to that margin.
+    /// </summary>
+    internal static void TrimVertically(IMagickImage<byte> page, int dpi)
+    {
+        var margin = Math.Max(4, dpi / 6);
+        uint top, bottom;
+        using (var probe = page.Clone())
+        {
+            probe.ColorFuzz = new Percentage(8); // scanned pages are not pure white
+            var box = probe.BoundingBox;
+            if (box is null || box.Width == 0 || box.Height == 0 || box.Height >= page.Height)
+            {
+                if (box is not null && box.Height >= page.Height)
+                    return;
+                top = 0;
+                bottom = (uint)Math.Min(page.Height, margin * 2);
+            }
+            else
+            {
+                top = (uint)Math.Max(0, box.Y - margin);
+                bottom = (uint)Math.Min(page.Height, box.Y + box.Height + margin);
+            }
+        }
+        page.Crop(new MagickGeometry(0, (int)top, page.Width, bottom - top));
+        page.ResetPage();
+    }
 
     private static MagickImage ToMagick(SKBitmap bitmap, int dpi)
     {
