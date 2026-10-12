@@ -69,6 +69,8 @@ public enum ResizeMode
     Percent,
     /// <summary>Scale so the longer edge equals <see cref="ImageOptions.LongEdge"/> (never upscales).</summary>
     LongEdge,
+    /// <summary>Scale to <see cref="ImageOptions.Width"/> pixels wide, height in proportion (never upscales).</summary>
+    Width,
 }
 
 /// <summary>TIFF compression schemes.</summary>
@@ -92,6 +94,9 @@ public sealed class ImageOptions
 
     /// <summary>Target long-edge length in pixels when <see cref="Resize"/> is <see cref="ResizeMode.LongEdge"/>.</summary>
     public int LongEdge { get; set; } = 1920;
+
+    /// <summary>Target width in pixels when <see cref="Resize"/> is <see cref="ResizeMode.Width"/>.</summary>
+    public int Width { get; set; } = 1200;
 
     /// <summary>Output DPI written into the file. <c>null</c> keeps the source value.</summary>
     public int? Dpi { get; set; }
@@ -164,6 +169,18 @@ public sealed class PdfOptions
 
     /// <summary>For PDF → image: stack the pages into one tall image instead of one image per page.</summary>
     public bool CombinePages { get; set; }
+
+    /// <summary>
+    /// With <see cref="CombinePages"/>: cut the blank space above and below each page's content (a small margin stays),
+    /// so the pages follow each other without wide white gaps.
+    /// </summary>
+    public bool TrimPageMargins { get; set; }
+
+    /// <summary>
+    /// With <see cref="CombinePages"/>: when the stack is taller than the format stores (JPG 65,500 px, WebP 16,383 px),
+    /// write several images split between pages instead of scaling the stack down.
+    /// </summary>
+    public bool SplitTallImage { get; set; }
 
     public PdfOptions Clone() => (PdfOptions)MemberwiseClone();
 }

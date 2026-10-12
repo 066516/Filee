@@ -92,6 +92,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _quality = _edit.Image.Quality;
         _resizePercent = _edit.Image.ResizePercent;
         _longEdge = _edit.Image.LongEdge;
+        _width = _edit.Image.Width;
         _setDpi = _edit.Image.Dpi.HasValue;
         _dpi = _edit.Image.Dpi ?? 300;
         _keepMetadata = _edit.Image.KeepMetadata;
@@ -107,6 +108,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _pageRange = _edit.Pdf.PageRange;
         _splitPages = _edit.Pdf.SplitPages;
         _combinePages = _edit.Pdf.CombinePages;
+        _trimPageMargins = _edit.Pdf.TrimPageMargins;
+        _splitTallImage = _edit.Pdf.SplitTallImage;
         _pdfA = _edit.Document.PdfA;
         _subfolderName = _edit.Output.SubfolderName;
         _customFolder = _edit.Output.CustomFolder;
@@ -141,7 +144,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote))]
     private Choice<string> _target;
 
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowPercent), nameof(ShowLongEdge))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowPercent), nameof(ShowLongEdge), nameof(ShowWidth))]
     private Choice<ResizeMode> _resize;
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowMargin))]
@@ -155,6 +158,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private int _quality;
     [ObservableProperty] private int _resizePercent;
     [ObservableProperty] private int _longEdge;
+    [ObservableProperty] private int _width;
     [ObservableProperty] private bool _setDpi;
     [ObservableProperty] private int _dpi;
     [ObservableProperty]
@@ -192,6 +196,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     /// <summary>PDF → image: one tall image of all pages.</summary>
     [ObservableProperty] private bool _combinePages;
+    [ObservableProperty] private bool _trimPageMargins;
+    [ObservableProperty] private bool _splitTallImage;
     [ObservableProperty] private bool _pdfA;
     [ObservableProperty] private string _subfolderName;
     [ObservableProperty] private string _customFolder;
@@ -243,6 +249,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowExtractNote => TargetId == FormatRegistry.Folder;
     public bool ShowPercent => Resize.Value == ResizeMode.Percent;
     public bool ShowLongEdge => Resize.Value == ResizeMode.LongEdge;
+    public bool ShowWidth => Resize.Value == ResizeMode.Width;
     public bool ShowMargin => PageSize.Value != PdfPageSize.FitImage;
     public bool ShowSubfolder => Location.Value == OutputLocation.Subfolder;
     public bool ShowCustomFolder => Location.Value == OutputLocation.CustomFolder;
@@ -266,6 +273,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         image.Resize = Resize.Value;
         image.ResizePercent = Math.Clamp(ResizePercent, 1, 1000);
         image.LongEdge = Math.Clamp(LongEdge, 16, 20000);
+        image.Width = Math.Clamp(Width, 16, 20000);
         image.Dpi = SetDpi ? Math.Clamp(Dpi, 36, 2400) : null;
         image.KeepMetadata = KeepMetadata;
         image.KeepColorProfile = KeepColorProfile;
@@ -290,6 +298,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         pdf.PageRange = PageRange.Trim();
         pdf.SplitPages = SplitPages;
         pdf.CombinePages = CombinePages;
+        pdf.TrimPageMargins = TrimPageMargins;
+        pdf.SplitTallImage = SplitTallImage;
         _original.Document.PdfA = PdfA;
 
         var media = _original.Media;

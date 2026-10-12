@@ -61,6 +61,10 @@
             <TextBlock Classes="label" Text="{DynamicResource presets.long_edge}" />
             <NumericUpDown Value="{Binding LongEdge}" Minimum="16" Maximum="20000" Increment="100" FormatString="0" />
           </StackPanel>
+          <StackPanel Grid.Column="2" IsVisible="{Binding ShowWidth}">
+            <TextBlock Classes="label" Text="{DynamicResource presets.width}" />
+            <NumericUpDown Value="{Binding Width}" Minimum="16" Maximum="20000" Increment="100" FormatString="0" />
+          </StackPanel>
         </Grid>
         <Grid ColumnDefinitions="Auto,12,*">
           <CheckBox Content="{DynamicResource presets.dpi}" IsChecked="{Binding SetDpi}" />
@@ -155,6 +159,11 @@
         <StackPanel Spacing="2" IsVisible="{Binding ShowPdfCombine}">
           <CheckBox Content="{DynamicResource presets.combine_pages}" IsChecked="{Binding CombinePages}" />
           <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0" Text="{DynamicResource presets.combine_pages_hint}" />
+          <StackPanel Spacing="2" Margin="28,6,0,0" IsVisible="{Binding CombinePages}">
+            <CheckBox Content="{DynamicResource presets.trim_page_margins}" IsChecked="{Binding TrimPageMargins}" />
+            <CheckBox Content="{DynamicResource presets.split_tall_image}" IsChecked="{Binding SplitTallImage}" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0" Text="{DynamicResource presets.split_tall_image_hint}" />
+          </StackPanel>
         </StackPanel>
         <Grid ColumnDefinitions="*,12,*" IsVisible="{Binding ShowPdfBuild}">
           <StackPanel>
