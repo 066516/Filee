@@ -35,9 +35,11 @@ public sealed class RhwpConverter : IConverter
     {
         var exe = _exe ?? Locate() ?? throw new InvalidOperationException("rhwp was not found.");
         var temp = Path.Combine(step.WorkDirectory, $"rhwp-{Guid.NewGuid():N}.{step.To}");
+        // Fonts rhwp cannot embed are swapped for installed ones in a copy (a CFF2 variable font left pages blank).
+        var input = step.To == "pdf" && step.From == "hwpx" ? RhwpFonts.Prepare(step.InputPath, step.WorkDirectory) ?? step.InputPath : step.InputPath;
         string[] arguments = step.To switch
         {
-            "pdf" => ["export-pdf", step.InputPath, "-o", temp],
+            "pdf" => ["export-pdf", input, "-o", temp],
             "hwpx" => ["export-hwpx", step.InputPath, temp],
             "hwp" => ["convert", step.InputPath, temp],
             _ => throw new NotSupportedException(step.To),
