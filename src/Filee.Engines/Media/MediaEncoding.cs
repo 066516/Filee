@@ -123,6 +123,8 @@ internal static class MediaEncoding
     {
         if (target == "gif")
             return AnimatedGif(input, output, options, info, workDirectory);
+        if (target is "jpg" or "jpeg")
+            return [new FfmpegPass(FrameSequence(input, output, "jpg"), 1)];
         if (target == "png")
             return [new FfmpegPass(PosterFrame(input, output, info), 1)];
         if (VideoTargets.TryGetValue(target, out var video))
@@ -130,6 +132,19 @@ internal static class MediaEncoding
         if (AudioTargets.TryGetValue(target, out var audio))
             return [new FfmpegPass(Audio(input, output, target, audio, options, info, cover), 1)];
         throw new NotSupportedException($"FFmpeg cannot write '{target}'.");
+    }
+
+    /// <summary>
+    /// Slices every frame of a video into an image sequence in <paramref name="outputPattern"/>
+    /// for focus stacking and photography analysis.
+    /// </summary>
+    public static List<string> FrameSequence(string input, string outputPattern, string imageExt)
+    {
+        List<string> args = [.. Common, "-i", input];
+        if (imageExt is "jpg" or "jpeg")
+            args.AddRange(["-q:v", "2"]);
+        args.AddRange(["-progress", "pipe:1", outputPattern]);
+        return args;
     }
 
     // ───────────────────────── Video ─────────────────────────
