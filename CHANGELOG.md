@@ -6,6 +6,13 @@ version it publishes under "What's Changed" in the GitHub release notes, above t
 Add a `## <version>` section before tagging a release. Write what someone using Filee notices: what's new, where to
 find it, what it does and doesn't do.
 
+## 1.10.2
+
+### Fixed
+
+- **One progress card per conversion** (issue #60). When a long conversion moved from the ring around the donut to
+  the progress card in the bottom-right corner, the card appeared twice.
+
 ## 1.10.1
 
 ### New
