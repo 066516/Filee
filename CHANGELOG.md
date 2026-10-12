@@ -6,6 +6,17 @@ version it publishes under "What's Changed" in the GitHub release notes, above t
 Add a `## <version>` section before tagging a release. Write what someone using Filee notices: what's new, where to
 find it, what it does and doesn't do.
 
+## 1.10.2
+
+### Fixed
+
+- **One progress card per conversion** (issue #60). When a long conversion moved from the ring around the donut to
+  the progress card in the bottom-right corner, the card appeared twice.
+- **Blank PDF pages with variable fonts** (issue #61). A Word or 한글 document whose font is installed as a variable
+  OpenType font with CFF2 outlines, such as Source Han Serif VF (思源宋体 VF), became a PDF without text. Such a font is
+  now replaced by a similar font already on the computer (e.g. SimSun for Simplified Chinese serif text). Filee does
+  not download or ship fonts.
+
 ## 1.10.1
 
 ### New

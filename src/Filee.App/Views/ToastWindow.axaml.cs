@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Filee.App.Services;
 
 namespace Filee.App.Views;
@@ -17,15 +18,36 @@ public partial class ToastWindow : Window
         SizeChanged += (_, _) => PlaceBottomRight();
     }
 
+    private ConversionService? _service;
+    private bool _closed;
+
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        if (DataContext is ConversionService service)
-            service.ToastJobs.CollectionChanged += (_, args) => OnJobsChanged(service, args);
+        if (_service is not null)
+            _service.ToastJobs.CollectionChanged -= OnJobsChanged;
+        _service = DataContext as ConversionService;
+        if (_service is not null)
+            _service.ToastJobs.CollectionChanged += OnJobsChanged;
     }
 
-    private void OnJobsChanged(ConversionService service, NotifyCollectionChangedEventArgs e)
+    protected override void OnClosed(EventArgs e)
     {
+        _closed = true;
+        if (_service is not null)
+            _service.ToastJobs.CollectionChanged -= OnJobsChanged;
+        base.OnClosed(e);
+    }
+
+    // After the change: showing the window inside CollectionChanged built the list with the new job already in it, and
+    // the list then added it again, so one job had two cards (issue #60).
+    private void OnJobsChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
+        Dispatcher.UIThread.Post(UpdateVisibility);
+
+    private void UpdateVisibility()
+    {
+        if (_closed || _service is not { } service)
+            return;
         if (service.ToastJobs.Count > 0 && !IsVisible)
         {
             Show();
