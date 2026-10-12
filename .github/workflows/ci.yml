@@ -77,7 +77,7 @@ jobs:
         run: dotnet test tests/Filee.App.Tests --no-build -c Release --blame-crash --blame-hang-timeout 5m --logger "console;verbosity=normal" --results-directory TestResults/app
 
       - name: Test
-        run: dotnet test Filee.slnx --no-build -c Release --logger "trx" --results-directory TestResults
+        run: dotnet test Filee.slnx --no-build -c Release --filter "FullyQualifiedName!~Filee.App.Tests" --logger "trx" --results-directory TestResults
 
       # Compiles installer/Filee.iss against a stub app without compression: catches script errors in about a minute.
       - name: Check installer script
