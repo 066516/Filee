@@ -73,8 +73,17 @@ public partial class UpdateNoticeWindow : Window
         };
         LevelPill.Background = Brush(fill);
         LevelText.Foreground = level == UpdateLevel.Required ? Avalonia.Media.Brushes.White : Brush(text);
-        ChangesText.Text = UpdateTexts.Changes(_updates, _loc);
-        ChangesText.IsVisible = ChangesText.Text.Length > 0;
+        ChangesList.Children.Clear();
+        foreach (var line in UpdateTexts.Changes(_updates, _loc).Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var bullet = line.StartsWith("• ", StringComparison.Ordinal);
+            var row = new DockPanel();
+            if (bullet)
+                row.Children.Add(new TextBlock { Text = "•", FontSize = 12.5, Margin = new Thickness(0, 0, 6, 0), [DockPanel.DockProperty] = Dock.Left });
+            row.Children.Add(new TextBlock { Text = bullet ? line[2..] : line, FontSize = 12.5, TextWrapping = Avalonia.Media.TextWrapping.Wrap });
+            ChangesList.Children.Add(row);
+        }
+        ChangesList.IsVisible = ChangesList.Children.Count > 0;
         Progress.IsVisible = _updates.Step == UpdateStep.Downloading;
         Progress.Value = _updates.DownloadPercent;
         Buttons.IsVisible = !_updates.IsBusy;
