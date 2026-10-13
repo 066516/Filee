@@ -167,9 +167,13 @@ public partial class App : Application
         if (ownCopiesChanged)
             EngineEnvironment.OwnCopies = new Dictionary<string, string>(settings.EngineOwnCopies);
         var routesChanged = EngineEnvironment.LibreOfficeForSlides != settings.LibreOfficeForSlides
-                            || EngineEnvironment.LibreOfficeForHwp != settings.LibreOfficeForHwp;
+                            || EngineEnvironment.LibreOfficeForHwp != settings.LibreOfficeForHwp
+                            || EngineEnvironment.LibreOfficeForDocuments != settings.LibreOfficeForDocuments
+                            || EngineEnvironment.LibreOfficeForSheets != settings.LibreOfficeForSheets;
         EngineEnvironment.LibreOfficeForSlides = settings.LibreOfficeForSlides;
         EngineEnvironment.LibreOfficeForHwp = settings.LibreOfficeForHwp;
+        EngineEnvironment.LibreOfficeForDocuments = settings.LibreOfficeForDocuments;
+        EngineEnvironment.LibreOfficeForSheets = settings.LibreOfficeForSheets;
 
         var loc = AppHost.Get<LocalizationService>();
         if (loc.NeedsUpdate(settings.Language))

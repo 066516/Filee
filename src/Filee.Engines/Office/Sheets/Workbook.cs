@@ -34,6 +34,9 @@ internal sealed class Worksheet(string name)
     /// <summary>Rows frozen at the top (usually headers): repeated on every printed page.</summary>
     public int FrozenRows { get; set; }
 
+    /// <summary>0-based rows that start a new printed page (page breaks set in Excel: Page Layout → Breaks).</summary>
+    public SortedSet<int> RowBreaks { get; } = [];
+
     public void Set(int row, int column, SheetCell cell)
     {
         if (!Rows.TryGetValue(row, out var cells))

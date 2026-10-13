@@ -126,6 +126,18 @@ public sealed class AppSettings
     /// </summary>
     public bool LibreOfficeForHwp { get; set; }
 
+    /// <summary>
+    /// With LibreOffice installed, Word documents (DOCX, DOC, ODT, RTF) → PDF go through it instead of the built-in
+    /// route: Chinese punctuation and line-start rules, fonts the built-in route lacks.
+    /// </summary>
+    public bool LibreOfficeForDocuments { get; set; }
+
+    /// <summary>
+    /// With LibreOffice installed, spreadsheets (XLSX, XLS, ODS, CSV) → PDF go through it: print areas, page setup and
+    /// page breaks as Excel prints them.
+    /// </summary>
+    public bool LibreOfficeForSheets { get; set; }
+
     /// <summary>Every conversion keeps the created and modified dates of the original, whatever the preset says.</summary>
     public bool KeepFileDates { get; set; }
 
