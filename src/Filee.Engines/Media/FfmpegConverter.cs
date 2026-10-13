@@ -103,7 +103,7 @@ public sealed partial class FfmpegConverter : IConverter
         // Throws for a missing stream before anything is written (an existing file of that name stays untouched).
         var passes = still
             ? MediaEncoding.PlanStill(input, output, step.To, step.Preset.Media, info)
-            : MediaEncoding.Plan(input, output, step.To, step.Preset.Media, info, step.WorkDirectory, cover);
+            : MediaEncoding.Plan(input, output, step.To, step.Preset.Media, info, step.WorkDirectory, cover, step.Preset.Image.Quality);
         var duration = still ? MediaEncoding.StillDuration : info.Duration;
         try
         {
@@ -194,6 +194,9 @@ public sealed partial class FfmpegConverter : IConverter
     private static bool IsVideoFrameSplitting(ConversionStep step, MediaInfo info, out string imageExt)
     {
         imageExt = "";
+        if (!step.Preset.Media.SaveEveryFrame)
+            return false;
+
         var isSourceVideo = (FormatRegistry.FindById(step.From)?.Category == FormatCategory.Video)
             || (FormatRegistry.Detect(step.InputPath)?.Category == FormatCategory.Video)
             || VideoExtensions.Contains(Path.GetExtension(step.InputPath))
@@ -243,14 +246,26 @@ public sealed partial class FfmpegConverter : IConverter
             return [];
 
         var outputDirectory = Path.GetDirectoryName(allocated)!;
-        var videoFilename = FormatRegistry.NameWithoutExtension(step.InputPath);
-        var framesSubfolder = Path.Combine(outputDirectory, $"{videoFilename}_frames");
+        var videoFilename = Path.GetFileNameWithoutExtension(allocated);
+        if (string.IsNullOrEmpty(videoFilename))
+            videoFilename = FormatRegistry.NameWithoutExtension(step.InputPath);
 
-        if (!Directory.Exists(framesSubfolder))
-            Directory.CreateDirectory(framesSubfolder);
+        var framesSubfolder = Path.Combine(outputDirectory, $"{videoFilename}_frames");
+        for (var n = 2; Directory.Exists(framesSubfolder); n++)
+            framesSubfolder = Path.Combine(outputDirectory, $"{videoFilename}_frames ({n})");
+
+        Directory.CreateDirectory(framesSubfolder);
 
         var outputPattern = Path.Combine(framesSubfolder, $"frame_%04d.{imageExt}");
-        var args = MediaEncoding.FrameSequence(input, outputPattern, imageExt);
+        var args = MediaEncoding.FrameSequence(
+            input,
+            outputPattern,
+            imageExt,
+            info.Video,
+            step.Preset.Image.Quality,
+            step.Preset.Media.FrameInterval,
+            step.Preset.Media.FramesPerSecond);
+
         var pass = new FfmpegPass(args, 1);
 
         try

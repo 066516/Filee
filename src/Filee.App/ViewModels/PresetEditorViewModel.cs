@@ -89,6 +89,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _wavFormat = WavFormats.First(f => f.Value == _edit.Media.WavFormat);
         _archiveLevel = ArchiveLevels.First(l => l.Value == _edit.Archive.Level);
         _combineIntoOne = _edit.Archive.CombineIntoOne;
+        _saveEveryFrame = _edit.Media.SaveEveryFrame;
+        _frameInterval = _edit.Media.FrameInterval > 0 ? _edit.Media.FrameInterval : 1;
         _quality = _edit.Image.Quality;
         _resizePercent = _edit.Image.ResizePercent;
         _longEdge = _edit.Image.LongEdge;
@@ -141,7 +143,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
         nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
         nameof(ShowAudioChannels), nameof(ShowWav),
-        nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote))]
+        nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote),
+        nameof(ShowSaveEveryFrame))]
     private Choice<string> _target;
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowPercent), nameof(ShowLongEdge), nameof(ShowWidth))]
@@ -212,6 +215,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private bool _removeAudio;
     [ObservableProperty] private Choice<ArchiveLevel> _archiveLevel;
     [ObservableProperty] private bool _combineIntoOne;
+    [ObservableProperty] private bool _saveEveryFrame;
+    [ObservableProperty] private int _frameInterval = 1;
 
     private string TargetId => Target.Value;
     private FormatCategory? TargetCategory => FormatRegistry.FindById(TargetId)?.Category;
@@ -247,6 +252,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowArchiveOptions => ShowArchive && TargetId != FormatRegistry.Folder;
     /// <summary>"Extract" has nothing to set; a line says what it does instead.</summary>
     public bool ShowExtractNote => TargetId == FormatRegistry.Folder;
+    public bool ShowSaveEveryFrame => TargetId is "jpg" or "jpeg" or "png";
     public bool ShowPercent => Resize.Value == ResizeMode.Percent;
     public bool ShowLongEdge => Resize.Value == ResizeMode.LongEdge;
     public bool ShowWidth => Resize.Value == ResizeMode.Width;
@@ -310,6 +316,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         media.AudioChannels = AudioChannels.Value;
         media.AudioSampleRate = SampleRate.Value;
         media.WavFormat = WavFormat.Value;
+        media.SaveEveryFrame = SaveEveryFrame;
+        media.FrameInterval = Math.Clamp(FrameInterval, 1, 1000);
         _original.Archive.Level = ArchiveLevel.Value;
         _original.Archive.CombineIntoOne = CombineIntoOne;
 

@@ -119,14 +119,14 @@ internal static class MediaEncoding
     /// <param name="cover">The source's cover for targets FFmpeg can't put a picture stream into (<see cref="CoverArt"/>).</param>
     /// <exception cref="InvalidOperationException">The file lacks the stream the target needs (e.g. no audio track).</exception>
     public static IReadOnlyList<FfmpegPass> Plan(string input, string output, string target, MediaOptions options, MediaInfo info, string workDirectory,
-        CoverExtras? cover = null)
+        CoverExtras? cover = null, int imageQuality = 90)
     {
         if (target == "gif")
             return AnimatedGif(input, output, options, info, workDirectory);
         if (target is "jpg" or "jpeg")
-            return [new FfmpegPass(FrameSequence(input, output, "jpg"), 1)];
+            return [new FfmpegPass(PosterFrame(input, output, info, "mjpeg", imageQuality), 1)];
         if (target == "png")
-            return [new FfmpegPass(PosterFrame(input, output, info), 1)];
+            return [new FfmpegPass(PosterFrame(input, output, info, "png"), 1)];
         if (VideoTargets.TryGetValue(target, out var video))
             return [new FfmpegPass(Video(input, output, target, video, options, info), 1)];
         if (AudioTargets.TryGetValue(target, out var audio))
@@ -135,14 +135,47 @@ internal static class MediaEncoding
     }
 
     /// <summary>
-    /// Slices every frame of a video into an image sequence in <paramref name="outputPattern"/>
+    /// Maps preset image quality (1..100, 100 best) to FFmpeg's mjpeg -q:v parameter (1..31, 1 best, 2..3 visually lossless).
+    /// </summary>
+    public static int QualityToQv(int quality)
+    {
+        var clamped = Math.Clamp(quality, 1, 100);
+        return Math.Clamp((int)Math.Round(2.0 + (100 - clamped) * 29.0 / 99.0), 1, 31);
+    }
+
+    /// <summary>
+    /// Slices frames of a video into an image sequence in <paramref name="outputPattern"/>
     /// for focus stacking and photography analysis.
     /// </summary>
-    public static List<string> FrameSequence(string input, string outputPattern, string imageExt)
+    public static List<string> FrameSequence(
+        string input,
+        string outputPattern,
+        string imageExt,
+        VideoStreamInfo? video = null,
+        int quality = 90,
+        int frameInterval = 1,
+        double fps = 0)
     {
         List<string> args = [.. Common, "-i", input];
+
+        var filters = new List<string>();
+        if (video is not null && Math.Abs(video.SampleAspect - 1) > 0.01)
+            filters.Add("scale=w='trunc(iw*sar/2)*2':h=ih,setsar=1");
+
+        if (frameInterval > 1)
+            filters.Add($"select='not(mod(n\\,{frameInterval}))'");
+        else if (fps > 0)
+            filters.Add($"fps={fps.ToString(CultureInfo.InvariantCulture)}");
+
+        if (filters.Count > 0)
+            args.AddRange(["-vf", string.Join(",", filters)]);
+
+        if (frameInterval > 1)
+            args.AddRange(["-fps_mode", "vfr"]);
+
         if (imageExt is "jpg" or "jpeg")
-            args.AddRange(["-q:v", "2"]);
+            args.AddRange(["-q:v", QualityToQv(quality).ToString(CultureInfo.InvariantCulture)]);
+
         args.AddRange(["-progress", "pipe:1", outputPattern]);
         return args;
     }
@@ -544,20 +577,26 @@ internal static class MediaEncoding
     // ───────────────────────── Still frame ─────────────────────────
 
     /// <summary>
-    /// One full-size PNG frame from a tenth into the video (the first frames are often black), the start for video →
+    /// One full-size frame from a tenth into the video (the first frames are often black), the start for video →
     /// image conversions (the image engines take it from there). Without this edge the route planner would reach
     /// images through an animated GIF of the whole video.
     /// </summary>
-    private static List<string> PosterFrame(string input, string output, MediaInfo info)
+    private static List<string> PosterFrame(string input, string output, MediaInfo info, string format = "png", int quality = 90)
     {
         var video = info.Video ?? throw new InvalidOperationException("The file has no video stream.");
         var seconds = (info.Duration?.TotalSeconds ?? 0) / 10;
-        return
+        List<string> args =
         [
             .. Common, "-ss", seconds.ToString("0.###", CultureInfo.InvariantCulture), "-i", input, "-map", "0:V:0",
-            "-vf", SquarePixels(video) + "null", "-frames:v", "1", "-update", "1", "-c:v", "png", "-f", "image2",
-            "-progress", "pipe:1", output,
+            "-vf", SquarePixels(video) + "null", "-frames:v", "1", "-update", "1",
         ];
+        if (format is "jpg" or "jpeg" or "mjpeg")
+            args.AddRange(["-c:v", "mjpeg", "-q:v", QualityToQv(quality).ToString(CultureInfo.InvariantCulture), "-f", "image2"]);
+        else
+            args.AddRange(["-c:v", "png", "-f", "image2"]);
+
+        args.AddRange(["-progress", "pipe:1", output]);
+        return args;
     }
 
     // ───────────────────────── Still picture → video ─────────────────────────

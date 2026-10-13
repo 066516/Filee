@@ -228,6 +228,15 @@ public sealed class MediaOptions
     /// <summary>How a WAV file stores its samples.</summary>
     public WavSampleFormat WavFormat { get; set; } = WavSampleFormat.Pcm16;
 
+    /// <summary>Video → image: save every frame as an individual image instead of a single still frame.</summary>
+    public bool SaveEveryFrame { get; set; }
+
+    /// <summary>With <see cref="SaveEveryFrame"/>: extract every Nth frame (1 = every frame).</summary>
+    public int FrameInterval { get; set; } = 1;
+
+    /// <summary>With <see cref="SaveEveryFrame"/>: target frames per second (0 = keep source rate).</summary>
+    public double FramesPerSecond { get; set; }
+
     public MediaOptions Clone() => (MediaOptions)MemberwiseClone();
 }
 

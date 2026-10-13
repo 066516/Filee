@@ -581,21 +581,45 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
-    public async Task Video_to_image_slices_frames_to_dedicated_subfolder()
+    public async Task Video_gives_a_still_frame_for_images()
     {
         SkipUnlessInstalled();
         var folder = fx.NewFolder();
-        var source = await MakeClipAsync(folder, "still.mkv", seconds: 2, size: "640x360");
+        // Anamorphic 4:3 DV-style video: 720×480 pixels that are shown narrower than they are stored.
+        var source = await MakeClipAsync(folder, "still.mkv", seconds: 3, size: "720x480", extra: ["-vf", "setsar=8/9"]);
 
-        var pngFolder = await ConvertAsync(source, "png");
-        Assert.True(Directory.Exists(pngFolder));
-        Assert.Equal(Path.Combine(folder, "still_frames"), pngFolder);
-        var pngFiles = Directory.GetFiles(pngFolder, "frame_*.png");
-        Assert.NotEmpty(pngFiles);
+        var png = await ProbeAsync(await ConvertAsync(source, "png"));
+        Assert.Equal("png", png.Video?.Codec);
+        Assert.Equal((640, 480), (png.Video!.Width, png.Video.Height)); // square pixels
 
-        var jpgFolder = await ConvertAsync(source, "jpg");
+        var jpg = await ConvertAsync(source, "jpg");
+        using var image = new ImageMagick.MagickImage(jpg);
+        Assert.Equal((640u, 480u), (image.Width, image.Height));
+    }
+
+    [Fact]
+    public async Task Video_to_image_slices_frames_to_unique_subfolders()
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        var source = await MakeClipAsync(folder, "seq.mkv", seconds: 2, size: "640x360");
+
+        var options = new MediaOptions { SaveEveryFrame = true };
+        var pngFolder1 = await ConvertAsync(source, "png", options);
+        Assert.True(Directory.Exists(pngFolder1));
+        Assert.Equal(Path.Combine(folder, "seq_frames"), pngFolder1);
+        Assert.NotEmpty(Directory.GetFiles(pngFolder1, "frame_*.png"));
+
+        // A second run creates a unique folder seq_frames (2) instead of writing into an existing one.
+        var pngFolder2 = await ConvertAsync(source, "png", options);
+        Assert.True(Directory.Exists(pngFolder2));
+        Assert.Equal(Path.Combine(folder, "seq_frames (2)"), pngFolder2);
+        Assert.NotEmpty(Directory.GetFiles(pngFolder2, "frame_*.png"));
+
+        // JPG sequence extraction also creates unique folder and valid images
+        var jpgFolder = await ConvertAsync(source, "jpg", options);
         Assert.True(Directory.Exists(jpgFolder));
-        Assert.Equal(Path.Combine(folder, "still_frames"), jpgFolder);
+        Assert.Equal(Path.Combine(folder, "seq_frames (3)"), jpgFolder);
         var jpgFiles = Directory.GetFiles(jpgFolder, "frame_*.jpg");
         Assert.NotEmpty(jpgFiles);
         using var image = new ImageMagick.MagickImage(jpgFiles.First());
@@ -605,13 +629,21 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [Fact]
     public void Video_frame_sequence_arguments_use_proper_flags()
     {
-        var jpg = MediaEncoding.FrameSequence("in.mp4", "out_frames/frame_%04d.jpg", "jpg");
+        var video = new VideoStreamInfo(720, 480, 8.0 / 9.0, 0, 30);
+        var jpg = MediaEncoding.FrameSequence("in.mp4", "out_frames/frame_%04d.jpg", "jpg", video, quality: 100, frameInterval: 5);
         Assert.Contains("-q:v", jpg);
         Assert.Equal("2", After(jpg, "-q:v"));
+        Assert.Contains("-vf", jpg);
+        var vf = After(jpg, "-vf");
+        Assert.Contains("scale=w='trunc(iw*sar/2)*2':h=ih,setsar=1", vf);
+        Assert.Contains("select='not(mod(n\\,5))'", vf);
+        Assert.Contains("-fps_mode", jpg);
+        Assert.Equal("vfr", After(jpg, "-fps_mode"));
         Assert.Equal("out_frames/frame_%04d.jpg", jpg[^1]);
 
-        var png = MediaEncoding.FrameSequence("in.mp4", "out_frames/frame_%04d.png", "png");
+        var png = MediaEncoding.FrameSequence("in.mp4", "out_frames/frame_%04d.png", "png", fps: 10);
         Assert.DoesNotContain("-q:v", png);
+        Assert.Contains("fps=10", After(png, "-vf"));
         Assert.Equal("out_frames/frame_%04d.png", png[^1]);
     }
 
