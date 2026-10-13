@@ -57,7 +57,8 @@ public sealed class LibreOfficeConverter : IConverter
     {
         _env = env;
         Locate();
-        Edges = BuildEdges(_hasHwpFilter, EngineEnvironment.LibreOfficeForSlides, EngineEnvironment.LibreOfficeForHwp);
+        Edges = BuildEdges(_hasHwpFilter, EngineEnvironment.LibreOfficeForSlides, EngineEnvironment.LibreOfficeForHwp,
+            EngineEnvironment.LibreOfficeForDocuments, EngineEnvironment.LibreOfficeForSheets);
     }
 
     public string Id => "libreoffice";
@@ -68,7 +69,8 @@ public sealed class LibreOfficeConverter : IConverter
     public EngineStatus GetStatus()
     {
         Locate();
-        Edges = BuildEdges(_hasHwpFilter, EngineEnvironment.LibreOfficeForSlides, EngineEnvironment.LibreOfficeForHwp);
+        Edges = BuildEdges(_hasHwpFilter, EngineEnvironment.LibreOfficeForSlides, EngineEnvironment.LibreOfficeForHwp,
+            EngineEnvironment.LibreOfficeForDocuments, EngineEnvironment.LibreOfficeForSheets);
         return _soffice is null
             ? EngineStatus.Unavailable("engine.reason.not_installed")
             : !EngineEnvironment.UsesFileesCopy("libreoffice")
@@ -243,7 +245,9 @@ public sealed class LibreOfficeConverter : IConverter
     /// <param name="hwp">H2Orestart is installed (HWP / HWPX import).</param>
     /// <param name="slides">Presentations → PDF should go through LibreOffice (<see cref="EngineEnvironment.LibreOfficeForSlides"/>).</param>
     /// <param name="hwpToPdf">HWP / HWPX → PDF should go through LibreOffice (<see cref="EngineEnvironment.LibreOfficeForHwp"/>).</param>
-    internal static List<ConversionEdge> BuildEdges(bool hwp, bool slides, bool hwpToPdf)
+    /// <param name="documents">Word documents → PDF should go through LibreOffice (<see cref="EngineEnvironment.LibreOfficeForDocuments"/>).</param>
+    /// <param name="sheets">Spreadsheets → PDF should go through LibreOffice (<see cref="EngineEnvironment.LibreOfficeForSheets"/>).</param>
+    internal static List<ConversionEdge> BuildEdges(bool hwp, bool slides, bool hwpToPdf, bool documents = false, bool sheets = false)
     {
         var edges = new List<ConversionEdge>();
         void Add(IEnumerable<string> sources, IEnumerable<string> targets, int cost)
@@ -261,8 +265,14 @@ public sealed class LibreOfficeConverter : IConverter
         // Chosen in Settings → Engines: cheap enough to beat the built-in route even at the bottom of the engine list
         // (its priority adds at most 9; PPTX → HWPX → PDF costs about 32, rhwp's HWP → PDF about 13).
         const int Preferred = 0;
-        Add(Writer, [.. Writer, "pdf", "txt", "html"], Fallback);
-        Add(Calc, [.. Calc, "pdf", "html"], Fallback);
+        // Word and spreadsheet sources the built-in route also reads: cheap enough to win for the file itself (10 + 9
+        // against about 31 through the HWPX writer and rhwp), not as a hop for other formats, which the DOCX writer can
+        // turn into DOCX (Excel → DOCX → LibreOffice would cost 17 + 19).
+        const int Chosen = 10;
+        Add(Writer, [.. Writer, "txt", "html"], Fallback);
+        Add(Writer, ["pdf"], documents ? Chosen : Fallback);
+        Add(Calc, [.. Calc, "html"], Fallback);
+        Add(Calc, ["pdf"], sheets ? Chosen : Fallback);
         Add(Impress, Impress, Fallback);
         Add(Impress, ["pdf"], slides ? Preferred : Fallback);
         Add(["txt", "html"], ["docx", "odt", "pdf"], Fallback + 3);

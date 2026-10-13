@@ -78,6 +78,14 @@
             <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,0,0,4" Text="{DynamicResource engines.lo_slides_hint}" />
           </StackPanel>
           <StackPanel Spacing="2">
+            <ToggleSwitch IsChecked="{Binding LibreOfficeForDocuments}" OnContent="{DynamicResource engines.lo_documents}" OffContent="{DynamicResource engines.lo_documents}" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,0,0,4" Text="{DynamicResource engines.lo_documents_hint}" />
+          </StackPanel>
+          <StackPanel Spacing="2">
+            <ToggleSwitch IsChecked="{Binding LibreOfficeForSheets}" OnContent="{DynamicResource engines.lo_sheets}" OffContent="{DynamicResource engines.lo_sheets}" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,0,0,4" Text="{DynamicResource engines.lo_sheets_hint}" />
+          </StackPanel>
+          <StackPanel Spacing="2">
             <ToggleSwitch IsChecked="{Binding LibreOfficeForHwp}" OnContent="{DynamicResource engines.lo_hwp}" OffContent="{DynamicResource engines.lo_hwp}" />
             <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource engines.lo_hwp_hint}" />
           </StackPanel>

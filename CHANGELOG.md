@@ -6,6 +6,61 @@ version it publishes under "What's Changed" in the GitHub release notes, above t
 Add a `## <version>` section before tagging a release. Write what someone using Filee notices: what's new, where to
 find it, what it does and doesn't do.
 
+Start the section with an `<!-- update -->` block (hidden on GitHub). The app's update notice shows its level and its
+one-line summaries in the user's language (`ko`, `en`, `zh`; a line per change, a language may repeat):
+
+- `required`: wrong or lost results, security, Filee not starting. The card shows every time Filee starts.
+- `recommended`: bug fixes. The card shows once per version.
+- `optional`: new features only. No card, the sidebar button only.
+
+## 1.10.3
+
+<!-- update
+level: recommended
+ko: 엑셀에서 정한 페이지 나누기가 PDF에 반영돼요
+ko: 중국어·일본어 등 여러 언어 문서를 PDF로 바꿀 때 그 언어의 글꼴을 써요
+ko: 한글 문서의 보기 상자와 수식이 PDF에서 제대로 나와요
+ko: Word·엑셀 → PDF를 LibreOffice로 변환하도록 고를 수 있어요
+ko: 업데이트 알림에 중요도와 바뀐 내용이 나와요
+en: Excel page breaks carry over to PDF
+en: Chinese, Japanese and other languages get a font of their own in PDFs
+en: Boxes and equations of 한글 documents come out right in PDFs
+en: Word and Excel → PDF can go through LibreOffice
+en: Update notices say how much an update matters and what it changes
+zh: Excel 中设置的分页符会保留到 PDF 中
+zh: 中文、日文等文档转为 PDF 时使用对应语言的字体
+zh: 韩文 Hangul 文档中的框和公式在 PDF 中正确显示
+zh: 可以选择用 LibreOffice 将 Word、Excel 转为 PDF
+zh: 更新通知会显示重要程度和更新内容
+-->
+
+### New
+
+- **Update notices say how much an update matters.** The card names the update required, recommended or optional and
+  lists what it changes in one line each, in the app's language (for someone a few versions behind, every version in
+  between). Optional updates no longer bring up the card, only the sidebar button; required ones show it every time
+  Filee starts.
+- **LibreOffice for Word and Excel → PDF** (issue #66). Settings → Engines → "When LibreOffice is installed" has two
+  new switches, off by default: "Word documents → PDF" (DOCX, DOC, ODT, RTF, laid out as in Word, with Chinese and
+  Japanese punctuation rules) and "Spreadsheets → PDF" (XLSX, XLS, ODS, CSV, with the workbook's print area and page
+  setup).
+
+### Fixed
+
+- **Excel page breaks** (issue #67). XLSX → PDF starts a new page where a page break was set in Excel (Page Layout →
+  Breaks), with frozen header rows repeated at the top. This works without LibreOffice.
+- **Fonts for every language in PDFs** (issue #64). Markdown, text, HTML and other documents Filee turns into PDF used
+  Korean fonts, so Chinese text mixed two fonts character by character. Chinese (Simplified or Traditional) and
+  Japanese text now gets a Chinese or Japanese font already on the computer (e.g. Microsoft YaHei), and text in other
+  scripts (Russian, Greek, Thai, Arabic, …) a font that has all its characters. Filee does not download or ship fonts.
+- **한글 boxes and equations in PDFs** (issue #65). In HWP / HWPX → PDF:
+  - Boxes inside a text box (the "보기" box of an exam paper) came out narrow, with their content clipped and pictures
+    shrunk. They now have the size 한글 shows.
+  - Equations written in 한글 2022 showed commands as text ("fCIRCf", "ASMALLINTERB", "lek", "rootx") and != or +-
+    instead of ≠ and ±. They now show ∘, ∩, ⊂, ≤, √, ≠ and ±.
+  - When the computer has no font with the equation symbols (∪, ∈, ⊂, …), Cambria Math, which comes with Windows,
+    draws the equations.
+
 ## 1.10.2
 
 ### Fixed

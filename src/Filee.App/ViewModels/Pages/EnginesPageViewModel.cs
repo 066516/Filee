@@ -54,6 +54,8 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
         _downloads = downloads;
         _libreOfficeForSlides = store.Settings.LibreOfficeForSlides;
         _libreOfficeForHwp = store.Settings.LibreOfficeForHwp;
+        _libreOfficeForDocuments = store.Settings.LibreOfficeForDocuments;
+        _libreOfficeForSheets = store.Settings.LibreOfficeForSheets;
         _catalog.Changed += OnCatalogChanged;
         Reload();
     }
@@ -64,6 +66,12 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
     /// <summary>HWP / HWPX → PDF through LibreOffice and H2Orestart instead of rhwp.</summary>
     [ObservableProperty] private bool _libreOfficeForHwp;
 
+    /// <summary>Word documents → PDF through LibreOffice instead of the built-in route.</summary>
+    [ObservableProperty] private bool _libreOfficeForDocuments;
+
+    /// <summary>Spreadsheets → PDF through LibreOffice instead of the built-in route.</summary>
+    [ObservableProperty] private bool _libreOfficeForSheets;
+
     partial void OnLibreOfficeForSlidesChanged(bool value)
     {
         _store.Settings.LibreOfficeForSlides = value;
@@ -73,6 +81,18 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
     partial void OnLibreOfficeForHwpChanged(bool value)
     {
         _store.Settings.LibreOfficeForHwp = value;
+        _store.SaveSettings();
+    }
+
+    partial void OnLibreOfficeForDocumentsChanged(bool value)
+    {
+        _store.Settings.LibreOfficeForDocuments = value;
+        _store.SaveSettings();
+    }
+
+    partial void OnLibreOfficeForSheetsChanged(bool value)
+    {
+        _store.Settings.LibreOfficeForSheets = value;
         _store.SaveSettings();
     }
 

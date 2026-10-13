@@ -60,6 +60,12 @@ public sealed class EngineEnvironment(string dataDirectory)
     /// <summary>LibreOffice converts HWP / HWPX to PDF instead of rhwp (Settings → Engines). Re-check after a change.</summary>
     public static bool LibreOfficeForHwp { get; set; }
 
+    /// <summary>LibreOffice converts Word documents to PDF (Settings → Engines). Re-check after a change.</summary>
+    public static bool LibreOfficeForDocuments { get; set; }
+
+    /// <summary>LibreOffice converts spreadsheets to PDF (Settings → Engines). Re-check after a change.</summary>
+    public static bool LibreOfficeForSheets { get; set; }
+
     /// <summary>Programs required by each engine package on the current operating system.</summary>
     public static IReadOnlyDictionary<string, string[]> OwnCopyPrograms { get; } = Programs(OperatingSystem.IsWindows());
 

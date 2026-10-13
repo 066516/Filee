@@ -127,9 +127,12 @@ public partial class App : Application
     private static void WatchForUpdates(UserDataStore store)
     {
         var updates = AppHost.Get<UpdateService>();
+        // Required: the card every time Filee starts (UpdateFound fires once per run). Recommended: once per version.
+        // Optional: no card, the sidebar button only. Frequent releases no longer ask every day.
         updates.UpdateFound += (_, version) =>
         {
-            if (store.Settings.NotifiedUpdateVersion == version)
+            if (updates.Level == UpdateLevel.Optional
+                || updates.Level == UpdateLevel.Recommended && store.Settings.NotifiedUpdateVersion == version)
                 return;
             store.Settings.NotifiedUpdateVersion = version;
             store.SaveSettings();
@@ -167,9 +170,13 @@ public partial class App : Application
         if (ownCopiesChanged)
             EngineEnvironment.OwnCopies = new Dictionary<string, string>(settings.EngineOwnCopies);
         var routesChanged = EngineEnvironment.LibreOfficeForSlides != settings.LibreOfficeForSlides
-                            || EngineEnvironment.LibreOfficeForHwp != settings.LibreOfficeForHwp;
+                            || EngineEnvironment.LibreOfficeForHwp != settings.LibreOfficeForHwp
+                            || EngineEnvironment.LibreOfficeForDocuments != settings.LibreOfficeForDocuments
+                            || EngineEnvironment.LibreOfficeForSheets != settings.LibreOfficeForSheets;
         EngineEnvironment.LibreOfficeForSlides = settings.LibreOfficeForSlides;
         EngineEnvironment.LibreOfficeForHwp = settings.LibreOfficeForHwp;
+        EngineEnvironment.LibreOfficeForDocuments = settings.LibreOfficeForDocuments;
+        EngineEnvironment.LibreOfficeForSheets = settings.LibreOfficeForSheets;
 
         var loc = AppHost.Get<LocalizationService>();
         if (loc.NeedsUpdate(settings.Language))

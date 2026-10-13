@@ -100,6 +100,17 @@ public sealed partial class UpdateService : ObservableObject
 
     public bool IsUpdateAvailable => LatestVersion is not null;
 
+    /// <summary>What the versions between this one and <see cref="LatestVersion"/> change, newest first.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Level), nameof(IsRequired), nameof(IsOptional))]
+    private IReadOnlyList<ReleaseNote> _notes = [];
+
+    /// <summary>How much the update matters: the highest level of the versions it brings.</summary>
+    public UpdateLevel Level => ReleaseNotes.Highest(Notes);
+
+    public bool IsRequired => Level == UpdateLevel.Required;
+    public bool IsOptional => Level == UpdateLevel.Optional;
+
     /// <summary>Progress of an in-app update.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsBusy))]
@@ -150,7 +161,18 @@ public sealed partial class UpdateService : ObservableObject
             var tag = json.RootElement.TryGetProperty("tag_name", out var value) ? value.GetString() : null;
             var newer = IsNewer(tag, CurrentVersion) ? Normalize(tag!) : null;
             (_installer, _checksums) = FindFiles(json.RootElement);
-            await Dispatcher.UIThread.InvokeAsync(() => Publish(newer, announce));
+            IReadOnlyList<ReleaseNote> notes = [];
+            if (newer is not null)
+            {
+                var body = json.RootElement.TryGetProperty("body", out var text) ? text.GetString() : null;
+                notes = await NotesAsync(api[..^"/latest".Length], newer, cancellationToken)
+                        ?? ReleaseNotes.Between([(tag!, body)], CurrentVersion, newer);
+            }
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                Notes = notes; // before Publish: UpdateFound decides by the level
+                Publish(newer, announce);
+            });
             return true;
         }
         // Offline, DNS failure, timeout, a connection dropped while reading, or an unexpected answer: Filee works
@@ -160,6 +182,37 @@ public sealed partial class UpdateService : ObservableObject
         {
             _log.LogInformation("Update check failed: {Message}", ex.Message);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// The notes of every release from this version up to <paramref name="latest"/> (someone a few versions behind sees
+    /// all of them), or null when the list doesn't come.
+    /// </summary>
+    private async Task<IReadOnlyList<ReleaseNote>?> NotesAsync(string releasesApi, string latest, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _http.GetAsync(releasesApi + "?per_page=30", cancellationToken);
+            if (!response.IsSuccessStatusCode)
+                return null;
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+            if (json.RootElement.ValueKind != JsonValueKind.Array)
+                return null;
+            var releases = json.RootElement.EnumerateArray()
+                .Where(r => !(r.TryGetProperty("draft", out var d) && d.ValueKind == JsonValueKind.True)
+                            && !(r.TryGetProperty("prerelease", out var p) && p.ValueKind == JsonValueKind.True))
+                .Select(r => (Tag: r.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "" : "",
+                              Body: r.TryGetProperty("body", out var b) ? b.GetString() : null))
+                .ToList();
+            return ReleaseNotes.Between(releases, CurrentVersion, latest);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or JsonException
+                                       or InvalidOperationException)
+        {
+            _log.LogInformation("Release notes: {Message}", ex.Message);
+            return null;
         }
     }
 
