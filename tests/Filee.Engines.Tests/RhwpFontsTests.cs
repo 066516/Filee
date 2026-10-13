@@ -108,7 +108,7 @@ public class RhwpFontsTests(EngineFixture fx) : IClassFixture<EngineFixture>
         var faces = Faces(hwpx);
         var broken = faces.First();
 
-        var copy = RhwpFonts.Prepare(hwpx, dir, face => face == broken
+        var copy = RhwpInput.Prepare(hwpx, dir, face => face == broken
             ? new InstalledFont(false, _ => true)
             : face == "Malgun Gothic" ? new InstalledFont(true, _ => true) : null);
 
@@ -118,7 +118,7 @@ public class RhwpFontsTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal(faces, Faces(hwpx)); // the original is untouched
         using (var zip = ZipFile.OpenRead(copy))
             Assert.Equal("mimetype", zip.Entries[0].FullName); // still a valid HWPX package
-        Assert.Null(RhwpFonts.Prepare(hwpx, dir, _ => new InstalledFont(true, _ => true))); // nothing to replace: no copy
+        Assert.Null(RhwpInput.Prepare(hwpx, dir, _ => new InstalledFont(true, _ => true))); // nothing to replace: no copy
     }
 
     private static List<string> Faces(string hwpx)

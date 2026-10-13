@@ -1,4 +1,5 @@
-// Fonts for rhwp, chosen from the fonts installed on the computer. Nothing is downloaded or shipped.
+// Fonts for rhwp, chosen from the fonts installed on the computer (RhwpInput writes them into a copy of the HWPX).
+// Nothing is downloaded or shipped.
 //
 // - Language: documents Filee writes (Markdown, text, HTML → HWPX) name Korean fonts in every slot. In a Chinese or
 //   Japanese document those drew Korean-style Hanja and, for characters they lack, a different fallback font per
@@ -14,8 +15,6 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
-using System.IO.Compression;
-using System.Xml.Linq;
 using SkiaSharp;
 
 namespace Filee.Engines.Hwp;
@@ -55,59 +54,6 @@ internal static class RhwpFonts
     private const string TraditionalOnly = "這們說為時個對發經過還進動東車長門間問見現實從開關書無讓應該話樣";
 
     private static readonly ConcurrentDictionary<string, InstalledFont?> Fonts = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// A copy of the HWPX in <paramref name="workDirectory"/> naming better fonts, or null when every font is fine (or
-    /// the file is not an HWPX package).
-    /// </summary>
-    /// <param name="lookup">The installed font with a name, or null (tests pass a fake computer).</param>
-    public static string? Prepare(string hwpx, string workDirectory, Func<string, InstalledFont?>? lookup = null)
-    {
-        try
-        {
-            XDocument header;
-            var text = new StringBuilder();
-            using (var zip = ZipFile.OpenRead(hwpx))
-            {
-                if (zip.GetEntry("Contents/header.xml") is not { } entry)
-                    return null;
-                using (var stream = entry.Open())
-                    header = XDocument.Load(stream);
-                foreach (var section in zip.Entries.Where(e => e.FullName.StartsWith("Contents/section", StringComparison.Ordinal)))
-                {
-                    using var stream = section.Open();
-                    foreach (var t in XDocument.Load(stream).Descendants().Where(e => e.Name.LocalName == "t"))
-                        if (text.Length < 200_000)
-                            text.Append(t.Value);
-                }
-            }
-
-            var fonts = header.Descendants()
-                .Where(e => e.Name.LocalName == "font" && e.Attribute("face") is not null && e.Parent?.Name.LocalName == "fontface")
-                .Select(e => (Element: e, Slot: (string?)e.Parent!.Attribute("lang") ?? "", Face: (string)e.Attribute("face")!))
-                .ToList();
-            var plan = Plan(fonts.Select(f => (f.Slot, f.Face)).ToList(), text.ToString(), lookup ?? Find);
-            if (plan.Count == 0)
-                return null;
-            foreach (var font in fonts)
-                if (plan.TryGetValue((font.Slot, font.Face), out var replacement))
-                    font.Element.SetAttributeValue("face", replacement);
-
-            var copy = Path.Combine(workDirectory, $"rhwp-fonts-{Guid.NewGuid():N}.hwpx");
-            File.Copy(hwpx, copy);
-            using (var zip = ZipFile.Open(copy, ZipArchiveMode.Update))
-            {
-                zip.GetEntry("Contents/header.xml")!.Delete();
-                using var stream = zip.CreateEntry("Contents/header.xml", CompressionLevel.Optimal).Open();
-                header.Save(stream, SaveOptions.DisableFormatting);
-            }
-            return copy;
-        }
-        catch (Exception ex) when (ex is InvalidDataException or System.Xml.XmlException)
-        {
-            return null; // not a package Filee can read: rhwp reports the problem itself
-        }
-    }
 
     /// <summary>Replacements by (slot, face): the language, coverage and CFF2 rules above.</summary>
     internal static Dictionary<(string Slot, string Face), string> Plan(

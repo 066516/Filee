@@ -23,6 +23,13 @@ find it, what it does and doesn't do.
   Korean fonts, so Chinese text mixed two fonts character by character. Chinese (Simplified or Traditional) and
   Japanese text now gets a Chinese or Japanese font already on the computer (e.g. Microsoft YaHei), and text in other
   scripts (Russian, Greek, Thai, Arabic, …) a font that has all its characters. Filee does not download or ship fonts.
+- **한글 boxes and equations in PDFs** (issue #65). In HWP / HWPX → PDF:
+  - Boxes inside a text box (the "보기" box of an exam paper) came out narrow, with their content clipped and pictures
+    shrunk. They now have the size 한글 shows.
+  - Equations written in 한글 2022 showed commands as text ("fCIRCf", "ASMALLINTERB", "lek", "rootx") and != or +-
+    instead of ≠ and ±. They now show ∘, ∩, ⊂, ≤, √, ≠ and ±.
+  - When the computer has no font with the equation symbols (∪, ∈, ⊂, …), Cambria Math, which comes with Windows,
+    draws the equations.
 
 ## 1.10.2
 
