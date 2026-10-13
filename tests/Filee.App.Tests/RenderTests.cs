@@ -450,6 +450,17 @@ public class RenderTests
 
         try
         {
+            updates.Notes = [ReleaseNotes.Parse("9.9.9", """
+                <!-- update
+                level: recommended
+                ko: 엑셀에서 정한 페이지 나누기가 PDF에 반영돼요
+                ko: 한글 문서의 보기 상자와 수식이 PDF에서 제대로 나와요
+                en: Excel page breaks carry over to PDF
+                en: Boxes and equations of 한글 documents come out right in PDFs
+                zh: Excel 中设置的分页符会保留到 PDF 中
+                zh: 韩文 Hangul 文档中的框和公式在 PDF 中正确显示
+                -->
+                """)];
             updates.LatestVersion = "9.9.9";
             Pump();
             Assert.True(button.IsVisible);
@@ -461,6 +472,22 @@ public class RenderTests
             notice.Show();
             Pump();
             Save(notice, $"update-notice-{language}.png");
+
+            // A required update: red pill on the card and in the sidebar; an optional one: plain button, grey pill.
+            updates.Notes = [ReleaseNotes.Parse("9.9.9", """
+                <!-- update
+                level: required
+                ko: 변환 결과가 잘못 나오던 문제를 고쳤어요
+                en: Fixes wrong conversion results
+                zh: 修复了转换结果错误的问题
+                -->
+                """)];
+            Pump();
+            Save(notice, $"update-notice-required-{language}.png");
+            Save(window, $"sidebar-update-required-{language}.png");
+            updates.Notes = [ReleaseNotes.Parse("9.9.9", "<!-- update\nlevel: optional\nko: 새 기능\nen: A new feature\n-->")];
+            Pump();
+            Save(window, $"sidebar-update-optional-{language}.png");
 
             // While the installer downloads, the card, the sidebar button and the tray show the progress.
             updates.Step = UpdateStep.Downloading;
@@ -482,6 +509,7 @@ public class RenderTests
         {
             updates.Step = UpdateStep.Idle;
             updates.LatestVersion = null;
+            updates.Notes = [];
             window.Close();
         }
     }

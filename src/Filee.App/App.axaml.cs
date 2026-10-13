@@ -127,9 +127,12 @@ public partial class App : Application
     private static void WatchForUpdates(UserDataStore store)
     {
         var updates = AppHost.Get<UpdateService>();
+        // Required: the card every time Filee starts (UpdateFound fires once per run). Recommended: once per version.
+        // Optional: no card, the sidebar button only. Frequent releases no longer ask every day.
         updates.UpdateFound += (_, version) =>
         {
-            if (store.Settings.NotifiedUpdateVersion == version)
+            if (updates.Level == UpdateLevel.Optional
+                || updates.Level == UpdateLevel.Recommended && store.Settings.NotifiedUpdateVersion == version)
                 return;
             store.Settings.NotifiedUpdateVersion = version;
             store.SaveSettings();

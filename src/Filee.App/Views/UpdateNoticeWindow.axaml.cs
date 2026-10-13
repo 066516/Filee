@@ -62,10 +62,27 @@ public partial class UpdateNoticeWindow : Window
         if (_updates is null || _loc is null)
             return;
         CaptionText.Text = UpdateTexts.Status(_updates, _loc) ?? _loc[UpdateTexts.HowKey];
+        var level = _updates.Level;
+        LevelText.Text = _loc[$"update.level.{level}"];
+        LevelHint.Text = _loc[$"update.level_hint.{level}"];
+        var (fill, text) = level switch
+        {
+            UpdateLevel.Required => ("DangerBrush", "OnAccentBrush"),
+            UpdateLevel.Recommended => ("AccentSoftBrush", "AccentStrongBrush"),
+            _ => ("SurfaceAltBrush", "TextSecondaryBrush"),
+        };
+        LevelPill.Background = Brush(fill);
+        LevelText.Foreground = level == UpdateLevel.Required ? Avalonia.Media.Brushes.White : Brush(text);
+        ChangesText.Text = UpdateTexts.Changes(_updates, _loc);
+        ChangesText.IsVisible = ChangesText.Text.Length > 0;
         Progress.IsVisible = _updates.Step == UpdateStep.Downloading;
         Progress.Value = _updates.DownloadPercent;
         Buttons.IsVisible = !_updates.IsBusy;
     }
+
+    /// <summary>A brush of the current light or dark theme (DangerBrush and the text colours depend on it).</summary>
+    private Avalonia.Media.IBrush? Brush(string key) =>
+        this.TryFindResource(key, ActualThemeVariant, out var value) ? value as Avalonia.Media.IBrush : null;
 
     private void PlaceBottomRight()
     {
