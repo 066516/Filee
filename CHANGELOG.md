@@ -6,6 +6,24 @@ version it publishes under "What's Changed" in the GitHub release notes, above t
 Add a `## <version>` section before tagging a release. Write what someone using Filee notices: what's new, where to
 find it, what it does and doesn't do.
 
+## 1.10.3
+
+### New
+
+- **LibreOffice for Word and Excel → PDF** (issue #66). Settings → Engines → "When LibreOffice is installed" has two
+  new switches, off by default: "Word documents → PDF" (DOCX, DOC, ODT, RTF, laid out as in Word, with Chinese and
+  Japanese punctuation rules) and "Spreadsheets → PDF" (XLSX, XLS, ODS, CSV, with the workbook's print area and page
+  setup).
+
+### Fixed
+
+- **Excel page breaks** (issue #67). XLSX → PDF starts a new page where a page break was set in Excel (Page Layout →
+  Breaks), with frozen header rows repeated at the top. This works without LibreOffice.
+- **Fonts for every language in PDFs** (issue #64). Markdown, text, HTML and other documents Filee turns into PDF used
+  Korean fonts, so Chinese text mixed two fonts character by character. Chinese (Simplified or Traditional) and
+  Japanese text now gets a Chinese or Japanese font already on the computer (e.g. Microsoft YaHei), and text in other
+  scripts (Russian, Greek, Thai, Arabic, …) a font that has all its characters. Filee does not download or ship fonts.
+
 ## 1.10.2
 
 ### Fixed

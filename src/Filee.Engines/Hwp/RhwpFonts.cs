@@ -1,14 +1,27 @@
-// Fonts rhwp cannot put into a PDF. rhwp uses the fonts installed on the computer; a variable font with CFF2 outlines
-// (Source Han Serif VF, "思源宋体 VF" in Chinese Word documents) fails its font subsetter, and the page came out blank
-// (issue #61). Such a font is swapped for an installed font of the same script and style before rhwp runs. Nothing is
-// downloaded or shipped: the replacement is always a font the computer already has.
+// Fonts for rhwp, chosen from the fonts installed on the computer. Nothing is downloaded or shipped.
+//
+// - Language: documents Filee writes (Markdown, text, HTML → HWPX) name Korean fonts in every slot. In a Chinese or
+//   Japanese document those drew Korean-style Hanja and, for characters they lack, a different fallback font per
+//   character (issue #64). Without Hangul in the text, Korean fonts are swapped for an installed Chinese (Simplified
+//   or Traditional) or Japanese font of the same style.
+// - Coverage: rhwp draws a character with the font of its slot when that font has it, else with a fallback of its own
+//   (Arabic came out in a calligraphic font). In text without Hangul, Han or kana, a slot's font is swapped for an
+//   installed one of the same style that has every character of the text the old one had, and more of the rest:
+//   Russian, Greek, Thai or Arabic text gets one consistent font.
+// - CFF2: variable fonts with CFF2 outlines (Source Han Serif VF, "思源宋体 VF") fail rhwp's font subsetter and the
+//   page came out blank (issue #61); they are always swapped.
 
 using System.Collections.Concurrent;
+using System.Globalization;
+using System.Text;
 using System.IO.Compression;
 using System.Xml.Linq;
 using SkiaSharp;
 
 namespace Filee.Engines.Hwp;
+
+/// <summary>An installed font: whether rhwp can embed it and which characters it has.</summary>
+internal sealed record InstalledFont(bool Usable, Func<int, bool> Has);
 
 internal static class RhwpFonts
 {
@@ -26,56 +39,59 @@ internal static class RhwpFonts
             ["Yu Gothic", "Meiryo", "MS Gothic", "Noto Sans JP", "Hiragino Sans", "Noto Sans CJK JP"]),
         ["ko"] = (["Batang", "HCR Batang", "Noto Serif KR", "AppleMyungjo", "Noto Serif CJK KR"],
             ["Malgun Gothic", "Noto Sans KR", "Apple SD Gothic Neo", "NanumGothic", "Noto Sans CJK KR"]),
-        [""] = (["Times New Roman", "Georgia", "Noto Serif", "DejaVu Serif", "Liberation Serif"],
-            ["Arial", "Segoe UI", "Noto Sans", "Helvetica", "DejaVu Sans", "Liberation Sans"]),
+        // Wide coverage first (Tahoma and Times New Roman also have Greek, Cyrillic, Arabic, Hebrew; Tahoma Thai).
+        [""] = (["Times New Roman", "Noto Serif", "DejaVu Serif", "Georgia", "Liberation Serif"],
+            ["Segoe UI", "Tahoma", "Arial", "Noto Sans", "DejaVu Sans", "Helvetica", "Liberation Sans"]),
     };
 
-    private static readonly ConcurrentDictionary<string, bool?> Usable = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Scripts whose fonts rhwp falls back to on its own and the computer may have better ones for.</summary>
+    private static readonly string[] WideFonts = ["Leelawadee UI", "Nirmala UI", "Microsoft Sans Serif", "Arial Unicode MS"];
 
     /// <summary>
-    /// For each face that is installed but unusable, an installed replacement. Faces that are fine, or not installed
-    /// (rhwp falls back on its own), are left out.
+    /// Simplified and Traditional forms of common characters: which form a Chinese text uses. Forms Japanese writes
+    /// the same way (国, 学, 会, 点, …) are left out.
     /// </summary>
-    /// <param name="usable">True when rhwp can use the font, false when it can't, null when it is not installed.</param>
-    public static Dictionary<string, string> Substitutions(IEnumerable<string> faces, Func<string, bool?>? usable = null)
-    {
-        usable ??= IsUsable;
-        var result = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var face in faces.Distinct(StringComparer.Ordinal))
-        {
-            if (face.Length == 0 || usable(face) != false)
-                continue;
-            var (serif, sans) = Candidates[Script(face)];
-            var order = IsSerif(face) ? serif.Concat(sans) : sans.Concat(serif);
-            if (order.FirstOrDefault(c => usable(c) == true) is { } replacement)
-                result[face] = replacement;
-        }
-        return result;
-    }
+    private const string SimplifiedOnly = "这们说为时个对发经过还进动东车长门间问见现实从开关书无让应该话样";
+    private const string TraditionalOnly = "這們說為時個對發經過還進動東車長門間問見現實從開關書無讓應該話樣";
+
+    private static readonly ConcurrentDictionary<string, InstalledFont?> Fonts = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// A copy of the HWPX in <paramref name="workDirectory"/> with unusable fonts replaced, or null when every font is
-    /// fine (or the file is not an HWPX package).
+    /// A copy of the HWPX in <paramref name="workDirectory"/> naming better fonts, or null when every font is fine (or
+    /// the file is not an HWPX package).
     /// </summary>
-    public static string? Prepare(string hwpx, string workDirectory, Func<string, bool?>? usable = null)
+    /// <param name="lookup">The installed font with a name, or null (tests pass a fake computer).</param>
+    public static string? Prepare(string hwpx, string workDirectory, Func<string, InstalledFont?>? lookup = null)
     {
         try
         {
             XDocument header;
+            var text = new StringBuilder();
             using (var zip = ZipFile.OpenRead(hwpx))
             {
                 if (zip.GetEntry("Contents/header.xml") is not { } entry)
                     return null;
-                using var stream = entry.Open();
-                header = XDocument.Load(stream);
+                using (var stream = entry.Open())
+                    header = XDocument.Load(stream);
+                foreach (var section in zip.Entries.Where(e => e.FullName.StartsWith("Contents/section", StringComparison.Ordinal)))
+                {
+                    using var stream = section.Open();
+                    foreach (var t in XDocument.Load(stream).Descendants().Where(e => e.Name.LocalName == "t"))
+                        if (text.Length < 200_000)
+                            text.Append(t.Value);
+                }
             }
-            var fonts = header.Descendants().Where(e => e.Name.LocalName == "font" && e.Attribute("face") is not null).ToList();
-            var substitutions = Substitutions(fonts.Select(f => (string)f.Attribute("face")!), usable);
-            if (substitutions.Count == 0)
+
+            var fonts = header.Descendants()
+                .Where(e => e.Name.LocalName == "font" && e.Attribute("face") is not null && e.Parent?.Name.LocalName == "fontface")
+                .Select(e => (Element: e, Slot: (string?)e.Parent!.Attribute("lang") ?? "", Face: (string)e.Attribute("face")!))
+                .ToList();
+            var plan = Plan(fonts.Select(f => (f.Slot, f.Face)).ToList(), text.ToString(), lookup ?? Find);
+            if (plan.Count == 0)
                 return null;
             foreach (var font in fonts)
-                if (substitutions.TryGetValue((string)font.Attribute("face")!, out var replacement))
-                    font.SetAttributeValue("face", replacement);
+                if (plan.TryGetValue((font.Slot, font.Face), out var replacement))
+                    font.Element.SetAttributeValue("face", replacement);
 
             var copy = Path.Combine(workDirectory, $"rhwp-fonts-{Guid.NewGuid():N}.hwpx");
             File.Copy(hwpx, copy);
@@ -93,19 +109,146 @@ internal static class RhwpFonts
         }
     }
 
+    /// <summary>Replacements by (slot, face): the language, coverage and CFF2 rules above.</summary>
+    internal static Dictionary<(string Slot, string Face), string> Plan(
+        IReadOnlyList<(string Slot, string Face)> slots, string text, Func<string, InstalledFont?> lookup)
+    {
+        var characters = Characters(text);
+        var language = Language(text);
+        var result = new Dictionary<(string, string), string>();
+        foreach (var (slot, face) in slots.Distinct())
+        {
+            if (face.Length == 0)
+                continue;
+            var serif = IsSerif(face);
+            var chosen = face;
+            var current = lookup(face);
+
+            // Korean fonts in a Chinese or Japanese text; a font rhwp cannot embed.
+            if (language is not ("ko" or "") && Script(face) == "ko" || current is { Usable: false })
+            {
+                var script = current is { Usable: false } && Script(face) is { Length: > 0 } own ? own : language;
+                if (Preferred(script, serif).FirstOrDefault(name => lookup(name) is { Usable: true }) is { } replacement)
+                    chosen = replacement;
+            }
+
+            // Text without Hangul, Han or kana (Russian, Greek, Thai, Arabic, …): a font of the same style with every
+            // character the chosen one has, and more of the others. In Korean, Chinese and Japanese text the language
+            // font stays, and rhwp's own fallback draws the odd foreign word as before.
+            var mine = language != "" || slot is "HANJA" or "JAPANESE"
+                ? []
+                : characters.Where(c => !IsHan(c) && !IsKana(c) && (slot == "HANGUL" || !IsHangul(c))).ToList();
+            if (mine.Count > 0 && lookup(chosen) is { Usable: true } font)
+            {
+                var covered = mine.Where(c => font.Has(c)).ToList();
+                if (covered.Count < mine.Count)
+                {
+                    var best = chosen;
+                    var bestCount = covered.Count;
+                    var sameStyle = (serif ? Styled(language).Serif.Concat(Styled("").Serif) : Styled(language).Sans.Concat(Styled("").Sans).Concat(WideFonts))
+                        .Distinct(StringComparer.OrdinalIgnoreCase);
+                    foreach (var name in sameStyle)
+                    {
+                        if (lookup(name) is not { Usable: true } other || !covered.All(other.Has))
+                            continue;
+                        var count = mine.Count(other.Has);
+                        if (count == mine.Count)
+                        {
+                            (best, bestCount) = (name, count); // the first one in order that has everything
+                            break;
+                        }
+                        if (count > bestCount)
+                            (best, bestCount) = (name, count);
+                    }
+                    chosen = best;
+                }
+            }
+
+            if (!string.Equals(chosen, face, StringComparison.Ordinal))
+                result[(slot, face)] = chosen;
+        }
+        return result;
+    }
+
+    private static IEnumerable<string> Preferred(string script, bool serif)
+    {
+        var (serifs, sans) = Styled(script);
+        return serif ? serifs.Concat(sans) : sans.Concat(serifs);
+    }
+
+    private static (string[] Serif, string[] Sans) Styled(string script) =>
+        Candidates.TryGetValue(script, out var c) ? c : Candidates[""];
+
+    private static bool IsHangul(int c) => c is >= 0xAC00 and <= 0xD7A3 or >= 0x1100 and <= 0x11FF or >= 0x3130 and <= 0x318F;
+
+    private static bool IsKana(int c) => c is >= 0x3040 and <= 0x30FF;
+
+    private static bool IsHan(int c) => c is >= 0x4E00 and <= 0x9FFF or >= 0x3400 and <= 0x4DBF or >= 0x20000 and <= 0x2FFFF;
+
     /// <summary>
-    /// Whether an installed font can be embedded by rhwp: false for variable fonts with CFF2 outlines, null when no
-    /// installed font has that name. "思源宋体 VF Medium" names a style of "思源宋体 VF", so trailing style words are tried off too.
+    /// The language the Han characters of a text are in: Korean with Hangul, Japanese with kana, else Simplified or
+    /// Traditional Chinese by common characters; "" without Han characters.
     /// </summary>
-    internal static bool? IsUsable(string face) => Usable.GetOrAdd(face, static name =>
+    internal static string Language(string text)
+    {
+        int hangul = 0, kana = 0, han = 0, simplified = 0, traditional = 0;
+        foreach (var c in text)
+        {
+            if (c is >= '가' and <= '힣' or >= 'ᄀ' and <= 'ᇿ' or >= '㄰' and <= '㆏')
+                hangul++;
+            else if (c is >= '぀' and <= 'ヿ')
+                kana++;
+            else if (c is >= '一' and <= '鿿' or >= '㐀' and <= '䶿')
+            {
+                han++;
+                if (SimplifiedOnly.Contains(c))
+                    simplified++;
+                else if (TraditionalOnly.Contains(c))
+                    traditional++;
+            }
+        }
+        if (hangul > 0)
+            return "ko";
+        // Japanese prose is mostly kana; a Chinese text quoting a Japanese title is not.
+        if (kana > 0 && (simplified + traditional == 0 || kana * 3 >= han))
+            return "ja";
+        if (han > 0)
+            return traditional > simplified ? "zh-Hant" : "zh-Hans";
+        return "";
+    }
+
+    /// <summary>Distinct characters of the text that need a glyph (no spaces or controls), at most 4000.</summary>
+    private static List<int> Characters(string text)
+    {
+        var set = new HashSet<int>();
+        foreach (var rune in text.EnumerateRunes())
+        {
+            if (set.Count >= 4000)
+                break;
+            if (Rune.GetUnicodeCategory(rune) is not (UnicodeCategory.SpaceSeparator or UnicodeCategory.Control
+                or UnicodeCategory.Format or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator
+                or UnicodeCategory.NonSpacingMark or UnicodeCategory.PrivateUse or UnicodeCategory.OtherNotAssigned))
+                set.Add(rune.Value);
+        }
+        return set.ToList();
+    }
+
+    /// <summary>
+    /// An installed font by name, or null. "思源宋体 VF Medium" names a style of "思源宋体 VF", so trailing style words
+    /// are tried off too.
+    /// </summary>
+    internal static InstalledFont? Find(string face) => Fonts.GetOrAdd(face, static name =>
     {
         foreach (var candidate in Names(name))
         {
-            using var typeface = SKFontManager.Default.MatchFamily(candidate);
+            var typeface = SKFontManager.Default.MatchFamily(candidate);
             // Windows matches localized names ("思源宋体 VF") and returns nothing for unknown ones; fontconfig always
             // returns some font, so elsewhere only a font with the requested name counts.
-            if (typeface is not null && (OperatingSystem.IsWindows() || string.Equals(typeface.FamilyName, candidate, StringComparison.OrdinalIgnoreCase)))
-                return IsUsable(typeface);
+            if (typeface is null)
+                continue;
+            if (OperatingSystem.IsWindows() || string.Equals(typeface.FamilyName, candidate, StringComparison.OrdinalIgnoreCase))
+                return new InstalledFont(IsUsable(typeface), codePoint => typeface.GetGlyph(codePoint) != 0);
+            typeface.Dispose();
         }
         return null;
     });
@@ -135,7 +278,8 @@ internal static class RhwpFonts
             return "zh-Hant";
         if (Word("JP", "J") || Has("明朝", "ゴシック", "游"))
             return "ja";
-        if (Word("KR", "K") || face.Any(c => c is >= '가' and <= '힣'))
+        if (Word("KR", "K") || face.Any(c => c is >= '가' and <= '힣')
+            || Candidates["ko"].Serif.Concat(Candidates["ko"].Sans).Contains(face, StringComparer.OrdinalIgnoreCase))
             return "ko";
         if (face.Any(c => c is >= '一' and <= '鿿'))
             return "zh-Hans";
