@@ -40,6 +40,11 @@ public static class BuiltInData
         },
         new()
         {
+            Id = "remove-background", NameKey = "preset.remove_background", TargetFormat = "png",
+            Image = { RemoveBackground = true }, Output = { FileNamePattern = "{name}_transparent" },
+        },
+        new()
+        {
             Id = "tiff-300", Name = "TIFF 300dpi", TargetFormat = "tiff",
             Image = { Dpi = 300 }, Pdf = { RenderDpi = 300 }, Output = { FileNamePattern = "{name}_300dpi" },
         },
@@ -167,7 +172,7 @@ public static class BuiltInData
         {
             Id = "images", NameKey = "profile.images",
             Extensions = ExtensionsOf(FormatCategory.Image),
-            PresetIds = ["to-png", "to-jpg", "to-webp", "to-pdf", "to-tiff", "to-bmp", "to-ico", "half-size"],
+            PresetIds = ["to-png", "to-jpg", "to-webp", "to-pdf", "to-tiff", "to-bmp", "to-ico", "half-size", "remove-background"],
         },
         new()
         {

@@ -355,7 +355,7 @@ public class RenderTests
         window.DonutControl.SetExternalHighlight(1);
         Pump();
 
-        Assert.Equal(8, vm.Items.Count);
+        Assert.Equal(9, vm.Items.Count); // the image donut includes "Remove background"
         Assert.Equal("JPG 3개", vm.CenterTitle);
         Save(window, "donut-images-ko.png");
         window.Close();
@@ -430,6 +430,29 @@ public class RenderTests
 
         Save(window, "preset-popup-ko.png");
         window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Preset_editor_shows_and_saves_background_removal()
+    {
+        TestServices.EnsureInitialized("ko");
+        var preset = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "remove-background");
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<Filee.Core.Localization.ILocalizer>());
+        Assert.True(vm.RemoveBackground);
+        Assert.Equal(25, vm.BackgroundTolerance);
+        var window = new PresetEditorWindow { DataContext = vm, Height = 900 };
+        window.Show();
+        Pump();
+        Save(window, "preset-remove-background-ko.png");
+        window.Close();
+
+        vm.BackgroundTolerance = 140; // out of range: clamped
+        vm.KeepEnclosedBackground = true;
+        Assert.True(vm.Apply());
+
+        Assert.True(preset.Image.RemoveBackground);
+        Assert.Equal(100, preset.Image.BackgroundTolerance);
+        Assert.True(preset.Image.KeepEnclosedBackground);
     }
 
     [AvaloniaTheory]

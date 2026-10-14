@@ -180,6 +180,10 @@ internal static class ImageEncoder
         }
         FitFormat(image, targetFormat);
 
+        // Before grayscale (a blue signature stays blue until then) and before alpha is flattened for JPG and co.
+        if (options.RemoveBackground)
+            BackgroundRemover.Apply(image, options.BackgroundTolerance, options.KeepEnclosedBackground);
+
         if (options.Grayscale)
             image.Grayscale();
 
