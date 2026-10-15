@@ -131,8 +131,8 @@ public sealed class RadialController(
         window.Dropped += (hit, files) =>
         {
             _dropped = true;
-            if (hit.Kind == DonutHitKind.Segment)
-                Convert(hit.Index, files.Count > 0 ? files : viewModel.Files);
+            if (hit.Kind is DonutHitKind.Segment or DonutHitKind.SubSegment)
+                Convert(hit.Index, hit.Sub, files.Count > 0 ? files : viewModel.Files);
             else
                 Close();
         };
@@ -148,8 +148,9 @@ public sealed class RadialController(
                 Close();
         };
 
-        donut.ActiveIndexChanged += (_, index) => viewModel.ShowHint(index, donut.IsCenterHot);
-        donut.SegmentInvoked += (_, index) => Convert(index, viewModel.Files);
+        donut.ActiveIndexChanged += (_, index) => viewModel.ShowHint(index, donut.ActiveSubIndex, donut.IsCenterHot);
+        donut.SegmentInvoked += (_, index) => Convert(index, -1, viewModel.Files);
+        donut.SubSegmentInvoked += (_, hit) => Convert(hit.Group, hit.Sub, viewModel.Files);
         donut.CenterInvoked += (_, _) => Close();
         donut.SegmentContextRequested += async (_, index) => await EditPresetAsync(index);
         donut.ProgressCancelRequested += (_, _) => _progressJob?.CancelCommand.Execute(null);
@@ -163,15 +164,15 @@ public sealed class RadialController(
         return window;
     }
 
-    private void Convert(int index, IReadOnlyList<string> files)
+    /// <summary>Converts with slice <paramref name="index"/>, or with slice <paramref name="sub"/> of that group's ring.</summary>
+    private void Convert(int index, int sub, IReadOnlyList<string> files)
     {
-        if (index < 0 || index >= viewModel.Presets.Count || !viewModel.Items[index].IsEnabled || files.Count == 0)
+        if (viewModel.PresetAt(index, sub) is not { } preset || files.Count == 0)
         {
             Close();
             return;
         }
 
-        var preset = viewModel.Presets[index];
         log.LogInformation("Converting {Count} file(s) with preset {Preset}", files.Count, preset.Id);
         var job = conversions.Start(files, preset, showInToast: false);
         if (job is null || _window is null)
@@ -282,7 +283,7 @@ public sealed class RadialController(
         var scaling = OperatingSystem.IsMacOS() ? 1 : screen?.Scaling ?? 1;
 
         // Window size follows the donut size (SizeToContent); compute it up front to centre on the cursor.
-        var side = 2 * (viewModel.OuterRadius + 7 + 14);
+        var side = DonutMenu.SideFor(viewModel.OuterRadius, viewModel.ReserveSubRing);
         var sidePx = (int)Math.Ceiling(side * scaling);
         var position = new PixelPoint(x - sidePx / 2, y - sidePx / 2);
         if (screen is not null)

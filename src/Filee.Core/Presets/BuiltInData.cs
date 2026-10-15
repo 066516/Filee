@@ -43,6 +43,7 @@ public static class BuiltInData
             Id = "remove-background", NameKey = "preset.remove_background", TargetFormat = "png",
             Image = { RemoveBackground = true }, Output = { FileNamePattern = "{name}_transparent" },
         },
+        .. ImageToolPresets(),
         new()
         {
             Id = "tiff-300", Name = "TIFF 300dpi", TargetFormat = "tiff",
@@ -164,6 +165,36 @@ public static class BuiltInData
         new() { Id = "to-woff2", Name = "WOFF2", TargetFormat = "woff2" },
         new() { Id = "to-eot", Name = "EOT", TargetFormat = "eot" },
     ];
+
+    /// <summary>
+    /// Rotate and flip presets, and the two groups that fan them out on the donut (added in settings schema 11). On no
+    /// default donut: users add "Rotate" / "Flip" (or single presets) in Settings → Toolbar.
+    /// </summary>
+    public static List<Preset> ImageToolPresets() =>
+    [
+        Tool("rotate-left", "preset.rotate_left", "{name}_left", i => i.Rotation = ImageRotation.Left90),
+        Tool("rotate-right", "preset.rotate_right", "{name}_right", i => i.Rotation = ImageRotation.Right90),
+        Tool("rotate-180", "preset.rotate_180", "{name}_180", i => i.Rotation = ImageRotation.Rotate180),
+        Tool("flip-horizontal", "preset.flip_horizontal", "{name}_mirrored", i => i.Flip = ImageFlip.Horizontal),
+        Tool("flip-vertical", "preset.flip_vertical", "{name}_flipped", i => i.Flip = ImageFlip.Vertical),
+        new()
+        {
+            Id = "rotate", NameKey = "preset.group_rotate", TargetFormat = SameAsSource,
+            SubPresetIds = ["rotate-left", "rotate-right", "rotate-180"],
+        },
+        new()
+        {
+            Id = "flip", NameKey = "preset.group_flip", TargetFormat = SameAsSource,
+            SubPresetIds = ["flip-horizontal", "flip-vertical"],
+        },
+    ];
+
+    private static Preset Tool(string id, string nameKey, string pattern, Action<ImageOptions> set)
+    {
+        var preset = new Preset { Id = id, NameKey = nameKey, TargetFormat = SameAsSource, Output = { FileNamePattern = pattern } };
+        set(preset.Image);
+        return preset;
+    }
 
     /// <summary>Creates the default toolbar profiles.</summary>
     public static List<ToolbarProfile> CreateProfiles() =>

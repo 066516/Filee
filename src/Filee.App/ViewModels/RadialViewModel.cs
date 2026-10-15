@@ -20,6 +20,9 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
     [ObservableProperty] private double _holeRatio = 0.42;
     [ObservableProperty] private double _sliceOpacity = 0.96;
 
+    /// <summary>Some donut has a group slice: the window keeps room for the ring it fans out.</summary>
+    [ObservableProperty] private bool _reserveSubRing;
+
     /// <summary>
     /// 0 while a drag gesture waits for files, 1 otherwise. The gesture starts before anyone knows what is being
     /// dragged (a file, text, or nothing: Ctrl + a rubber-band selection), so the donut only appears when files enter.
@@ -38,6 +41,24 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
     /// <summary>Presets in slice order.</summary>
     public IReadOnlyList<Preset> Presets { get; private set; } = [];
 
+    /// <summary>For each slice, the presets its group fans out (empty for an ordinary preset).</summary>
+    private IReadOnlyList<IReadOnlyList<Preset>> _subPresets = [];
+
+    /// <summary>
+    /// The preset that slice <paramref name="index"/> converts with, or slice <paramref name="sub"/> of its group's ring;
+    /// null when there is none or it can't convert these files.
+    /// </summary>
+    public Preset? PresetAt(int index, int sub)
+    {
+        if (index < 0 || index >= Items.Count)
+            return null;
+        if (sub < 0)
+            return Items[index] is { IsEnabled: true, IsGroup: false } ? Presets[index] : null;
+        return Items[index].Children is { } children && sub < children.Count && children[sub].IsEnabled
+            ? _subPresets[index][sub]
+            : null;
+    }
+
     /// <summary>True when opened with known files (keyboard, context menu, drop zone): slices are clicked.</summary>
     public bool IsClickMode { get; private set; }
 
@@ -49,6 +70,7 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
         IsClickMode = false;
         Files = [];
         Presets = [];
+        _subPresets = [];
         ApplyAppearance();
         Items = [];
         CenterTitle = loc["donut.center_drag"];
@@ -73,18 +95,40 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
             .OfType<Preset>()
             .ToList();
 
-        Items = Presets.Select(p =>
+        _subPresets = Presets
+            .Select(p => (IReadOnlyList<Preset>)p.SubPresetIds.Select(store.FindPreset).OfType<Preset>().Where(c => !c.IsGroup).ToList())
+            .ToList();
+
+        DonutItem ItemOf(Preset p, bool caption = true)
         {
             var reason = availability.Check(p, formats);
             return new DonutItem
             {
                 Id = p.Id,
                 Label = loc.DisplayName(p),
-                Caption = p.TargetFormat == BuiltInData.SameAsSource
-                    ? string.Join("/", formats.Select(f => f.DisplayName).Take(2))
-                    : FormatLabels.NameOf(loc, p.TargetFormat),
+                Caption = !caption ? null
+                    : p.TargetFormat == BuiltInData.SameAsSource
+                        ? string.Join("/", formats.Select(f => f.DisplayName).Take(2))
+                        : FormatLabels.NameOf(loc, p.TargetFormat),
                 IsEnabled = reason is null,
                 DisabledReason = reason,
+            };
+        }
+
+        Items = Presets.Select((p, i) =>
+        {
+            if (!p.IsGroup)
+                return ItemOf(p);
+            // A group: its own name with "···", and its presets on the ring it fans out (labels only, they're small).
+            var children = _subPresets[i].Select(c => ItemOf(c, caption: false)).ToList();
+            return new DonutItem
+            {
+                Id = p.Id,
+                Label = loc.DisplayName(p),
+                Caption = "···",
+                IsEnabled = children.Any(c => c.IsEnabled),
+                DisabledReason = children.Select(c => c.DisabledReason).FirstOrDefault(r => r is not null),
+                Children = children,
             };
         }).ToList();
 
@@ -94,11 +138,17 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
         CenterSubtitle = clickMode ? loc["donut.close_hint"] : null;
     }
 
-    /// <summary>Updates the centre hint for the emphasised slice.</summary>
-    public void ShowHint(int index, bool centerHot)
+    /// <summary>Updates the centre hint for the emphasised slice (and slice <paramref name="sub"/> of its group's ring).</summary>
+    public void ShowHint(int index, int sub, bool centerHot)
     {
         if (centerHot)
             CenterSubtitle = loc["donut.cancel"];
+        else if (index >= 0 && index < Items.Count && Items[index].Children is { } children)
+            CenterSubtitle = sub >= 0 && sub < children.Count
+                ? children[sub].IsEnabled
+                    ? loc.Format(IsClickMode ? "donut.click_to" : "donut.drop_to", $"{Items[index].Label} · {children[sub].Label}")
+                    : children[sub].DisabledReason
+                : loc["donut.pick_in_group"];
         else if (index >= 0 && index < Items.Count)
             CenterSubtitle = Items[index].IsEnabled
                 ? loc.Format(IsClickMode ? "donut.click_to" : "donut.drop_to", Items[index].Label)
@@ -109,6 +159,7 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
 
     private void ApplyAppearance()
     {
+        ReserveSubRing = store.Profiles.Any(profile => profile.PresetIds.Any(id => store.FindPreset(id)?.IsGroup == true));
         OuterRadius = Math.Clamp(store.Settings.Donut.OuterRadius, 100, 240);
         HoleRatio = store.Settings.Donut.HoleRatio;
         SliceOpacity = store.Settings.Donut.Opacity;

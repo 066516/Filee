@@ -31,6 +31,14 @@ public sealed class DonutItem
 
     /// <summary>Tooltip shown for disabled slices.</summary>
     public string? DisabledReason { get; init; }
+
+    /// <summary>
+    /// A group slice: converts nothing itself; hovering it fans these out in a small ring outside the donut, where they
+    /// are clicked or dropped on like ordinary slices.
+    /// </summary>
+    public IReadOnlyList<DonutItem>? Children { get; init; }
+
+    public bool IsGroup => Children is { Count: > 0 };
 }
 
 /// <summary>Donut-shaped menu control.</summary>
@@ -52,6 +60,8 @@ public sealed partial class DonutMenu : Control
         AvaloniaProperty.Register<DonutMenu, bool>(nameof(IsEditMode));
     public static readonly StyledProperty<bool> AllowContextEditProperty =
         AvaloniaProperty.Register<DonutMenu, bool>(nameof(AllowContextEdit));
+    public static readonly StyledProperty<bool> ReserveSubRingProperty =
+        AvaloniaProperty.Register<DonutMenu, bool>(nameof(ReserveSubRing));
 
     public static readonly StyledProperty<IBrush?> SliceBrushProperty =
         AvaloniaProperty.Register<DonutMenu, IBrush?>(nameof(SliceBrush), Brushes.White);
@@ -76,6 +86,18 @@ public sealed partial class DonutMenu : Control
     private const double OpenDuration = 0.42;
     private const double OpenStagger = 0.028;
     private const double DragStartDistance = 5;
+
+    /// <summary>Gap between a popped-out slice and the ring a group fans out.</summary>
+    private const double SubGap = 6;
+
+    /// <summary>Thickness of the ring a group fans out.</summary>
+    private const double SubBand = 46;
+
+    /// <summary>Extra room around the donut for the ring a group fans out (and its labels, which reach past it).</summary>
+    public const double SubRingSpace = SubGap + SubBand + 10;
+
+    /// <summary>Width and height of a donut of <paramref name="outerRadius"/>, with room for group rings when asked.</summary>
+    public static double SideFor(double outerRadius, bool subRing) => 2 * (outerRadius + PopOut + 14 + (subRing ? SubRingSpace : 0));
 
     // Pencil (Material "edit") path in a 24×24 box.
     private static readonly Geometry PencilIcon = Geometry.Parse(
@@ -107,9 +129,16 @@ public sealed partial class DonutMenu : Control
     private string? _previewLabel;
     private (int Index, Point Start, PointerPressedEventArgs Args)? _press;
 
+    // Group slices: the one fanned out (-1 none), the one still drawn while its ring folds away, and the hovered
+    // slice of the ring.
+    private int _expanded = -1;
+    private int _shownExpanded = -1;
+    private int _subHover = -1;
+    private Spring _expand;
+
     static DonutMenu()
     {
-        AffectsMeasure<DonutMenu>(OuterRadiusProperty);
+        AffectsMeasure<DonutMenu>(OuterRadiusProperty, ReserveSubRingProperty);
         AffectsRender<DonutMenu>(HoleRatioProperty, SliceOpacityProperty, CenterTitleProperty, CenterSubtitleProperty,
             IsEditModeProperty, SliceBrushProperty, SliceBorderBrushProperty, CenterBrushProperty, AccentBrushProperty,
             OnAccentBrushProperty, ForegroundProperty, SecondaryForegroundProperty, SuccessBrushProperty);
@@ -135,6 +164,12 @@ public sealed partial class DonutMenu : Control
     /// <summary>Live toolbar in click mode: right-click on a slice raises <see cref="SegmentContextRequested"/>.</summary>
     public bool AllowContextEdit { get => GetValue(AllowContextEditProperty); set => SetValue(AllowContextEditProperty, value); }
 
+    /// <summary>
+    /// Leave room for a group's ring even before the slices are known (the drag window is placed before files arrive),
+    /// so the window doesn't grow, and the donut move, when they do.
+    /// </summary>
+    public bool ReserveSubRing { get => GetValue(ReserveSubRingProperty); set => SetValue(ReserveSubRingProperty, value); }
+
     public IBrush? SliceBrush { get => GetValue(SliceBrushProperty); set => SetValue(SliceBrushProperty, value); }
     public IBrush? SliceBorderBrush { get => GetValue(SliceBorderBrushProperty); set => SetValue(SliceBorderBrushProperty, value); }
     public IBrush? CenterBrush { get => GetValue(CenterBrushProperty); set => SetValue(CenterBrushProperty, value); }
@@ -152,6 +187,12 @@ public sealed partial class DonutMenu : Control
 
     /// <summary>A slice was clicked (live toolbar, click mode).</summary>
     public event EventHandler<int>? SegmentInvoked;
+
+    /// <summary>A slice of a group's ring was clicked: (group, slice in the group).</summary>
+    public event EventHandler<(int Group, int Sub)>? SubSegmentInvoked;
+
+    /// <summary>The hovered slice of a group's ring, or -1. <see cref="ActiveIndexChanged"/> is raised when it changes.</summary>
+    public int ActiveSubIndex => _subHover;
 
     /// <summary>Right-click or ✎ on a slice.</summary>
     public event EventHandler<int>? SegmentContextRequested;
@@ -326,6 +367,14 @@ public sealed partial class DonutMenu : Control
         if (IsEditMode && _hoverIndex >= 0 && _hoverIndex < Count &&
             Distance(p, EditButtonCenter(_hoverIndex)) <= 13)
             return new DonutHit(DonutHitKind.EditButton, _hoverIndex);
+        if (ExpandedChildren is { } children)
+        {
+            var (inner, outer) = SubRadii;
+            var sub = DonutGeometry.SubIndexAt(Center, p, inner, outer, DonutGeometry.MidAngle(_expanded, Count),
+                children.Count, DonutGeometry.SubSpan(DonutGeometry.Span(Count), children.Count));
+            if (sub >= 0)
+                return new DonutHit(DonutHitKind.SubSegment, _expanded, sub);
+        }
         return DonutGeometry.HitTest(Center, p, InnerRadius, OuterRadius, Count, PopOut);
     }
 
@@ -333,8 +382,73 @@ public sealed partial class DonutMenu : Control
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        var side = 2 * (OuterRadius + PopOut + 14);
+        var side = SideFor(OuterRadius, ReserveSubRing || (!IsEditMode && Items?.Any(i => i.IsGroup) == true));
         return new Size(side, side);
+    }
+
+    // ───────────────────────── Groups ─────────────────────────
+
+    /// <summary>The slices of the group fanned out right now, or null.</summary>
+    private IReadOnlyList<DonutItem>? ExpandedChildren =>
+        !IsEditMode && _expanded >= 0 && _expanded < Count ? Items![_expanded].Children : null;
+
+    private (double Inner, double Outer) SubRadii => (OuterRadius + PopOut + SubGap, OuterRadius + PopOut + SubGap + SubBand);
+
+    /// <summary>
+    /// Fans a group out when its slice is reached and keeps it open while the pointer is on its ring or crossing the
+    /// gap to it; another slice or the hole folds it away.
+    /// </summary>
+    private void TrackGroups(DonutHit hit)
+    {
+        if (IsEditMode)
+            return;
+        var sub = -1;
+        switch (hit.Kind)
+        {
+            case DonutHitKind.Segment:
+                _expanded = hit.Index >= 0 && hit.Index < Count && Items![hit.Index].IsGroup ? hit.Index : -1;
+                break;
+            case DonutHitKind.SubSegment:
+                sub = hit.Sub;
+                break;
+            case DonutHitKind.Outside:
+                break;
+            default:
+                _expanded = -1;
+                break;
+        }
+        if (_expanded >= 0)
+            _shownExpanded = _expanded;
+        if (_subHover != sub)
+        {
+            _subHover = sub;
+            ActiveIndexChanged?.Invoke(this, ActiveIndex);
+        }
+        StartAnimation();
+    }
+
+    /// <summary>True when dropping or clicking at <paramref name="hit"/> converts: a slice that isn't a group, or a slice of a group's ring.</summary>
+    public bool Converts(DonutHit hit) => hit.Kind switch
+    {
+        DonutHitKind.Segment => hit.Index >= 0 && hit.Index < Count && !Items![hit.Index].IsGroup,
+        DonutHitKind.SubSegment => true,
+        _ => false,
+    };
+
+    /// <summary>Folds an open group away (the drag left the window, or files were dropped).</summary>
+    public void CollapseGroup()
+    {
+        _expanded = -1;
+        _subHover = -1;
+        StartAnimation();
+    }
+
+    /// <summary>Highlights what a drag is over from outside: a slice, a slice of a group's ring, or the hole.</summary>
+    public void SetExternalHit(DonutHit hit)
+    {
+        TrackGroups(hit);
+        SetExternalHighlight(hit.Kind is DonutHitKind.Segment or DonutHitKind.SubSegment ? hit.Index : -1,
+            hit.Kind == DonutHitKind.Center);
     }
 
     private void OnItemsChanged()
@@ -352,6 +466,9 @@ public sealed partial class DonutMenu : Control
         _previewSpan = default;
         _mid = Enumerable.Range(0, n).Select(i => new Spring { Value = DonutGeometry.MidAngle(i, n) }).ToArray();
         _span = Enumerable.Range(0, n).Select(_ => new Spring { Value = DonutGeometry.Span(n) }).ToArray();
+        _expanded = _shownExpanded = _subHover = -1;
+        _expand = default;
+        InvalidateMeasure();
         InvalidateVisual();
     }
 
@@ -375,9 +492,10 @@ public sealed partial class DonutMenu : Control
         }
 
         var hit = HitTest(p);
+        TrackGroups(hit);
         SetHover(hit.Kind switch
         {
-            DonutHitKind.Segment or DonutHitKind.EditButton => hit.Index,
+            DonutHitKind.Segment or DonutHitKind.EditButton or DonutHitKind.SubSegment => hit.Index,
             _ => -1,
         });
         ToolTip.SetTip(this, _hoverIndex >= 0 && Items![_hoverIndex] is { IsEnabled: false } item ? item.DisabledReason : null);
@@ -392,7 +510,10 @@ public sealed partial class DonutMenu : Control
             return;
         }
         if (_press is null)
+        {
+            CollapseGroup();
             SetHover(-1);
+        }
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -448,8 +569,11 @@ public sealed partial class DonutMenu : Control
             case DonutHitKind.EditButton:
                 SegmentContextRequested?.Invoke(this, hit.Index);
                 break;
-            case DonutHitKind.Segment when !IsEditMode && Items![hit.Index].IsEnabled:
+            case DonutHitKind.Segment when !IsEditMode && Items![hit.Index] is { IsEnabled: true, IsGroup: false }:
                 SegmentInvoked?.Invoke(this, hit.Index);
+                break;
+            case DonutHitKind.SubSegment when !IsEditMode && Items![hit.Index].Children![hit.Sub].IsEnabled:
+                SubSegmentInvoked?.Invoke(this, (hit.Index, hit.Sub));
                 break;
             case DonutHitKind.Center when !IsEditMode:
                 CenterInvoked?.Invoke(this, EventArgs.Empty);
@@ -585,6 +709,9 @@ public sealed partial class DonutMenu : Control
         for (var i = 0; i < _hover.Length; i++)
             _hover[i] = new Spring { Value = i == ActiveIndex ? 1 : 0 };
         _centerPulse = default;
+        _expand = new Spring { Value = _expanded >= 0 ? 1 : 0 };
+        if (_expanded < 0)
+            _shownExpanded = -1;
         StepLayout(0, snap: true);
         if (_openClock < double.MaxValue)
         {
@@ -629,6 +756,9 @@ public sealed partial class DonutMenu : Control
             }
             Array.Fill(_open, _closing ? 0 : 1);
             _centerPulse = default;
+            _expand = new Spring { Value = _expanded >= 0 ? 1 : 0 };
+            if (_expanded < 0)
+                _shownExpanded = -1;
             StepLayout(dt);
             if (_closing)
                 FinishClose();
@@ -641,6 +771,10 @@ public sealed partial class DonutMenu : Control
             for (var i = 0; i < _hover.Length; i++)
                 active |= i == ActiveIndex ? _hover[i].Step(1, dt) : _hover[i].Step(0, dt, 320, CriticalDamping);
             active |= _centerPulse.Step(0, dt, 260, 12);
+            // Critically damped: an overshoot would grow the ring past the room kept for it.
+            active |= _expand.Step(_expanded >= 0 ? 1 : 0, dt, 420, 41);
+            if (_expanded < 0 && _expand.Value <= 0.001)
+                _shownExpanded = -1;
             active |= StepProgress(dt);
             active |= StepLayout(dt);
 
@@ -758,10 +892,47 @@ public sealed partial class DonutMenu : Control
         if (IsEditMode && _previewSpan.Value > 0.01)
             DrawPreview(context, center, r1, r2, typeface, typefaceRegular);
 
+        if (!IsEditMode && _shownExpanded >= 0 && _shownExpanded < n && _expand.Value > 0.01)
+            DrawSubRing(context, center, typeface, typefaceRegular);
+
         DrawCenter(context, center, r1, typeface, typefaceRegular);
 
         if (IsEditMode && _hoverIndex >= 0 && _hoverIndex < n && _dimmedIndex < 0)
             DrawEditButton(context, EditButtonCenter(_hoverIndex));
+    }
+
+    /// <summary>The ring an open group fans out, growing out of its slice.</summary>
+    private void DrawSubRing(DrawingContext context, Point center, Typeface bold, Typeface regular)
+    {
+        var group = _shownExpanded;
+        var children = Items![group].Children!;
+        var parentMid = DonutGeometry.MidAngle(group, Count);
+        var subSpan = DonutGeometry.SubSpan(DonutGeometry.Span(Count), children.Count);
+        var (inner, outer) = SubRadii;
+        var t = Math.Max(0, _expand.Value);
+        var opening = _open.Length == 0 ? 1 : Math.Clamp(_open.Average(), 0, 1);
+        // Grows outward from the group's slice: scaled about the point where it meets the donut.
+        var anchor = DonutGeometry.PointAt(center, inner, parentMid);
+        var scale = 0.8 + 0.2 * t;
+        var transform = Matrix.CreateTranslation(-anchor.X, -anchor.Y) * Matrix.CreateScale(scale, scale) *
+                        Matrix.CreateTranslation(anchor.X, anchor.Y);
+
+        using (context.PushTransform(transform))
+        using (context.PushOpacity(Math.Clamp(t, 0, 1) * opening))
+        {
+            for (var k = 0; k < children.Count; k++)
+            {
+                var item = children[k];
+                var mid = DonutGeometry.SubMidAngle(parentMid, k, children.Count, subSpan);
+                var wedge = CreateWedge(center, inner, outer, mid, subSpan);
+                context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity * (item.IsEnabled ? 1 : 0.55)), BorderPen(), wedge);
+                var hot = k == _subHover && group == _expanded && item.IsEnabled;
+                if (hot)
+                    context.DrawGeometry(WithOpacity(AccentBrush, 0.82), null, wedge);
+                DrawLabel(context, item, center, (inner + outer) / 2, mid, subSpan * (inner + outer) / 2 - 8,
+                    SubBand - 8, bold, regular, hot);
+            }
+        }
     }
 
     private void DrawSoftShadow(DrawingContext context, Point center, double r2)

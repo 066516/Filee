@@ -50,6 +50,17 @@ public class BuiltInDataTests
     }
 
     [Fact]
+    public void Groups_fan_out_existing_presets_that_are_not_groups_themselves()
+    {
+        var presets = BuiltInData.CreatePresets().ToDictionary(p => p.Id);
+        var groups = presets.Values.Where(p => p.IsGroup).ToList();
+        Assert.NotEmpty(groups);
+        foreach (var group in groups)
+            Assert.All(group.SubPresetIds, id => Assert.False(presets[id].IsGroup, id));
+        Assert.Equal(groups[0].SubPresetIds, groups[0].Clone().SubPresetIds);
+    }
+
+    [Fact]
     public void Preset_ids_are_unique()
     {
         var presets = BuiltInData.CreatePresets();

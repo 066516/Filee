@@ -211,6 +211,22 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_10_libraries_get_rotate_and_flip_presets_and_groups_on_no_donut()
+    {
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id is "rotate-left" or "rotate-right" or "rotate-180" or "flip-horizontal" or "flip-vertical" or "rotate" or "flip");
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(10, presets, profiles));
+
+        Assert.Equal(["rotate-left", "rotate-right", "rotate-180"], presets.Single(p => p.Id == "rotate").SubPresetIds);
+        Assert.Equal(ImageRotation.Left90, presets.Single(p => p.Id == "rotate-left").Image.Rotation);
+        Assert.Equal(ImageFlip.Horizontal, presets.Single(p => p.Id == "flip-horizontal").Image.Flip);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Any(id => id.StartsWith("rotate") || id.StartsWith("flip")));
+        Assert.False(SettingsMigrations.ApplyToLibrary(10, presets, profiles)); // once only
+    }
+
+    [Fact]
     public void Catalog_migration_ignores_extensions_checked_on_mixed_profiles()
     {
         // Schema-5 data where the user already limited a mixed-files donut to MP3 and JPG: those checks must not

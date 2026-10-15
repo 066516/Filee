@@ -26,6 +26,7 @@
                  CenterSubtitle="{Binding CenterSubtitle}"
                  OuterRadius="{Binding OuterRadius}"
                  HoleRatio="{Binding HoleRatio}"
-                 SliceOpacity="{Binding SliceOpacity}" />
+                 SliceOpacity="{Binding SliceOpacity}"
+                 ReserveSubRing="{Binding ReserveSubRing}" />
   </Panel>
 </Window>

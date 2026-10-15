@@ -59,16 +59,17 @@ public partial class RadialWindow : Window
         _dragOverEvents++;
         _lastDragHit = hit;
         var files = e.DataTransfer.Contains(DataFormat.File);
-        Donut.SetExternalHighlight(hit.Kind == DonutHitKind.Segment ? hit.Index : -1, hit.Kind == DonutHitKind.Center);
+        Donut.SetExternalHit(hit);
 
         // Always COPY. Reporting MOVE would make Explorer delete the source files after the drop.
-        e.DragEffects = files && hit.Kind == DonutHitKind.Segment ? DragDropEffects.Copy : DragDropEffects.None;
+        e.DragEffects = files && Donut.Converts(hit) ? DragDropEffects.Copy : DragDropEffects.None;
         e.Handled = true;
     }
 
     private void OnDragLeave(object? sender, DragEventArgs e)
     {
         DragSummary?.Invoke(_dragOverEvents, _lastDragHit, Donut.LitAmount(_lastDragHit.Index));
+        Donut.CollapseGroup();
         Donut.SetExternalHighlight(-1);
         DragLeft?.Invoke();
     }
@@ -77,8 +78,9 @@ public partial class RadialWindow : Window
     {
         var hit = Donut.HitTest(e.GetPosition(Donut));
         DragSummary?.Invoke(_dragOverEvents, hit, Donut.LitAmount(hit.Index));
+        Donut.CollapseGroup();
         Donut.SetExternalHighlight(-1);
-        e.DragEffects = hit.Kind == DonutHitKind.Segment ? DragDropEffects.Copy : DragDropEffects.None;
+        e.DragEffects = Donut.Converts(hit) ? DragDropEffects.Copy : DragDropEffects.None;
         Dropped?.Invoke(hit, LocalFiles(e));
         e.Handled = true;
     }

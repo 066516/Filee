@@ -335,6 +335,53 @@ public class RenderTests
         window.Close();
     }
 
+    /// <summary>
+    /// "Rotate" and "Flip" added to the image donut: hovering "Rotate" fans out left 90° / right 90° / 180° outside it,
+    /// and the slice under the pointer there is what a drop or click converts with.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData("ko")]
+    [InlineData("en")]
+    public void A_group_slice_fans_out_its_presets(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var images = AppHost.Get<UserDataStore>().Profiles.Single(p => p.Id == "images");
+        var before = images.PresetIds.ToList();
+        try
+        {
+            images.PresetIds.AddRange(["rotate", "flip"]);
+            var vm = AppHost.Get<RadialViewModel>();
+            vm.Load([@"C:\photos\a.jpg"], clickMode: true);
+            Assert.True(vm.ReserveSubRing);
+            var rotate = vm.Items.Count - 2;
+            Assert.Equal(3, vm.Items[rotate].Children!.Count);
+            Assert.Null(vm.PresetAt(rotate, -1)); // the group itself converts nothing
+            Assert.Equal("rotate-right", vm.PresetAt(rotate, 1)!.Id);
+
+            var window = new RadialWindow { DataContext = vm };
+            window.Show();
+            var donut = window.DonutControl;
+            donut.SetExternalHit(new DonutHit(DonutHitKind.Segment, rotate));
+            donut.SetExternalHit(new DonutHit(DonutHitKind.SubSegment, rotate, 1));
+            vm.ShowHint(rotate, donut.ActiveSubIndex, centerHot: false);
+            Pump();
+
+            var n = vm.Items.Count;
+            var mid = DonutGeometry.SubMidAngle(DonutGeometry.MidAngle(rotate, n), 1, 3, DonutGeometry.SubSpan(DonutGeometry.Span(n), 3));
+            var center = new Avalonia.Point(donut.Bounds.Width / 2, donut.Bounds.Height / 2);
+            var onRing = DonutGeometry.PointAt(center, vm.OuterRadius + 7 + DonutMenu.SubRingSpace / 2 + 3, mid);
+            Assert.Equal(new DonutHit(DonutHitKind.SubSegment, rotate, 1), donut.HitTest(onRing));
+            Assert.Contains("90°", vm.CenterSubtitle);
+            Save(window, $"donut-group-{language}.png");
+            window.Close();
+        }
+        finally
+        {
+            images.PresetIds.Clear();
+            images.PresetIds.AddRange(before);
+        }
+    }
+
     /// <summary>The middle of slot <paramref name="slot"/> of a donut with <paramref name="slots"/> slices.</summary>
     private static Avalonia.Point DonutPoint(DonutMenu donut, int slot, int slots)
     {

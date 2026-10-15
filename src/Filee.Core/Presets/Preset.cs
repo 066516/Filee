@@ -41,6 +41,17 @@ public sealed class Preset
     /// <summary>Where and how output files are written.</summary>
     public OutputRule Output { get; set; } = new();
 
+    /// <summary>
+    /// Makes this preset a group: its donut slice converts nothing itself but fans out these presets (by
+    /// <see cref="Id"/>) in a small ring outside it, e.g. "Rotate" → left 90° / right 90° / 180°.
+    /// Empty for an ordinary preset.
+    /// </summary>
+    public List<string> SubPresetIds { get; set; } = [];
+
+    /// <summary>True when this preset only groups others (<see cref="SubPresetIds"/>).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsGroup => SubPresetIds.Count > 0;
+
     /// <summary>Creates a new random preset id.</summary>
     public static string NewId() => Guid.NewGuid().ToString("N")[..12];
 
@@ -57,6 +68,7 @@ public sealed class Preset
         Media = Media.Clone(),
         Archive = Archive.Clone(),
         Output = Output.Clone(),
+        SubPresetIds = [.. SubPresetIds],
     };
 }
 
@@ -71,6 +83,27 @@ public enum ResizeMode
     LongEdge,
     /// <summary>Scale to <see cref="ImageOptions.Width"/> pixels wide, height in proportion (never upscales).</summary>
     Width,
+}
+
+/// <summary>How an image is turned, after its EXIF orientation is applied.</summary>
+public enum ImageRotation
+{
+    None,
+    /// <summary>90° clockwise.</summary>
+    Right90,
+    /// <summary>90° counter-clockwise.</summary>
+    Left90,
+    Rotate180,
+}
+
+/// <summary>How an image is mirrored, after it is turned.</summary>
+public enum ImageFlip
+{
+    None,
+    /// <summary>Left ↔ right.</summary>
+    Horizontal,
+    /// <summary>Top ↔ bottom.</summary>
+    Vertical,
 }
 
 /// <summary>TIFF compression schemes.</summary>
@@ -88,6 +121,12 @@ public sealed class ImageOptions
     public int Quality { get; set; } = 90;
 
     public ResizeMode Resize { get; set; } = ResizeMode.None;
+
+    /// <summary>Turns the image (after its EXIF orientation is applied).</summary>
+    public ImageRotation Rotation { get; set; }
+
+    /// <summary>Mirrors the image (after <see cref="Rotation"/>).</summary>
+    public ImageFlip Flip { get; set; }
 
     /// <summary>Scale in percent when <see cref="Resize"/> is <see cref="ResizeMode.Percent"/>.</summary>
     public int ResizePercent { get; set; } = 50;
