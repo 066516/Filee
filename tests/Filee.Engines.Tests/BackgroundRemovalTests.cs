@@ -113,6 +113,88 @@ public class BackgroundRemovalTests(EngineFixture fx) : IClassFixture<EngineFixt
     }
 
     [Fact]
+    public void Transparent_artwork_touching_the_edge_is_left_alone()
+    {
+        // A transparent PNG logo whose blue block touches the left edge: its blue was taken for the backdrop and the
+        // whole image came out empty.
+        using var image = new MagickImage(MagickColors.Transparent, 160, 100);
+        new Drawables().FillColor(new MagickColor("#2F6FD6")).Rectangle(0, 25, 70, 75).Draw(image);
+
+        Removed(image);
+
+        var block = Pixel(image, 30, 50);
+        Assert.Equal(255, block.A);
+        Assert.Equal(0x2F, block.R);
+    }
+
+    [Fact]
+    public void Transparent_pixels_already_there_do_not_count_as_ink()
+    {
+        // Paper with a transparent corner and a grey stroke: the transparent pixels (0,0,0,0) counted as black ink and
+        // turned the stroke into half-transparent black.
+        using var image = new MagickImage(MagickColors.White, 160, 100);
+        new Drawables().StrokeColor(new MagickColor("#555555")).StrokeWidth(6).Line(15, 70, 140, 70).Draw(image);
+        image.Alpha(AlphaOption.Set);
+        using (var pixels = image.GetPixels())
+            for (var y = 0; y < 30; y++)
+                for (var x = 110; x < 160; x++)
+                    pixels.SetPixel(x, y, [0, 0, 0, 0]);
+
+        Removed(image);
+
+        var stroke = Pixel(image, 60, 70);
+        Assert.Equal(255, stroke.A);
+        Assert.InRange(stroke.R, 0x50, 0x5A);
+        Assert.Equal(0, Pixel(image, 5, 5).A);
+    }
+
+    [Fact]
+    public void Keep_enclosed_areas_only_keeps_backdrop_and_leaves_ink_un_mixed()
+    {
+        // A dark edge pixel of a stroke (#404040 next to black) is ink: un-mixed to partly transparent black, with or
+        // without "keep enclosed areas", instead of copied back as opaque grey.
+        using var plain = new MagickImage(MagickColors.White, 120, 120);
+        new Drawables().StrokeColor(MagickColors.Black).StrokeWidth(8).FillColor(MagickColors.Transparent)
+            .Rectangle(20, 20, 100, 100).Draw(plain);
+        using (var pixels = plain.GetPixels())
+            pixels.SetPixel(60, 25, [0x40, 0x40, 0x40, 0xFF]);
+        using var kept = (MagickImage)plain.Clone();
+
+        Removed(plain);
+        Removed(kept, keepEnclosed: true);
+
+        Assert.Equal(Pixel(plain, 60, 25).ToString(), Pixel(kept, 60, 25).ToString());
+        Assert.True(Pixel(kept, 60, 25).A < 255);
+        Assert.Equal(255, Pixel(kept, 60, 60).A); // the paper inside the frame stays
+    }
+
+    [Fact]
+    public void A_light_grey_fill_inside_an_outline_stays_with_keep_enclosed_areas()
+    {
+        using var image = new MagickImage(MagickColors.White, 300, 200);
+        new Drawables().StrokeColor(MagickColors.Black).StrokeWidth(4).FillColor(new MagickColor("#D0D0D0"))
+            .Rectangle(60, 40, 240, 160).Draw(image);
+
+        Removed(image, keepEnclosed: true);
+
+        Assert.Equal("#D0D0D0FF", Pixel(image, 150, 100).ToString());
+        Assert.Equal(0, Pixel(image, 10, 10).A);
+    }
+
+    [Fact]
+    public void Single_pixels_of_tiny_images_are_details_not_noise()
+    {
+        using var icon = new MagickImage(MagickColors.White, 3, 3);
+        using (var pixels = icon.GetPixels())
+            pixels.SetPixel(1, 1, [0, 0, 0, 255]);
+
+        Removed(icon);
+
+        Assert.Equal(255, Pixel(icon, 1, 1).A);
+        Assert.Equal(0, Pixel(icon, 0, 0).A);
+    }
+
+    [Fact]
     public void A_dark_backdrop_is_removed_and_light_content_kept()
     {
         using var image = Removed(Signature("#101010", "white"));

@@ -39,6 +39,9 @@ public static class BackgroundRemover
     /// </summary>
     private const float MinHeadroom = 96f;
 
+    /// <summary>Smallest side of an image whose lone pixels are cleared as noise.</summary>
+    private const int MinSpeckSize = 32;
+
     /// <summary>Removes the background of <paramref name="image"/> in place.</summary>
     /// <param name="tolerance">0-100: how different from the backdrop a pixel may be and still be removed.</param>
     /// <param name="keepEnclosed">Only remove the backdrop that is connected to the image edge.</param>
@@ -52,56 +55,65 @@ public static class BackgroundRemover
         // CMYK and gray sources are read as RGB so the colour arithmetic below holds.
         if (image.ColorSpace is not (ColorSpace.sRGB or ColorSpace.RGB))
             image.ColorSpace = ColorSpace.sRGB;
-        var pixels = image.GetPixels().ToByteArray(PixelMapping.RGBA);
+        byte[]? pixels;
+        using (var collection = image.GetPixels())
+            pixels = collection.ToByteArray(PixelMapping.RGBA);
         if (pixels is null)
             return;
 
         if (BorderColor(pixels, width, height) is not { } border)
-            return; // the edge is already transparent: nothing to tell the backdrop by
+            return; // the edge is mostly transparent already: nothing to tell the backdrop by
 
         var cutoff = Math.Clamp(tolerance, 0, 100) / 100f * MaxCutoff;
         var backdrop = new Backdrop(pixels, width, height, border, tolerance / 100f);
 
-        var count = width * height;
-        var raw = new float[count]; // opacity before the thresholds, also used by the edge flood fill
+        // Opacity before the thresholds in 1/255 steps (a byte per pixel keeps a 48-megapixel photo affordable), also
+        // used by the edge flood fill. Pixels that are already transparent count as removed backdrop, not as ink.
+        var raw = new byte[width * height];
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
             {
                 var o = (y * width + x) * 4;
+                if (pixels[o + 3] < 128)
+                    continue;
                 var (br, bg, bb) = backdrop.At(x, y);
-                raw[y * width + x] = Math.Max(Opacity(pixels[o], br), Math.Max(Opacity(pixels[o + 1], bg), Opacity(pixels[o + 2], bb)));
+                var opacity = Math.Max(Opacity(pixels[o], br), Math.Max(Opacity(pixels[o + 1], bg), Opacity(pixels[o + 2], bb)));
+                raw[y * width + x] = (byte)Math.Round(Math.Min(opacity, 1f) * 255);
             }
         }
         var full = InkOpacity(raw, cutoff);
+        var enclosed = keepEnclosed ? Enclosed(raw, width, height, (cutoff + full) / 2) : null;
 
-        var result = new byte[pixels.Length];
+        // Written into the pixel array itself: each pixel is read once, right before it is replaced.
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
             {
                 var i = y * width + x;
+                if (enclosed?[i] == true)
+                    continue; // backdrop inside a closed shape keeps its colour
                 var o = i * 4;
-                var alpha = Math.Clamp((raw[i] - cutoff) / (full - cutoff), 0f, 1f);
+                var alpha = Math.Clamp((raw[i] / 255f - cutoff) / (full - cutoff), 0f, 1f);
                 if (alpha > 0)
                 {
                     // Un-mix: pixel = alpha × ink + (1 − alpha) × backdrop. Laid back over the backdrop, the result
                     // looks like the original wherever alpha is at least the raw opacity.
                     var (br, bg, bb) = backdrop.At(x, y);
-                    result[o] = Unmix(pixels[o], br, alpha);
-                    result[o + 1] = Unmix(pixels[o + 1], bg, alpha);
-                    result[o + 2] = Unmix(pixels[o + 2], bb, alpha);
+                    pixels[o] = Unmix(pixels[o], br, alpha);
+                    pixels[o + 1] = Unmix(pixels[o + 1], bg, alpha);
+                    pixels[o + 2] = Unmix(pixels[o + 2], bb, alpha);
                 }
-                result[o + 3] = (byte)Math.Round(alpha * pixels[o + 3]);
+                pixels[o + 3] = (byte)Math.Round(alpha * pixels[o + 3]);
             }
         }
 
-        RemoveSpecks(result, width, height);
-        if (keepEnclosed)
-            RestoreEnclosed(pixels, result, raw, width, height, (cutoff + full) / 2);
+        // Icons and other tiny images have no paper grain, and their single pixels are details.
+        if (width >= MinSpeckSize && height >= MinSpeckSize)
+            RemoveSpecks(pixels, width, height);
 
         image.Alpha(AlphaOption.Set);
-        image.ImportPixels(result, new PixelImportSettings((uint)width, (uint)height, StorageType.Char, PixelMapping.RGBA));
+        image.ImportPixels(pixels, new PixelImportSettings((uint)width, (uint)height, StorageType.Char, PixelMapping.RGBA));
     }
 
     /// <summary>
@@ -110,16 +122,16 @@ public static class BackgroundRemover
     /// anti-aliased edges keep their partial alpha; faint pencil reaches only about 0.4, and its strokes still become
     /// solid instead of half transparent.
     /// </summary>
-    private static float InkOpacity(float[] raw, float cutoff)
+    private static float InkOpacity(byte[] raw, float cutoff)
     {
         var floor = Math.Min(1f, cutoff + MinSoftBand);
         var histogram = new int[256];
         var total = 0;
         foreach (var a in raw)
         {
-            if (a < floor)
+            if (a / 255f < floor)
                 continue;
-            histogram[(int)(Math.Min(a, 1f) * 255)]++;
+            histogram[a]++;
             total++;
         }
         if (total == 0)
@@ -144,14 +156,19 @@ public static class BackgroundRemover
     private static byte Unmix(byte value, float backdrop, float alpha) =>
         (byte)Math.Clamp(Math.Round(backdrop + (value - backdrop) / alpha), 0, 255);
 
-    /// <summary>Per-channel median of the opaque border pixels, or null when the border is transparent.</summary>
+    /// <summary>
+    /// Per-channel median of the opaque border pixels, or null when most of the border is transparent: that image has
+    /// no backdrop left, and the few opaque border pixels would be its own artwork (a logo touching the edge).
+    /// </summary>
     private static (float R, float G, float B)? BorderColor(byte[] pixels, int width, int height)
     {
         var r = new List<byte>();
         var g = new List<byte>();
         var b = new List<byte>();
+        var all = 0;
         void Add(int x, int y)
         {
+            all++;
             var o = (y * width + x) * 4;
             if (pixels[o + 3] < 128)
                 return;
@@ -169,7 +186,7 @@ public static class BackgroundRemover
             Add(0, y);
             Add(width - 1, y);
         }
-        return r.Count == 0 ? null : (Median(r), Median(g), Median(b));
+        return r.Count * 2 < all ? null : (Median(r), Median(g), Median(b));
     }
 
     private static float Median(List<byte> values)
@@ -211,16 +228,18 @@ public static class BackgroundRemover
     }
 
     /// <summary>
-    /// Gives the pixels inside closed shapes back their original colour: removed pixels count only when the removed
-    /// area they belong to touches the image edge (4-connected flood fill that stops at pixels at least half opaque).
+    /// The backdrop inside closed shapes, which keeps its colour: backdrop the image edge cannot reach (4-connected
+    /// flood fill that stops at pixels at least <paramref name="wall"/> opaque). Ink is never part of it, so the edges
+    /// of a stroke keep their un-mixed colour and lone specks stay removed.
     /// </summary>
-    private static void RestoreEnclosed(byte[] source, byte[] result, float[] raw, int width, int height, float wall)
+    private static bool[] Enclosed(byte[] raw, int width, int height, float wall)
     {
+        var limit = (byte)Math.Clamp(Math.Round(wall * 255), 0, 255);
         var reached = new bool[raw.Length];
         var queue = new Queue<int>();
         void Visit(int i)
         {
-            if (!reached[i] && raw[i] < wall)
+            if (!reached[i] && raw[i] < limit)
             {
                 reached[i] = true;
                 queue.Enqueue(i);
@@ -245,10 +264,8 @@ public static class BackgroundRemover
             if (i < raw.Length - width) Visit(i + width);
         }
         for (var i = 0; i < raw.Length; i++)
-        {
-            if (!reached[i])
-                Array.Copy(source, i * 4, result, i * 4, 4);
-        }
+            reached[i] = !reached[i] && raw[i] < limit;
+        return reached;
     }
 
     /// <summary>
@@ -276,8 +293,9 @@ public static class BackgroundRemover
             _rows = (height + _block - 1) / _block;
             if (_columns < 2 && _rows < 2)
                 return;
-            // Higher tolerance accepts deeper shadows; at 0 a light grey area (a smudge, a pale logo) is not paper.
-            _darkest = 0.85f - 0.35f * Math.Clamp(tolerance, 0, 1);
+            // Higher tolerance accepts deeper shadows. At the default (25) a light grey fill such as #D0D0D0 (a logo,
+            // table shading) is not taken for paper in shadow; a photo with a deep shadow needs a higher tolerance.
+            _darkest = 0.92f - 0.30f * Math.Clamp(tolerance, 0, 1);
             _grid = Estimate(pixels, width, height);
         }
 
