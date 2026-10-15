@@ -28,7 +28,8 @@ public static class OutputPathResolver
         var dir = rule.Location switch
         {
             OutputLocation.Subfolder => Path.Combine(sourceDir, Sanitize(ExpandPattern(rule.SubfolderName, tokens), "converted")),
-            OutputLocation.CustomFolder when !string.IsNullOrWhiteSpace(rule.CustomFolder) => rule.CustomFolder,
+            OutputLocation.CustomFolder when !string.IsNullOrWhiteSpace(rule.CustomFolder) =>
+                Path.Combine(rule.CustomFolder, SubfolderBelow(rule.KeepFoldersFrom, sourceDir)),
             _ => sourceDir,
         };
 
@@ -54,6 +55,20 @@ public static class OutputPathResolver
             if (!exists(candidate) && !PathsEqual(candidate, tokens.SourcePath))
                 return candidate;
         }
+    }
+
+    /// <summary>
+    /// The path of <paramref name="folder"/> below <paramref name="root"/> (<c>2025\scans</c>), or empty when there is no
+    /// root, or the folder is the root itself or lies outside it.
+    /// </summary>
+    private static string SubfolderBelow(string root, string folder)
+    {
+        if (string.IsNullOrWhiteSpace(root))
+            return "";
+        var relative = Path.GetRelativePath(Path.GetFullPath(root), folder);
+        return relative == "." || Path.IsPathRooted(relative) || relative == ".." || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+            ? ""
+            : relative;
     }
 
     /// <summary>Applies <paramref name="steps"/> to <paramref name="name"/> in order.</summary>

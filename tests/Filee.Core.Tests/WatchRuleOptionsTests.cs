@@ -86,6 +86,41 @@ public class WatchRuleOptionsTests
     }
 
     [Fact]
+    public void Files_from_subfolders_keep_their_subfolder_in_the_output_folder()
+    {
+        // Issue #72: Inbox\2024\a.jpg and Inbox\2025\a.jpg used to become converted\a.pdf and converted\a (2).pdf.
+        using var dir = new TempDir();
+        var preset = new Preset { TargetFormat = "pdf" };
+        var output = Path.Combine(dir.Path, "Out");
+        var applied = new WatchRule { Folder = dir.Path, IncludeSubfolders = true, OutputFolder = output }.Apply(preset);
+        string? Resolve(string source) => OutputPathResolver.Resolve(applied.Output,
+            new OutputPathResolver.Tokens(source, "PDF", 1, DateTime.Now), "pdf", File.Exists);
+
+        Assert.Equal(Path.Combine(output, "2024", "a.pdf"), Resolve(Path.Combine(dir.Path, "2024", "a.jpg")));
+        Assert.Equal(Path.Combine(output, "2025", "scans", "a.pdf"), Resolve(Path.Combine(dir.Path, "2025", "scans", "a.jpg")));
+        Assert.Equal(Path.Combine(output, "top.pdf"), Resolve(Path.Combine(dir.Path, "top.jpg"))); // top level: no subfolder
+
+        // The default output folder inside the watched folder works the same way.
+        var inside = new WatchRule { Folder = dir.Path, IncludeSubfolders = true }.Apply(preset);
+        Assert.Equal(Path.Combine(dir.Path, "converted", "2025", "a.pdf"), OutputPathResolver.Resolve(inside.Output,
+            new OutputPathResolver.Tokens(Path.Combine(dir.Path, "2025", "a.jpg"), "PDF", 1, DateTime.Now), "pdf", File.Exists));
+    }
+
+    [Fact]
+    public void A_custom_folder_without_a_root_or_a_source_outside_it_gets_no_subfolder()
+    {
+        var output = Path.Combine(Path.GetTempPath(), "Out");
+        var inbox = Path.Combine(Path.GetTempPath(), "Inbox");
+        var elsewhere = Path.Combine(Path.GetTempPath(), "Elsewhere", "2025", "a.jpg");
+        string? Resolve(string keepFrom, string source) => OutputPathResolver.Resolve(
+            new OutputRule { Location = OutputLocation.CustomFolder, CustomFolder = output, KeepFoldersFrom = keepFrom },
+            new OutputPathResolver.Tokens(source, "PDF", 1, DateTime.Now), "pdf", _ => false);
+
+        Assert.Equal(Path.Combine(output, "a.pdf"), Resolve("", Path.Combine(inbox, "2025", "a.jpg"))); // presets: as before
+        Assert.Equal(Path.Combine(output, "a.pdf"), Resolve(inbox, elsewhere)); // a retry of a file moved away
+    }
+
+    [Fact]
     public void Rename_steps_are_applied_in_order()
     {
         var rule = new OutputRule
