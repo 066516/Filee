@@ -44,6 +44,8 @@ zh: 自动转换文件夹会在输出中保留文件所在的子文件夹
 - **Starting Filee again while it is still starting.** Files opened from the right-click menu or Send To, or the
   installer's request to close Filee for an update, were lost when Filee took more than a few seconds to start (a
   slow or busy computer). They now wait until Filee is ready.
+- **Security update.** The .NET cryptography library PDFsharp uses (System.Security.Cryptography.Pkcs) is updated to
+  10.0.13, which fixes two denial-of-service advisories (CVE-2026-84008, CVE-2026-70162).
 
 ## 1.10.3
 
