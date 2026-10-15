@@ -39,6 +39,12 @@ zh: 自动转换文件夹会在输出中保留文件所在的子文件夹
   `Inbox\2025\scans` now go to `converted\2025\scans` instead of all into `converted` (where files of the same name
   became `a (2).pdf`), the way originals are already moved. `filee watch` does the same.
 
+### Fixed
+
+- **Starting Filee again while it is still starting.** Files opened from the right-click menu or Send To, or the
+  installer's request to close Filee for an update, were lost when Filee took more than a few seconds to start (a
+  slow or busy computer). They now wait until Filee is ready.
+
 ## 1.10.3
 
 <!-- update
