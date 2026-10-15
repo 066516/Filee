@@ -119,13 +119,13 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
         {
             if (!p.IsGroup)
                 return ItemOf(p);
-            // A group: its own name with "···", and its presets on the ring it fans out (labels only, they're small).
+            // A group: its own name and size, and its presets on the ring it fans out (labels only, they're small).
             var children = _subPresets[i].Select(c => ItemOf(c, caption: false)).ToList();
             return new DonutItem
             {
                 Id = p.Id,
                 Label = loc.DisplayName(p),
-                Caption = "···",
+                Caption = loc.Format("donut.group_caption", children.Count),
                 IsEnabled = children.Any(c => c.IsEnabled),
                 DisabledReason = children.Select(c => c.DisabledReason).FirstOrDefault(r => r is not null),
                 Children = children,

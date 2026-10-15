@@ -43,6 +43,7 @@
   "donut.edit": "Edit preset",
   "donut.empty": "Drag presets here",
   "donut.same_format": "Same format",
+  "donut.group_caption": "Group of {0}",
 
   "toast.converting": "{0} → {1}",
   "toast.done": "Done",

@@ -43,6 +43,7 @@
   "donut.edit": "프리셋 편집",
   "donut.empty": "프리셋을 끌어다 놓으세요",
   "donut.same_format": "같은 형식",
+  "donut.group_caption": "묶음 · {0}개",
 
   "toast.converting": "{0} → {1}",
   "toast.done": "완료",
