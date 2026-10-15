@@ -98,6 +98,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _keepMetadata = _edit.Image.KeepMetadata;
         _keepColorProfile = _edit.Image.KeepColorProfile;
         _grayscale = _edit.Image.Grayscale;
+        _removeBackground = _edit.Image.RemoveBackground;
+        _backgroundTolerance = _edit.Image.BackgroundTolerance;
+        _keepEnclosedBackground = _edit.Image.KeepEnclosedBackground;
         _background = _edit.Image.Background;
         _webpLossless = _edit.Image.WebpLossless;
         _multiPageTiff = _edit.Image.MultiPageTiff;
@@ -184,6 +187,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         }
     }
     [ObservableProperty] private bool _grayscale;
+    [ObservableProperty] private bool _removeBackground;
+    [ObservableProperty] private int _backgroundTolerance;
+    [ObservableProperty] private bool _keepEnclosedBackground;
     [ObservableProperty] private string _background;
     [ObservableProperty] private bool _webpLossless;
     [ObservableProperty] private bool _multiPageTiff;
@@ -278,6 +284,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         image.KeepMetadata = KeepMetadata;
         image.KeepColorProfile = KeepColorProfile;
         image.Grayscale = Grayscale;
+        image.RemoveBackground = RemoveBackground;
+        image.BackgroundTolerance = Math.Clamp(BackgroundTolerance, 0, 100);
+        image.KeepEnclosedBackground = KeepEnclosedBackground;
         image.Background = string.IsNullOrWhiteSpace(Background) ? "#FFFFFF" : Background.Trim();
         image.TiffCompression = TiffCompression.Value;
         image.WebpLossless = WebpLossless;

@@ -194,6 +194,23 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_9_libraries_get_the_remove_background_preset_on_no_donut()
+    {
+        // As written by 1.10.x: no "Remove background" preset.
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "remove-background");
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(9, presets, profiles));
+
+        var preset = presets.Single(p => p.Id == "remove-background");
+        Assert.True(preset.Image.RemoveBackground);
+        Assert.Equal("png", preset.TargetFormat);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("remove-background"));
+        Assert.False(SettingsMigrations.ApplyToLibrary(9, presets, profiles)); // once only
+    }
+
+    [Fact]
     public void Catalog_migration_ignores_extensions_checked_on_mixed_profiles()
     {
         // Schema-5 data where the user already limited a mixed-files donut to MP3 and JPG: those checks must not

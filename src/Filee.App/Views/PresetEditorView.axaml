@@ -77,6 +77,18 @@
           <CheckBox Content="{DynamicResource presets.grayscale}" IsChecked="{Binding Grayscale}" Margin="0,0,18,0" />
           <CheckBox Content="{DynamicResource presets.webp_lossless}" IsChecked="{Binding WebpLossless}" IsVisible="{Binding ShowWebp}" />
         </WrapPanel>
+        <CheckBox Content="{DynamicResource presets.remove_background}" IsChecked="{Binding RemoveBackground}"
+                  ToolTip.Tip="{DynamicResource presets.remove_background_hint}" />
+        <StackPanel Spacing="6" IsVisible="{Binding RemoveBackground}">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="{Binding BackgroundTolerance}" FontWeight="SemiBold" />
+            <TextBlock Classes="label" Text="{DynamicResource presets.background_tolerance}" />
+          </DockPanel>
+          <Slider Minimum="0" Maximum="100" Value="{Binding BackgroundTolerance}" TickFrequency="1" IsSnapToTickEnabled="True"
+                  ToolTip.Tip="{DynamicResource presets.background_tolerance_hint}" />
+          <CheckBox Content="{DynamicResource presets.keep_enclosed_background}" IsChecked="{Binding KeepEnclosedBackground}"
+                    ToolTip.Tip="{DynamicResource presets.keep_enclosed_background_hint}" />
+        </StackPanel>
         <Grid ColumnDefinitions="*,12,*">
           <StackPanel>
             <TextBlock Classes="label" Text="{DynamicResource presets.background}" />

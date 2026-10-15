@@ -113,6 +113,21 @@ public sealed class ImageOptions
     /// <summary>Convert to grayscale.</summary>
     public bool Grayscale { get; set; }
 
+    /// <summary>
+    /// Make a plain background (paper behind a signature or stamp, the backdrop of a logo) transparent. Targets without
+    /// an alpha channel get <see cref="Background"/> instead, so this also replaces the backdrop colour.
+    /// </summary>
+    public bool RemoveBackground { get; set; }
+
+    /// <summary>0-100: how different from the backdrop a pixel may be and still be removed (<see cref="RemoveBackground"/>).</summary>
+    public int BackgroundTolerance { get; set; } = 25;
+
+    /// <summary>
+    /// With <see cref="RemoveBackground"/>: only remove the backdrop connected to the image edge, keeping enclosed
+    /// areas such as the white inside a logo. Off by default: it also keeps the paper inside handwritten loops.
+    /// </summary>
+    public bool KeepEnclosedBackground { get; set; }
+
     /// <summary>Fill colour for transparent pixels when the target has no alpha channel (e.g. JPG).</summary>
     public string Background { get; set; } = "#FFFFFF";
 
