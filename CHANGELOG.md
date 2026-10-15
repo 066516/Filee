@@ -16,13 +16,19 @@ one-line summaries in the user's language (`ko`, `en`, `zh`; a line per change, 
 ## 1.10.4
 
 <!-- update
-level: optional
+level: recommended
 ko: 서명·도장·로고의 단색 배경을 투명하게 만드는 "배경 제거" 프리셋이 생겼어요
 ko: 자동 변환 폴더에서 하위 폴더의 파일은 결과도 같은 하위 폴더에 저장돼요
+ko: Filee가 켜지는 중에 연 파일이나 업데이트 요청이 사라지던 문제를 고쳤어요
+ko: 보안 업데이트: PDF 처리에 쓰는 .NET 암호화 라이브러리를 최신 버전으로 바꿨어요
 en: A "Remove background" preset makes the plain backdrop of signatures, stamps and logos transparent
 en: Watch folders keep the subfolders of their files in the output folder
+en: Files opened, or an update started, while Filee is still starting are no longer lost
+en: Security update: the .NET cryptography library used for PDFs is updated
 zh: 新增"去除背景"预设，可将签名、印章、标志的纯色背景变为透明
 zh: 自动转换文件夹会在输出中保留文件所在的子文件夹
+zh: 修复了 Filee 启动过程中打开的文件或更新请求丢失的问题
+zh: 安全更新：处理 PDF 所用的 .NET 加密库已更新
 -->
 
 ### New
