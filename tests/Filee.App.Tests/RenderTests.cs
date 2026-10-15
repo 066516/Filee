@@ -355,7 +355,7 @@ public class RenderTests
         window.DonutControl.SetExternalHighlight(1);
         Pump();
 
-        Assert.Equal(9, vm.Items.Count); // the image donut includes "Remove background"
+        Assert.Equal(8, vm.Items.Count);
         Assert.Equal("JPG 3개", vm.CenterTitle);
         Save(window, "donut-images-ko.png");
         window.Close();

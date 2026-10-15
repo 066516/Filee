@@ -353,11 +353,11 @@ internal static class SettingsMigrations
             changed |= Offer(presets, profiles, "pdf", "pdf-long-image", "to-jpg");
         }
 
-        // v10: "Remove background" (signatures, stamps, logos → transparent PNG), on the image donut after "half size".
+        // v10: "Remove background" (signatures, stamps, logos → transparent PNG), on no donut like HEIC: users add it
+        //      in Settings → Toolbar.
         if (from < 10 && presets.All(p => p.Id != "remove-background"))
         {
             presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == "remove-background"));
-            Offer(presets, profiles, "images", "remove-background", "half-size");
             changed = true;
         }
         return changed;

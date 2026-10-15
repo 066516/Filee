@@ -194,21 +194,19 @@ public class UserDataStoreTests
     }
 
     [Fact]
-    public void Version_9_libraries_get_remove_background_after_half_size()
+    public void Version_9_libraries_get_the_remove_background_preset_on_no_donut()
     {
-        // As written by 1.10.x: no "Remove background" preset, and the image donut without it.
+        // As written by 1.10.x: no "Remove background" preset.
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id == "remove-background");
         var profiles = BuiltInData.CreateProfiles();
-        var images = profiles.Single(p => p.Id == "images");
-        images.PresetIds.Remove("remove-background");
 
         Assert.True(SettingsMigrations.ApplyToLibrary(9, presets, profiles));
 
         var preset = presets.Single(p => p.Id == "remove-background");
         Assert.True(preset.Image.RemoveBackground);
         Assert.Equal("png", preset.TargetFormat);
-        Assert.Equal(images.PresetIds.IndexOf("half-size") + 1, images.PresetIds.IndexOf("remove-background"));
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("remove-background"));
         Assert.False(SettingsMigrations.ApplyToLibrary(9, presets, profiles)); // once only
     }
 
