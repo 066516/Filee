@@ -367,15 +367,23 @@ public sealed partial class DonutMenu : Control
         if (IsEditMode && _hoverIndex >= 0 && _hoverIndex < Count &&
             Distance(p, EditButtonCenter(_hoverIndex)) <= 13)
             return new DonutHit(DonutHitKind.EditButton, _hoverIndex);
+        var hit = DonutGeometry.HitTest(Center, p, InnerRadius, OuterRadius, Count, PopOut);
         if (ExpandedChildren is { } children)
         {
             var (inner, outer) = SubRadii;
-            var sub = DonutGeometry.SubIndexAt(Center, p, inner, outer, DonutGeometry.MidAngle(_expanded, Count),
-                children.Count, DonutGeometry.SubSpan(DonutGeometry.Span(Count), children.Count));
+            var parentMid = DonutGeometry.MidAngle(_expanded, Count);
+            var subSpan = DonutGeometry.SubSpan(DonutGeometry.Span(Count), children.Count);
+            var sub = DonutGeometry.SubIndexAt(Center, p, inner, outer, parentMid, children.Count, subSpan);
             if (sub >= 0)
                 return new DonutHit(DonutHitKind.SubSegment, _expanded, sub);
+            // On the way out to the ring's outer slices the pointer crosses the neighbours' outer edge: there it still
+            // belongs to the group, or the ring would fold away (or switch) just before it is reached.
+            if (hit.Kind == DonutHitKind.Segment && hit.Index != _expanded &&
+                Distance(p, Center) > (InnerRadius + OuterRadius) / 2 &&
+                DonutGeometry.SubIndexAt(Center, p, 0, double.MaxValue, parentMid, children.Count, subSpan) >= 0)
+                return new DonutHit(DonutHitKind.Segment, _expanded);
         }
-        return DonutGeometry.HitTest(Center, p, InnerRadius, OuterRadius, Count, PopOut);
+        return hit;
     }
 
     // ───────────────────────── Layout ─────────────────────────
@@ -901,9 +909,19 @@ public sealed partial class DonutMenu : Control
             DrawEditButton(context, EditButtonCenter(_hoverIndex));
     }
 
+    /// <summary>
+    /// Nearly transparent fill (alpha 1/255) under an open group's ring and the gap to it. Windows passes the mouse
+    /// and drags through fully transparent pixels of a layered window, so without it the pointer "leaves" the donut
+    /// in the gap and the ring folds away before it is reached.
+    /// </summary>
+    private static readonly IBrush HitBackdrop = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0));
+
     /// <summary>The ring an open group fans out, growing out of its slice.</summary>
     private void DrawSubRing(DrawingContext context, Point center, Typeface bold, Typeface regular)
     {
+        var reach = SubRadii.Outer + 8;
+        context.DrawEllipse(HitBackdrop, null, center, reach, reach);
+
         var group = _shownExpanded;
         var children = Items![group].Children!;
         var parentMid = DonutGeometry.MidAngle(group, Count);
