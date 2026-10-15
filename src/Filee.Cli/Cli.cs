@@ -93,6 +93,7 @@ internal static class Cli
             Originals = options.MoveOriginals ? AfterConversion.MoveToOriginals : AfterConversion.Keep,
         };
         UseFolder(preset, rule.ResolvedOutputFolder);
+        preset.Output.KeepFoldersFrom = rule.Folder; // as the app's watch folders: subfolders stay subfolders
 
         var settle = options.SettleSeconds is { } seconds ? TimeSpan.FromSeconds(seconds) : (TimeSpan?)null;
         await using var watcher = new FolderWatcher(rule,

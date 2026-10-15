@@ -59,14 +59,16 @@ public sealed class WatchRule
     public string OriginalsFolder => Path.Combine(Folder, OriginalsName);
 
     /// <summary>
-    /// The preset as this folder converts with it: output into <see cref="ResolvedOutputFolder"/>, and the folder's
-    /// own name rules where set.
+    /// The preset as this folder converts with it: output into <see cref="ResolvedOutputFolder"/>, files from
+    /// subfolders into the same subfolders there (as <see cref="AfterConversion.MoveToOriginals"/> does with the
+    /// sources), and the folder's own name rules where set.
     /// </summary>
     public Preset Apply(Preset preset)
     {
         var applied = preset.Clone();
         applied.Output.Location = OutputLocation.CustomFolder;
         applied.Output.CustomFolder = ResolvedOutputFolder;
+        applied.Output.KeepFoldersFrom = Folder;
         if (!string.IsNullOrWhiteSpace(FileNamePattern))
             applied.Output.FileNamePattern = FileNamePattern.Trim();
         // Steps without a pattern are being typed; leaving them out keeps the name as it is.

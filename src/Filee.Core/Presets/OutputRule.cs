@@ -39,6 +39,14 @@ public sealed class OutputRule
     public string CustomFolder { get; set; } = "";
 
     /// <summary>
+    /// With <see cref="OutputLocation.CustomFolder"/>: a source inside this folder keeps its subfolder below
+    /// <see cref="CustomFolder"/> (<c>Inbox\2025\a.jpg</c> → <c>converted\2025\a.pdf</c>), so files of the same name in
+    /// different subfolders don't end up side by side as <c>a.pdf</c> and <c>a (2).pdf</c>. Empty: everything goes
+    /// straight into <see cref="CustomFolder"/>. Watch folders set it to the watched folder.
+    /// </summary>
+    public string KeepFoldersFrom { get; set; } = "";
+
+    /// <summary>
     /// File name pattern without extension. Tokens:
     /// <c>{name}</c> source name, <c>{ext}</c> source extension, <c>{preset}</c> preset name,
     /// <c>{date}</c> yyyyMMdd, <c>{time}</c> HHmmss, <c>{index}</c> 1-based position in the batch.
