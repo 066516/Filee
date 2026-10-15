@@ -13,6 +13,46 @@ one-line summaries in the user's language (`ko`, `en`, `zh`; a line per change, 
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 1.10.4
+
+<!-- update
+level: recommended
+ko: 서명·도장·로고의 단색 배경을 투명하게 만드는 "배경 제거" 프리셋이 생겼어요
+ko: 자동 변환 폴더에서 하위 폴더의 파일은 결과도 같은 하위 폴더에 저장돼요
+ko: Filee가 켜지는 중에 연 파일이나 업데이트 요청이 사라지던 문제를 고쳤어요
+ko: 보안 업데이트: PDF 처리에 쓰는 .NET 암호화 라이브러리를 최신 버전으로 바꿨어요
+en: A "Remove background" preset makes the plain backdrop of signatures, stamps and logos transparent
+en: Watch folders keep the subfolders of their files in the output folder
+en: Files opened, or an update started, while Filee is still starting are no longer lost
+en: Security update: the .NET cryptography library used for PDFs is updated
+zh: 新增"去除背景"预设，可将签名、印章、标志的纯色背景变为透明
+zh: 自动转换文件夹会在输出中保留文件所在的子文件夹
+zh: 修复了 Filee 启动过程中打开的文件或更新请求丢失的问题
+zh: 安全更新：处理 PDF 所用的 .NET 加密库已更新
+-->
+
+### New
+
+- **Remove background** (issue #69, by @SeoJCalive). A new image option and built-in preset make a plain backdrop
+  transparent: the paper behind a signature or stamp, the backdrop of a logo. Offline, with smooth edges and the ink
+  colour kept, also on phone photos with uneven lighting. "Keep enclosed areas" keeps the inside of a logo. Formats
+  without transparency (JPG) get the background colour instead. The preset is on the Presets page; add it to a donut
+  in Settings → Toolbar.
+
+### Changed
+
+- **Watch folders keep subfolders** (issue #72, by @SeoJCalive). With "Include subfolders", files from
+  `Inbox\2025\scans` now go to `converted\2025\scans` instead of all into `converted` (where files of the same name
+  became `a (2).pdf`), the way originals are already moved. `filee watch` does the same.
+
+### Fixed
+
+- **Starting Filee again while it is still starting.** Files opened from the right-click menu or Send To, or the
+  installer's request to close Filee for an update, were lost when Filee took more than a few seconds to start (a
+  slow or busy computer). They now wait until Filee is ready.
+- **Security update.** The .NET cryptography library PDFsharp uses (System.Security.Cryptography.Pkcs) is updated to
+  10.0.13, which fixes two denial-of-service advisories (CVE-2026-84008, CVE-2026-70162).
+
 ## 1.10.3
 
 <!-- update

@@ -23,6 +23,9 @@ internal static class Program
     /// <summary>How long the installer waits for a running Filee to save and exit.</summary>
     private static readonly TimeSpan QuitTimeout = TimeSpan.FromSeconds(20);
 
+    /// <summary>How long a later launch waits for a Filee that is still starting to take its arguments.</summary>
+    private static readonly TimeSpan ForwardTimeout = TimeSpan.FromSeconds(30);
+
     [STAThread]
     public static int Main(string[] args)
     {
@@ -32,7 +35,7 @@ internal static class Program
             return RunInstallerCommand(Instance);
         if (!Instance.IsFirst)
         {
-            Instance.ForwardToFirst(args);
+            Instance.ForwardToFirst(args, ForwardTimeout);
             Instance.Dispose();
             return 0;
         }
@@ -68,8 +71,10 @@ internal static class Program
             var deadline = DateTime.UtcNow + QuitTimeout;
             if (!instance.IsFirst)
             {
-                instance.ForwardToFirst(["--quit"]);
-                if (!instance.WaitForFirstToExit(QuitTimeout))
+                // A Filee that is still starting takes the request once it listens; then it has the rest to exit.
+                instance.ForwardToFirst(["--quit"], QuitTimeout);
+                var left = deadline - DateTime.UtcNow;
+                if (!instance.WaitForFirstToExit(left > TimeSpan.FromSeconds(5) ? left : TimeSpan.FromSeconds(5)))
                     return 1;
             }
             // The mutex is released just before the process ends: wait for the end, so Filee.exe is no longer in use.
