@@ -29,6 +29,30 @@ public class UserDataStoreTests
         var group = reloaded.FindPreset("mine")!;
         Assert.True(group.IsGroup);
         Assert.Equal(["to-png", "to-jpg", "to-webp", "to-bmp", "to-gif", "to-ico"], group.SubPresetIds);
+        // No target format a Filee from before groups (which reads it as a conversion) could run it with.
+        Assert.Equal(Preset.GroupTarget, group.TargetFormat);
+        Assert.Null(Filee.Core.Formats.FormatRegistry.FindById(Preset.GroupTarget));
+    }
+
+    [Fact]
+    public void A_kind_from_a_newer_Filee_reads_as_a_group_and_the_other_presets_still_load()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Presets.Add(new Preset { Id = "future", Name = "Future", Kind = PresetKind.Group, SubPresetIds = ["to-png"] });
+        store.SaveLibrary();
+        var path = Path.Combine(dir.Path, "presets.json");
+        var json = File.ReadAllText(path);
+        Assert.Contains("\"kind\": \"Group\"", json);
+        File.WriteAllText(path, json.Replace("\"kind\": \"Group\"", "\"kind\": \"Chain\""));
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        Assert.True(reloaded.FindPreset("future")!.IsGroup); // never run as a conversion
+        Assert.NotNull(reloaded.FindPreset("to-png")); // and not every preset reset to the defaults
+        Assert.False(File.Exists(path + ".broken"));
     }
 
     [Fact]

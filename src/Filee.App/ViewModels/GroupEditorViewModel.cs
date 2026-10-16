@@ -107,7 +107,7 @@ public sealed partial class GroupEditorViewModel : ObservableObject
         if (_group.NameKey is null || Name.Trim() != _loc.DisplayName(_group))
             _group.Name = Name.Trim();
         _group.Kind = PresetKind.Group;
-        _group.TargetFormat = BuiltInData.SameAsSource;
+        _group.TargetFormat = Preset.GroupTarget;
         _group.SubPresetIds = Members.Select(m => m.PresetId).ToList();
         return true;
     }

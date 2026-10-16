@@ -160,10 +160,14 @@ public sealed class UserDataStore
         {
             profile.PresetIds = profile.PresetIds.Where(ids.Contains).Distinct().Take(ToolbarProfile.MaxSlices).ToList();
         }
-        // A group fans out conversions only (no group in a group), each once, at most MaxSubPresets.
+        // A group fans out conversions only (no group in a group), each once, at most MaxSubPresets, and has no
+        // target format an older Filee could run it with.
         var conversions = Presets.Where(p => !p.IsGroup).Select(p => p.Id).ToHashSet();
         foreach (var group in Presets.Where(p => p.IsGroup))
+        {
             group.SubPresetIds = group.SubPresetIds.Where(conversions.Contains).Distinct().Take(Preset.MaxSubPresets).ToList();
+            group.TargetFormat = Preset.GroupTarget;
+        }
 
         // Several mixed profiles are fine (each limited to the extensions checked on it); none is not.
         if (!Profiles.Any(p => p.IsFallback))

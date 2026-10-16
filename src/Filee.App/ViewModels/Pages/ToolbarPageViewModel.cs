@@ -257,7 +257,7 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
     [RelayCommand]
     private async Task NewGroup()
     {
-        var group = new Preset { Name = _loc["toolbar.new_group"], Kind = PresetKind.Group, TargetFormat = BuiltInData.SameAsSource };
+        var group = new Preset { Name = _loc["toolbar.new_group"], Kind = PresetKind.Group, TargetFormat = Preset.GroupTarget };
         if (!await _windows.EditGroupAsync(group, _windows.Main, isNew: true))
             return;
         _store.Presets.Add(group);
