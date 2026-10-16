@@ -381,9 +381,12 @@ public class RenderTests
             var center = new Avalonia.Point(donut.Bounds.Width / 2, donut.Bounds.Height / 2);
             var onRing = donut.SubSliceCenter(index, 1);
             Assert.Equal(new DonutHit(DonutHitKind.SubSegment, index, 1), donut.HitTest(onRing));
-            // Heading out to the fan's edge across a neighbour's outer half keeps the group; its inner half doesn't.
+            // The gap before the ring keeps the group; a neighbour's slice, outer half or inner, is that neighbour (a click
+            // or drop there converts with it; DonutGroupTests checks the ring stays open over its outer half).
             var neighbour = DonutGeometry.MidAngle(index, n) - DonutGeometry.Span(n) * 0.6;
-            Assert.Equal(new DonutHit(DonutHitKind.Segment, index), donut.HitTest(DonutGeometry.PointAt(center, vm.OuterRadius - 8, neighbour)));
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, index),
+                donut.HitTest(DonutGeometry.PointAt(center, vm.OuterRadius + 10, DonutGeometry.MidAngle(index, n))));
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, index - 1), donut.HitTest(DonutGeometry.PointAt(center, vm.OuterRadius - 8, neighbour)));
             Assert.Equal(new DonutHit(DonutHitKind.Segment, index - 1),
                 donut.HitTest(DonutGeometry.PointAt(center, vm.OuterRadius * vm.HoleRatio + 6, neighbour)));
             Assert.Contains("JPG", vm.CenterSubtitle);
