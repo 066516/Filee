@@ -27,6 +27,10 @@ public class FormatRegistryTests
     [InlineData("b.tif", "tiff")]
     [InlineData("c.HWPX", "hwpx")]
     [InlineData(".md", "md")]
+    [InlineData("DSCF0001.HIF", "heic")] // Fujifilm's HEIF
+    [InlineData("anim.apng", "apng")]
+    [InlineData("scan.dicom", "dcm")]
+    [InlineData("texture.rgb", "sgi")]
     public void Detects_formats(string path, string id) => Assert.Equal(id, FormatRegistry.Detect(path)?.Id);
 
     [Fact]

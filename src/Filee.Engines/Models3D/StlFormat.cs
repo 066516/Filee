@@ -143,7 +143,7 @@ internal static class StlFormat
     {
         Span<float> values = stackalloc float[3];
         var found = 0;
-        foreach (var range in text.Split(' '))
+        foreach (var range in text.SplitAny(' ', '\t'))
         {
             var token = text[range].Trim();
             if (token.IsEmpty)

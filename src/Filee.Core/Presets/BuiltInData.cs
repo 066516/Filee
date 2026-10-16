@@ -74,7 +74,37 @@ public static class BuiltInData
         new() { Id = "to-html", Name = "HTML", TargetFormat = "html" },
         .. SpreadsheetPresets(),
         .. CatalogPresets(),
+        .. DataPresets(),
+        .. CodecAndSubtitlePresets(),
         .. ModelPresets(),
+    ];
+
+    /// <summary>
+    /// HEVC / AV1 video, ALAC and the subtitle targets (added in settings schema 11, see SettingsMigrations).
+    /// </summary>
+    public static List<Preset> CodecAndSubtitlePresets() =>
+    [
+        // Video codecs and lossless audio
+        new()
+        {
+            Id = "mp4-hevc", Name = "MP4 HEVC", TargetFormat = "mp4",
+            Media = { VideoCodec = VideoCodec.Hevc }, Output = { FileNamePattern = "{name}_hevc" },
+        },
+        new()
+        {
+            Id = "mp4-av1", Name = "MP4 AV1", TargetFormat = "mp4",
+            Media = { VideoCodec = VideoCodec.Av1 }, Output = { FileNamePattern = "{name}_av1" },
+        },
+        new() { Id = "to-alac", Name = "ALAC", TargetFormat = "m4a", Media = { AudioCodec = AudioCodec.Alac } },
+
+        // Subtitles; on the video donut, SRT takes the first text subtitle track out of the video.
+        new() { Id = "extract-subtitles", NameKey = "preset.extract_subtitles", TargetFormat = "srt" },
+        new() { Id = "to-srt", Name = "SRT", TargetFormat = "srt" },
+        new() { Id = "to-vtt", Name = "WebVTT", TargetFormat = "vtt" },
+        new() { Id = "to-ass", Name = "ASS", TargetFormat = "ass" },
+        new() { Id = "to-smi", Name = "SAMI", TargetFormat = "smi" },
+        new() { Id = "to-lrc", Name = "LRC", TargetFormat = "lrc" },
+        new() { Id = "to-ttml", Name = "TTML", TargetFormat = "ttml" },
     ];
 
     /// <summary>HWP as a target, through HWPX (added in settings schema 7, see SettingsMigrations).</summary>
@@ -90,7 +120,7 @@ public static class BuiltInData
         new() { Id = "to-csv", Name = "CSV", TargetFormat = "csv" },
     ];
 
-    /// <summary>3D model targets (added in settings schema 11, see SettingsMigrations). glTF is on no donut: GLB is the same in one file.</summary>
+    /// <summary>3D model targets (added in settings schema 15, see SettingsMigrations). glTF is on no donut: GLB is the same in one file.</summary>
     public static List<Preset> ModelPresets() =>
     [
         new() { Id = "to-glb", Name = "GLB", TargetFormat = "glb" },
@@ -124,6 +154,7 @@ public static class BuiltInData
         new() { Id = "to-epub", Name = "EPUB", TargetFormat = "epub" },
         new() { Id = "to-mobi", Name = "MOBI", TargetFormat = "mobi" },
         new() { Id = "to-azw3", Name = "AZW3", TargetFormat = "azw3" },
+        new() { Id = "to-kepub", Name = "KEPUB", TargetFormat = "kepub" },
         new() { Id = "to-fb2", Name = "FB2", TargetFormat = "fb2" },
         new() { Id = "to-cbz", Name = "CBZ", TargetFormat = "cbz" },
 
@@ -177,6 +208,20 @@ public static class BuiltInData
         new() { Id = "to-eot", Name = "EOT", TargetFormat = "eot" },
     ];
 
+    /// <summary>
+    /// Structured data and contacts targets (added in settings schema 14, see SettingsMigrations). EML is for Outlook
+    /// MSG files, vCard for contact lists in CSV; neither is on a donut.
+    /// </summary>
+    public static List<Preset> DataPresets() =>
+    [
+        new() { Id = "to-json", Name = "JSON", TargetFormat = "json" },
+        new() { Id = "to-yaml", Name = "YAML", TargetFormat = "yaml" },
+        new() { Id = "to-toml", Name = "TOML", TargetFormat = "toml" },
+        new() { Id = "to-xml", Name = "XML", TargetFormat = "xml" },
+        new() { Id = "to-eml", Name = "EML", TargetFormat = "eml" },
+        new() { Id = "to-vcf", Name = "vCard", TargetFormat = "vcf" },
+    ];
+
     /// <summary>Creates the default toolbar profiles.</summary>
     public static List<ToolbarProfile> CreateProfiles() =>
     [
@@ -207,7 +252,8 @@ public static class BuiltInData
             PresetIds = ["to-pdf", "to-docx", "to-hwpx", "to-hwp", "to-png", "to-jpg", "to-txt", "to-md", "to-epub", "merge-pdf"],
         },
         TextProfile(),
-        .. CatalogProfiles(),
+        .. WithSubtitleProfile(CatalogProfiles()),
+        DataProfile(),
         ModelProfile(),
         new()
         {
@@ -222,7 +268,7 @@ public static class BuiltInData
         Id = "spreadsheets",
         NameKey = "profile.spreadsheets",
         Extensions = ExtensionsOf(FormatCategory.Spreadsheet),
-        PresetIds = ["to-pdf", "to-xlsx", "to-csv", "to-ods", "to-hwpx", "to-hwp", "to-html", "merge-pdf"],
+        PresetIds = ["to-pdf", "to-xlsx", "to-csv", "to-json", "to-ods", "to-hwpx", "to-hwp", "to-html", "merge-pdf"],
     };
 
     /// <summary>PowerPoint and OpenDocument slides (split from "office" in settings schema 5).</summary>
@@ -250,13 +296,13 @@ public static class BuiltInData
         {
             Id = "ebooks", NameKey = "profile.ebooks",
             Extensions = ExtensionsOf(FormatCategory.Ebook),
-            PresetIds = ["to-pdf", "to-epub", "to-docx", "to-txt", "to-azw3", "to-mobi", "to-hwpx", "to-hwp", "to-html"],
+            PresetIds = ["to-pdf", "to-epub", "to-docx", "to-txt", "to-azw3", "to-mobi", "to-kepub", "to-hwpx", "to-hwp", "to-html"],
         },
         new()
         {
             Id = "video", NameKey = "profile.video",
             Extensions = ExtensionsOf(FormatCategory.Video),
-            PresetIds = ["to-mp4", "mp4-720", "to-webm", "to-mov", "to-gif", "to-mp3", "to-mkv", "to-avi"],
+            PresetIds = ["to-mp4", "mp4-720", "mp4-hevc", "to-webm", "to-mov", "to-gif", "to-mp3", "extract-subtitles", "to-mkv", "to-avi"],
         },
         new()
         {
@@ -290,7 +336,32 @@ public static class BuiltInData
         },
     ];
 
-    /// <summary>3D models: GLB, glTF, STL, OBJ, 3MF, PLY (added in settings schema 11, after "fonts").</summary>
+    /// <summary>JSON, YAML, TOML, XML and vCard files (added in settings schema 14, after "fonts").</summary>
+    public static ToolbarProfile DataProfile() => new()
+    {
+        Id = "data",
+        NameKey = "profile.data",
+        Extensions = ExtensionsOf(FormatCategory.Data),
+        PresetIds = ["to-json", "to-yaml", "to-toml", "to-xml", "to-csv", "to-xlsx"],
+    };
+
+    /// <summary>Text subtitles: SRT, ASS, WebVTT, SAMI, LRC, ... (added in settings schema 11, after "audio").</summary>
+    public static ToolbarProfile SubtitleProfile() => new()
+    {
+        Id = "subtitles",
+        NameKey = "profile.subtitles",
+        Extensions = ExtensionsOf(FormatCategory.Subtitle),
+        PresetIds = ["to-srt", "to-vtt", "to-ass", "to-smi", "to-lrc", "to-ttml"],
+    };
+
+    /// <summary><paramref name="profiles"/> with the subtitle donut after the audio donut.</summary>
+    private static List<ToolbarProfile> WithSubtitleProfile(List<ToolbarProfile> profiles)
+    {
+        profiles.Insert(profiles.FindIndex(p => p.Id == "audio") + 1, SubtitleProfile());
+        return profiles;
+    }
+
+    /// <summary>3D models: GLB, glTF, STL, OBJ, 3MF, PLY (added in settings schema 15, after "data").</summary>
     public static ToolbarProfile ModelProfile() => new()
     {
         Id = "models",

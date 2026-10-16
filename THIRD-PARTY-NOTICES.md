@@ -25,6 +25,13 @@ Each component remains under its own license.
 | ExcelDataReader | MIT | https://github.com/ExcelDataReader/ExcelDataReader |
 | PdfPig (PDF text, layout and pictures) | Apache-2.0 | https://github.com/UglyToad/PdfPig |
 | MimeKitLite (e-mail / MIME parsing) | MIT | https://github.com/jstedfast/MimeKit |
+| MsgReader (Outlook .msg reading) | MIT, Copyright (c) Kees van Spelde | https://github.com/Sicos1977/MSGReader |
+| OpenMcdf (OLE compound files, used by MsgReader) | MPL-2.0 (source: the project page) | https://github.com/openmcdf/openmcdf |
+| RtfPipe (RTF → HTML, used by MsgReader) | MIT, Copyright (c) 2018 Eric Domke | https://github.com/erdomke/RtfPipe |
+| UTF.Unknown (charset detection, used by MsgReader) | MPL-1.1 (source: the project page) | https://github.com/CharsetDetector/UTF-unknown |
+| Microsoft.Maui.Graphics, Microsoft.IO.RecyclableMemoryStream (used by MsgReader) | MIT | https://github.com/dotnet/maui, https://github.com/microsoft/Microsoft.IO.RecyclableMemoryStream |
+| YamlDotNet (YAML reading and writing) | MIT, Copyright (c) Antoine Aubry and contributors | https://github.com/aaubry/YamlDotNet |
+| Tomlyn (TOML reading) | BSD-2-Clause, Copyright (c) Alexandre Mutel | https://github.com/xoofx/Tomlyn |
 | ACadSharp (DWG/DXF reading and writing; includes CSMath and CSUtilities) | MIT, Copyright (c) Albert Domenech | https://github.com/DomCR/ACadSharp |
 | SharpGLTF.Core (glTF / GLB reading and writing) | MIT, Copyright (c) Vicente Penades | https://github.com/vpenades/SharpGLTF |
 | AngleSharp | MIT | https://github.com/AngleSharp/AngleSharp |
