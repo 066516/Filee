@@ -140,8 +140,9 @@ public sealed partial class DonutMenu : Control
     private int _subHover = -1;
     private Spring _expand;
 
-    // A group slice the pointer is on but hasn't opened yet (-1 none), and how far from the centre it came in.
+    // A group slice the pointer is on but hasn't opened yet (-1 none), and the closest to the centre it has been on it.
     private int _pendingGroup = -1;
+    private IDisposable? _expandTimer;
     private double _pendingDistance;
 
     /// <summary>How long the pointer rests on a group slice before it opens: passing over on the way elsewhere doesn't.</summary>
@@ -457,6 +458,7 @@ public sealed partial class DonutMenu : Control
     {
         if (IsEditMode)
             return;
+        var before = (_expanded, _pendingGroup);
         var sub = -1;
         switch (hit.Kind)
         {
@@ -467,18 +469,18 @@ public sealed partial class DonutMenu : Control
                 var distance = at is { } p ? Distance(p, Center) : 0;
                 if (_pendingGroup != hit.Index)
                 {
+                    ClearPending(); // its timer too: back on this slice within the delay, it waits the full delay again
                     _pendingGroup = hit.Index;
                     _pendingDistance = distance;
-                    var group = hit.Index;
-                    DispatcherTimer.RunOnce(() =>
-                    {
-                        if (_pendingGroup == group)
-                            ExpandPendingGroup();
-                    }, ExpandDelay);
+                    _expandTimer = DispatcherTimer.RunOnce(ExpandPendingGroup, ExpandDelay);
                 }
                 else if (at is not null && distance - _pendingDistance >= OutwardPixels)
                 {
                     ExpandPendingGroup();
+                }
+                else if (at is not null)
+                {
+                    _pendingDistance = Math.Min(_pendingDistance, distance); // outward from its innermost point
                 }
                 break;
             case DonutHitKind.SubSegment:
@@ -489,16 +491,26 @@ public sealed partial class DonutMenu : Control
                 ExpandPendingGroup(); // flicked straight out to where its ring opens: no need to wait
                 break;
             case DonutHitKind.Outside:
-                _pendingGroup = -1; // left the slice before it opened: it stays closed
+                ClearPending(); // left the slice before it opened: it stays closed
                 if (_expanded >= 0 && at is { } q && !InFan(q, _expanded))
                     _expanded = -1; // went round the outside, away from the ring
                 break;
             default:
-                _expanded = _pendingGroup = -1;
+                _expanded = -1;
+                ClearPending();
                 break;
         }
         SetSub(sub);
-        StartAnimation();
+        // Redraw only when something changed: this runs on every pointer move and drag-over event.
+        if ((_expanded, _pendingGroup) != before)
+            StartAnimation();
+    }
+
+    private void ClearPending()
+    {
+        _pendingGroup = -1;
+        _expandTimer?.Dispose();
+        _expandTimer = null;
     }
 
     /// <summary>Opens the group the pointer rests on (the timer of <see cref="TrackGroups"/>; tests call it directly).</summary>
@@ -511,8 +523,11 @@ public sealed partial class DonutMenu : Control
 
     private void Expand(int group)
     {
+        // Another group's ring still folding away: this one grows out of its own slice, not from half open.
+        if (_shownExpanded != group)
+            _expand = default;
         _expanded = _shownExpanded = group;
-        _pendingGroup = -1;
+        ClearPending();
         ActiveIndexChanged?.Invoke(this, ActiveIndex);
         StartAnimation();
     }
@@ -614,7 +629,8 @@ public sealed partial class DonutMenu : Control
     /// <summary>Folds an open group away (the drag left the window, or files were dropped).</summary>
     public void CollapseGroup()
     {
-        _expanded = _pendingGroup = -1;
+        _expanded = -1;
+        ClearPending();
         SetSub(-1);
         StartAnimation();
     }
@@ -645,7 +661,8 @@ public sealed partial class DonutMenu : Control
         _previewSpan = default;
         _mid = Enumerable.Range(0, n).Select(i => new Spring { Value = DonutGeometry.MidAngle(i, n) }).ToArray();
         _span = Enumerable.Range(0, n).Select(_ => new Spring { Value = DonutGeometry.Span(n) }).ToArray();
-        _expanded = _shownExpanded = _subHover = _pendingGroup = -1;
+        _expanded = _shownExpanded = _subHover = -1;
+        ClearPending();
         _expand = default;
         InvalidateMeasure();
         InvalidateVisual();

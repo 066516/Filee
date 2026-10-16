@@ -79,6 +79,15 @@ public class DonutGroupTests
         donut.SetExternalHit(donut.HitTest(further), further); // moving outward: no waiting
         Assert.True(IsOpen(donut));
         Assert.Equal(new DonutHit(DonutHitKind.SubSegment, Group, 2), donut.HitTest(OnRing(donut, 2)));
+
+        // Came in near the rim, drifted inward, then headed out: outward counts from the innermost point.
+        donut.CollapseGroup();
+        foreach (var r in new[] { 0.9, 0.55, 0.55 + 12 / donut.OuterRadius })
+        {
+            var at = OnGroup(donut, donut.OuterRadius * r);
+            donut.SetExternalHit(donut.HitTest(at), at);
+        }
+        Assert.True(IsOpen(donut));
         window.Close();
     }
 
