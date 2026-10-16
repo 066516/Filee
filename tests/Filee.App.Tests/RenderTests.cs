@@ -364,6 +364,59 @@ public class RenderTests
     [AvaloniaTheory]
     [InlineData("en")]
     [InlineData("ko")]
+    public void Sponsor_window_renders(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var window = Filee.App.Views.SponsorWindow.Create(AppHost.Get<Filee.Core.Localization.ILocalizer>());
+        window.Show();
+        Pump();
+        Save(window, $"window-sponsor-{language}.png");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Sponsor_window_with_supporters_renders()
+    {
+        TestServices.EnsureInitialized("en");
+        var window = Filee.App.Views.SponsorWindow.Create(AppHost.Get<Filee.Core.Localization.ILocalizer>());
+        var view = window.Supporters;
+        view.Show(new SupporterList(
+            [new Supporter("Acme", "https://acme.example", "acme.png"), new Supporter("Globex", "https://globex.example")],
+            [new("Kim"), new("Lee"), new("Park")]), _ => Logo());
+        window.Show();
+        Pump();
+        Save(window, "window-sponsor-supporters-en.png");
+        window.Close();
+
+        var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+        vm.Navigate("about");
+        var main = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+        main.Show();
+        Pump();
+        var about = main.GetVisualDescendants().OfType<Filee.App.Views.Pages.AboutPage>().Single();
+        about.Supporters.Show(new SupporterList(
+            [new Supporter("Acme", "https://acme.example", "acme.png"), new Supporter("Globex", "https://globex.example")],
+            [new("Kim"), new("Lee"), new("Park")]), _ => Logo());
+        Pump();
+        Save(main, "page-about-supporters-en.png");
+        main.Close();
+
+        // A stand-in logo: a wide coloured mark like a company's.
+        static Avalonia.Media.Imaging.Bitmap Logo()
+        {
+            var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new Avalonia.PixelSize(120, 32));
+            using (var context = bitmap.CreateDrawingContext())
+            {
+                context.DrawRectangle(new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#3B6FD8")), null, new Avalonia.Rect(0, 4, 24, 24), 6, 6);
+                context.DrawRectangle(new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#7A8699")), null, new Avalonia.Rect(32, 10, 84, 12), 3, 3);
+            }
+            return bitmap;
+        }
+    }
+
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
     public void First_run_engine_setup_renders(string language)
     {
         TestServices.EnsureInitialized(language);

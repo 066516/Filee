@@ -204,12 +204,29 @@ dotnet test
 欢迎提交 Pull Request。适合入门的任务：[添加转换器](docs/ADDING-A-CONVERTER.md)和[添加语言](docs/ADDING-A-LANGUAGE.md)。
 如果 Filee 帮你省了时间，点个 ⭐ 能让更多人发现它。
 
-Filee 免费，并将一直免费。想支持开发的话，可以通过 [GitHub Sponsors](https://github.com/sponsors/KnifeLemon) 赞助。
+Filee 免费，并将一直免费。想支持开发的话，请看[赞助](#赞助)。
 
 ## 代码签名政策
 
 Filee 的代码签名政策（Code signing policy）和隐私政策见[英文 README](README.md#code-signing-policy)。Filee 不会上传文件，
 也不会发送任何使用数据。
+
+## 赞助
+
+Filee 免费，并将一直免费。想支持开发的话，选一种方便的方式即可。谢谢！
+
+**你的名字或标志可以出现在这里。** 在 Patreon、GitHub Sponsors 或 Ko-fi 按月赞助，名字会列在这里，标志档位的标志会显示在这里和
+Filee 的"关于"页面（从下一个版本起，赞助期间有效）。一次性赞助的朋友，也可以要求列出名字。
+
+<!-- sponsors: src/Filee.App/Assets/Sponsors/sponsors.json -->
+
+<p align="center">
+  <a href="https://github.com/sponsors/KnifeLemon"><img src="https://img.shields.io/badge/GitHub%20Sponsors-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a>
+  <a href="https://patreon.com/KnifeLemon"><img src="https://img.shields.io/badge/Patreon-000000?style=for-the-badge&logo=patreon&logoColor=white" alt="Patreon"></a>
+  <a href="https://ko-fi.com/knifelemon"><img src="https://img.shields.io/badge/Ko--fi-FF6433?style=for-the-badge&logo=kofi&logoColor=white" alt="Ko-fi"></a>
+  <a href="https://paypal.me/knifelemon"><img src="https://img.shields.io/badge/PayPal-002991?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal"></a>
+  <a href="https://fairy.hada.io/@filee"><img src="https://img.shields.io/badge/Fairy-2E9E6B?style=for-the-badge" alt="Fairy"></a>
+</p>
 
 ## 许可证
 
