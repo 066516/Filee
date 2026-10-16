@@ -15,7 +15,7 @@ using Filee.Engines.Magick;
 namespace Filee.Engines.Media;
 
 /// <summary>Converts video and audio files with Filee's own copy of FFmpeg.</summary>
-public sealed partial class FfmpegConverter : IConverter
+public sealed partial class FfmpegConverter : IConverter, IImageTransformer
 {
     private static readonly ConcurrentDictionary<string, string> Versions = new();
 
@@ -26,6 +26,9 @@ public sealed partial class FfmpegConverter : IConverter
 
     /// <summary>FFmpeg's encoders use every core themselves; two runs keep the CPU busy between files.</summary>
     public int MaxParallelism => 2;
+
+    /// <summary>Only HEIC, which ImageMagick reads and turns before x265 encodes it (Heic/HeicWriter); never video.</summary>
+    public bool Transforms(string from, string to) => to == "heic";
 
     public IReadOnlyList<ConversionEdge> Edges { get; } = BuildEdges();
 

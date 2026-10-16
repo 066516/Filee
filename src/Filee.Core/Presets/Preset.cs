@@ -176,6 +176,10 @@ public sealed class ImageOptions
     /// <summary>Mirrors the image (after <see cref="Rotation"/>).</summary>
     public ImageFlip Flip { get; set; }
 
+    /// <summary>Turns or mirrors the image: only engines that do (<see cref="Conversion.IImageTransformer"/>) can run it.</summary>
+    [JsonIgnore]
+    public bool TurnsOrMirrors => Rotation != ImageRotation.None || Flip != ImageFlip.None;
+
     /// <summary>Scale in percent when <see cref="Resize"/> is <see cref="ResizeMode.Percent"/>.</summary>
     public int ResizePercent { get; set; } = 50;
 

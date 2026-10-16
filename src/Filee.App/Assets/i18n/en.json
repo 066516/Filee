@@ -57,6 +57,7 @@
 
   "error.unsupported_source": "This file type isn't supported",
   "error.no_route": "No engine can do this conversion",
+  "error.cannot_turn": "Rotate and flip work on images only",
   "error.conversion_failed": "The engine reported an error",
 
   "engine.reason.not_installed": "Not installed",

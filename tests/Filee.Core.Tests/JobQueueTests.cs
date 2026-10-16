@@ -29,6 +29,34 @@ public class JobQueueTests
     }
 
     [Fact]
+    public async Task Rotate_needs_an_engine_that_turns_images_and_turns_once_on_a_longer_route()
+    {
+        using var dir = new TempDir();
+        var pdf = dir.File("doc.pdf");
+        var eps = dir.File("art.eps");
+        var turner = new FakeTurner("magick", new ConversionEdge("png", "jpg"));
+        var renderer = new FakeTurner("ghostscript", new ConversionEdge("eps", "png"));
+        await using var queue = new JobQueue(new ConverterCatalog(
+            [new FakeConverter("pdfsharp", new ConversionEdge("pdf", "pdf")), turner, renderer]));
+
+        // PDF → PDF only copies pages: not "rotated" without turning anything.
+        var copied = await Run(queue, [pdf], new Preset { TargetFormat = BuiltInData.SameAsSource, Image = { Rotation = ImageRotation.Left90 } });
+        Assert.Equal(JobState.Failed, copied.State);
+        Assert.Equal("error.cannot_turn", copied.Files.Single().ErrorKey);
+        Assert.False(File.Exists(Path.Combine(dir.Path, "doc (1).pdf")));
+
+        // EPS → PNG → JPG: both engines turn images, only the first one is asked to (not 90° twice = 180°).
+        var turned = await Run(queue, [eps], new Preset { TargetFormat = "jpg", Image = { Rotation = ImageRotation.Left90 } });
+        Assert.Equal(JobState.Completed, turned.State);
+        Assert.Equal([("png", ImageRotation.Left90)], renderer.Asked);
+        Assert.Equal([("jpg", ImageRotation.None)], turner.Asked);
+
+        // Without rotation nothing changes.
+        var plain = await Run(queue, [pdf], new Preset { TargetFormat = BuiltInData.SameAsSource });
+        Assert.Equal(JobState.Completed, plain.State);
+    }
+
+    [Fact]
     public async Task Keep_dates_gives_outputs_the_dates_of_their_source()
     {
         using var dir = new TempDir();

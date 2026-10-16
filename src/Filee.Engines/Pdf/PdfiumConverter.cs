@@ -16,7 +16,7 @@ using SkiaSharp;
 namespace Filee.Engines.Pdf;
 
 /// <summary>PDF → every raster format ImageMagick writes (PNG, JPG, WEBP, TIFF, …, PSD, TGA, PPM).</summary>
-public sealed class PdfiumConverter : IConverter
+public sealed class PdfiumConverter : IConverter, IImageTransformer
 {
     private static readonly HashSet<string> MultiPageTargets = ["tiff", "gif"];
 
@@ -28,6 +28,9 @@ public sealed class PdfiumConverter : IConverter
 
     /// <summary>PDFium is not thread-safe.</summary>
     public int MaxParallelism => 1;
+
+    /// <summary>Renders pages to images, then applies the image options to them.</summary>
+    public bool Transforms(string from, string to) => true;
 
     public IReadOnlyList<ConversionEdge> Edges { get; } =
         ImageEncoder.Writable.Select(target => new ConversionEdge("pdf", target)).ToList();

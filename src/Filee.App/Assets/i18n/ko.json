@@ -57,6 +57,7 @@
 
   "error.unsupported_source": "지원하지 않는 파일 형식이에요",
   "error.no_route": "이 변환을 할 수 있는 엔진이 없어요",
+  "error.cannot_turn": "회전·반전은 이미지에만 할 수 있어요",
   "error.conversion_failed": "엔진에서 오류가 발생했어요",
 
   "engine.reason.not_installed": "설치되지 않음",

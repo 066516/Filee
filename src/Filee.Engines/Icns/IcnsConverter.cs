@@ -9,11 +9,13 @@ using ImageMagick;
 namespace Filee.Engines.Icns;
 
 /// <summary>Raster image → ICNS and ICNS → raster image.</summary>
-public sealed class IcnsConverter : IConverter
+public sealed class IcnsConverter : IConverter, IImageTransformer
 {
     public string Id => "icns";
     public string DisplayName => "ICNS (built-in)";
     public int MaxParallelism => 0;
+
+    public bool Transforms(string from, string to) => true;
 
     public IReadOnlyList<ConversionEdge> Edges { get; } =
     [

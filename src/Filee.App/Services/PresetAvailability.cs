@@ -27,16 +27,23 @@ public sealed class PresetAvailability(ConverterCatalog catalog, ILocalizer loc,
             return loc["error.unsupported_source"];
 
         var merge = preset.Pdf.MergeIntoSingle && preset.TargetFormat == "pdf";
+        var turns = preset.Image.TurnsOrMirrors;
+        string TargetFor(FileFormat f) => preset.TargetFormat == BuiltInData.SameAsSource ? f.Id : preset.TargetFormat;
         bool Possible(RoutePlanner planner) => formats.Any(f =>
         {
-            var target = preset.TargetFormat == BuiltInData.SameAsSource ? f.Id : preset.TargetFormat;
+            var target = TargetFor(f);
             if (merge && f.Id == "pdf")
                 return true;
-            return planner.CanConvert(f.Id, target);
+            // Rotate / flip: a route only counts when an engine on it turns images (not a PDF or a video copied).
+            return turns ? planner.Plan(f.Id, target)?.FirstTransformStep() >= 0 : planner.CanConvert(f.Id, target);
         });
 
-        if (Possible(catalog.CreatePlanner()))
+        var planner = catalog.CreatePlanner();
+        if (Possible(planner))
             return null;
+        // It converts these files, just without turning them: say that, not "no engine" or "download one".
+        if (turns && formats.Any(f => planner.CanConvert(f.Id, TargetFor(f))))
+            return loc["error.cannot_turn"];
         return downloads.PackageEnabling(Possible) is { } package
             ? loc.Format("engine.reason.needs_package", package.Name)
             : loc["error.no_route"];

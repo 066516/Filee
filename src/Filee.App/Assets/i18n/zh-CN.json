@@ -57,6 +57,7 @@
 
   "error.unsupported_source": "不支持此文件类型",
   "error.no_route": "没有引擎可以完成此转换",
+  "error.cannot_turn": "只能旋转和翻转图片",
   "error.conversion_failed": "转换引擎出错",
 
   "engine.reason.not_installed": "未安装",

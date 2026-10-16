@@ -320,6 +320,13 @@ public sealed class JobQueue : IAsyncDisposable
         if (route is null)
             return Fail(file, "error.no_route", $"{source.Id} → {target}");
 
+        // Rotate / flip: only an engine that turns images does it. Without one the file would come out unturned
+        // (a PDF or a video re-encoded "as rotated"); with two in the route (EPS → PNG → JPG) it would turn twice.
+        var turnAt = job.Preset.Image.TurnsOrMirrors ? route.FirstTransformStep() : -1;
+        if (job.Preset.Image.TurnsOrMirrors && turnAt < 0)
+            return Fail(file, "error.cannot_turn", $"{source.Id} → {target}");
+        var turned = turnAt < 0 ? job.Preset : Unturned(job.Preset);
+
         file.State = FileState.Running;
         Notify(job);
 
@@ -353,7 +360,8 @@ public sealed class JobQueue : IAsyncDisposable
                     await gate.WaitAsync(ct);
                     try
                     {
-                        var stepInfo = new ConversionStep(input, step.From, step.To, job.Preset, allocator, workDir);
+                        var preset = turnAt >= 0 && s > turnAt ? turned : job.Preset; // turned once, in step turnAt
+                        var stepInfo = new ConversionStep(input, step.From, step.To, preset, allocator, workDir);
                         outputs.AddRange(await step.Converter.ConvertAsync(stepInfo, progress, ct));
                     }
                     finally
@@ -385,6 +393,14 @@ public sealed class JobQueue : IAsyncDisposable
         {
             _log.LogWarning(ex, "Converting {File} failed", file.SourcePath);
             return Fail(file, "error.conversion_failed", ex.Message);
+        }
+
+        static Preset Unturned(Preset preset)
+        {
+            var copy = preset.Clone();
+            copy.Image.Rotation = ImageRotation.None;
+            copy.Image.Flip = ImageFlip.None;
+            return copy;
         }
 
         IReadOnlyList<string> Fail(FileResult f, string key, string? detail)

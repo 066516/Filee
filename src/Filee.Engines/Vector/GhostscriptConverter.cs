@@ -12,7 +12,7 @@ using PdfSharp.Pdf.IO;
 namespace Filee.Engines.Vector;
 
 /// <summary>EPS, PS and PostScript-based AI ↔ PDF through Ghostscript.</summary>
-public sealed class GhostscriptConverter : IConverter
+public sealed class GhostscriptConverter : IConverter, IImageTransformer
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromMinutes(5);
 
@@ -32,6 +32,9 @@ public sealed class GhostscriptConverter : IConverter
     public string Id => "ghostscript";
     public string DisplayName => "Ghostscript";
     public int MaxParallelism => 0;
+
+    /// <summary>Only when rendering EPS / PostScript to PNG.</summary>
+    public bool Transforms(string from, string to) => to == "png";
 
     public IReadOnlyList<ConversionEdge> Edges { get; } =
     [

@@ -10,11 +10,13 @@ namespace Filee.Engines.Magick;
 /// Converts between PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA and PPM, and reads
 /// HEIC, XCF, camera RAW and (on Windows) EMF/WMF.
 /// </summary>
-public sealed class MagickImageConverter : IConverter, ITiffMerger
+public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransformer
 {
     public string Id => "magick";
     public string DisplayName => "ImageMagick";
     public int MaxParallelism => 0;
+
+    public bool Transforms(string from, string to) => true;
 
     public IReadOnlyList<ConversionEdge> Edges { get; } =
         (from source in ImageEncoder.Sources
