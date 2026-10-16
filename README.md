@@ -220,8 +220,7 @@ package. More in [CONTRIBUTING.md](CONTRIBUTING.md#linux-and-macos-development).
 Pull requests are welcome. Good first steps are [adding a converter](docs/ADDING-A-CONVERTER.md) and
 [adding a language](docs/ADDING-A-LANGUAGE.md). If Filee saves you some clicks, a ⭐ helps other people find it.
 
-Filee is free and stays free. If you'd like to support its development, you can sponsor it on
-[GitHub Sponsors](https://github.com/sponsors/KnifeLemon) (or [Fairy](https://fairy.hada.io/@filee) from Korea).
+Filee is free and stays free. If you'd like to support its development, see [Sponsor](#sponsor).
 
 ## Code signing policy
 
@@ -247,6 +246,19 @@ It connects to the internet only:
 - to download the conversion engines you choose to install, from the official locations pinned in
   [`engines.json`](src/Filee.Engines/Infrastructure/engines.json).
 - when you click a link, which opens your web browser.
+
+## Sponsor
+
+Filee is free and stays free. If you'd like to support its development, pick whichever way suits you
+([Fairy](https://fairy.hada.io/@filee) takes Korean cards and easy-pay). Thank you!
+
+<p align="center">
+  <a href="https://github.com/sponsors/KnifeLemon"><img src="https://img.shields.io/badge/GitHub%20Sponsors-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a>
+  <a href="https://patreon.com/KnifeLemon"><img src="https://img.shields.io/badge/Patreon-000000?style=for-the-badge&logo=patreon&logoColor=white" alt="Patreon"></a>
+  <a href="https://ko-fi.com/knifelemon"><img src="https://img.shields.io/badge/Ko--fi-FF6433?style=for-the-badge&logo=kofi&logoColor=white" alt="Ko-fi"></a>
+  <a href="https://paypal.me/knifelemon"><img src="https://img.shields.io/badge/PayPal-002991?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal"></a>
+  <a href="https://fairy.hada.io/@filee"><img src="https://img.shields.io/badge/Fairy-2E9E6B?style=for-the-badge" alt="Fairy"></a>
+</p>
 
 ## License
 

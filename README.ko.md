@@ -216,13 +216,25 @@ dotnet test
 PR 환영해요. 시작하기 좋은 작업은 [변환기 추가](docs/ADDING-A-CONVERTER.md)와 [언어 추가](docs/ADDING-A-LANGUAGE.md)예요.
 Filee가 쓸만하다면 ⭐ 하나가 다른 사람들이 Filee를 찾는 데 도움이 돼요.
 
-Filee는 앞으로도 무료예요. 개발을 응원하고 싶다면 [Fairy](https://fairy.hada.io/@filee)나
-[GitHub Sponsors](https://github.com/sponsors/KnifeLemon)로 후원할 수 있어요.
+Filee는 앞으로도 무료예요. 개발을 응원하고 싶다면 [후원하기](#후원하기)를 봐 주세요.
 
 ## 코드 서명 정책
 
 Filee의 코드 서명 정책(Code signing policy)과 개인정보 처리 방침은 [영문 README](README.md#code-signing-policy)에
 있어요. Filee는 파일을 업로드하지 않고, 사용 기록도 보내지 않아요.
+
+## 후원하기
+
+Filee는 앞으로도 무료예요. 개발을 응원하고 싶다면 편한 방법으로 후원해 주세요.
+국내 카드·간편결제는 [Fairy](https://fairy.hada.io/@filee)에서 할 수 있어요. 감사합니다!
+
+<p align="center">
+  <a href="https://github.com/sponsors/KnifeLemon"><img src="https://img.shields.io/badge/GitHub%20Sponsors-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a>
+  <a href="https://patreon.com/KnifeLemon"><img src="https://img.shields.io/badge/Patreon-000000?style=for-the-badge&logo=patreon&logoColor=white" alt="Patreon"></a>
+  <a href="https://ko-fi.com/knifelemon"><img src="https://img.shields.io/badge/Ko--fi-FF6433?style=for-the-badge&logo=kofi&logoColor=white" alt="Ko-fi"></a>
+  <a href="https://paypal.me/knifelemon"><img src="https://img.shields.io/badge/PayPal-002991?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal"></a>
+  <a href="https://fairy.hada.io/@filee"><img src="https://img.shields.io/badge/Fairy-2E9E6B?style=for-the-badge" alt="Fairy"></a>
+</p>
 
 ## 라이선스
 

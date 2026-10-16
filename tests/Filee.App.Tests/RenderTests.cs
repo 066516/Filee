@@ -364,6 +364,19 @@ public class RenderTests
     [AvaloniaTheory]
     [InlineData("en")]
     [InlineData("ko")]
+    public void Sponsor_window_renders(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var window = Filee.App.Views.SponsorWindow.Create(AppHost.Get<Filee.Core.Localization.ILocalizer>());
+        window.Show();
+        Pump();
+        Save(window, $"window-sponsor-{language}.png");
+        window.Close();
+    }
+
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
     public void First_run_engine_setup_renders(string language)
     {
         TestServices.EnsureInitialized(language);
