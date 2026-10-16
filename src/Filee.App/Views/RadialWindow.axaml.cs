@@ -106,6 +106,14 @@ public partial class RadialWindow : Window
 
     public event Action? EscapePressed;
 
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        // Hidden, however that happened: a group waiting to open doesn't open on the hidden donut.
+        if (change.Property == IsVisibleProperty && !change.GetNewValue<bool>())
+            Donut.CollapseGroup();
+    }
+
     /// <summary>Local file paths in the drag data (folders and virtual items are ignored).</summary>
     private static IReadOnlyList<string> LocalFiles(DragEventArgs e) =>
         (e.DataTransfer.TryGetFiles() ?? [])

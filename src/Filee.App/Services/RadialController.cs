@@ -134,6 +134,8 @@ public sealed class RadialController(
         }
         _visible = false;
         var window = _window;
+        // A group about to open (its dwell timer running) must not open on a closing donut.
+        window.DonutControl.CollapseGroup();
         if (animate)
             window.DonutControl.PlayCloseAnimation(() =>
             {
@@ -284,6 +286,7 @@ public sealed class RadialController(
     private void HideWindow()
     {
         _visible = false;
+        _window?.DonutControl.CollapseGroup();
         _window?.Hide();
     }
 

@@ -341,16 +341,32 @@ public sealed partial class DonutMenu
     }
 
     /// <summary>
-    /// True when the pointer "left" at <paramref name="p"/>, still on the donut or the fan of the group that is open or
-    /// about to open: a see-through pixel let it through there (Windows and macOS do that), it didn't really leave.
+    /// How far inside the edge of the donut and the ring's backdrop the pointer must last have been for a "leave" to be
+    /// a see-through seam: one seen closer to the edge than this went out over it.
+    /// </summary>
+    private const double LeaveEdge = 12;
+
+    /// <summary>
+    /// True when the pointer "left" at <paramref name="p"/>, well inside the donut or the backdrop of the group that is
+    /// open or about to open (<see cref="DrawHitBackdrop"/>): a see-through pixel let it through there (Windows and
+    /// macOS do that), it didn't really leave. Last seen near the edge of that area, or outside it, it did.
     /// </summary>
     internal bool LeftThroughSeam(Point p)
     {
         var group = _expanded >= 0 ? _expanded : _pendingGroup;
-        if (group < 0 || IsEditMode)
+        if (group < 0 || group >= Count || IsEditMode)
             return false;
         var distance = Distance(p, Center);
-        return distance <= OuterRadius + PopOut || distance <= SubRadii.Outer + BackdropMargin && InFan(p, group);
+        if (distance <= OuterRadius + PopOut - LeaveEdge)
+            return true;
+        var count = Items![group].Children?.Count ?? 0;
+        var reach = SubRadii.Outer + BackdropMargin;
+        if (count == 0 || distance > reach - LeaveEdge)
+            return false;
+        // Inside the backdrop's wedge, and LeaveEdge away from its sides.
+        var halfSpan = Math.Min(2 * Math.PI, SubSpanOf(count) * count + 2 * BackdropMargin / reach) / 2;
+        var inside = halfSpan - Math.Abs(Math.IEEERemainder(DonutGeometry.AngleOf(Center, p) - DonutGeometry.MidAngle(group, Count), 2 * Math.PI));
+        return inside > 0 && (inside >= Math.PI / 2 || distance * Math.Sin(inside) >= LeaveEdge);
     }
 
     /// <summary>The ring an open group fans out, growing out of its slice.</summary>
