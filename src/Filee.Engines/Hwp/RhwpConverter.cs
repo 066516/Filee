@@ -61,8 +61,8 @@ public sealed class RhwpConverter : IConverter
 
     /// <summary>
     /// The document rhwp renders: a copy with the fixes of <see cref="RhwpInput"/> (fonts, shape sizes, equation
-    /// scripts) when it needs any, else the original. An HWP is read through an HWPX copy for that, and used as it is
-    /// when nothing needs fixing or the HWPX copy fails.
+    /// scripts, tables floating in cells) when it needs any, else the original. An HWP is read through an HWPX copy for
+    /// that, and used as it is when nothing needs fixing or the HWPX copy fails.
     /// </summary>
     private static async Task<string> PrepareAsync(string exe, ConversionStep step, CancellationToken cancellationToken)
     {
