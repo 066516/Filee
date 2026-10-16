@@ -9,6 +9,9 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Filee.App.Controls;
 using Filee.App.Services;
+using Filee.App.ViewModels;
+using Filee.Core.Presets;
+using Filee.Core.Settings;
 
 namespace Filee.App.Tests;
 
@@ -141,6 +144,56 @@ public class DonutGroupTests
         donut.SetExternalHit(donut.HitTest(far), far);
         Assert.False(IsOpen(donut));
         window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Only_enabled_slices_take_a_drop_and_an_empty_group_opens_nothing()
+    {
+        var empty = new DonutItem { Id = "empty", Label = "Empty", Children = [], IsEnabled = false };
+        var (donut, window) = Open(Item("PNG"), Item("JPG"), GroupOf(Item("WEBP", enabled: false), Item("PDF"), Item("TIFF")), empty);
+        Assert.True(donut.Converts(new DonutHit(DonutHitKind.Segment, 0)));
+        Assert.False(donut.Converts(new DonutHit(DonutHitKind.Segment, Group))); // a group converts nothing itself
+        Assert.False(donut.Converts(new DonutHit(DonutHitKind.SubSegment, Group, 0))); // can't take these files
+        Assert.True(donut.Converts(new DonutHit(DonutHitKind.SubSegment, Group, 1)));
+
+        // A group whose presets were all deleted: still a group (no drop), but nothing to open.
+        Assert.False(donut.Converts(new DonutHit(DonutHitKind.Segment, 3)));
+        var onEmpty = DonutGeometry.PointAt(Center(donut), donut.OuterRadius * 0.6, DonutGeometry.MidAngle(3, 4));
+        donut.SetExternalHit(donut.HitTest(onEmpty), onEmpty);
+        donut.ExpandPendingGroup();
+        donut.HandleKey(Key.Enter);
+        Assert.Equal(-1, donut.ActiveSubIndex);
+        Assert.Equal(new DonutHit(DonutHitKind.Outside), donut.HitTest(DonutGeometry.PointAt(Center(donut), donut.OuterRadius + 40, DonutGeometry.MidAngle(3, 4))));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void A_group_left_without_presets_says_why_on_the_donut()
+    {
+        TestServices.EnsureInitialized("en");
+        var store = AppHost.Get<UserDataStore>();
+        var images = store.Profiles.Single(p => p.Id == "images");
+        var before = images.PresetIds.ToList();
+        var group = new Preset { Id = "test-empty-group", Name = "Gone", Kind = PresetKind.Group, SubPresetIds = ["no-such-preset"] };
+        try
+        {
+            store.Presets.Add(group);
+            images.PresetIds.Add(group.Id);
+            var vm = AppHost.Get<RadialViewModel>();
+            vm.Load([@"C:\photos\a.jpg"], clickMode: true);
+            var index = vm.Items.Count - 1;
+            Assert.True(vm.Items[index].IsGroup);
+            Assert.False(vm.Items[index].IsEnabled);
+            Assert.Contains("No presets left", vm.Items[index].DisabledReason);
+            vm.ShowHint(index, -1, centerHot: false);
+            Assert.Equal(vm.Items[index].DisabledReason, vm.CenterSubtitle); // not "Move outward to choose"
+        }
+        finally
+        {
+            images.PresetIds.Clear();
+            images.PresetIds.AddRange(before);
+            store.Presets.Remove(group);
+        }
     }
 
     [AvaloniaFact]

@@ -38,7 +38,11 @@ public sealed class DonutItem
     /// </summary>
     public IReadOnlyList<DonutItem>? Children { get; init; }
 
-    public bool IsGroup => Children is { Count: > 0 };
+    /// <summary>A group slice (<see cref="Children"/> set), even one left with nothing to fan out.</summary>
+    public bool IsGroup => Children is not null;
+
+    /// <summary>A group with something to fan out.</summary>
+    public bool CanExpand => Children is { Count: > 0 };
 }
 
 /// <summary>Donut-shaped menu control.</summary>
@@ -452,7 +456,7 @@ public sealed partial class DonutMenu : Control
         {
             case DonutHitKind.Segment when hit.Index == _expanded:
                 break;
-            case DonutHitKind.Segment when hit.Index >= 0 && hit.Index < Count && Items![hit.Index].IsGroup:
+            case DonutHitKind.Segment when hit.Index >= 0 && hit.Index < Count && Items![hit.Index].CanExpand:
                 _expanded = -1;
                 var distance = at is { } p ? Distance(p, Center) : 0;
                 if (_pendingGroup != hit.Index)
@@ -555,7 +559,7 @@ public sealed partial class DonutMenu : Control
         switch (key)
         {
             case Key.Enter or Key.Space when current >= 0:
-                if (Items![current].IsGroup)
+                if (Items![current].CanExpand)
                 {
                     Expand(current);
                     SetSub(0);
@@ -573,11 +577,15 @@ public sealed partial class DonutMenu : Control
         return true;
     }
 
-    /// <summary>True when dropping or clicking at <paramref name="hit"/> converts: a slice that isn't a group, or a slice of a group's ring.</summary>
+    /// <summary>
+    /// True when dropping or clicking at <paramref name="hit"/> converts: an enabled slice that isn't a group, or an
+    /// enabled slice of a group's ring. Elsewhere the drag shows "no drop".
+    /// </summary>
     public bool Converts(DonutHit hit) => hit.Kind switch
     {
-        DonutHitKind.Segment => hit.Index >= 0 && hit.Index < Count && !Items![hit.Index].IsGroup,
-        DonutHitKind.SubSegment => true,
+        DonutHitKind.Segment => hit.Index >= 0 && hit.Index < Count && Items![hit.Index] is { IsGroup: false, IsEnabled: true },
+        DonutHitKind.SubSegment => hit.Index >= 0 && hit.Index < Count && Items![hit.Index].Children is { } children &&
+                                   hit.Sub >= 0 && hit.Sub < children.Count && children[hit.Sub].IsEnabled,
         _ => false,
     };
 
@@ -647,7 +655,10 @@ public sealed partial class DonutMenu : Control
             DonutHitKind.Segment or DonutHitKind.EditButton or DonutHitKind.SubSegment => hit.Index,
             _ => -1,
         });
-        ToolTip.SetTip(this, _hoverIndex >= 0 && Items![_hoverIndex] is { IsEnabled: false } item ? item.DisabledReason : null);
+        // On a group's ring, why that slice (not the group) is disabled.
+        var hovered = hit.Kind == DonutHitKind.SubSegment ? Items![hit.Index].Children![hit.Sub]
+            : _hoverIndex >= 0 ? Items![_hoverIndex] : null;
+        ToolTip.SetTip(this, hovered is { IsEnabled: false } ? hovered.DisabledReason : null);
     }
 
     protected override void OnPointerExited(PointerEventArgs e)

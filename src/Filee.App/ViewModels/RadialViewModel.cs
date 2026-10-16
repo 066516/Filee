@@ -128,7 +128,9 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
                 Label = loc.DisplayName(p),
                 Caption = loc.Format("donut.group_caption", children.Count),
                 IsEnabled = children.Any(c => c.IsEnabled),
-                DisabledReason = children.Select(c => c.DisabledReason).FirstOrDefault(r => r is not null),
+                // Its presets were all deleted since it was made: say so rather than show a dead slice.
+                DisabledReason = children.Count == 0 ? loc["donut.group_empty"]
+                    : children.Select(c => c.DisabledReason).FirstOrDefault(r => r is not null),
                 Children = children,
             };
         }).ToList();
@@ -144,7 +146,8 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
     {
         if (centerHot)
             CenterSubtitle = loc["donut.cancel"];
-        else if (index >= 0 && index < Items.Count && Items[index].Children is { } children)
+        else if (index >= 0 && index < Items.Count && Items[index].Children is { Count: > 0 } children &&
+                 (sub >= 0 || Items[index].IsEnabled))
             CenterSubtitle = sub >= 0 && sub < children.Count
                 ? children[sub].IsEnabled
                     ? loc.Format(IsClickMode ? "donut.click_to" : "donut.drop_to", $"{Items[index].Label} · {children[sub].Label}")
