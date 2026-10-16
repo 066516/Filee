@@ -396,7 +396,7 @@
   "presets.conflict.Overwrite": "덮어쓰기",
   "presets.conflict.Skip": "건너뛰기",
   "presets.editor_title": "프리셋 편집",
-  "presets.delete_confirm": "“{0}”을(를) 삭제할까요? 모든 툴바에서도 빠져요.",
+  "presets.delete_confirm": "“{0}”을(를) 삭제할까요? 모든 툴바와 묶음에서도 빠져요.",
   "presets.name_required": "이름을 입력하세요",
   "presets.select": "편집할 프리셋을 선택하세요",
 

@@ -396,7 +396,7 @@
   "presets.conflict.Overwrite": "覆盖",
   "presets.conflict.Skip": "跳过",
   "presets.editor_title": "编辑预设",
-  "presets.delete_confirm": "删除“{0}”？它也会从所有工具栏中移除。",
+  "presets.delete_confirm": "删除“{0}”？它也会从所有工具栏和组中移除。",
   "presets.name_required": "请输入名称",
   "presets.select": "选择要编辑的预设",
 

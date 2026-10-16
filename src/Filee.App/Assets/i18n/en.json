@@ -396,7 +396,7 @@
   "presets.conflict.Overwrite": "Replace it",
   "presets.conflict.Skip": "Skip",
   "presets.editor_title": "Edit preset",
-  "presets.delete_confirm": "Delete “{0}”? It will also be removed from every toolbar.",
+  "presets.delete_confirm": "Delete “{0}”? It will also be removed from every toolbar and group.",
   "presets.name_required": "Enter a name",
   "presets.select": "Select a preset to edit it",
 
