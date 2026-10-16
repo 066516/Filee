@@ -19,12 +19,12 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | **DOCX writer** | built in | **HWPX (and HWP through rhwp), PDF, HTML, EPUB, MOBI/AZW3, FB2, Markdown, TXT, XLSX, XLS, ODS, CSV, PPTX (+ variants) → DOCX** |
 | PDF text | built in (PdfPig) | **PDF → TXT** (reading order, also two columns; no OCR) |
 | E-mail | built in (MimeKit) | **EML → HTML** (headers + body, inline pictures), **TXT**, **ZIP** (the attachments) |
-| **E-books** | built in | **EPUB, MOBI/AZW/AZW3/PRC, FB2, HTMLZ, TXTZ → EPUB, HWPX (→ PDF), TXT, HTML, Markdown, FB2, HTMLZ, TXTZ**; HTML, Markdown, TXT, DOCX → EPUB/FB2/HTMLZ/TXTZ; HTML → TXT; comics CBZ/CBR/CB7/CBT/CBC → PDF, EPUB, CBZ; PDF → CBZ; AZW4 → PDF |
+| **E-books** | built in | **EPUB, MOBI/AZW/AZW3/PRC, FB2, HTMLZ, TXTZ → EPUB, HWPX (→ PDF), TXT, HTML, Markdown, FB2, HTMLZ, TXTZ**; HTML, Markdown, TXT, DOCX → EPUB/FB2/HTMLZ/TXTZ; HTML → TXT; comics CBZ/CBR/CB7/CBT/CBC → PDF, EPUB, CBZ; PDF → CBZ; AZW4 → PDF; **EPUB ↔ KEPUB** (Kobo) |
 | CAD (ACadSharp + built-in renderer) | built in (library) | **DWG ↔ DXF**; DWG/DXF → **PDF** (vector), **SVG**, PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF |
 | rhwp | bundled with the installer (`engines/rhwp`) | HWP/HWPX → PDF, **HWP → HWPX, HWPX → HWP** |
 | Archives (7-Zip) | bundled with the installer (`engines/7zip`, ~2.5 MB) + built-in readers | ZIP, 7Z, RAR, TAR (+ GZ/BZ2/XZ/Z/7Z/LZ), CAB, ISO, DMG, … **→ folder, ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ**; ALZ, EGG, lzip read in-process; "Compress into one archive" for any files |
-| LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats |
-| Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, reStructuredText and LaTeX ↔ Markdown/HTML/DOCX/ODT (and → RTF, EPUB, TXT) |
+| LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats; FODT, OpenDocument templates (OTT, OTS, OTP) and XLT out; SVG → EMF/WMF/ODG, a PDF page → SVG |
+| Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, markup languages (reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML) ↔ Markdown/HTML/DOCX/ODT and each other (and → RTF, EPUB, TXT), Markdown and markup → PPTX slides |
 | Ghostscript | **optional download** (~20 MB, 31 MB on disk) | EPS/PS → PDF, PDF → EPS/PS, PostScript-based AI → PDF (images through PDF and PDFium) |
 | FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video, video → animated GIF or a still frame, audio extraction, audio ↔ audio, GIF and photos → MP4/WEBM/MOV, images → HEIC |
 | Calibre | **optional download** (~216 MB, 660 MB on disk) | rare e-book formats: LIT, LRF, CHM, PDB, PML, RB, SNB, TCR, OEB → EPUB; EPUB → MOBI, AZW3, LIT, LRF, PDB, PML, RB, SNB, TCR |
@@ -161,7 +161,7 @@ Not converted: Word charts, SmartArt, equations (kept as text), free-form shapes
 
 ## Spreadsheets
 
-`SpreadsheetConverter` (engine id `spreadsheet`) converts between XLSX, XLS (also `.xlt`), ODS, CSV and TSV (also
+`SpreadsheetConverter` (engine id `spreadsheet`) converts between XLSX, XLS (and XLT templates, read only), ODS, CSV and TSV (also
 `.tab`) in-process; every format goes through one in-memory workbook (`Office/Sheets/Workbook.cs`) whose cells keep
 the text the spreadsheet shows, the value behind it and its Excel number format.
 
@@ -392,6 +392,15 @@ writer, so every e-book also reaches HWPX, PDF and images. The document model is
   footnotes, pictures come from the base64 binaries; the XML declaration's encoding (often windows-1251) is used.
   FB2 output nests sections by heading level.
 - **HTMLZ / TXTZ** (calibre's zipped formats) are read and written, with their `metadata.opf`.
+- **KEPUB** (Kobo, `Ebooks/Kepub.cs`, written from the format's public descriptions): EPUB → KEPUB copies the book
+  and changes only the XHTML documents of the spine. Every sentence becomes `<span class="koboSpan"
+  id="kobo.P.S">` (P counts the block elements of the chapter, S the sentences in it; a sentence ends at . ! ? …
+  followed by a space, or at the full-width 。！？), every picture gets a span of its own, and the body's content
+  is wrapped in `<div id="book-columns"><div id="book-inner">`. Scripts, styles, SVG and MathML are left alone; a
+  chapter that isn't well-formed XML (after HTML entities such as `&nbsp;` became character references) is copied
+  unchanged. Files are named `name.kepub.epub`, which tells Kobo devices to use their KEPUB reader. Other formats
+  reach KEPUB through EPUB (Markdown → EPUB → KEPUB); KEPUB → EPUB removes the markup again, and a KEPUB is read
+  like any EPUB.
 - **Comics**: CBZ, CBR, CB7, CBT and CBC (a ZIP of CBZ files) are opened with SharpCompress; pages are sorted
   naturally ("page2" before "page10"). → PDF has one page per picture sized like the picture (JPEGs are embedded
   as they are), → EPUB is fixed-layout, → CBZ repacks. PDF → CBZ renders the pages with PDFium at the preset DPI.
@@ -466,12 +475,46 @@ bundled with the installer), never a 7-Zip installed on the PC. It runs as a sep
 - HWP/HWPX import comes from the H2Orestart extension, which is written in Java; Filee points LibreOffice at the
   downloaded JRE (`-env:UNO_JAVA_JFW_JREHOME`).
 - It is the only reader of rarer formats, converted to PDF and to the editable formats of their kind: DOT, Works /
-  WPS Writer, WordPerfect, Lotus Word Pro, AbiWord, Apple Pages and StarWriter (→ DOCX, ODT, DOC, RTF, TXT, HTML);
-  WPS Spreadsheets (ET), Apple Numbers and StarCalc (→ XLSX, ODS, XLS, CSV, HTML); Apple Keynote, WPS
-  Presentation (DPS) and StarImpress / StarDraw (→ PPTX, ODP, PPT); Publisher, CorelDRAW, Visio, CGM and ODG
-  (→ ODG, SVG, PNG). The `--convert-to` filter follows the application that opens the file (checked against
-  LibreOffice's filter registry): Publisher, CorelDRAW and Visio open in Draw, CGM in Impress, and "SDA" files
-  in Draw (.sda) or Impress (.sdd). SVG and PNG export the first page.
+  WPS Writer, WordPerfect, Lotus Word Pro, AbiWord, Apple Pages, StarWriter, ClarisWorks / AppleWorks (`.cwk`),
+  MacWrite (`.mcw`), T602 (`.602`) and Pocket Word (`.psw`) (→ DOCX, ODT, FODT, OTT, DOC, RTF, TXT, HTML); WPS
+  Spreadsheets (ET), Apple Numbers, StarCalc and flat ODS (`.fods`) (→ XLSX, ODS, OTS, XLS, XLT, CSV, HTML); Apple
+  Keynote, WPS Presentation (DPS), StarImpress / StarDraw and flat ODP (`.fodp`) (→ PPTX, ODP, OTP, PPT);
+  Publisher, CorelDRAW, Visio, CGM, ODG and flat ODG (`.fodg`) (→ ODG, SVG, PNG, EMF, WMF). The `--convert-to`
+  filter follows the application that opens the file (checked against LibreOffice's filter registry): Publisher,
+  CorelDRAW and Visio open in Draw, CGM in Impress, and "SDA" files in Draw (.sda) or Impress (.sdd). ClarisWorks
+  files can also be spreadsheets or drawings; Filee treats them as text documents, the common case. SVG, PNG, EMF
+  and WMF export the first page.
+- Written only by LibreOffice: FODT (`OpenDocument Text Flat XML`), the OpenDocument templates OTT / OTS / OTP
+  (`writer8_template`, `calc8_template`, `impress8_template`) and XLT (`MS Excel 97 Vorlage/Template`). XLT is read
+  by the built-in spreadsheet engine like XLS.
+- SVG opens in Draw only for EMF, WMF and ODG; the vector engine keeps SVG → PDF and images. PDF opens in Draw
+  (`draw_pdf_import`) only for SVG and ODG: Draw's SVG export draws every page of a PDF on top of each other, so Filee
+  first copies the first page of the preset's page range into a PDF of its own (PDFsharp). EPS and PS reach SVG
+  through Ghostscript's PDF; Draw would only show their preview picture.
+- Checked with LibreOffice 26.2.6 (`LibreOfficeFormatTests`): FODT, FODS, FODP, FODG, T602 and SVG inputs, the
+  template and FODT outputs, XLT read back by the spreadsheet engine, EMF / WMF headers and the one-page PDF → SVG.
+  ClarisWorks, MacWrite and Pocket Word are binary formats without sample files in the repository: only their
+  filters (`ClarisWorks`, `MacWrite`, `PocketWord File`, all opening in Writer) were checked in the registry.
+
+## Pandoc
+
+`Office/PandocConverter.cs` runs Pandoc for the markup languages Filee doesn't read itself: reStructuredText,
+LaTeX, Org (`.org`), AsciiDoc (`.adoc`, `.asciidoc`), Typst (`.typ`), MediaWiki (`.mediawiki`, `.wiki`),
+DocBook (`.dbk`, `.docbook`; written as DocBook 5), Jupyter notebooks (`.ipynb`), Textile (`.textile`), man pages
+(`.man`) and OPML (`.opml`). Pandoc 3.12 reads and writes all of them.
+
+- Each converts to and from Markdown, HTML, DOCX and ODT and into each other, and to RTF, EPUB and TXT. Through
+  Pandoc's JSON AST they are also read by the HWPX writer, so they reach HWPX, HWP and PDF (HWPX writer → rhwp).
+  There is no PDF through Pandoc itself (that would need a TeX or Typst engine).
+- Edges into a markup language cost 11, one more than into Markdown, so a route with a Pandoc step in the middle
+  (an e-mail's HTML → ? → RTF) stays on Markdown.
+- Markdown, reStructuredText, Org, AsciiDoc, Typst, MediaWiki, Textile and notebooks → **PPTX** with Pandoc's
+  PowerPoint writer (a slide per heading). These edges cost 20: with LibreOffice's cheap PPTX → PDF, Markdown → PPTX
+  → PDF would otherwise beat Markdown → HWPX → PDF.
+- Extensions that mean other things are not claimed: man pages only as `.man` (`.1` … `.9` are also rotated logs,
+  `app.log.1`), DocBook as `.dbk` / `.docbook`, never every `.xml`.
+- DocBook, man pages, OPML, Typst, HTML and LaTeX are written with `--standalone` (a root element, a `.TH` header,
+  a preamble), the text formats extract pictures into `<name>_files` next to the result.
 
 ## DjVu
 

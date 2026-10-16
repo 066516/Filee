@@ -3,6 +3,7 @@
 
 using System.IO.Compression;
 using Filee.Core.Conversion;
+using Filee.Core.Formats;
 using Filee.Core.Presets;
 using Filee.Engines.Hwp.Hwpx;
 using Filee.Engines.Office;
@@ -63,6 +64,102 @@ public class PandocMarkupTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.SkipUnless(PandocConverter.Locate() is not null, "Pandoc not found (pwsh build/fetch-engines.ps1 -Only pandoc)");
         Assert.Equal("hwpx-writer", Assert.Single(planner.Plan("rst", "hwpx")!.Steps).Converter.Id);
         Assert.Equal("hwpx-writer", Assert.Single(planner.Plan("tex", "hwpx")!.Steps).Converter.Id);
+    }
+
+    [Fact]
+    public void More_markup_languages_and_slides()
+    {
+        var planner = fx.Catalog.CreatePlanner(["pandoc", "libreoffice"]);
+        foreach (var markup in PandocConverter.Markup)
+        {
+            Assert.NotNull(FormatRegistry.FindById(markup));
+            foreach (var other in new[] { "md", "html", "docx", "odt" })
+            {
+                Assert.Equal("pandoc", Assert.Single(planner.Plan(other, markup)!.Steps).Converter.Id);
+                Assert.NotNull(planner.Plan(markup, other));
+            }
+            Assert.NotNull(planner.Plan(markup, "epub"));
+        }
+        Assert.Equal("pandoc", Assert.Single(planner.Plan("org", "adoc")!.Steps).Converter.Id);
+        Assert.Equal("pandoc", Assert.Single(planner.Plan("md", "pptx")!.Steps).Converter.Id);
+        Assert.Equal("pandoc", Assert.Single(planner.Plan("org", "pptx")!.Steps).Converter.Id);
+        // Markdown keeps its built-in routes.
+        Assert.Equal("markdown", Assert.Single(planner.Plan("md", "html")!.Steps).Converter.Id);
+        Assert.Equal("docx-writer", Assert.Single(planner.Plan("md", "docx")!.Steps).Converter.Id);
+        // Extensions that could mean something else are not claimed.
+        Assert.Null(FormatRegistry.FindByExtension("xml"));
+        Assert.Null(FormatRegistry.FindByExtension("1"));
+        Assert.Equal("mediawiki", FormatRegistry.FindByExtension("wiki")!.Id);
+        Assert.Equal("adoc", FormatRegistry.FindByExtension("asciidoc")!.Id);
+
+        Assert.SkipUnless(PandocConverter.Locate() is not null, "Pandoc not found (pwsh build/fetch-engines.ps1 -Only pandoc)");
+        // Not through slides and LibreOffice's PPTX → PDF.
+        Assert.Equal(["hwpx-writer", "rhwp"], planner.Plan("org", "pdf")!.Steps.Select(s => s.Converter.Id));
+        Assert.Equal(["hwpx-writer", "rhwp"], planner.Plan("md", "pdf")!.Steps.Select(s => s.Converter.Id));
+        Assert.Equal(["hwpx-writer", "rhwp"], planner.Plan("typ", "pdf")!.Steps.Select(s => s.Converter.Id));
+    }
+
+    [Fact]
+    public async Task Markdown_round_trips_through_every_markup_language()
+    {
+        SkipUnlessInstalled();
+        var markdown = await WriteAsync("notes.md", "# Plan\n\nShip **today** and *test*.\n\n- alpha\n- beta\n\n# Later\n\nMore text.\n");
+
+        foreach (var markup in PandocConverter.Markup.Where(m => m is not ("rst" or "tex")))
+        {
+            var converted = await ConvertAsync(markdown, markup);
+            Assert.Equal(markup, FormatRegistry.Detect(converted)!.Id);
+            var back = await File.ReadAllTextAsync(await ConvertAsync(converted, "md"), TestContext.Current.CancellationToken);
+            Assert.True(back.Contains("today", StringComparison.Ordinal) && back.Contains("alpha", StringComparison.Ordinal), $"{markup}: {back}");
+        }
+    }
+
+    [Fact]
+    public async Task Org_asciidoc_and_typst_reach_hwpx_and_slides()
+    {
+        SkipUnlessInstalled();
+        var org = await WriteAsync("todo.org", "* Groceries\nBuy *milk* and /bread/.\n* Chores\n- sweep\n- dust\n");
+        var adoc = await WriteAsync("guide.adoc", "= Guide\n\n== Install\n\nRun the *installer*.\n\n== Use\n\nOpen the app.\n");
+        var typ = await WriteAsync("paper.typ", "= Introduction\nTypst is *fast*.\n\n= Method\nWe measure.\n");
+
+        foreach (var (input, text) in new[] { (org, "milk"), (adoc, "installer"), (typ, "fast") })
+        {
+            var hwpx = await ConvertAsync(input, "hwpx");
+            HwpxAssert.ValidPackage(hwpx);
+            Assert.Contains(text, HwpxAssert.Xml(hwpx).Value);
+
+            using var pptx = ZipFile.OpenRead(await ConvertAsync(input, "pptx"));
+            Assert.Contains(pptx.Entries, e => e.FullName == "ppt/slides/slide2.xml");
+        }
+    }
+
+    [Fact]
+    public async Task Notebooks_outlines_and_man_pages_are_read()
+    {
+        SkipUnlessInstalled();
+        var notebook = await WriteAsync("analysis.ipynb", """
+            {"cells": [
+              {"cell_type": "markdown", "metadata": {}, "source": ["# Analysis\n", "Results are *good*."]},
+              {"cell_type": "code", "metadata": {}, "execution_count": 1, "outputs": [], "source": ["print(42)"]}
+             ],
+             "metadata": {"kernelspec": {"name": "python3", "display_name": "Python 3", "language": "python"}},
+             "nbformat": 4, "nbformat_minor": 5}
+            """);
+        var outline = await WriteAsync("ideas.opml", """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <opml version="2.0"><head><title>Ideas</title></head>
+            <body><outline text="First idea"><outline text="Detail one"/></outline><outline text="Second idea"/></body></opml>
+            """);
+        var man = await WriteAsync("tool.man", ".TH TOOL 1\n.SH NAME\ntool \\- does things\n.SH DESCRIPTION\nThe \\fBtool\\fR command runs.\n");
+
+        var fromNotebook = await File.ReadAllTextAsync(await ConvertAsync(notebook, "md"), TestContext.Current.CancellationToken);
+        Assert.Contains("# Analysis", fromNotebook);
+        Assert.Contains("print(42)", fromNotebook);
+        var fromOutline = await File.ReadAllTextAsync(await ConvertAsync(outline, "html"), TestContext.Current.CancellationToken);
+        Assert.Contains("First idea", fromOutline);
+        Assert.Contains("Detail one", fromOutline);
+        var fromMan = await File.ReadAllTextAsync(await ConvertAsync(man, "txt"), TestContext.Current.CancellationToken);
+        Assert.Contains("command runs", fromMan);
     }
 
     [Fact]
