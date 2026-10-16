@@ -23,6 +23,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | **E-books** | built in | **EPUB, MOBI/AZW/AZW3/PRC, FB2, HTMLZ, TXTZ → EPUB, HWPX (→ PDF), TXT, HTML, Markdown, FB2, HTMLZ, TXTZ**; HTML, Markdown, TXT, DOCX → EPUB/FB2/HTMLZ/TXTZ; HTML → TXT; comics CBZ/CBR/CB7/CBT/CBC → PDF, EPUB, CBZ; PDF → CBZ; AZW4 → PDF; **EPUB ↔ KEPUB** (Kobo) |
 | CAD (ACadSharp + built-in renderer) | built in (library) | **DWG ↔ DXF**; DWG/DXF → **PDF** (vector), **SVG**, PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF |
 | **Subtitles** | built in | **SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD, SCC → SRT, ASS, WebVTT, SAMI, LRC, TTML, MicroDVD**, always UTF-8 (Korean CP949 / EUC-KR files read correctly) |
+| 3D models (SharpGLTF for glTF) | built in (library) | **GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY ↔ each other**; → PNG, JPG, … (an isometric preview) |
 | rhwp | bundled with the installer (`engines/rhwp`) | HWP/HWPX → PDF, **HWP → HWPX, HWPX → HWP** |
 | Archives (7-Zip) | bundled with the installer (`engines/7zip`, ~2.5 MB) + built-in readers | ZIP, 7Z, RAR, TAR (+ GZ/BZ2/XZ/Z/7Z/LZ), CAB, ISO, DMG, … **→ folder, ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ**; ALZ, EGG, lzip read in-process; "Compress into one archive" for any files |
 | LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats; FODT, OpenDocument templates (OTT, OTS, OTP) and XLT out; SVG → EMF/WMF/ODG, a PDF page → SVG |
@@ -419,6 +420,57 @@ and writes the files; Filee's own renderer draws them with SkiaSharp (one drawin
 - **Limits**: 1 000 000 drawn primitives, block nesting depth 16, 10 000 MINSERT cells, 2 000 000 hatch pattern
   segments in total; beyond that the drawing is cut short with a warning in the log. Damaged or truncated files fail
   with "The file is not a valid DWG/DXF drawing or is damaged: …".
+
+## 3D models
+
+`Filee.Engines/Models3D` converts GLB, glTF, STL, OBJ, 3MF and PLY into each other in managed code: every reader
+fills one in-memory model (`Model3D`: parts with positions, normals, UVs, vertex colours and triangles; materials
+with a base colour and a base colour texture) and every writer takes it, so each pair is one step. glTF and GLB are
+read and written with [SharpGLTF](https://github.com/vpenades/SharpGLTF) (MIT); STL, OBJ/MTL, PLY and 3MF are Filee's
+own code. No native library (Assimp) and no download.
+
+- **Units**: STL, OBJ and PLY have none; they are read and written as **millimetres**, as slicers and CAD programs
+  treat them. 3MF has a `unit` attribute (micron to metre) and is written in millimetres. glTF is metres. So a 20 mm
+  STL cube is 0.02 m in GLB and 20 mm again in STL. There is no preset option for another unit.
+- **Axes** follow Blender's defaults: STL, 3MF and PLY are Z up, OBJ and glTF Y up, so a part standing on a printer's
+  bed stands upright in a glTF viewer and comes back on its base.
+- **Structure**: node hierarchies, 3MF components and build items are flattened: every mesh instance becomes a part in
+  world coordinates (one glTF node / OBJ object / 3MF object per part). Polygons are triangulated (ear clipping, so
+  concave faces are right). OBJ negative indices, `\` line continuations and 0–255 vertex colours are understood.
+- **Vertices**: binary STL is streamed in blocks and vertices are merged by position (a 1,000,000-triangle STL
+  converts to GLB in a few seconds with about 150 MB of memory). STL normals are not kept: GLB written from STL has
+  none, which glTF viewers must shade flat; STL output gets facet normals from the winding. 3MF output welds vertices
+  by position, so meshes split for normals or UVs stay closed for slicers.
+- **Colours**: vertex colours are kept as sRGB and converted to linear for glTF `COLOR_0`; material colours are glTF's
+  linear base colour, OBJ's `Kd` as it is and 3MF's sRGB `displaycolor`. glTF materials are written metallic-roughness,
+  not metallic, roughness 0.8.
+
+What each format keeps:
+
+| Format | Read | Written |
+|---|---|---|
+| GLB / glTF | default scene (else all root nodes), triangles, strips and fans, `POSITION`, `NORMAL`, `TEXCOORD_n` of the base colour texture, `COLOR_0`, base colour factor and texture (metallic-roughness or specular-glossiness), double-sided; `.gltf` with embedded (data URI) or separate `.bin` and picture files | one node and mesh per part, 16- or 32-bit indices, PNG/JPEG textures (others are converted to PNG); **`.gltf` is one self-contained file** (its buffer is a base64 data URI, about a third larger than GLB) |
+| STL | binary (also with a header starting with "solid") and ASCII (one part per `solid`) | binary, one solid |
+| OBJ + MTL | `o` / `g` / `usemtl` as parts, `v` (+ r g b), `vt`, `vn`, faces of any size; `mtllib` with `Kd`, `d` / `Tr`, `map_Kd` (options skipped) next to the file | **the `.mtl` and the textures are written next to the `.obj`** (`name.obj`, `name.mtl`, `name_texture.png`, named like the output); vertex colours as `v x y z r g b` |
+| 3MF | objects, components (also in other model parts, as Bambu Studio writes them), build transforms, base materials, colour groups (materials extension); `support` / `other` objects skipped | one object per part, base materials from material colours, a colour group from vertex colours |
+| PLY | ASCII, binary little / big endian; vertex position, normal, UV (`s`/`t`, `u`/`v`, `texture_u`/`texture_v`), colours of any type; face lists with per-corner `texcoord` and face colours; `comment TextureFile`; other elements skipped | binary little endian, one mesh; material colours become vertex colours |
+
+Lost on the way (no place in the target): **STL** keeps only the triangles (no colours, UVs, normals or materials);
+**PLY** has no materials (their colours become vertex colours, textures are dropped); **OBJ** has no standard vertex
+colours (the common `v x y z r g b` extension is written and read; alpha is lost); **3MF** output has no normals, UVs or
+textures; and every format drops what Filee's model has no place for: animations, skins, morph targets, cameras,
+lights, metallic / roughness / normal / emissive maps, and lines and points. Draco- and meshopt-compressed glTF fail with
+a clear message, as do damaged files ("cut short", an index that does not exist, no triangles).
+
+**3D → pictures**: a small software rasteriser (`MeshRenderer`) draws an isometric view from the front right, above,
+with one light and flat shading per triangle, vertex colours or the texture interpolated across it, and a z-buffer,
+at 2048 px and scaled down to 1024 px for smooth edges, on a transparent background. The preset's image options
+(resize, background for JPG, quality) apply as for other pictures.
+
+Tests (`tests/Filee.Engines.Tests/ModelTests.cs`) build a cube, a sphere and a fan of coloured triangles in code and
+convert each through every format pair, checking triangle counts, bounds, signed volume (winding), normals, UVs,
+colours and materials where both formats keep them; hand-written STL, OBJ, PLY, 3MF and glTF files cover the reading
+details, and a generated 1,000,000-triangle STL the speed.
 
 ## HWPX reader
 

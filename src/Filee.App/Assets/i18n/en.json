@@ -77,6 +77,7 @@
   "engine.icns.description": "macOS app icons (ICNS) from and to images.",
   "engine.font.description": "Fonts: TTF, OTF, WOFF, WOFF2 and EOT into each other.",
   "engine.cad.description": "AutoCAD drawings: DWG ↔ DXF, and both to PDF, SVG and PNG.",
+  "engine.model3d.description": "3D models: GLB, glTF, STL, OBJ, 3MF and PLY into each other, and a PNG preview.",
   "engine.archive.description": "Extracts ZIP, 7Z, RAR, TAR, ISO and more, and packs ZIP, 7Z or TAR.GZ (7-Zip).",
   "engine.ebook.description": "EPUB, MOBI, AZW3, FB2 and comics (CBZ, CBR) to PDF, EPUB, DOCX and text.\nAlso documents to EPUB, EPUB to KEPUB for Kobo and PDF to CBZ.",
   "engine.subtitle.description": "Subtitles: SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD and SCC into each other, saved as UTF-8.\nKorean SMI and SRT files in CP949 / EUC-KR read correctly.",
@@ -102,6 +103,7 @@
   "profile.cad": "CAD drawings",
   "profile.fonts": "Fonts",
   "profile.data": "Data",
+  "profile.models": "3D models",
   "profile.mixed": "Mixed files",
 
   "preset.half_size": "Half size",
@@ -131,6 +133,7 @@
   "format.category.Font": "Font",
   "format.category.Subtitle": "Subtitle",
   "format.category.Data": "Data",
+  "format.category.Model3D": "3D model",
 
   "general.title": "General",
   "general.language": "Language",
@@ -516,7 +519,7 @@
   "common.no": "No",
 
   "setup.title": "Choose conversion engines",
-  "setup.description": "Images, PDF, Office documents, HWP, e-books, archives, fonts and CAD already convert.\nDownload engines only for video and audio or rare formats.",
+  "setup.description": "Images, PDF, Office documents, HWP, e-books, archives, fonts, CAD and 3D models already convert.\nDownload engines only for video and audio or rare formats.",
   "setup.note": "You can install or remove engines at any time in Settings → Engines.",
   "setup.install": "Install selected",
   "setup.later": "Later",

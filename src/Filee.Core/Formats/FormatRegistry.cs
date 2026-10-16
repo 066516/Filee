@@ -288,6 +288,14 @@ public static class FormatRegistry
         new("ttml", "TTML", FormatCategory.Subtitle, ["ttml", "dfxp"]),
         new("sub", "MicroDVD", FormatCategory.Subtitle, ["sub"]),
         new("scc", "SCC", FormatCategory.Subtitle, ["scc"], Writable: false),
+
+        // 3D models
+        new("glb", "GLB", FormatCategory.Model3D, ["glb"]),
+        new("gltf", "glTF", FormatCategory.Model3D, ["gltf"]),
+        new("stl", "STL", FormatCategory.Model3D, ["stl"]),
+        new("obj", "OBJ", FormatCategory.Model3D, ["obj"]),
+        new("3mf", "3MF", FormatCategory.Model3D, ["3mf"]),
+        new("ply", "PLY", FormatCategory.Model3D, ["ply"]),
     ];
 
     private static readonly Dictionary<string, FileFormat> ById =

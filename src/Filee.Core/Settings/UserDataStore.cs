@@ -266,6 +266,17 @@ internal static class SettingsMigrations
                 InsertBefore(settings.EnginePriority, "data", "pandoc");
         }
 
+        // v15: built-in "model3d" engine (3D models: GLB, glTF, STL, OBJ, 3MF, PLY), after the CAD engine (else before
+        //      the archive engine, else before Pandoc like the other built-in engines).
+        if (settings.SchemaVersion < 15 && !settings.EnginePriority.Contains("model3d"))
+        {
+            var cad = settings.EnginePriority.IndexOf("cad");
+            if (cad >= 0)
+                settings.EnginePriority.Insert(cad + 1, "model3d");
+            else
+                InsertBefore(settings.EnginePriority, "model3d", settings.EnginePriority.Contains("archive") ? "archive" : "pandoc");
+        }
+
         if (settings.Triggers.Count == 0)
             settings.Triggers = TriggerGesture.Defaults();
 
@@ -403,6 +414,11 @@ internal static class SettingsMigrations
         //      the documents donut next to EML, and the spreadsheets donut gets JSON after CSV.
         if (from < 14)
             changed |= AddData(presets, profiles);
+
+        // v15: 3D models (GLB, glTF, STL, OBJ, 3MF, PLY) get presets and their own donut after "data" (else after
+        //      "fonts", else before the mixed-files one), with the extensions no donut of the user takes yet.
+        if (from < 15)
+            changed |= AddModels(presets, profiles);
         return changed;
     }
 
@@ -485,6 +501,33 @@ internal static class SettingsMigrations
             }
         }
         return changed;
+    }
+
+    private static bool AddModels(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        foreach (var preset in BuiltInData.ModelPresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+        {
+            presets.Add(preset);
+            changed = true;
+        }
+        changed |= LearnExtensions(profiles, out var claimed);
+        if (profiles.Any(p => p.Id == "models"))
+            return changed;
+
+        var models = BuiltInData.ModelProfile();
+        // Only the extensions no donut of the user takes yet.
+        models.Extensions = models.Extensions.Where(claimed.Add).ToList();
+        if (models.Extensions.Count == 0)
+            return changed;
+        var ids = presets.Select(p => p.Id).ToHashSet();
+        models.PresetIds = models.PresetIds.Where(ids.Contains).ToList();
+        var after = profiles.FindIndex(p => p.Id == "data");
+        if (after < 0)
+            after = profiles.FindIndex(p => p.Id == "fonts");
+        var insertAt = after >= 0 ? after + 1 : profiles.FindIndex(p => p.IsFallback);
+        profiles.Insert(insertAt < 0 ? profiles.Count : insertAt, models);
+        return true;
     }
 
     private static bool AddCatalog(List<Preset> presets, List<ToolbarProfile> profiles)

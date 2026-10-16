@@ -21,6 +21,7 @@ public enum FormatCategory
     Font,
     Subtitle,
     Data,
+    Model3D,
 }
 
 /// <summary>

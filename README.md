@@ -29,7 +29,7 @@
 <table>
   <tr>
     <td width="33%" valign="top"><b>Right at your cursor</b><br>No app window to open. The formats appear where you already are, only the ones that make sense for the files you drag.</td>
-    <td width="33%" valign="top"><b>238 formats, no other software</b><br>Images, PDF, Word, Excel, PowerPoint, HWP, e-books, archives, fonts and CAD work without Office, Hancom Office or LibreOffice.</td>
+    <td width="33%" valign="top"><b>244 formats, no other software</b><br>Images, PDF, Word, Excel, PowerPoint, HWP, e-books, archives, fonts, CAD and 3D models work without Office, Hancom Office or LibreOffice.</td>
     <td width="33%" valign="top"><b>Stays on your computer</b><br>Nothing is uploaded. Filee works offline and saves the result next to the original.</td>
   </tr>
 </table>
@@ -97,7 +97,7 @@ Filee shows new releases in its menu and updates itself, keeping your settings a
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **Fonts**: TTF, OTF, WOFF, WOFF2, EOT | each other |
 | **Data**: JSON, JSON Lines, YAML, TOML, XML · vCard | each other, CSV and XLSX (tables); vCard ↔ CSV |
-| **Data**: JSON, JSON Lines, YAML, TOML, XML · vCard | each other, CSV and XLSX (tables); vCard ↔ CSV |
+| **3D models**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY | each other, PNG preview |
 
 Unmarked formats work out of the box, without Office, Hancom Office or LibreOffice.
 Marked ones need an optional engine, downloaded only when needed: ¹ Ghostscript, ² LibreOffice, ³ Pandoc, ⁴ calibre,

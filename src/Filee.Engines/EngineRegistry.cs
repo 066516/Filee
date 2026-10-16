@@ -13,6 +13,7 @@ using Filee.Engines.Icns;
 using Filee.Engines.Infrastructure;
 using Filee.Engines.Magick;
 using Filee.Engines.Media;
+using Filee.Engines.Models3D;
 using Filee.Engines.Office;
 using Filee.Engines.Pdf;
 using Filee.Engines.Subtitles;
@@ -51,6 +52,7 @@ public static class EngineRegistry
         new SubtitleConverter(),
         new FfmpegConverter(),
         new CadConverter(),
+        new ModelConverter(),
         new EbookConverter(),
         new PandocConverter(),
         new GhostscriptConverter(),
