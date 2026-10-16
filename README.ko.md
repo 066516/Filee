@@ -131,8 +131,12 @@ PR 환영해요. Filee가 쓸만하다면 ⭐ 하나가 다른 사람들이 File
 
 ## 코드 서명 정책
 
-Filee의 코드 서명 정책(Code signing policy)과 개인정보 처리 방침은 [영문 README](README.md#code-signing-policy)에
-있어요. Filee는 파일을 업로드하지 않고, 사용 기록도 보내지 않아요.
+Filee는 **Myeonggu Kim**([KnifeLemon](https://github.com/KnifeLemon))이 개발하고 배포해요.
+Windows 릴리스는 Myeonggu Kim 명의의 [Certum](https://www.certum.eu/) 오픈소스 코드 서명 인증서로 서명할 예정이고,
+지금은 발급 절차가 진행 중이에요.
+
+자세한 정책과 개인정보 처리 방침은 [영문 README](README.md#code-signing-policy)에 있어요.
+Filee는 파일을 업로드하지 않고, 사용 기록도 보내지 않아요.
 
 ## 후원하기
 
@@ -154,7 +158,7 @@ Filee는 앞으로도 무료예요. 개발을 응원하고 싶다면 편한 방�
 
 ## 라이선스
 
-MIT. 포함된 서드파티 구성요소는 각자의 라이선스를 따르고, [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)에 정리되어 있어요.
+MIT, © 2026 Myeonggu Kim (KnifeLemon), Filee 기여자. 포함된 서드파티 구성요소는 각자의 라이선스를 따르고, [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)에 정리되어 있어요.
 
 <p align="center">
   <a href="https://star-history.com/#KnifeLemon/Filee&Date"><img src="https://api.star-history.com/svg?repos=KnifeLemon/Filee&type=Date" alt="Star history" width="600"></a>
