@@ -64,12 +64,24 @@ public static class DonutGeometry
     /// <summary>How far a group's fan reaches into each neighbouring slice, as a share of a slice.</summary>
     public const double SubOverhang = 0.25;
 
+    /// <summary>Narrowest a slice of a group's ring gets (along its middle), so its label still fits.</summary>
+    public const double MinSubWidth = 44;
+
     /// <summary>
     /// Width of one slice of a group's outer ring: the fan covers the group's slice and a quarter of each neighbour
-    /// (<see cref="SubOverhang"/>), split evenly, so it stays close to the slice it belongs to.
+    /// (<see cref="SubOverhang"/>), split evenly, so it stays close to the slice it belongs to. On a crowded donut it
+    /// widens to keep each slice <see cref="MinSubWidth"/> wide at <paramref name="midRadius"/>; it never goes round
+    /// more than once (a donut of one slice), where slices would lie on top of each other.
     /// </summary>
-    public static double SubSpan(double parentSpan, int count) =>
-        count <= 0 ? 0 : parentSpan * (1 + 2 * SubOverhang) / count;
+    public static double SubSpan(double parentSpan, int count, double midRadius = 0)
+    {
+        if (count <= 0)
+            return 0;
+        var span = parentSpan * (1 + 2 * SubOverhang) / count;
+        if (midRadius > 0)
+            span = Math.Max(span, MinSubWidth / midRadius);
+        return Math.Min(span, 2 * Math.PI / count);
+    }
 
     /// <summary>Centre angle of slice <paramref name="sub"/> of a fan of <paramref name="count"/>, centred on <paramref name="parentMid"/>.</summary>
     public static double SubMidAngle(double parentMid, int sub, int count, double subSpan) =>

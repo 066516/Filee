@@ -377,9 +377,8 @@ public class RenderTests
             Pump();
 
             var n = vm.Items.Count;
-            var mid = DonutGeometry.SubMidAngle(DonutGeometry.MidAngle(index, n), 1, 3, DonutGeometry.SubSpan(DonutGeometry.Span(n), 3));
             var center = new Avalonia.Point(donut.Bounds.Width / 2, donut.Bounds.Height / 2);
-            var onRing = DonutGeometry.PointAt(center, vm.OuterRadius + 7 + DonutMenu.SubRingSpace / 2 + 3, mid);
+            var onRing = donut.SubSliceCenter(index, 1);
             Assert.Equal(new DonutHit(DonutHitKind.SubSegment, index, 1), donut.HitTest(onRing));
             // Heading out to the fan's edge across a neighbour's outer half keeps the group; its inner half doesn't.
             var neighbour = DonutGeometry.MidAngle(index, n) - DonutGeometry.Span(n) * 0.6;

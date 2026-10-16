@@ -16,20 +16,18 @@ public class DonutGroupTests
 {
     private const int Group = 2;
 
+    private static DonutItem Item(string label, bool enabled = true) => new() { Id = label, Label = label, IsEnabled = enabled };
+
+    private static DonutItem GroupOf(params DonutItem[] children) => new() { Id = "group", Label = "More", Children = children };
+
     /// <summary>PNG, JPG, a group of three (WEBP / PDF / TIFF) and BMP.</summary>
-    private static (DonutMenu Donut, Window Window) Open()
+    private static (DonutMenu Donut, Window Window) Open() =>
+        Open(Item("PNG"), Item("JPG"), GroupOf(Item("WEBP"), Item("PDF"), Item("TIFF")), Item("BMP"));
+
+    private static (DonutMenu Donut, Window Window) Open(params DonutItem[] items)
     {
         TestServices.EnsureInitialized("en");
-        static DonutItem Item(string label) => new() { Id = label, Label = label };
-        var donut = new DonutMenu
-        {
-            Items =
-            [
-                Item("PNG"), Item("JPG"),
-                new DonutItem { Id = "group", Label = "More", Children = [Item("WEBP"), Item("PDF"), Item("TIFF")] },
-                Item("BMP"),
-            ],
-        };
+        var donut = new DonutMenu { Items = items };
         var window = new Window { Content = donut, SizeToContent = SizeToContent.WidthAndHeight };
         window.Show();
         Dispatcher.UIThread.RunJobs();
@@ -43,12 +41,7 @@ public class DonutGroupTests
         DonutGeometry.PointAt(Center(donut), radius, DonutGeometry.MidAngle(Group, donut.Items!.Count));
 
     /// <summary>The middle of the group's ring slice <paramref name="sub"/>.</summary>
-    private static Point OnRing(DonutMenu donut, int sub)
-    {
-        var n = donut.Items!.Count;
-        var mid = DonutGeometry.SubMidAngle(DonutGeometry.MidAngle(Group, n), sub, 3, DonutGeometry.SubSpan(DonutGeometry.Span(n), 3));
-        return DonutGeometry.PointAt(Center(donut), donut.OuterRadius + 7 + DonutMenu.SubRingSpace / 2 + 3, mid);
-    }
+    private static Point OnRing(DonutMenu donut, int sub) => donut.SubSliceCenter(Group, sub);
 
     private static bool IsOpen(DonutMenu donut) => donut.HitTest(OnRing(donut, 1)).Kind == DonutHitKind.SubSegment;
 
@@ -82,6 +75,19 @@ public class DonutGroupTests
         donut.SetExternalHit(donut.HitTest(further), further); // moving outward: no waiting
         Assert.True(IsOpen(donut));
         Assert.Equal(new DonutHit(DonutHitKind.SubSegment, Group, 2), donut.HitTest(OnRing(donut, 2)));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void A_donut_of_just_a_group_fans_out_slices_that_dont_overlap()
+    {
+        var (donut, window) = Open(GroupOf(Item("WEBP"), Item("PDF"), Item("TIFF")));
+        var at = DonutGeometry.PointAt(Center(donut), donut.OuterRadius * 0.6, 0);
+        donut.SetExternalHit(donut.HitTest(at), at);
+        donut.ExpandPendingGroup();
+        // Each slice is hit where it is drawn: around the donut once, not one and a half times over itself.
+        for (var sub = 0; sub < 3; sub++)
+            Assert.Equal(new DonutHit(DonutHitKind.SubSegment, 0, sub), donut.HitTest(donut.SubSliceCenter(0, sub)));
         window.Close();
     }
 

@@ -382,7 +382,7 @@ public sealed partial class DonutMenu : Control
         {
             var (inner, outer) = SubRadii;
             var parentMid = DonutGeometry.MidAngle(_expanded, Count);
-            var subSpan = DonutGeometry.SubSpan(DonutGeometry.Span(Count), children.Count);
+            var subSpan = SubSpanOf(children.Count);
             var sub = DonutGeometry.SubIndexAt(Center, p, inner, outer, parentMid, children.Count, subSpan);
             if (sub >= 0)
                 return new DonutHit(DonutHitKind.SubSegment, _expanded, sub);
@@ -411,6 +411,18 @@ public sealed partial class DonutMenu : Control
         !IsEditMode && _expanded >= 0 && _expanded < Count ? Items![_expanded].Children : null;
 
     private (double Inner, double Outer) SubRadii => (OuterRadius + PopOut + SubGap, OuterRadius + PopOut + SubGap + SubBand);
+
+    /// <summary>Width of each slice of a ring of <paramref name="count"/>.</summary>
+    private double SubSpanOf(int count) =>
+        DonutGeometry.SubSpan(DonutGeometry.Span(Count), count, (SubRadii.Inner + SubRadii.Outer) / 2);
+
+    /// <summary>The middle of slice <paramref name="sub"/> of group <paramref name="group"/>'s ring (tests).</summary>
+    internal Point SubSliceCenter(int group, int sub)
+    {
+        var count = Items![group].Children!.Count;
+        var mid = DonutGeometry.SubMidAngle(DonutGeometry.MidAngle(group, Count), sub, count, SubSpanOf(count));
+        return DonutGeometry.PointAt(Center, (SubRadii.Inner + SubRadii.Outer) / 2, mid);
+    }
 
     /// <summary>
     /// Fans a group out once the pointer means it: after resting on its slice for <see cref="ExpandDelay"/>, or at once
@@ -1035,9 +1047,9 @@ public sealed partial class DonutMenu : Control
         var group = _shownExpanded;
         var children = Items![group].Children!;
         var parentMid = DonutGeometry.MidAngle(group, Count);
-        var subSpan = DonutGeometry.SubSpan(DonutGeometry.Span(Count), children.Count);
+        var subSpan = SubSpanOf(children.Count);
         var (inner, outer) = SubRadii;
-        var t = Math.Max(0, _expand.Value);
+        var t =Math.Max(0, _expand.Value);
         var opening = _open.Length == 0 ? 1 : Math.Clamp(_open.Average(), 0, 1);
         // Grows outward from the group's slice: scaled about the point where it meets the donut.
         var anchor = DonutGeometry.PointAt(center, inner, parentMid);
