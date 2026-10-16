@@ -60,6 +60,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
                     FormatLabels.Category(loc, f.Category))),
         ];
         ResizeModes = Enum.GetValues<ResizeMode>().Select(v => new Choice<ResizeMode>(v, loc[$"presets.resize.{v}"])).ToList();
+        Rotations = Enum.GetValues<ImageRotation>().Select(v => new Choice<ImageRotation>(v, loc[$"presets.rotation.{v}"])).ToList();
+        Flips = Enum.GetValues<ImageFlip>().Select(v => new Choice<ImageFlip>(v, loc[$"presets.flip.{v}"])).ToList();
         PageSizes = Enum.GetValues<PdfPageSize>().Select(v => new Choice<PdfPageSize>(v, loc[$"presets.page_size.{v}"])).ToList();
         Locations = Enum.GetValues<OutputLocation>().Select(v => new Choice<OutputLocation>(v, loc[$"presets.location.{v}"])).ToList();
         Conflicts = Enum.GetValues<ConflictPolicy>().Select(v => new Choice<ConflictPolicy>(v, loc[$"presets.conflict.{v}"])).ToList();
@@ -76,6 +78,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _name = string.IsNullOrWhiteSpace(_edit.Name) ? loc.DisplayName(_edit) : _edit.Name;
         _target = Targets.FirstOrDefault(t => t.Value == _edit.TargetFormat) ?? Targets[1];
         _resize = ResizeModes.First(r => r.Value == _edit.Image.Resize);
+        _rotation = Rotations.First(r => r.Value == _edit.Image.Rotation);
+        _flip = Flips.First(f => f.Value == _edit.Image.Flip);
         _pageSize = PageSizes.First(p => p.Value == _edit.Pdf.PageSize);
         _location = Locations.First(l => l.Value == _edit.Output.Location);
         _conflict = Conflicts.First(c => c.Value == _edit.Output.Conflict);
@@ -124,6 +128,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     public IReadOnlyList<Choice<string>> Targets { get; }
     public IReadOnlyList<Choice<ResizeMode>> ResizeModes { get; }
+
+    /// <summary>Turning and mirroring: what the built-in rotate / flip presets do, for any image preset.</summary>
+    public IReadOnlyList<Choice<ImageRotation>> Rotations { get; }
+    public IReadOnlyList<Choice<ImageFlip>> Flips { get; }
     public IReadOnlyList<Choice<PdfPageSize>> PageSizes { get; }
     public IReadOnlyList<Choice<OutputLocation>> Locations { get; }
     public IReadOnlyList<Choice<ConflictPolicy>> Conflicts { get; }
@@ -149,6 +157,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowPercent), nameof(ShowLongEdge), nameof(ShowWidth))]
     private Choice<ResizeMode> _resize;
+
+    [ObservableProperty] private Choice<ImageRotation> _rotation;
+    [ObservableProperty] private Choice<ImageFlip> _flip;
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowMargin))]
     private Choice<PdfPageSize> _pageSize;
@@ -277,6 +288,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         var image = _original.Image;
         image.Quality = Math.Clamp(Quality, 1, 100);
         image.Resize = Resize.Value;
+        image.Rotation = Rotation.Value;
+        image.Flip = Flip.Value;
         image.ResizePercent = Math.Clamp(ResizePercent, 1, 1000);
         image.LongEdge = Math.Clamp(LongEdge, 16, 20000);
         image.Width = Math.Clamp(Width, 16, 20000);

@@ -66,6 +66,16 @@
             <NumericUpDown Value="{Binding Width}" Minimum="16" Maximum="20000" Increment="100" FormatString="0" />
           </StackPanel>
         </Grid>
+        <Grid ColumnDefinitions="*,12,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="{DynamicResource presets.rotation}" />
+            <ComboBox ItemsSource="{Binding Rotations}" SelectedItem="{Binding Rotation}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="{DynamicResource presets.flip}" />
+            <ComboBox ItemsSource="{Binding Flips}" SelectedItem="{Binding Flip}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+        </Grid>
         <Grid ColumnDefinitions="Auto,12,*">
           <CheckBox Content="{DynamicResource presets.dpi}" IsChecked="{Binding SetDpi}" />
           <NumericUpDown Grid.Column="2" Value="{Binding Dpi}" Minimum="36" Maximum="2400" Increment="50" FormatString="0" IsEnabled="{Binding SetDpi}" />

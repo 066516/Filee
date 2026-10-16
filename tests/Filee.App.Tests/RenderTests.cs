@@ -543,6 +543,30 @@ public class RenderTests
     }
 
     [AvaloniaFact]
+    public void Preset_editor_shows_and_saves_rotation_and_flip()
+    {
+        TestServices.EnsureInitialized("ko");
+        var preset = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "rotate-left");
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<Filee.Core.Localization.ILocalizer>());
+        Assert.Equal(Filee.Core.Presets.ImageRotation.Left90, vm.Rotation.Value); // not a hidden option any more
+        Assert.Equal(Filee.Core.Presets.ImageFlip.None, vm.Flip.Value);
+        var window = new PresetEditorWindow { DataContext = vm, Height = 900 };
+        window.Show();
+        Pump();
+        Save(window, "preset-rotate-ko.png");
+        window.Close();
+
+        // Rotate and convert in one: turn left, mirror, and make it a JPG.
+        vm.Flip = vm.Flips.Single(f => f.Value == Filee.Core.Presets.ImageFlip.Horizontal);
+        vm.Target = vm.Targets.Single(t => t.Value == "jpg");
+        Assert.True(vm.Apply());
+
+        Assert.Equal(Filee.Core.Presets.ImageRotation.Left90, preset.Image.Rotation);
+        Assert.Equal(Filee.Core.Presets.ImageFlip.Horizontal, preset.Image.Flip);
+        Assert.Equal("jpg", preset.TargetFormat);
+    }
+
+    [AvaloniaFact]
     public void Preset_editor_shows_and_saves_background_removal()
     {
         TestServices.EnsureInitialized("ko");
