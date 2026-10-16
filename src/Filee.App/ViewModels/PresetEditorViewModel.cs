@@ -30,7 +30,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     private static readonly HashSet<string> LossyTargets = ["jpg", "webp", "avif", "heic"];
 
     /// <summary>Audio targets without a bitrate or quality to choose.</summary>
-    private static readonly HashSet<string> LosslessAudioTargets = ["wav", "flac", "aiff"];
+    private static readonly HashSet<string> LosslessAudioTargets = ["wav", "flac", "aiff", "wv", "tta", "w64"];
 
     private static readonly int[] MaxHeightSteps = [0, 2160, 1440, 1080, 720, 480];
     // 32-64 kbit/s: speech (Opus is still clear at 32 kbit/s mono), small files.
@@ -87,6 +87,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _audioChannels = AudioChannelChoices.FirstOrDefault(c => c.Value == _edit.Media.AudioChannels) ?? AudioChannelChoices[0];
         _sampleRate = SampleRates.First(r => r.Value == _edit.Media.AudioSampleRate);
         _wavFormat = WavFormats.First(f => f.Value == _edit.Media.WavFormat);
+        _videoCodecValue = _edit.Media.VideoCodec;
+        _audioCodecValue = _edit.Media.AudioCodec;
         _archiveLevel = ArchiveLevels.First(l => l.Value == _edit.Archive.Level);
         _combineIntoOne = _edit.Archive.CombineIntoOne;
         _quality = _edit.Image.Quality;
@@ -143,9 +145,56 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ShowImage), nameof(ShowQuality), nameof(ShowTiff), nameof(ShowMultiPageTiff), nameof(ShowWebp), nameof(ShowIco),
         nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
         nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
-        nameof(ShowAudioChannels), nameof(ShowWav),
+        nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec),
+        nameof(AudioCodecs), nameof(AudioCodecChoice), nameof(ShowAudioCodec),
         nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote))]
     private Choice<string> _target;
+
+    private VideoCodec _videoCodecValue;
+    private AudioCodec _audioCodecValue;
+
+    /// <summary>The video codecs the target can hold (H.264 / VP9, HEVC, AV1); one entry for most targets.</summary>
+    public IReadOnlyList<Choice<VideoCodec>> VideoCodecs =>
+        [.. MediaCodecs.VideoCodecsFor(TargetId).Select(c => new Choice<VideoCodec>(c, _loc[c switch
+        {
+            VideoCodec.Hevc => "presets.video_codec.hevc",
+            VideoCodec.Av1 => "presets.video_codec.av1",
+            _ => TargetId == "webm" ? "presets.video_codec.vp9" : "presets.video_codec.h264",
+        }]))];
+
+    /// <summary>The chosen video codec; a codec the target can't hold shows (and is saved) as its usual one.</summary>
+    public Choice<VideoCodec> VideoCodecChoice
+    {
+        get => VideoCodecs.FirstOrDefault(c => c.Value == _videoCodecValue) ?? VideoCodecs[0];
+        set
+        {
+            // The combo box clears its selection while its list is replaced.
+            if (value is null || value.Value == _videoCodecValue)
+                return;
+            _videoCodecValue = value.Value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>The audio codecs the target can hold (AAC or ALAC for M4A); one entry for most targets.</summary>
+    public IReadOnlyList<Choice<AudioCodec>> AudioCodecs =>
+        [.. MediaCodecs.AudioCodecsFor(TargetId).Select(c => new Choice<AudioCodec>(c, _loc[c == AudioCodec.Alac ? "presets.audio_codec.alac" : "presets.audio_codec.aac"]))];
+
+    /// <summary>The chosen audio codec; ALAC is lossless, so it has no quality or bitrate.</summary>
+    public Choice<AudioCodec> AudioCodecChoice
+    {
+        get => AudioCodecs.FirstOrDefault(c => c.Value == _audioCodecValue) ?? AudioCodecs[0];
+        set
+        {
+            if (value is null || value.Value == _audioCodecValue)
+                return;
+            _audioCodecValue = value.Value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ShowMediaQuality));
+            OnPropertyChanged(nameof(ShowAudioBitrate));
+            OnPropertyChanged(nameof(ShowMedia));
+        }
+    }
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowPercent), nameof(ShowLongEdge), nameof(ShowWidth))]
     private Choice<ResizeMode> _resize;
@@ -224,7 +273,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     private bool TargetIsImage => TargetId == BuiltInData.SameAsSource || TargetCategory == FormatCategory.Image;
     private bool TargetIsVideo => TargetCategory == FormatCategory.Video;
     private bool TargetIsAudio => TargetCategory == FormatCategory.Audio;
-    private bool TargetIsLossyMedia => TargetIsVideo || (TargetIsAudio && !LosslessAudioTargets.Contains(TargetId));
+    private bool TargetIsLossyMedia => TargetIsVideo
+        || (TargetIsAudio && !LosslessAudioTargets.Contains(TargetId) && MediaCodecs.Effective(TargetId, _audioCodecValue) != AudioCodec.Alac);
 
     public bool ShowImage => TargetIsImage;
     public bool ShowQuality => TargetId == BuiltInData.SameAsSource || LossyTargets.Contains(TargetId);
@@ -232,8 +282,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowWebp => TargetId is "webp" or BuiltInData.SameAsSource;
     public bool ShowMultiPageTiff => TargetId is "tiff";
     public bool ShowIco => TargetId == "ico";
-    /// <summary>PDF options (also used when a PDF source becomes images) mean nothing for media, archive and font targets.</summary>
-    public bool ShowPdf => TargetCategory is not (FormatCategory.Video or FormatCategory.Audio or FormatCategory.Archive or FormatCategory.Font);
+    /// <summary>PDF options (also used when a PDF source becomes images) mean nothing for media, archive, font and subtitle targets.</summary>
+    public bool ShowPdf => TargetCategory is not (FormatCategory.Video or FormatCategory.Audio or FormatCategory.Archive or FormatCategory.Font
+        or FormatCategory.Subtitle);
     public bool ShowPdfBuild => TargetId == "pdf";
     public bool ShowPdfSplit => TargetId == "pdf";
 
@@ -241,11 +292,15 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowPdfCombine => TargetCategory == FormatCategory.Image
         && TargetId is not ("tiff" or "gif" or "apng" or "mng" or "ico" or "cur" or "icns" or "svg" or "pdf");
     public bool ShowDocument => TargetId == "pdf";
-    public bool ShowMedia => ShowMediaQuality || ShowMaxHeight || ShowRemoveAudio || ShowAudioChannels;
+    public bool ShowMedia => ShowMediaQuality || ShowMaxHeight || ShowRemoveAudio || ShowAudioChannels || ShowVideoCodec || ShowAudioCodec;
     /// <summary>Mono / stereo for every audio target but AMR, which is mono by definition.</summary>
     public bool ShowAudioChannels => TargetIsAudio && TargetId != "amr";
-    /// <summary>Sample rate and sample format: WAV's PCM takes any.</summary>
-    public bool ShowWav => TargetId == "wav";
+    /// <summary>Sample rate and sample format: the PCM of WAV and W64 takes any.</summary>
+    public bool ShowWav => TargetId is "wav" or "w64";
+    /// <summary>MP4, MKV, MOV and WebM can be written with HEVC or AV1 besides their usual codec.</summary>
+    public bool ShowVideoCodec => TargetIsVideo && VideoCodecs.Count > 1;
+    /// <summary>M4A / M4B can hold Apple Lossless besides AAC.</summary>
+    public bool ShowAudioCodec => AudioCodecs.Count > 1;
     public bool ShowMediaQuality => TargetIsLossyMedia;
     public bool ShowMaxHeight => TargetIsVideo;
     public bool ShowAudioBitrate => TargetIsLossyMedia;
@@ -320,6 +375,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         media.AudioChannels = AudioChannels.Value;
         media.AudioSampleRate = SampleRate.Value;
         media.WavFormat = WavFormat.Value;
+        media.VideoCodec = MediaCodecs.Effective(TargetId, _videoCodecValue);
+        media.AudioCodec = MediaCodecs.Effective(TargetId, _audioCodecValue);
         _original.Archive.Level = ArchiveLevel.Value;
         _original.Archive.CombineIntoOne = CombineIntoOne;
 

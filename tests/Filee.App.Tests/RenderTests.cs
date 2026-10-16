@@ -722,6 +722,16 @@ public class RenderTests
             box.IsDropDownOpen = false;
             window.Close();
 
+            // HEVC preset: the codec choice next to the other video options.
+            var hevc = new PresetEditorViewModel(store.FindPreset("mp4-hevc")!, loc);
+            Assert.True(hevc.ShowVideoCodec && !hevc.ShowAudioCodec);
+            Assert.Equal(Filee.Core.Presets.VideoCodec.Hevc, hevc.VideoCodecChoice.Value);
+            window = new PresetEditorWindow { DataContext = hevc, Height = 900 };
+            window.Show();
+            Pump();
+            Save(window, $"preset-codec-{suffix}.png");
+            window.Close();
+
             var archive = new PresetEditorViewModel(store.FindPreset("zip-all")!, loc);
             Assert.True(archive.ShowArchive && archive.ShowArchiveOptions && archive.CombineIntoOne);
             Assert.False(archive.ShowMedia || archive.ShowPdf);
@@ -792,6 +802,46 @@ public class RenderTests
         // A value set outside the editor is offered instead of being lost.
         preset.Media.MaxHeight = 600;
         Assert.Equal("600p", new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>()).MaxHeight.Label);
+    }
+
+    [AvaloniaFact]
+    public void Preset_editor_offers_the_codecs_each_target_can_hold()
+    {
+        TestServices.EnsureInitialized("en");
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "mp4", Name = "Codec" };
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowVideoCodec && !vm.ShowAudioCodec);
+        Assert.Equal([Filee.Core.Presets.VideoCodec.Default, Filee.Core.Presets.VideoCodec.Hevc, Filee.Core.Presets.VideoCodec.Av1],
+            vm.VideoCodecs.Select(c => c.Value));
+        Assert.StartsWith("H.264", vm.VideoCodecChoice.Label);
+        vm.VideoCodecChoice = vm.VideoCodecs.Single(c => c.Value == Filee.Core.Presets.VideoCodec.Hevc);
+
+        // WebM has no HEVC: its list is VP9 / AV1 and the choice shows as VP9; MKV takes HEVC again.
+        vm.Target = vm.Targets.Single(t => t.Value == "webm");
+        Assert.Equal(["VP9", "AV1 (smallest, slow)"], vm.VideoCodecs.Select(c => c.Label));
+        Assert.Equal(Filee.Core.Presets.VideoCodec.Default, vm.VideoCodecChoice.Value);
+        vm.Target = vm.Targets.Single(t => t.Value == "mkv");
+        Assert.Equal(Filee.Core.Presets.VideoCodec.Hevc, vm.VideoCodecChoice.Value);
+        vm.Target = vm.Targets.Single(t => t.Value == "avi");
+        Assert.False(vm.ShowVideoCodec);
+
+        // M4A: AAC or ALAC; ALAC is lossless, so quality and bitrate go away.
+        vm.Target = vm.Targets.Single(t => t.Value == "m4a");
+        Assert.True(vm.ShowAudioCodec && vm.ShowAudioBitrate && vm.ShowMediaQuality && !vm.ShowVideoCodec);
+        vm.AudioCodecChoice = vm.AudioCodecs.Single(c => c.Value == Filee.Core.Presets.AudioCodec.Alac);
+        Assert.False(vm.ShowAudioBitrate || vm.ShowMediaQuality);
+        Assert.True(vm.ShowMedia && vm.ShowAudioChannels);
+        Assert.True(vm.Apply());
+        Assert.Equal((Filee.Core.Presets.VideoCodec.Default, Filee.Core.Presets.AudioCodec.Alac), (preset.Media.VideoCodec, preset.Media.AudioCodec));
+
+        // New lossless targets and W64 (WAV options); subtitles have no media or PDF options.
+        vm.Target = vm.Targets.Single(t => t.Value == "wv");
+        Assert.False(vm.ShowAudioBitrate || vm.ShowAudioCodec);
+        vm.Target = vm.Targets.Single(t => t.Value == "w64");
+        Assert.True(vm.ShowWav);
+        vm.Target = vm.Targets.Single(t => t.Value == "smi");
+        Assert.False(vm.ShowMedia || vm.ShowPdf || vm.ShowImage);
+        Assert.Equal("Subtitle", vm.Target.Detail);
     }
 
     /// <summary>Shows the toolbar page (tall, so the profile card is visible) with temporarily changed profiles.</summary>

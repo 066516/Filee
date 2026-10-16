@@ -60,7 +60,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "email", "vector", "icns", "font", "cad", "archive", "ebook", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "email", "vector", "icns", "font", "cad", "archive", "ebook", "subtitle", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
         Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
     }
 
@@ -112,7 +112,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "email", "vector", "icns", "font", "cad", "archive", "ebook", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "email", "vector", "icns", "font", "cad", "archive", "ebook", "subtitle", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
         var ids = store.Profiles.Select(p => p.Id).ToList();
         Assert.Equal(ids.IndexOf("office") + 1, ids.IndexOf("spreadsheets"));
         Assert.Equal(ids.IndexOf("office") + 2, ids.IndexOf("presentations"));
@@ -126,8 +126,9 @@ public class UserDataStoreTests
     public void Version_5_libraries_get_the_format_catalog()
     {
         // As written by 1.0.x with schema 5: no catalog presets, donuts or extensions.
-        var presets = BuiltInData.CreatePresets().Where(p => BuiltInData.CatalogPresets().All(c => c.Id != p.Id)).ToList();
-        var catalogIds = BuiltInData.CatalogProfiles().Select(p => p.Id).ToHashSet();
+        var presets = BuiltInData.CreatePresets()
+            .Where(p => BuiltInData.CatalogPresets().Concat(BuiltInData.CodecAndSubtitlePresets()).All(c => c.Id != p.Id)).ToList();
+        var catalogIds = BuiltInData.CatalogProfiles().Select(p => p.Id).Append("subtitles").ToHashSet();
         var profiles = BuiltInData.CreateProfiles().Where(p => !catalogIds.Contains(p.Id)).ToList();
         profiles.Single(p => p.Id == "images").Extensions = ["png", "jpg"];
         profiles.Single(p => p.Id == "pdf").PresetIds.Remove("to-docx");
@@ -140,6 +141,7 @@ public class UserDataStoreTests
         var ids = profiles.Select(p => p.Id).ToList();
         Assert.Equal(ids.IndexOf("text") + 1, ids.IndexOf("ebooks"));
         Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("fonts"));
+        Assert.Equal(ids.IndexOf("audio") + 1, ids.IndexOf("subtitles"));
         Assert.Contains("cr2", profiles.Single(p => p.Id == "images").Extensions);
         Assert.DoesNotContain("mp3", profiles.Single(p => p.Id == "audio").Extensions);
         Assert.Contains("flac", profiles.Single(p => p.Id == "audio").Extensions);
@@ -211,22 +213,88 @@ public class UserDataStoreTests
     }
 
     [Fact]
-    public void Version_10_libraries_open_the_new_image_formats_on_the_images_donut()
+    public void Version_12_libraries_open_the_new_image_formats_on_the_images_donut()
     {
-        // As written by 1.11.x: the images donut knows no APNG, QOI, DICOM or .hif; a donut of the user takes DDS.
+        // As written with schema 12: the images donut knows no APNG, QOI, DICOM or .hif; a donut of the user takes DDS.
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
         var images = profiles.Single(p => p.Id == "images");
         images.Extensions.RemoveAll(e => e is "apng" or "qoi" or "dcm" or "hif" or "dds");
         profiles.Insert(0, new ToolbarProfile { Id = "game", Name = "Game textures", Extensions = ["dds"] });
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(10, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(12, presets, profiles));
 
         Assert.Contains("apng", images.Extensions);
         Assert.Contains("qoi", images.Extensions);
         Assert.Contains("dcm", images.Extensions);
         Assert.Contains("hif", images.Extensions);
         Assert.DoesNotContain("dds", images.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(12, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Version_11_libraries_get_codecs_new_audio_formats_and_a_subtitles_donut()
+    {
+        // As written with schema 11: no HEVC / AV1 / ALAC / subtitle presets, no subtitles donut, the video donut and
+        // the audio extensions of that time, and a donut of the user that already takes .ape.
+        var added = BuiltInData.CodecAndSubtitlePresets().Select(p => p.Id).ToHashSet();
+        var presets = BuiltInData.CreatePresets().Where(p => !added.Contains(p.Id)).ToList();
+        var profiles = BuiltInData.CreateProfiles().Where(p => p.Id != "subtitles").ToList();
+        foreach (var profile in profiles)
+            profile.PresetIds.RemoveAll(added.Contains);
+        var audio = profiles.Single(p => p.Id == "audio");
+        audio.Extensions.RemoveAll(e => e is "wv" or "tta" or "w64" or "eac3" or "ec3" or "ape" or "mpc" or "mpp" or "mp+" or "tak"
+            or "dsf" or "dff" or "dts" or "spx");
+        profiles.Insert(0, new ToolbarProfile { Id = "mine", Name = "Mine", Extensions = ["ape"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(11, presets, profiles));
+
+        Assert.Contains("wv", audio.Extensions);
+        Assert.Contains("dsf", audio.Extensions);
+        Assert.DoesNotContain("ape", audio.Extensions); // the user's donut keeps it
+        var ids = profiles.Select(p => p.Id).ToList();
+        Assert.Equal(ids.IndexOf("audio") + 1, ids.IndexOf("subtitles"));
+        Assert.Equal(BuiltInData.SubtitleProfile().PresetIds, profiles.Single(p => p.Id == "subtitles").PresetIds);
+        Assert.Contains("smi", profiles.Single(p => p.Id == "subtitles").Extensions);
+        Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "video").PresetIds, profiles.Single(p => p.Id == "video").PresetIds);
+        Assert.Equal(VideoCodec.Hevc, presets.Single(p => p.Id == "mp4-hevc").Media.VideoCodec);
+        Assert.Equal(AudioCodec.Alac, presets.Single(p => p.Id == "to-alac").Media.AudioCodec);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("to-alac") || p.PresetIds.Contains("mp4-av1"));
+        var all = profiles.SelectMany(p => p.Extensions).ToList();
+        Assert.Equal(all.Count, all.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.False(SettingsMigrations.ApplyToLibrary(11, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Version_10_libraries_get_kepub_and_the_new_document_extensions()
+    {
+        // As written by 1.11.x: no KEPUB preset, and the donuts without the formats added in schema 11.
+        string[] added = ["org", "adoc", "typ", "mediawiki", "wiki", "dbk", "ipynb", "fodt", "ott", "cwk", "602", "ots", "fods", "otp", "fodp", "fodg", "kepub.epub"];
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "to-kepub");
+        var profiles = BuiltInData.CreateProfiles();
+        foreach (var profile in profiles)
+        {
+            profile.PresetIds.Remove("to-kepub");
+            profile.Extensions.RemoveAll(added.Contains);
+        }
+        // A donut of the user already handles Org files.
+        profiles.Insert(0, new ToolbarProfile { Id = "mine", Name = "Mine", Extensions = ["org"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(10, presets, profiles));
+
+        Assert.Equal("kepub", presets.Single(p => p.Id == "to-kepub").TargetFormat);
+        var ebooks = profiles.Single(p => p.Id == "ebooks");
+        Assert.Equal(ebooks.PresetIds.IndexOf("to-mobi") + 1, ebooks.PresetIds.IndexOf("to-kepub"));
+        Assert.Contains("kepub.epub", ebooks.Extensions);
+        Assert.Contains("typ", profiles.Single(p => p.Id == "text").Extensions);
+        Assert.DoesNotContain("org", profiles.Single(p => p.Id == "text").Extensions);
+        Assert.Contains("fodt", profiles.Single(p => p.Id == "office").Extensions);
+        Assert.Contains("fods", profiles.Single(p => p.Id == "spreadsheets").Extensions);
+        Assert.Contains("otp", profiles.Single(p => p.Id == "presentations").Extensions);
+        Assert.Contains("fodg", profiles.Single(p => p.Id == "vector").Extensions);
+        foreach (var expected in BuiltInData.CreateProfiles())
+            Assert.Equal(expected.PresetIds, profiles.Single(p => p.Id == expected.Id).PresetIds);
         Assert.False(SettingsMigrations.ApplyToLibrary(10, presets, profiles)); // once only
     }
 

@@ -12,7 +12,7 @@ namespace Filee.Engines.Office;
 /// <summary>Converts between spreadsheet formats in-process.</summary>
 public sealed class SpreadsheetConverter : IConverter
 {
-    private static readonly string[] Sources = ["xlsx", "xlsm", "xltx", "xls", "ods", "csv", "tsv"];
+    private static readonly string[] Sources = ["xlsx", "xlsm", "xltx", "xls", "xlt", "ods", "csv", "tsv"];
     private static readonly string[] Targets = ["xlsx", "ods", "csv", "tsv"];
 
     public string Id => "spreadsheet";
@@ -71,7 +71,7 @@ public sealed class SpreadsheetConverter : IConverter
     /// <summary>Reads a spreadsheet of a format id this engine accepts.</summary>
     internal static Workbook Read(string path, string format) => format switch
     {
-        "xls" => XlsReader.Read(path),
+        "xls" or "xlt" => XlsReader.Read(path),
         "ods" => OdsReader.Read(path),
         "csv" => CsvFormat.Read(path),
         "tsv" => CsvFormat.ReadTsv(path),
