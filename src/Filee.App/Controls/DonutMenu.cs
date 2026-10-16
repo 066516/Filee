@@ -386,11 +386,13 @@ public sealed partial class DonutMenu : Control
             var sub = DonutGeometry.SubIndexAt(Center, p, inner, outer, parentMid, children.Count, subSpan);
             if (sub >= 0)
                 return new DonutHit(DonutHitKind.SubSegment, _expanded, sub);
-            // On the way out to the ring's outer slices the pointer crosses the neighbours' outer edge: there it still
-            // belongs to the group, or the ring would fold away (or switch) just before it is reached.
-            if (hit.Kind == DonutHitKind.Segment && hit.Index != _expanded &&
-                Distance(p, Center) > (InnerRadius + OuterRadius) / 2 &&
-                DonutGeometry.SubIndexAt(Center, p, 0, double.MaxValue, parentMid, children.Count, subSpan) >= 0)
+            // On the way out to the ring the pointer crosses the gap before it, and for the ring's outer slices the
+            // neighbours' outer edge: there it still belongs to the group, or the ring would fold away (or switch, and
+            // the hint and the drag cursor flicker) just before it is reached.
+            var distance = Distance(p, Center);
+            var crossing = hit.Kind == DonutHitKind.Outside ||
+                           hit.Kind == DonutHitKind.Segment && hit.Index != _expanded && distance > (InnerRadius + OuterRadius) / 2;
+            if (crossing && distance < inner && InFan(p, _expanded))
                 return new DonutHit(DonutHitKind.Segment, _expanded);
         }
         return hit;
@@ -412,6 +414,17 @@ public sealed partial class DonutMenu : Control
 
     private (double Inner, double Outer) SubRadii => (OuterRadius + PopOut + SubGap, OuterRadius + PopOut + SubGap + SubBand);
 
+    /// <summary>How far past an open ring (and the gap before it) the pointer still counts as on its way to it.</summary>
+    private const double BackdropMargin = 8;
+
+    /// <summary>True when <paramref name="p"/> is in the direction of <paramref name="group"/>'s ring, at any distance.</summary>
+    private bool InFan(Point p, int group)
+    {
+        var count = group >= 0 && group < Count ? Items![group].Children?.Count ?? 0 : 0;
+        return count > 0 && DonutGeometry.SubIndexAt(Center, p, 0, double.MaxValue, DonutGeometry.MidAngle(group, Count),
+            count, SubSpanOf(count)) >= 0;
+    }
+
     /// <summary>Width of each slice of a ring of <paramref name="count"/>.</summary>
     private double SubSpanOf(int count) =>
         DonutGeometry.SubSpan(DonutGeometry.Span(Count), count, (SubRadii.Inner + SubRadii.Outer) / 2);
@@ -426,8 +439,9 @@ public sealed partial class DonutMenu : Control
 
     /// <summary>
     /// Fans a group out once the pointer means it: after resting on its slice for <see cref="ExpandDelay"/>, or at once
-    /// when it moves outward on it (<paramref name="at"/>, when known). Keeps it open while the pointer is on its ring or
-    /// crossing the gap to it; another slice or the hole folds it away.
+    /// when it moves outward on it (<paramref name="at"/>, when known), even straight past its edge. Keeps it open while
+    /// the pointer is on its ring or crossing the gap to it; another slice, the hole or going round the outside away
+    /// from the ring folds it away.
     /// </summary>
     private void TrackGroups(DonutHit hit, Point? at)
     {
@@ -460,8 +474,14 @@ public sealed partial class DonutMenu : Control
             case DonutHitKind.SubSegment:
                 sub = hit.Sub;
                 break;
+            case DonutHitKind.Outside when _pendingGroup >= 0 && at is { } flick && InFan(flick, _pendingGroup) &&
+                                           Distance(flick, Center) <= SubRadii.Outer + BackdropMargin:
+                ExpandPendingGroup(); // flicked straight out to where its ring opens: no need to wait
+                break;
             case DonutHitKind.Outside:
                 _pendingGroup = -1; // left the slice before it opened: it stays closed
+                if (_expanded >= 0 && at is { } q && !InFan(q, _expanded))
+                    _expanded = -1; // went round the outside, away from the ring
                 break;
             default:
                 _expanded = _pendingGroup = -1;
@@ -1022,6 +1042,9 @@ public sealed partial class DonutMenu : Control
         if (IsEditMode && _previewSpan.Value > 0.01)
             DrawPreview(context, center, r1, r2, typeface, typefaceRegular);
 
+        var reaching = _expanded >= 0 ? _expanded : _pendingGroup;
+        if (!IsEditMode && reaching >= 0 && reaching < n && Items![reaching].Children is { Count: > 0 } reachable)
+            DrawHitBackdrop(context, center, reaching, reachable.Count);
         if (!IsEditMode && _shownExpanded >= 0 && _shownExpanded < n && _expand.Value > 0.01)
             DrawSubRing(context, center, typeface, typefaceRegular);
 
@@ -1032,18 +1055,26 @@ public sealed partial class DonutMenu : Control
     }
 
     /// <summary>
-    /// Nearly transparent fill (alpha 1/255) under an open group's ring and the gap to it. Windows passes the mouse
-    /// and drags through fully transparent pixels of a layered window, so without it the pointer "leaves" the donut
-    /// in the gap and the ring folds away before it is reached.
+    /// Nearly transparent fill (alpha 1/255) under a group's ring and the gap to it, while it is open or about to
+    /// open. Windows passes the mouse and drags through fully transparent pixels of a layered window, so without it the
+    /// pointer "leaves" the donut in the gap and the ring folds away (or never opens) before it is reached.
     /// </summary>
     private static readonly IBrush HitBackdrop = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0));
+
+    /// <summary>
+    /// <see cref="HitBackdrop"/> over just the fan of <paramref name="group"/>: elsewhere around the donut clicks and
+    /// drags still go through to the windows below, as without groups.
+    /// </summary>
+    private void DrawHitBackdrop(DrawingContext context, Point center, int group, int count)
+    {
+        var reach = SubRadii.Outer + BackdropMargin;
+        var span = Math.Min(2 * Math.PI, SubSpanOf(count) * count + 2 * BackdropMargin / reach);
+        context.DrawGeometry(HitBackdrop, null, CreateWedge(center, OuterRadius, reach, DonutGeometry.MidAngle(group, Count), span));
+    }
 
     /// <summary>The ring an open group fans out, growing out of its slice.</summary>
     private void DrawSubRing(DrawingContext context, Point center, Typeface bold, Typeface regular)
     {
-        var reach = SubRadii.Outer + 8;
-        context.DrawEllipse(HitBackdrop, null, center, reach, reach);
-
         var group = _shownExpanded;
         var children = Items![group].Children!;
         var parentMid = DonutGeometry.MidAngle(group, Count);

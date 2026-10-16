@@ -79,6 +79,50 @@ public class DonutGroupTests
     }
 
     [AvaloniaFact]
+    public void A_quick_flick_out_to_where_the_ring_opens_opens_it()
+    {
+        var (donut, window) = Open();
+        var mid = DonutGeometry.MidAngle(Group, 4) + 0.1;
+        var rim = DonutGeometry.PointAt(Center(donut), donut.OuterRadius - 4, mid); // came in near the rim
+        donut.SetExternalHit(donut.HitTest(rim), rim);
+        var out_ = DonutGeometry.PointAt(Center(donut), donut.OuterRadius + 30, mid); // next event: already out there
+        Assert.Equal(DonutHitKind.Outside, donut.HitTest(out_).Kind);
+        donut.SetExternalHit(donut.HitTest(out_), out_);
+        Assert.True(IsOpen(donut)); // no waiting for the delay, and not cancelled either
+
+        // Out in another direction instead: that is leaving, it stays closed.
+        donut.CollapseGroup();
+        donut.SetExternalHit(donut.HitTest(rim), rim);
+        var away = DonutGeometry.PointAt(Center(donut), donut.OuterRadius + 30, mid + Math.PI);
+        donut.SetExternalHit(donut.HitTest(away), away);
+        donut.ExpandPendingGroup();
+        Assert.False(IsOpen(donut));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void An_open_ring_holds_across_the_gap_and_folds_when_the_pointer_goes_round_elsewhere()
+    {
+        var (donut, window) = Open();
+        var inner = OnGroup(donut, donut.OuterRadius * 0.6);
+        donut.SetExternalHit(donut.HitTest(inner), inner);
+        donut.ExpandPendingGroup();
+
+        // The gap between the popped-out slice and the ring still belongs to the group: no flicker on the way.
+        var gap = OnGroup(donut, donut.OuterRadius + 7 + 3);
+        Assert.Equal(new DonutHit(DonutHitKind.Segment, Group), donut.HitTest(gap));
+        donut.SetExternalHit(donut.HitTest(gap), gap);
+        Assert.True(IsOpen(donut));
+        Assert.Equal(Group, donut.ActiveIndex);
+
+        // Round the outside to the far side of the donut: away from the ring, which folds.
+        var far = DonutGeometry.PointAt(Center(donut), donut.OuterRadius + 20, DonutGeometry.MidAngle(0, 4));
+        donut.SetExternalHit(donut.HitTest(far), far);
+        Assert.False(IsOpen(donut));
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void A_donut_of_just_a_group_fans_out_slices_that_dont_overlap()
     {
         var (donut, window) = Open(GroupOf(Item("WEBP"), Item("PDF"), Item("TIFF")));
