@@ -1,6 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Filee.App.Services;
 using Filee.App.ViewModels.Pages;
+using Filee.Core.Localization;
 
 namespace Filee.App.Views.Pages;
 
@@ -19,8 +21,8 @@ public partial class AboutPage : UserControl
 
     private async void OnSponsor(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is AboutPageViewModel vm && TopLevel.GetTopLevel(this) is { } top)
-            await top.Launcher.LaunchUriAsync(new Uri(vm.SponsorUrl));
+        if (TopLevel.GetTopLevel(this) is Window owner)
+            await SponsorWindow.Create(AppHost.Get<ILocalizer>()).ShowDialog(owner);
     }
 
     private async void OnIssue(object? sender, RoutedEventArgs e)
