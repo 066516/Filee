@@ -23,6 +23,11 @@ public sealed partial class EmlConverter : IConverter
     public string DisplayName => "E-mail (built-in)";
     public int MaxParallelism => 0;
 
+    // MimeKit learns which charsets exist the first time it is used and never asks again. Register the code pages
+    // (CP949/EUC-KR, Shift_JIS, GBK…) before anything touches MimeKit, or a MSG converted first leaves every later
+    // Korean EML decoded as Latin-1.
+    static EmlConverter() => Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
     // MSG has direct edges too: through EML (cost 20) would rebuild and parse the message twice.
     public IReadOnlyList<ConversionEdge> Edges { get; } =
     [
