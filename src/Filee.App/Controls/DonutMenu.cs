@@ -150,6 +150,12 @@ public sealed partial class DonutMenu : Control
     /// <summary>Moving this far outward on a group slice opens it at once (the user is heading for its ring).</summary>
     private const double OutwardPixels = 10;
 
+    // Keyboard: set by a handled key until the mouse moves KeyboardJitter away from where it was then.
+    private bool _keyboardHold;
+    private Point? _keyAnchor;
+    private Point? _lastPointer;
+    private const double KeyboardJitter = 6;
+
     static DonutMenu()
     {
         AffectsMeasure<DonutMenu>(OuterRadiusProperty, ReserveSubRingProperty);
@@ -527,6 +533,17 @@ public sealed partial class DonutMenu : Control
     /// </summary>
     public bool HandleKey(Key key, KeyModifiers modifiers = KeyModifiers.None)
     {
+        if (!HandleKeyCore(key, modifiers))
+            return false;
+        // The keyboard has the donut now: the mouse resting where it was (or nudged a pixel, or Windows re-sending its
+        // position) doesn't take it back; moving it on purpose does.
+        _keyboardHold = true;
+        _keyAnchor = _lastPointer;
+        return true;
+    }
+
+    private bool HandleKeyCore(Key key, KeyModifiers modifiers)
+    {
         if (IsEditMode || _progressMode || Count == 0)
             return false;
         var step = key switch
@@ -537,17 +554,22 @@ public sealed partial class DonutMenu : Control
             _ => 0,
         };
 
+        // Esc / Backspace fold an open ring first, however it was opened; only then does Esc close the donut.
+        if (ExpandedChildren is not null && key is Key.Escape or Key.Back)
+        {
+            var group = _expanded;
+            CollapseGroup();
+            SetHover(group);
+            return true;
+        }
+
         if (ExpandedChildren is { } children && _subHover >= 0)
         {
-            switch (key)
+            if (key is Key.Enter or Key.Space)
             {
-                case Key.Enter or Key.Space:
-                    if (children[_subHover].IsEnabled)
-                        SubSegmentInvoked?.Invoke(this, (_expanded, _subHover));
-                    return true;
-                case Key.Escape or Key.Back:
-                    CollapseGroup();
-                    return true;
+                if (children[_subHover].IsEnabled)
+                    SubSegmentInvoked?.Invoke(this, (_expanded, _subHover));
+                return true;
             }
             if (step == 0)
                 return false;
@@ -647,6 +669,16 @@ public sealed partial class DonutMenu : Control
             SegmentDragStarted?.Invoke(this, (press.Index, e));
             return;
         }
+
+        if (_keyboardHold)
+        {
+            if (_keyAnchor is not { } anchor)
+                _keyAnchor = anchor = p;
+            if (Distance(p, anchor) < KeyboardJitter)
+                return;
+            _keyboardHold = false;
+        }
+        _lastPointer = p;
 
         var hit = HitTest(p);
         TrackGroups(hit, p);

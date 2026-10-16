@@ -243,6 +243,44 @@ public class DonutGroupTests
     }
 
     [AvaloniaFact]
+    public void Esc_folds_a_ring_the_mouse_opened_before_closing_the_donut()
+    {
+        var (donut, window) = Open();
+        window.MouseMove(OnGroup(donut, donut.OuterRadius * 0.6));
+        donut.ExpandPendingGroup();
+        Assert.True(IsOpen(donut));
+        Assert.Equal(-1, donut.ActiveSubIndex); // opened by resting the mouse: no ring slice chosen yet
+
+        Assert.True(donut.HandleKey(Key.Escape));
+        Assert.False(IsOpen(donut));
+        Assert.False(donut.HandleKey(Key.Escape)); // now it's the window's
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void A_mouse_nudge_keeps_what_the_keyboard_chose_a_real_move_takes_over()
+    {
+        var (donut, window) = Open();
+        var c = Center(donut);
+        window.MouseMove(c); // opened at the cursor: it rests in the hole
+        donut.HandleKey(Key.Right);
+        donut.HandleKey(Key.Right);
+        donut.HandleKey(Key.Right); // to the group
+        donut.HandleKey(Key.Enter);
+        Assert.Equal(0, donut.ActiveSubIndex);
+
+        window.MouseMove(new Point(c.X + 2, c.Y + 1)); // a nudge, or Windows re-sending the position
+        Assert.Equal(0, donut.ActiveSubIndex);
+        Assert.True(IsOpen(donut));
+
+        var bmp = DonutGeometry.PointAt(c, donut.OuterRadius * 0.6, DonutGeometry.MidAngle(3, 4));
+        window.MouseMove(bmp); // moved on purpose: the mouse leads again
+        Assert.Equal(3, donut.ActiveIndex);
+        Assert.False(IsOpen(donut));
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void With_animations_off_a_group_opens_at_once()
     {
         var (donut, window) = Open();
