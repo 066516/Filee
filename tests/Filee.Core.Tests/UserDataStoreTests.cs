@@ -294,6 +294,28 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void A_rotation_from_a_newer_Filee_reads_as_none_and_the_other_presets_still_load()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.SaveLibrary();
+        var path = Path.Combine(dir.Path, "presets.json");
+        var json = File.ReadAllText(path);
+        Assert.Contains("\"rotation\": \"Left90\"", json);
+        File.WriteAllText(path, json.Replace("\"rotation\": \"Left90\"", "\"rotation\": \"Transpose\"")
+            .Replace("\"flip\": \"Vertical\"", "\"flip\": 7"));
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        Assert.Equal(ImageRotation.None, reloaded.FindPreset("rotate-left")!.Image.Rotation);
+        Assert.Equal(ImageFlip.None, reloaded.FindPreset("flip-vertical")!.Image.Flip);
+        Assert.Equal(ImageRotation.Right90, reloaded.FindPreset("rotate-right")!.Image.Rotation); // the rest as saved
+        Assert.False(File.Exists(path + ".broken"));
+    }
+
+    [Fact]
     public void Back_from_an_older_Filee_rotate_and_flip_work_again_and_keep_the_users_changes()
     {
         // What a Filee before 11 leaves after saving: kind, members and rotation dropped, the rest as it was.

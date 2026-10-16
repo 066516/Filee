@@ -78,8 +78,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _name = string.IsNullOrWhiteSpace(_edit.Name) ? loc.DisplayName(_edit) : _edit.Name;
         _target = Targets.FirstOrDefault(t => t.Value == _edit.TargetFormat) ?? Targets[1];
         _resize = ResizeModes.First(r => r.Value == _edit.Image.Resize);
-        _rotation = Rotations.First(r => r.Value == _edit.Image.Rotation);
-        _flip = Flips.First(f => f.Value == _edit.Image.Flip);
+        _rotation = Rotations.FirstOrDefault(r => r.Value == _edit.Image.Rotation) ?? Rotations[0];
+        _flip = Flips.FirstOrDefault(f => f.Value == _edit.Image.Flip) ?? Flips[0];
         _pageSize = PageSizes.First(p => p.Value == _edit.Pdf.PageSize);
         _location = Locations.First(l => l.Value == _edit.Output.Location);
         _conflict = Conflicts.First(c => c.Value == _edit.Output.Conflict);
