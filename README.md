@@ -252,9 +252,9 @@ It connects to the internet only:
 Filee is free and stays free. If you'd like to support its development, pick whichever way suits you
 ([Fairy](https://fairy.hada.io/@filee) takes Korean cards and easy-pay). Thank you!
 
-**Your name or logo here.** Monthly backers on Patreon or GitHub Sponsors are listed here by name, and sponsors with
-their logo, here and in Filee's About page (from the next release, for as long as the sponsorship lasts). One-time
-supporters on Ko-fi, PayPal or Fairy can ask to be listed by name too.
+**Your name or logo here.** Monthly backers on Patreon, GitHub Sponsors or Ko-fi are listed here by name, and sponsors
+with their logo, here and in Filee's About page (from the next release, for as long as the sponsorship lasts).
+One-time supporters can ask to be listed by name too.
 
 <!-- sponsors: src/Filee.App/Assets/Sponsors/sponsors.json -->
 

@@ -215,8 +215,8 @@ Filee 的代码签名政策（Code signing policy）和隐私政策见[英文 RE
 
 Filee 免费，并将一直免费。想支持开发的话，选一种方便的方式即可。谢谢！
 
-**你的名字或标志可以出现在这里。** 在 Patreon 或 GitHub Sponsors 按月赞助，名字会列在这里，标志档位的标志会显示在这里和
-Filee 的"关于"页面（从下一个版本起，赞助期间有效）。在 Ko-fi、PayPal 或 Fairy 一次性赞助的朋友，也可以要求列出名字。
+**你的名字或标志可以出现在这里。** 在 Patreon、GitHub Sponsors 或 Ko-fi 按月赞助，名字会列在这里，标志档位的标志会显示在这里和
+Filee 的"关于"页面（从下一个版本起，赞助期间有效）。一次性赞助的朋友，也可以要求列出名字。
 
 <!-- sponsors: src/Filee.App/Assets/Sponsors/sponsors.json -->
 

@@ -228,9 +228,9 @@ Filee의 코드 서명 정책(Code signing policy)과 개인정보 처리 방침
 Filee는 앞으로도 무료예요. 개발을 응원하고 싶다면 편한 방법으로 후원해 주세요.
 국내 카드·간편결제는 [Fairy](https://fairy.hada.io/@filee)에서 할 수 있어요. 감사합니다!
 
-**여기에 이름이나 로고를 올려 보세요.** Patreon이나 GitHub Sponsors로 매월 후원하시면 이곳에 이름을, 로고 티어는
-이곳과 Filee 정보 페이지에 로고를 올려 드려요(다음 릴리즈부터, 후원하시는 동안). Ko-fi, PayPal, Fairy로 한 번
-후원하신 분도 원하시면 이름을 올려 드려요.
+**여기에 이름이나 로고를 올려 보세요.** Patreon, GitHub Sponsors, Ko-fi로 매월 후원하시면 이곳에 이름을, 로고 티어는
+이곳과 Filee 정보 페이지에 로고를 올려 드려요(다음 릴리즈부터, 후원하시는 동안). 한 번 후원하신 분도 원하시면
+이름을 올려 드려요.
 
 <!-- sponsors: src/Filee.App/Assets/Sponsors/sponsors.json -->
 
