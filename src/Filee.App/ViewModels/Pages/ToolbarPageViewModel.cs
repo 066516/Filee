@@ -250,6 +250,19 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
             Commit();
     }
 
+    /// <summary>A new group (a slice that fans out presets), added to the selected donut when there's room.</summary>
+    [RelayCommand]
+    private async Task NewGroup()
+    {
+        var group = new Preset { Name = _loc["toolbar.new_group"], Kind = PresetKind.Group, TargetFormat = BuiltInData.SameAsSource };
+        if (!await _windows.EditGroupAsync(group, _windows.Main, isNew: true))
+            return;
+        _store.Presets.Add(group);
+        if (Profile is not null && Profile.PresetIds.Count < ToolbarProfile.MaxSlices)
+            Profile.PresetIds.Add(group.Id);
+        Commit();
+    }
+
     [RelayCommand]
     private async Task NewPreset()
     {

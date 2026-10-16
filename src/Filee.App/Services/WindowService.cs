@@ -9,6 +9,7 @@ using Filee.App.ViewModels;
 using Filee.App.Views;
 using Filee.Core.Localization;
 using Filee.Core.Presets;
+using Filee.Core.Settings;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Filee.App.Services;
@@ -132,9 +133,9 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services)
     /// <summary>Opens the preset popup. Returns true when the user saved (the preset object was updated).</summary>
     public async Task<bool> EditPresetAsync(Preset preset, Window? owner)
     {
-        // The conversion editor has nothing to edit on a group (it converts nothing).
+        // A group converts nothing: it gets its own editor (name and the presets it fans out).
         if (preset.IsGroup)
-            return false;
+            return await EditGroupAsync(preset, owner);
         var dialog = new PresetEditorWindow
         {
             DataContext = new PresetEditorViewModel(preset, loc),
@@ -152,6 +153,32 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services)
             return dialog.Saved;
         }
         return await dialog.ShowDialog<bool>(owner);
+    }
+
+    /// <summary>
+    /// Opens the group editor. Returns true when the user saved (the group was updated) or deleted it (it was removed
+    /// from the presets and every donut). <paramref name="isNew"/>: not in the store yet, so it can't be deleted.
+    /// </summary>
+    public async Task<bool> EditGroupAsync(Preset group, Window? owner, bool isNew = false)
+    {
+        owner ??= _main ?? MainWindowOrNull();
+        var visibleOwner = owner is { IsVisible: true } ? owner : null;
+        var dialog = new GroupEditorWindow
+        {
+            DataContext = new GroupEditorViewModel(group, services.GetRequiredService<UserDataStore>(), loc, isNew),
+            Topmost = owner?.Topmost ?? false,
+            Confirm = message => visibleOwner is null ? Task.FromResult(true) : ConfirmAsync(visibleOwner, message, destructive: true),
+        };
+        if (visibleOwner is null)
+        {
+            var closed = new TaskCompletionSource();
+            dialog.Closed += (_, _) => closed.TrySetResult();
+            dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            dialog.Show();
+            await closed.Task;
+            return dialog.Changed;
+        }
+        return await dialog.ShowDialog<bool>(visibleOwner);
     }
 
     /// <summary>Simple yes/no confirmation.</summary>

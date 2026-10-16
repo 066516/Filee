@@ -295,12 +295,21 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </Border>
-        <Button HorizontalAlignment="Stretch" Command="{Binding NewPresetCommand}">
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Plus}" />
-            <TextBlock Text="{DynamicResource toolbar.new_preset}" />
-          </StackPanel>
-        </Button>
+        <Grid ColumnDefinitions="*,8,*">
+          <Button HorizontalAlignment="Stretch" Command="{Binding NewPresetCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Plus}" />
+              <TextBlock Text="{DynamicResource toolbar.new_preset}" />
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="2" HorizontalAlignment="Stretch" Command="{Binding NewGroupCommand}"
+                  ToolTip.Tip="{DynamicResource group.hint}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Donut}" />
+              <TextBlock Text="{DynamicResource toolbar.new_group}" />
+            </StackPanel>
+          </Button>
+        </Grid>
         <StackPanel Spacing="4" Margin="2,6,0,0">
           <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource toolbar.hint_add}" />
           <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource toolbar.hint_remove}" />
