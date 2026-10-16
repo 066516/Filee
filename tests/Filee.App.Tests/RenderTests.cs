@@ -361,6 +361,19 @@ public class RenderTests
         window.Close();
     }
 
+    [AvaloniaFact]
+    public void LibreOffice_options_window_renders()
+    {
+        TestServices.EnsureInitialized("ko");
+        using var vm = new Filee.App.ViewModels.Pages.EnginesPageViewModel(AppHost.Get<Filee.Core.Settings.UserDataStore>(),
+            AppHost.Get<Filee.Core.Conversion.ConverterCatalog>(), AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<EngineDownloadService>());
+        var window = new Filee.App.Views.LibreOfficeOptionsWindow { DataContext = vm };
+        window.Show();
+        Pump();
+        Save(window, "window-libreoffice-options-ko.png");
+        window.Close();
+    }
+
     [AvaloniaTheory]
     [InlineData("en")]
     [InlineData("ko")]

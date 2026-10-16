@@ -410,6 +410,8 @@
   "engines.update": "업데이트",
   "engines.state.update_available": "새 버전 {0}",
   "engines.update_notice_title": "설치한 엔진에 새 버전이 있어요",
+  "engines.settings": "설정",
+  "engines.all_description": "카드를 끌어서(또는 화살표로) 순서를 바꿀 수 있어요.",
   "engines.lo_title": "LibreOffice가 설치돼 있을 때",
   "engines.lo_description": "LibreOffice만 읽을 수 있는 형식 외에도, 더 정확하게 변환하는 작업을 맡길 수 있어요. LibreOffice가 없으면 아래 설정은 아무 영향이 없어요.",
   "engines.lo_slides": "발표 자료 → PDF는 LibreOffice로 변환",
