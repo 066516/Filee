@@ -1,8 +1,11 @@
 // The group editor (Settings → Toolbar → New group): picking the presets a group fans out, their order, the limit of
 // six, saving and deleting.
 
+using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Filee.App.Services;
 using Filee.App.ViewModels;
@@ -89,6 +92,63 @@ public class GroupEditorTests
             store.Presets.Remove(group);
             images.PresetIds.Remove(group.Id);
         }
+    }
+
+    [AvaloniaFact]
+    public void The_first_cant_move_up_the_last_cant_move_down_and_a_full_group_says_its_limit()
+    {
+        var vm = Edit(new Preset { Name = "Web", Kind = PresetKind.Group, SubPresetIds = ["to-png", "to-jpg", "to-webp"] });
+        Assert.False(vm.MoveUpCommand.CanExecute(vm.Members[0]));
+        Assert.True(vm.MoveDownCommand.CanExecute(vm.Members[0]));
+        Assert.True(vm.MoveUpCommand.CanExecute(vm.Members[2]));
+        Assert.False(vm.MoveDownCommand.CanExecute(vm.Members[2]));
+        vm.MoveUpCommand.Execute(vm.Members[2]); // now in the middle: both ways
+        Assert.True(vm.MoveDownCommand.CanExecute(vm.Members[1]));
+        Assert.Equal("A group holds up to 6 presets.", vm.FullNote);
+    }
+
+    [AvaloniaFact]
+    public void Delete_asks_over_the_editor_itself_and_names_the_group_as_saved()
+    {
+        var group = new Preset { Name = "Web", Kind = PresetKind.Group, SubPresetIds = ["to-png"] };
+        var vm = Edit(group);
+        Window? askedOver = null;
+        string? asked = null;
+        var window = new GroupEditorWindow
+        {
+            DataContext = vm,
+            Confirm = (owner, message) =>
+            {
+                askedOver = owner;
+                asked = message;
+                return Task.FromResult(false); // "Cancel"
+            },
+        };
+        window.Show();
+        vm.Name = "Renamed but not saved";
+        window.FindControl<Button>("DeleteButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Same(window, askedOver); // modal to the editor, which stays blocked (and visible over the donut)
+        Assert.Contains("“Web”", asked);
+        Assert.False(vm.Deleted);
+        Assert.True(window.IsVisible);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Enter_on_the_chosen_preset_adds_it_instead_of_saving()
+    {
+        var vm = Edit(new Preset { Name = "Web", Kind = PresetKind.Group }, isNew: true);
+        var window = new GroupEditorWindow { DataContext = vm };
+        window.Show();
+        vm.ToAdd = vm.Available.Single(c => c.Value == "to-png");
+        window.FindControl<ComboBox>("AddBox")!.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter });
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal("to-png", Assert.Single(vm.Members).PresetId);
+        Assert.True(window.IsVisible); // not saved and closed
+        window.Close();
     }
 
     [AvaloniaTheory]

@@ -263,7 +263,7 @@
   "group.empty": "还没有预设。请在下方添加。",
   "group.add": "添加",
   "group.add_placeholder": "选择预设",
-  "group.full": "一个组最多可放 6 个预设。",
+  "group.full": "一个组最多可放 {0} 个预设。",
   "group.move_up": "上移",
   "group.move_down": "下移",
   "group.remove": "从组中移除",

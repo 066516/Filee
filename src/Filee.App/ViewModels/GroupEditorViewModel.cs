@@ -62,6 +62,9 @@ public sealed partial class GroupEditorViewModel : ObservableObject
     /// <summary>"Presets (2 / 6)".</summary>
     public string MembersTitle => _loc.Format("group.members", Members.Count, Preset.MaxSubPresets);
 
+    /// <summary>"A group holds up to 6 presets."</summary>
+    public string FullNote => _loc.Format("group.full", Preset.MaxSubPresets);
+
     public string? NameError => string.IsNullOrWhiteSpace(Name) ? _loc["presets.name_required"] : null;
 
     /// <summary>A name and at least one preset: a group without presets would fan out nothing.</summary>
@@ -84,11 +87,17 @@ public sealed partial class GroupEditorViewModel : ObservableObject
     [RelayCommand]
     private void Remove(GroupMember member) => Members.Remove(member);
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanMoveUp))]
     private void MoveUp(GroupMember member) => Move(member, -1);
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanMoveDown))]
     private void MoveDown(GroupMember member) => Move(member, 1);
+
+    // The first can't go up, the last can't go down: their buttons are disabled rather than doing nothing.
+    private bool CanMoveUp(GroupMember? member) => member is not null && Members.IndexOf(member) > 0;
+
+    private bool CanMoveDown(GroupMember? member) =>
+        member is not null && Members.IndexOf(member) is var index && index >= 0 && index < Members.Count - 1;
 
     private void Move(GroupMember member, int by)
     {
@@ -121,7 +130,8 @@ public sealed partial class GroupEditorViewModel : ObservableObject
         Deleted = true;
     }
 
-    public string DeleteConfirmation => _loc.Format("group.delete_confirm", Name.Trim());
+    /// <summary>Names the group as saved, not as half-renamed in the box.</summary>
+    public string DeleteConfirmation => _loc.Format("group.delete_confirm", _loc.DisplayName(_group));
 
     private void Refresh()
     {
@@ -134,10 +144,12 @@ public sealed partial class GroupEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(MembersTitle));
         OnPropertyChanged(nameof(IsValid));
         AddCommand.NotifyCanExecuteChanged();
+        MoveUpCommand.NotifyCanExecuteChanged();
+        MoveDownCommand.NotifyCanExecuteChanged();
     }
 
     private GroupMember MemberOf(Preset preset) => new(preset.Id, _loc.DisplayName(preset), CaptionOf(preset));
 
-    private string CaptionOf(Preset preset) =>
+    private string? CaptionOf(Preset preset) =>
         preset.TargetFormat == BuiltInData.SameAsSource ? _loc["donut.same_format"] : FormatLabels.NameOf(_loc, preset.TargetFormat);
 }

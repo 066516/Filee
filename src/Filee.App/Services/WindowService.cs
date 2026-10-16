@@ -167,7 +167,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services)
         {
             DataContext = new GroupEditorViewModel(group, services.GetRequiredService<UserDataStore>(), loc, isNew),
             Topmost = owner?.Topmost ?? false,
-            Confirm = message => visibleOwner is null ? Task.FromResult(true) : ConfirmAsync(visibleOwner, message, destructive: true),
+            Confirm = (editor, message) => ConfirmAsync(editor, message, destructive: true),
         };
         if (visibleOwner is null)
         {
