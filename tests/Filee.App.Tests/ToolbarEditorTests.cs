@@ -251,7 +251,10 @@ public class ToolbarPageTests
             });
 
             Assert.Equal("", vm.PaletteSearch);
-            Assert.Equal("test-new-group", vm.VisiblePalette.First().PresetId); // right at the top, not below ~80 presets
+            // Up with the groups at the top, above every conversion: not below ~80 presets.
+            var chips = vm.VisiblePalette.Select(c => store.FindPreset(c.PresetId)!).ToList();
+            var at = chips.FindIndex(p => p.Id == "test-new-group");
+            Assert.True(at >= 0 && chips.Take(at).All(p => p.IsGroup), $"at {at}");
             Assert.Equal($"{pdf.Profile.PresetIds.Count}", pdf.Count);
             Assert.DoesNotContain("test-new-group", vm.SelectedProfile!.Profile.PresetIds); // on no donut until dragged there
         }
