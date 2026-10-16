@@ -105,7 +105,6 @@ public sealed class CliTests : IDisposable
     [InlineData(new[] { "convert", "a.png", "--to", "jpg", "--preset", "x" }, "--to")]
     [InlineData(new[] { "convert", "a.png", "--to", "nosuchformat" }, "unknown format")]
     [InlineData(new[] { "convert", "a.png", "--preset", "nosuchpreset" }, "no preset")]
-    [InlineData(new[] { "convert", "a.png", "--preset", "rotate" }, "rotate-left, rotate-right, rotate-180")]
     [InlineData(new[] { "convert", "--to", "jpg" }, "at least one file")]
     [InlineData(new[] { "convert", "a.png", "--to", "jpg", "--quality", "300" }, "--quality")]
     [InlineData(new[] { "frobnicate" }, "Unknown command")]

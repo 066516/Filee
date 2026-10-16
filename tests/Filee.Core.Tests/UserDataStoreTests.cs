@@ -12,10 +12,13 @@ public class UserDataStoreTests
         using var dir = new TempDir();
         var store = new UserDataStore(dir.Path);
         store.Load();
+        store.Presets.Add(new Preset { Id = "other", Name = "Other", Kind = PresetKind.Group, SubPresetIds = ["to-pdf"] });
         store.Presets.Add(new Preset
         {
-            Id = "mine", Name = "Mine", Kind = PresetKind.Group,
-            SubPresetIds = ["to-png", "gone", "to-png", "rotate", "to-jpg", "to-webp", "to-bmp", "to-gif", "to-ico", "to-tiff"],
+            Id = "mine",
+            Name = "Mine",
+            Kind = PresetKind.Group,
+            SubPresetIds = ["to-png", "gone", "to-png", "other", "to-jpg", "to-webp", "to-bmp", "to-gif", "to-ico", "to-tiff"],
         });
         store.SaveLibrary();
 
@@ -230,23 +233,6 @@ public class UserDataStoreTests
         Assert.Equal("png", preset.TargetFormat);
         Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("remove-background"));
         Assert.False(SettingsMigrations.ApplyToLibrary(9, presets, profiles)); // once only
-    }
-
-    [Fact]
-    public void Version_10_libraries_get_rotate_and_flip_presets_and_groups_on_no_donut()
-    {
-        var presets = BuiltInData.CreatePresets();
-        presets.RemoveAll(p => p.Id is "rotate-left" or "rotate-right" or "rotate-180" or "flip-horizontal" or "flip-vertical" or "rotate" or "flip");
-        var profiles = BuiltInData.CreateProfiles();
-
-        Assert.True(SettingsMigrations.ApplyToLibrary(10, presets, profiles));
-
-        Assert.Equal(PresetKind.Group, presets.Single(p => p.Id == "rotate").Kind);
-        Assert.Equal(["rotate-left", "rotate-right", "rotate-180"], presets.Single(p => p.Id == "rotate").SubPresetIds);
-        Assert.Equal(ImageRotation.Left90, presets.Single(p => p.Id == "rotate-left").Image.Rotation);
-        Assert.Equal(ImageFlip.Horizontal, presets.Single(p => p.Id == "flip-horizontal").Image.Flip);
-        Assert.DoesNotContain(profiles, p => p.PresetIds.Any(id => id.StartsWith("rotate") || id.StartsWith("flip")));
-        Assert.False(SettingsMigrations.ApplyToLibrary(10, presets, profiles)); // once only
     }
 
     [Fact]

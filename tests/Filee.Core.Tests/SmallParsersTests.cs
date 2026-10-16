@@ -50,14 +50,15 @@ public class BuiltInDataTests
     }
 
     [Fact]
-    public void Groups_fan_out_existing_presets_that_are_not_groups_themselves()
+    public void A_group_clone_keeps_its_kind_and_members()
     {
-        var presets = BuiltInData.CreatePresets().ToDictionary(p => p.Id);
-        var groups = presets.Values.Where(p => p.IsGroup).ToList();
-        Assert.NotEmpty(groups);
-        foreach (var group in groups)
-            Assert.All(group.SubPresetIds, id => Assert.False(presets[id].IsGroup, id));
-        Assert.Equal(groups[0].SubPresetIds, groups[0].Clone().SubPresetIds);
+        var group = new Preset { Kind = PresetKind.Group, SubPresetIds = ["to-png", "to-jpg"] };
+        var clone = group.Clone();
+        Assert.True(clone.IsGroup);
+        Assert.Equal(["to-png", "to-jpg"], clone.SubPresetIds);
+        clone.SubPresetIds.Add("to-webp");
+        Assert.Equal(2, group.SubPresetIds.Count); // a copy, not the same list
+        Assert.False(new Preset { SubPresetIds = ["to-png"] }.IsGroup); // members alone don't make a group
     }
 
     [Fact]
