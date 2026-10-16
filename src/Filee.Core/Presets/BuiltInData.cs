@@ -197,7 +197,11 @@ public static class BuiltInData
     {
         var preset = new Preset
         {
-            Id = id, NameKey = nameKey, TargetFormat = SameAsSource, Image = { Quality = 95 }, Output = { FileNamePattern = pattern },
+            Id = id,
+            NameKey = nameKey,
+            TargetFormat = SameAsSource,
+            Image = { Quality = 95 },
+            Output = { FileNamePattern = pattern },
         };
         set(preset.Image);
         return preset;
