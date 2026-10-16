@@ -61,6 +61,28 @@ internal sealed class FakeTurner(string id, params ConversionEdge[] edges) : ICo
     }
 }
 
+/// <summary>An engine that doesn't turn images (no <see cref="IImageTransformer"/>) but records the preset it gets.</summary>
+internal sealed class FakeRecorder(string id, params ConversionEdge[] edges) : IConverter
+{
+    private readonly FakeConverter _writer = new(id, edges);
+
+    public string Id => id;
+    public string DisplayName => id;
+    public IReadOnlyList<ConversionEdge> Edges => edges;
+    public int MaxParallelism => 0;
+
+    public List<(string To, Filee.Core.Presets.ImageRotation Rotation)> Asked { get; } = [];
+
+    public EngineStatus GetStatus() => EngineStatus.Available();
+
+    public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
+    {
+        lock (Asked)
+            Asked.Add((step.To, step.Preset.Image.Rotation));
+        return _writer.ConvertAsync(step, progress, cancellationToken);
+    }
+}
+
 internal sealed class FakeMerger : IPdfMerger
 {
     public List<string> Inputs { get; } = [];

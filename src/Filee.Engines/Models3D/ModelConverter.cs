@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Filee.Engines.Models3D;
 
 /// <summary>Converts 3D models between GLB, glTF, STL, OBJ, 3MF and PLY, and renders them to pictures.</summary>
-public sealed class ModelConverter(ILogger? logger = null) : IConverter
+public sealed class ModelConverter(ILogger? logger = null) : IConverter, IImageTransformer
 {
     /// <summary>The 3D formats, each readable and writable.</summary>
     public static readonly string[] Formats = ["glb", "gltf", "stl", "obj", "3mf", "ply"];
@@ -25,6 +25,9 @@ public sealed class ModelConverter(ILogger? logger = null) : IConverter
 
     public string Id => "model3d";
     public string DisplayName => "3D models (built-in)";
+
+    /// <summary>The rendered picture goes through the image options, rotation and flip included.</summary>
+    public bool Transforms(string from, string to) => ImageEncoder.Writable.Contains(to);
 
     /// <summary>A large mesh takes a few hundred MB while it is converted, so only a few run at once.</summary>
     public int MaxParallelism => Math.Clamp(Environment.ProcessorCount / 2, 1, 4);

@@ -57,6 +57,24 @@ public class JobQueueTests
     }
 
     [Fact]
+    public async Task A_step_before_the_turning_one_gets_the_preset_without_rotation()
+    {
+        // STL → PNG (an engine that renders with the image options but doesn't say it turns) → HEIC (one that turns):
+        // only the HEIC step turns, or the picture would be turned twice.
+        using var dir = new TempDir();
+        var model = dir.File("part.stl");
+        var renderer = new FakeRecorder("model3d", new ConversionEdge("stl", "png"));
+        var heic = new FakeTurner("ffmpeg", new ConversionEdge("png", "heic"));
+        await using var queue = new JobQueue(new ConverterCatalog([renderer, heic]));
+
+        var job = await Run(queue, [model], new Preset { TargetFormat = "heic", Image = { Rotation = ImageRotation.Left90 } });
+
+        Assert.Equal(JobState.Completed, job.State);
+        Assert.Equal([("png", ImageRotation.None)], renderer.Asked);
+        Assert.Equal([("heic", ImageRotation.Left90)], heic.Asked);
+    }
+
+    [Fact]
     public async Task Keep_dates_gives_outputs_the_dates_of_their_source()
     {
         using var dir = new TempDir();
