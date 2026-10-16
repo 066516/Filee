@@ -288,6 +288,32 @@ public class UserDataStoreTests
         Assert.Equal(ImageFlip.Horizontal, presets.Single(p => p.Id == "flip-horizontal").Image.Flip);
         Assert.DoesNotContain(profiles, p => p.PresetIds.Any(id => id.StartsWith("rotate") || id.StartsWith("flip")));
         Assert.False(SettingsMigrations.ApplyToLibrary(10, presets, profiles)); // once only
+        // Where a new library has them: after "Remove background".
+        var background = presets.FindIndex(p => p.Id == "remove-background");
+        Assert.Equal("rotate-left", presets[background + 1].Id);
+    }
+
+    [Fact]
+    public void Back_from_an_older_Filee_rotate_and_flip_work_again_and_keep_the_users_changes()
+    {
+        // What a Filee before 11 leaves after saving: kind, members and rotation dropped, the rest as it was.
+        var presets = BuiltInData.CreatePresets();
+        var left = presets.Single(p => p.Id == "rotate-left");
+        left.Image.Rotation = ImageRotation.None;
+        left.Name = "Turn left";
+        var rotate = presets.Single(p => p.Id == "rotate");
+        rotate.Kind = PresetKind.Convert;
+        rotate.SubPresetIds = [];
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(10, presets, profiles));
+
+        Assert.Equal(ImageRotation.Left90, left.Image.Rotation);
+        Assert.Equal("Turn left", left.Name);
+        Assert.True(rotate.IsGroup);
+        Assert.Equal(["rotate-left", "rotate-right", "rotate-180"], rotate.SubPresetIds);
+        Assert.Equal(Preset.GroupTarget, rotate.TargetFormat);
+        Assert.Single(presets, p => p.Id == "rotate-left"); // repaired, not added twice
     }
 
     [Fact]

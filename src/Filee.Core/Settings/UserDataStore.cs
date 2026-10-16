@@ -372,13 +372,35 @@ internal static class SettingsMigrations
             changed = true;
         }
 
-        // v11: rotate / flip presets and the "Rotate" / "Flip" groups that fan them out, on no donut.
+        // v11: rotate / flip presets and the "Rotate" / "Flip" groups that fan them out, on no donut, after "Remove
+        // background" as in a new library. Present already but saved since by a Filee before 11 (it reads and writes
+        // schema 10, so back and forth between versions comes here again): that one dropped what it didn't know, the
+        // rotation and the group, and left a preset that re-encodes unturned. Those parts are put back, the user's
+        // own changes (name, quality, file names) stay.
         if (from < 11)
         {
-            foreach (var preset in BuiltInData.ImageToolPresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+            var at = presets.FindIndex(p => p.Id == "remove-background");
+            at = at < 0 ? presets.Count : at + 1;
+            foreach (var tool in BuiltInData.ImageToolPresets())
             {
-                presets.Add(preset);
-                changed = true;
+                if (presets.FirstOrDefault(p => p.Id == tool.Id) is not { } existing)
+                {
+                    presets.Insert(Math.Min(at++, presets.Count), tool);
+                    changed = true;
+                }
+                else if (tool.IsGroup && !existing.IsGroup)
+                {
+                    existing.Kind = PresetKind.Group;
+                    existing.SubPresetIds = [.. tool.SubPresetIds];
+                    existing.TargetFormat = tool.TargetFormat;
+                    changed = true;
+                }
+                else if (!tool.IsGroup && !existing.Image.TurnsOrMirrors)
+                {
+                    existing.Image.Rotation = tool.Image.Rotation;
+                    existing.Image.Flip = tool.Image.Flip;
+                    changed = true;
+                }
             }
         }
 
