@@ -419,6 +419,19 @@ internal static class SettingsMigrations
         //      "fonts", else before the mixed-files one), with the extensions no donut of the user takes yet.
         if (from < 15)
             changed |= AddModels(presets, profiles);
+
+        // v16: raster → SVG tracing ("Trace to SVG" in colour, "Line art to SVG" in black), on the images donut after
+        //      PDF.
+        if (from < 16)
+        {
+            foreach (var preset in BuiltInData.TracePresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+            {
+                presets.Add(preset);
+                changed = true;
+            }
+            changed |= Offer(presets, profiles, "images", "trace-svg", "to-pdf");
+            changed |= Offer(presets, profiles, "images", "trace-line-art", "trace-svg");
+        }
         return changed;
     }
 

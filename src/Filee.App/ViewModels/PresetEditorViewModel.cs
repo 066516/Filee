@@ -72,6 +72,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
             r => r == 0 ? loc["presets.sample_rate.source"] : $"{r / 1000.0:0.##} kHz");
         WavFormats = Enum.GetValues<WavSampleFormat>().Select(v => new Choice<WavSampleFormat>(v, loc[$"presets.wav_format.{v}"])).ToList();
         ArchiveLevels = Enum.GetValues<ArchiveLevel>().Select(v => new Choice<ArchiveLevel>(v, loc[$"presets.archive_level.{v}"])).ToList();
+        TraceModes = Enum.GetValues<TracingMode>().Select(v => new Choice<TracingMode>(v, loc[$"presets.trace_mode.{v}"])).ToList();
 
         _name = string.IsNullOrWhiteSpace(_edit.Name) ? loc.DisplayName(_edit) : _edit.Name;
         _target = Targets.FirstOrDefault(t => t.Value == _edit.TargetFormat) ?? Targets[1];
@@ -91,6 +92,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _audioCodecValue = _edit.Media.AudioCodec;
         _archiveLevel = ArchiveLevels.First(l => l.Value == _edit.Archive.Level);
         _combineIntoOne = _edit.Archive.CombineIntoOne;
+        _traceMode = TraceModes.First(m => m.Value == _edit.Trace.Mode);
+        _traceColors = Math.Clamp(_edit.Trace.Colors, TracingOptions.MinColors, TracingOptions.MaxColors);
+        _traceDetail = Math.Clamp(_edit.Trace.Detail, 0, 100);
         _quality = _edit.Image.Quality;
         _resizePercent = _edit.Image.ResizePercent;
         _longEdge = _edit.Image.LongEdge;
@@ -137,6 +141,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public IReadOnlyList<Choice<int>> SampleRates { get; }
     public IReadOnlyList<Choice<WavSampleFormat>> WavFormats { get; }
     public IReadOnlyList<Choice<ArchiveLevel>> ArchiveLevels { get; }
+    public IReadOnlyList<Choice<TracingMode>> TraceModes { get; }
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(NameError), nameof(IsValid))]
     private string _name;
@@ -147,7 +152,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec),
         nameof(AudioCodecs), nameof(AudioCodecChoice), nameof(ShowAudioCodec),
-        nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote))]
+        nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote), nameof(ShowTrace))]
     private Choice<string> _target;
 
     private VideoCodec _videoCodecValue;
@@ -268,6 +273,12 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private Choice<ArchiveLevel> _archiveLevel;
     [ObservableProperty] private bool _combineIntoOne;
 
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowTraceColors))]
+    private Choice<TracingMode> _traceMode;
+
+    [ObservableProperty] private int _traceColors;
+    [ObservableProperty] private int _traceDetail;
+
     private string TargetId => Target.Value;
     private FormatCategory? TargetCategory => FormatRegistry.FindById(TargetId)?.Category;
     private bool TargetIsImage => TargetId == BuiltInData.SameAsSource || TargetCategory == FormatCategory.Image;
@@ -309,6 +320,12 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowArchiveOptions => ShowArchive && TargetId != FormatRegistry.Folder;
     /// <summary>"Extract" has nothing to set; a line says what it does instead.</summary>
     public bool ShowExtractNote => TargetId == FormatRegistry.Folder;
+    /// <summary>
+    /// Tracing options: raster images reach SVG (and DXF / DWG through it) only by tracing. For other sources (a
+    /// drawing, a CAD file) the options are ignored.
+    /// </summary>
+    public bool ShowTrace => TargetId is "svg" or "svgz" or "dxf" or "dwg";
+    public bool ShowTraceColors => TraceMode.Value == TracingMode.Color;
     public bool ShowPercent => Resize.Value == ResizeMode.Percent;
     public bool ShowLongEdge => Resize.Value == ResizeMode.LongEdge;
     public bool ShowWidth => Resize.Value == ResizeMode.Width;
@@ -379,6 +396,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         media.AudioCodec = MediaCodecs.Effective(TargetId, _audioCodecValue);
         _original.Archive.Level = ArchiveLevel.Value;
         _original.Archive.CombineIntoOne = CombineIntoOne;
+        _original.Trace.Mode = TraceMode.Value;
+        _original.Trace.Colors = Math.Clamp(TraceColors, TracingOptions.MinColors, TracingOptions.MaxColors);
+        _original.Trace.Detail = Math.Clamp(TraceDetail, 0, 100);
 
         var output = _original.Output;
         output.Location = Location.Value;

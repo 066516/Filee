@@ -6,7 +6,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | Engine | How it gets there | Handles |
 |---|---|---|
 | ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, MNG, QOI, DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster, MIFF ↔ each other, and **APNG** (Filee's own reader and writer); HEIC (written with FFmpeg), XCF, camera RAW (LibRaw), DICOM (uncompressed ones by Filee's own reader), Photo CD, OpenEXR, Radiance HDR and EMF/WMF (Windows) read |
-| Vector graphics | built in (Svg.Skia, SkiaSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, PDF-compatible AI → PDF |
+| Vector graphics | built in (Svg.Skia, SkiaSharp, ACadSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, **SVG → DXF** (→ DWG with the CAD engine), **raster images → SVG (tracing)**, PDF-compatible AI → PDF |
 | ICNS | built in | images → ICNS (16–1024 px), ICNS → images |
 | PDFsharp | built in (library) | images → PDF, merge, split, page ranges |
 | PDFium | built in (library) | PDF → images (multi-page TIFF/GIF supported) |
@@ -139,6 +139,65 @@ current.
   nothing extra; PostScript-based ones need Ghostscript.
 - EPS and PS → PNG go straight through Ghostscript's `pngalpha` device, so the background stays transparent;
   JPG, WebP, … and AI reach images through PDF (Ghostscript → PDFium), and SVG reaches EPS through PDF.
+
+## Tracing (raster images → SVG)
+
+Built in (`Vector/Tracing`), no Potrace or other program: Filee's own code, written from published descriptions of the
+steps (no code of Potrace, AutoTrace or VTracer is used). Every raster format ImageMagick reads (PNG, JPG, BMP, GIF,
+WEBP, TIFF, HEIC, PSD, RAW, DICOM, …) is traced, and other raster images through PNG (ICNS, APNG). Only raster images are traced:
+PDF, EPS, PS, AI, EMF/WMF, CDR, documents and videos are never redrawn from a rendering, so without a real vector
+route they have no SVG target (PDF → SVG, for example, needs LibreOffice). The first frame or page is used, turned upright, in sRGB. The SVG has the picture's pixel size
+(`width`/`height`/`viewBox` in pixels), so it lines up with the original.
+
+- **Black and white** (*Line art to SVG*: logos, signatures, scans): pixels darker than Otsu's threshold are ink
+  (transparent pixels count as white paper). On a transparent background the opaque pixels are the ink, or only their
+  darker part when the opaque area itself is light and dark. One black `<path>` on a transparent background.
+- **Colour** (*Trace to SVG*: illustrations, icons): k-means reduces the picture to the preset's number of colours
+  (2–64; run on the mean colours of 32 768 colour boxes weighted by their pixel counts, so it sees every pixel). One-pixel
+  bands of in-between colours along edges (anti-aliasing) join the colour on either side; regions smaller than a few
+  pixels (more on large pictures) join the neighbour they share most border with. Colours are stacked largest first,
+  and each colour's shape is the union of itself and every colour above it: lower shapes run under upper ones, so no
+  background shows through between neighbouring shapes. Transparent areas stay transparent. One `<path>` per colour.
+- **Outlines**: each shape's boundary is followed along the pixel edges (inside always on the right, so holes come out
+  reversed and fill correctly with the non-zero rule; pixels touching only at a corner stay one shape). Outlines
+  smaller than the speck size are dropped (and small holes filled).
+- **Curves**: the staircase is replaced by points on the edge it approximates (midpoints of the steps); corners are
+  kept where two long pixel runs meet, at the ends of thin lines, where the direction turns sharply within two
+  pixels, or where a gentler turn happens all at once (unlike a small circle). Points between corners are smoothed;
+  stretches that stay within half a pixel of a line without bending become lines; the rest becomes cubic Béziers
+  fitted by least squares (Philip J. Schneider, "An Algorithm for Automatically Fitting Digitized Curves", Graphics
+  Gems, 1990), meeting lines and each other with matching tangents.
+- **Options** (Settings → Presets): mode, colours (colour mode) and *Detail* 0–100. Low detail drops larger specks,
+  smooths more and allows the curves 1.15 px of deviation; high detail keeps every pixel's shape (0.25 px). The
+  default 50 drops specks under 6 px (black and white) or merges regions under 17 px (colour), at 0.7 px; speck and
+  region sizes grow with pictures larger than 1000 px (up to four times).
+- **Size and speed**: pictures over 6 megapixels or 4096 px on a side are reduced before tracing; the SVG keeps the
+  original size and says so in a comment. A 2000 × 2000 illustration traces in 1–3 s at 16 colours and well under a
+  second in black and white; a noisy 2000 × 2000 photo at 16 colours takes about 4 s (64 colours about 5 s, and a
+  20 MB SVG). Photos are not what tracing is for: they come out as posterized patches.
+- **Routes**: tracing is the only raster → SVG route and costs 40 (`VectorConverter.TraceCost`), more than any route
+  from an image to a format SVG leads to, so it is never a step on the way to PDF, PNG, EPS, …; a test checks every
+  pair of formats. Its edges are marked `ImageSourcesOnly`: the planner uses them only when the file being
+  converted is a raster image (`FormatCategory.Image`), so a vector file rendered to PNG can't be traced; a test
+  checks this for every pair of formats too. Through SVG, pictures reach DXF and DWG.
+
+## SVG → DXF / DWG
+
+`Vector/SvgDxfWriter.cs` writes the drawing's outlines with ACadSharp (DXF, AutoCAD 2018 like the CAD engine; DWG is
+DXF → DWG by the CAD engine). The SVG is loaded with Svg.Skia as for PDF output, so groups, transforms, `<use>`,
+nested `<svg>`, CSS and text are resolved the same way.
+
+- Circles and ellipses become CIRCLE and ELLIPSE (also rotated, scaled or skewed: the transformed axes come from the
+  singular values of the transform). Paths, lines, polylines, polygons and rectangles (rounded too) become
+  LWPOLYLINEs, closed where the shape is closed, or a LINE for one straight segment. Bézier curves and arcs are divided
+  into straight pieces within 0.01 mm of the curve: every CAD and CAM program reads polylines, while SPLINE support
+  varies. Text becomes its glyph outlines.
+- Units: SVG user units are CSS pixels, 96 per inch, so 1 px = 25.4 / 96 mm and the DXF is in millimetres
+  (`$INSUNITS` 4, metric): a drawing 100 mm wide in the SVG is 100 mm wide in CAD. The y axis is flipped (SVG points
+  down, DXF up) with the viewport's bottom-left corner at (0, 0).
+- Colours are kept as true colours (the stroke's, else the fill's; black for gradients). Fills, stroke widths,
+  clipping, masks, images and filters are not represented; a shape both filled and stroked is written once. An SVG
+  with nothing to outline fails with a message.
 
 ## HWPX writer
 
