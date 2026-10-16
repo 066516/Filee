@@ -198,6 +198,29 @@ public class JobQueueTests
     }
 
     [Fact]
+    public async Task Merging_or_joining_pages_with_a_rotation_never_passes_a_file_through_unturned()
+    {
+        using var dir = new TempDir();
+        var photo = dir.File("photo.jpg");
+        var doc = dir.File("doc.pdf");
+        var fax = dir.File("fax.tiff");
+        var turner = new FakeTurner("magick", new ConversionEdge("jpg", "pdf"), new ConversionEdge("jpg", "tiff"), new ConversionEdge("tiff", "tiff"));
+        var pdfMerger = new FakeMerger();
+        var tiffMerger = new FakeTiffMerger();
+        await using var queue = new JobQueue(new ConverterCatalog([turner]), pdfMerger, tiffMerger: tiffMerger);
+
+        // A PDF can't be turned: merged unturned it would say "done"; it fails, the photo is still merged.
+        var merged = await Run(queue, [photo, doc], new Preset { TargetFormat = "pdf", Pdf = { MergeIntoSingle = true }, Image = { Rotation = ImageRotation.Right90 } });
+        Assert.Equal("error.cannot_turn", merged.Files[1].ErrorKey);
+        Assert.Equal(["photo.pdf"], pdfMerger.Inputs.Select(Path.GetFileName));
+
+        // A TIFF is turned like the photo before the pages are joined, not added as it is.
+        await Run(queue, [photo, fax], new Preset { TargetFormat = "tiff", Image = { MultiPageTiff = true, Rotation = ImageRotation.Right90 } });
+        Assert.DoesNotContain(fax, tiffMerger.Inputs);
+        Assert.Contains(("tiff", ImageRotation.Right90), turner.Asked);
+    }
+
+    [Fact]
     public async Task Combine_packs_every_file_as_is_even_one_or_of_unknown_type()
     {
         using var dir = new TempDir();

@@ -283,6 +283,11 @@ public class DonutGroupTests
         Assert.Null(availability.Check(rotate, [Filee.Core.Formats.FormatRegistry.Get("png")]));
         // PDF → PDF exists (split, extract), but it copies pages unturned: not "no engine", and no download offered.
         Assert.Equal("Rotate and flip work on images only", availability.Check(rotate, [Filee.Core.Formats.FormatRegistry.Get("pdf")]));
+        // Merging PDFs takes them as they are: turning them is not on offer either.
+        var mergeTurned = rotate.Clone();
+        mergeTurned.TargetFormat = "pdf";
+        mergeTurned.Pdf.MergeIntoSingle = true;
+        Assert.Equal("Rotate and flip work on images only", availability.Check(mergeTurned, [Filee.Core.Formats.FormatRegistry.Get("pdf")]));
     }
 
     [AvaloniaFact]

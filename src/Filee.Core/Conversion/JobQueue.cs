@@ -123,7 +123,11 @@ public sealed class JobQueue : IAsyncDisposable
                 var file = job.Files[i];
                 if (FormatRegistry.Detect(file.SourcePath)?.Id == "pdf")
                 {
-                    parts[i] = file.SourcePath; // already a PDF, merge as-is
+                    // Already a PDF, merged as it is: its pages can't be turned (only images going into it can).
+                    if (job.Preset.Image.TurnsOrMirrors)
+                        FailUnturned(job, file, "pdf → pdf");
+                    else
+                        parts[i] = file.SourcePath;
                     return;
                 }
                 var produced = await RunFileAsync(job, file, i + 1, planner, workDir, finalOutput: false);
@@ -165,7 +169,8 @@ public sealed class JobQueue : IAsyncDisposable
             async (i, _) =>
             {
                 var file = job.Files[i];
-                parts[i] = FormatRegistry.Detect(file.SourcePath)?.Id == "tiff"
+                // A TIFF joins as it is, unless it is to be turned: then it goes through the engine like the rest.
+                parts[i] = FormatRegistry.Detect(file.SourcePath)?.Id == "tiff" && !job.Preset.Image.TurnsOrMirrors
                     ? [file.SourcePath]
                     : await RunFileAsync(job, file, i + 1, planner, workDir, finalOutput: false, intermediate: "tiff");
             });
@@ -189,6 +194,16 @@ public sealed class JobQueue : IAsyncDisposable
             f.State = FileState.Done;
             f.Progress = 1;
         }
+        Notify(job);
+    }
+
+    /// <summary>A file that would be used as it is although the preset turns or mirrors it.</summary>
+    private void FailUnturned(ConversionJob job, FileResult file, string detail)
+    {
+        file.State = FileState.Failed;
+        file.ErrorKey = "error.cannot_turn";
+        file.ErrorDetail = detail;
+        file.Progress = 1;
         Notify(job);
     }
 
@@ -325,7 +340,7 @@ public sealed class JobQueue : IAsyncDisposable
         var turnAt = job.Preset.Image.TurnsOrMirrors ? route.FirstTransformStep() : -1;
         if (job.Preset.Image.TurnsOrMirrors && turnAt < 0)
             return Fail(file, "error.cannot_turn", $"{source.Id} → {target}");
-        var turned = turnAt < 0 ? job.Preset : Unturned(job.Preset);
+        var unturned = turnAt < 0 ? job.Preset : Unturned(job.Preset);
 
         file.State = FileState.Running;
         Notify(job);
@@ -360,7 +375,8 @@ public sealed class JobQueue : IAsyncDisposable
                     await gate.WaitAsync(ct);
                     try
                     {
-                        var preset = turnAt >= 0 && s > turnAt ? turned : job.Preset; // turned once, in step turnAt
+                        // Turned once, in step turnAt: the steps after it get the preset without rotation and flip.
+                        var preset = turnAt >= 0 && s > turnAt ? unturned : job.Preset;
                         var stepInfo = new ConversionStep(input, step.From, step.To, preset, allocator, workDir);
                         outputs.AddRange(await step.Converter.ConvertAsync(stepInfo, progress, ct));
                     }
