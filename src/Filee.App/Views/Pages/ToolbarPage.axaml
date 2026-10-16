@@ -270,18 +270,20 @@
       <!-- Palette -->
       <StackPanel Grid.Column="4" Spacing="8">
         <TextBlock Classes="label" Text="{DynamicResource toolbar.available}" />
-        <Grid ColumnDefinitions="*,8,*">
-          <Button HorizontalAlignment="Stretch" Command="{Binding NewPresetCommand}">
-            <StackPanel Orientation="Horizontal" Spacing="6">
+        <!-- Two to a row in a narrow column: little padding, centred, and an ellipsis rather than text past the edge. -->
+        <Grid ColumnDefinitions="*,6,*">
+          <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="6,6"
+                  Command="{Binding NewPresetCommand}" ToolTip.Tip="{DynamicResource toolbar.new_preset}">
+            <StackPanel Orientation="Horizontal" Spacing="5">
               <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Plus}" />
-              <TextBlock Text="{DynamicResource toolbar.new_preset}" />
+              <TextBlock Text="{DynamicResource toolbar.new_preset}" TextTrimming="CharacterEllipsis" />
             </StackPanel>
           </Button>
-          <Button Grid.Column="2" HorizontalAlignment="Stretch" Command="{Binding NewGroupCommand}"
-                  ToolTip.Tip="{DynamicResource group.hint}">
-            <StackPanel Orientation="Horizontal" Spacing="6">
+          <Button Grid.Column="2" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="6,6"
+                  Command="{Binding NewGroupCommand}" ToolTip.Tip="{DynamicResource group.hint}">
+            <StackPanel Orientation="Horizontal" Spacing="5">
               <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Donut}" />
-              <TextBlock Text="{DynamicResource toolbar.new_group}" />
+              <TextBlock Text="{DynamicResource toolbar.new_group}" TextTrimming="CharacterEllipsis" />
             </StackPanel>
           </Button>
         </Grid>
