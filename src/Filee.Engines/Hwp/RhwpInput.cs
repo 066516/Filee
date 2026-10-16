@@ -6,6 +6,13 @@
 //   pictures shrunk to a few pixels (#65). The size 한글 laid the object out at (hp:curSz) is written instead.
 // - Equation scripts: 한글 2022 saves a command glued to the next letter ("f CIRCf", "A SMALLINTERB", "lek", "rootx")
 //   and writes != and +- for ≠ and ±. rhwp printed those as italic text ("fCIRCf"); they are spaced and spelled out.
+// - Tables floating in a table cell, in an HWPX rhwp exported from an HWP (#49): 한글 stores the line of the paragraph
+//   that anchors a table (hp:pos vertRelTo="PARA", text above and below it) under the table. rhwp follows the stored
+//   lines of an HWP (it reads the HWP itself and an HWPX with its META-INF/rhwp-hwp5-origin marker that way) and, in
+//   a cell taller than its text, drew the table from that line instead of the paragraph's top, over the paragraphs
+//   below. The same document saved as HWPX by 한글 (no marker) came out right. When the anchor paragraph has no
+//   text, its line is moved up to the paragraph's top (the line minus the table's offset, margins and height):
+//   nothing is drawn on it, and rhwp then puts the table where 한글 does.
 //
 // rhwp's equation fonts are Latin Modern Math, STIX Two and Times New Roman; without the first two or Arial Unicode MS
 // (which Office installs) ∪ ∈ ⊂ ∘ ∼ came out empty, so Cambria Math (part of Windows) is asked for then.
@@ -41,6 +48,9 @@ internal static partial class RhwpInput
     private static readonly (string Text, string Command)[] Operators =
         [("!=", " NEQ "), ("<=", " LEQ "), (">=", " GEQ "), ("+-", " PLUSMINUS "), ("-+", " MINUSPLUS ")];
 
+    /// <summary>The entry rhwp's <c>export-hwpx</c> adds to an HWPX it wrote for an HWP file.</summary>
+    internal const string Hwp5OriginMarker = "META-INF/rhwp-hwp5-origin";
+
     private static readonly string[] SizedObjects =
         ["rect", "ellipse", "arc", "polygon", "curve", "line", "connectLine", "container", "pic", "ole", "textart"];
 
@@ -56,11 +66,13 @@ internal static partial class RhwpInput
             var changed = new Dictionary<string, XDocument>(StringComparer.Ordinal);
             XDocument? header = null;
             var sections = new List<(string Name, XDocument Xml)>();
+            bool fromHwp;
             using (var zip = ZipFile.OpenRead(hwpx))
             {
                 if (zip.GetEntry("Contents/header.xml") is not { } entry)
                     return null;
                 header = Load(entry);
+                fromHwp = zip.GetEntry(Hwp5OriginMarker) is not null;
                 foreach (var section in zip.Entries.Where(e => e.FullName.StartsWith("Contents/section", StringComparison.Ordinal) && e.FullName.EndsWith(".xml", StringComparison.Ordinal)))
                     sections.Add((section.FullName, Load(section)));
             }
@@ -74,7 +86,7 @@ internal static partial class RhwpInput
                 changed["Contents/header.xml"] = header;
 
             foreach (var (name, xml) in sections)
-                if (FixShapeSizes(xml) | NormaliseEquations(xml))
+                if (FixShapeSizes(xml) | NormaliseEquations(xml) | (fromHwp && AnchorTablesInCells(xml)))
                     changed[name] = xml;
             if (changed.Count == 0)
                 return null;
@@ -152,6 +164,46 @@ internal static partial class RhwpInput
         }
         return changed;
     }
+
+    /// <summary>
+    /// In table cells: moves the stored line of a paragraph that holds nothing but one floating table (vertRelTo="PARA",
+    /// top aligned, text above and below) from under the table up to the paragraph's top. Only when the line is where
+    /// 한글 puts it, below the table. True when something changed.
+    /// </summary>
+    internal static bool AnchorTablesInCells(XDocument section)
+    {
+        var changed = false;
+        foreach (var paragraph in section.Descendants().Where(e => e.Name.LocalName == "p" && e.Parent is { Name.LocalName: "subList", Parent.Name.LocalName: "tc" }))
+        {
+            var content = paragraph.Elements().Where(e => e.Name.LocalName == "run").SelectMany(r => r.Elements()).ToList();
+            if (content.Where(e => e.Name.LocalName != "t").ToList() is not [{ Name.LocalName: "tbl" } table]
+                || content.Any(e => e.Name.LocalName == "t" && !string.IsNullOrWhiteSpace(e.Value))
+                || Child(paragraph, "linesegarray")?.Elements().ToList() is not [{ } line]
+                || Child(table, "pos") is not { } pos || Child(table, "sz") is not { } size
+                || (string?)table.Attribute("textWrap") != "TOP_AND_BOTTOM" || (string?)pos.Attribute("treatAsChar") != "0"
+                || (string?)pos.Attribute("vertRelTo") != "PARA" || (string?)pos.Attribute("vertAlign") is { } align && align != "TOP"
+                || Number(line, "vertpos") is not { } vertpos || Number(pos, "vertOffset") is not { } offset || Number(size, "height") is not { } height)
+                continue;
+
+            var margin = Child(table, "outMargin");
+            var top = vertpos - offset - height - (Number(margin, "top") ?? 0) - (Number(margin, "bottom") ?? 0);
+            // The previous paragraph's last line ends above the anchor paragraph: otherwise the line was not under the table.
+            var previous = paragraph.ElementsBeforeSelf().LastOrDefault(e => e.Name.LocalName == "p");
+            var above = Child(previous, "linesegarray")?.Elements().LastOrDefault() is { } last
+                ? (Number(last, "vertpos") ?? 0) + (Number(last, "vertsize") ?? 0)
+                : 0;
+            if (top < above || top >= vertpos)
+                continue;
+            line.SetAttributeValue("vertpos", top);
+            changed = true;
+        }
+        return changed;
+    }
+
+    private static XElement? Child(XElement? element, string name) => element?.Elements().FirstOrDefault(e => e.Name.LocalName == name);
+
+    private static int? Number(XElement? element, string attribute) =>
+        int.TryParse((string?)element?.Attribute(attribute), out var value) ? value : null;
 
     private static bool NormaliseEquations(XDocument section)
     {

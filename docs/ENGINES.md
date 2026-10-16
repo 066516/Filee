@@ -615,6 +615,12 @@ built-in routes always win where they exist.
 rhwp converts between the two 한글 formats without Hancom Office (`export-hwpx` and `convert`). Anything → HWP goes
 through the HWPX writer and then rhwp.
 
+For HWP / HWPX → PDF, rhwp renders a copy of the HWPX (an HWP is exported with `export-hwpx` first) when Filee has to
+change something for it (`Hwp/RhwpInput.cs`): fonts that are installed, the laid-out size of boxes sized relative to
+the column, spaced equation commands, and, in an HWPX exported from an HWP (rhwp's `META-INF/rhwp-hwp5-origin`
+marker), the stored line of a cell paragraph that holds only a floating table moved up to the paragraph's top, so the
+table is not drawn over the paragraphs below it (#49).
+
 ## Archives
 
 The archive engine (`Archives/ArchiveConverter.cs`, id `archive`) uses Filee's own copy of the 7-Zip console program
