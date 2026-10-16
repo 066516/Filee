@@ -737,7 +737,7 @@ public sealed partial class DonutMenu : Control
             OnProgressPointerMoved(new Point(double.MaxValue / 4, 0));
             return;
         }
-        if (_press is null)
+        if (_press is null && !LeftThroughSeam(e.GetPosition(this)))
         {
             CollapseGroup();
             SetHover(-1);
@@ -1152,14 +1152,30 @@ public sealed partial class DonutMenu : Control
     private static readonly IBrush HitBackdrop = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0));
 
     /// <summary>
-    /// <see cref="HitBackdrop"/> over just the fan of <paramref name="group"/>: elsewhere around the donut clicks and
-    /// drags still go through to the windows below, as without groups.
+    /// <see cref="HitBackdrop"/> over the donut and the fan of <paramref name="group"/>. The donut has see-through seams
+    /// (between the hole and the slices, between slices): the pointer crossing one on its way to the ring would leave
+    /// the window there too. Around the donut, outside the fan, clicks and drags still go through to the windows
+    /// below, as without groups.
     /// </summary>
     private void DrawHitBackdrop(DrawingContext context, Point center, int group, int count)
     {
         var reach = SubRadii.Outer + BackdropMargin;
         var span = Math.Min(2 * Math.PI, SubSpanOf(count) * count + 2 * BackdropMargin / reach);
+        context.DrawEllipse(HitBackdrop, null, center, OuterRadius + PopOut, OuterRadius + PopOut);
         context.DrawGeometry(HitBackdrop, null, CreateWedge(center, OuterRadius, reach, DonutGeometry.MidAngle(group, Count), span));
+    }
+
+    /// <summary>
+    /// True when the pointer "left" at <paramref name="p"/>, still on the donut or the fan of the group that is open or
+    /// about to open: a see-through pixel let it through there (Windows and macOS do that), it didn't really leave.
+    /// </summary>
+    internal bool LeftThroughSeam(Point p)
+    {
+        var group = _expanded >= 0 ? _expanded : _pendingGroup;
+        if (group < 0 || IsEditMode)
+            return false;
+        var distance = Distance(p, Center);
+        return distance <= OuterRadius + PopOut || distance <= SubRadii.Outer + BackdropMargin && InFan(p, group);
     }
 
     /// <summary>The ring an open group fans out, growing out of its slice.</summary>

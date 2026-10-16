@@ -47,6 +47,17 @@ public class DonutGroupTests
     /// <summary>The middle of the group's ring slice <paramref name="sub"/>.</summary>
     private static Point OnRing(DonutMenu donut, int sub) => donut.SubSliceCenter(Group, sub);
 
+    /// <summary>Lets a frame render: the pointer then hits what is drawn, as on screen.</summary>
+    private static void Drawn()
+    {
+        for (var i = 0; i < 3; i++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        }
+        Dispatcher.UIThread.RunJobs();
+    }
+
     private static bool IsOpen(DonutMenu donut) => donut.HitTest(OnRing(donut, 1)).Kind == DonutHitKind.SubSegment;
 
     [AvaloniaFact]
@@ -127,6 +138,9 @@ public class DonutGroupTests
 
         var past = OnGroup(donut, donut.OuterRadius + 7 + DonutMenu.SubRingSpace - 6);
         Assert.Equal(DonutHitKind.Outside, donut.HitTest(past).Kind);
+        // As in the app: the open ring is on screen, and the mouse gets past it by crossing it, not by jumping.
+        Drawn();
+        window.MouseMove(OnGroup(donut, donut.OuterRadius + 30));
         window.MouseDown(past, MouseButton.Left);
         window.MouseUp(past, MouseButton.Left);
         Assert.False(IsOpen(donut));
@@ -406,6 +420,49 @@ public class DonutGroupTests
         // From here the mouse leads as usual: back in the hole the ring folds.
         window.MouseMove(new Point(c.X + 10, c.Y));
         Assert.False(IsOpen(donut));
+        window.Close();
+    }
+
+    /// <summary>Alpha of the donut's pixel at <paramref name="p"/>, drawn on its own (as on its see-through window).</summary>
+    private static byte AlphaAt(DonutMenu donut, Point p)
+    {
+        Dispatcher.UIThread.RunJobs();
+        var size = new PixelSize((int)donut.Bounds.Width, (int)donut.Bounds.Height);
+        using var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(size);
+        bitmap.Render(donut);
+        var pixel = new byte[4];
+        var handle = System.Runtime.InteropServices.GCHandle.Alloc(pixel, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            bitmap.CopyPixels(new PixelRect((int)p.X, (int)p.Y, 1, 1), handle.AddrOfPinnedObject(), 4, 4);
+        }
+        finally
+        {
+            handle.Free();
+        }
+        return pixel[3];
+    }
+
+    [AvaloniaFact]
+    public void An_open_ring_keeps_the_pointer_on_the_window_across_the_donuts_see_through_seams()
+    {
+        var (donut, window) = Open();
+        var c = Center(donut);
+        // The see-through ring between the hole and the slices, on the way from the hole to the group.
+        var seam = OnGroup(donut, donut.OuterRadius * donut.HoleRatio - 3);
+        Assert.Equal(0, AlphaAt(donut, seam)); // closed: clicks there go through, as without groups
+
+        donut.HandleKey(Key.Right);
+        donut.HandleKey(Key.Right);
+        donut.HandleKey(Key.Right);
+        donut.HandleKey(Key.Enter);
+        Assert.True(AlphaAt(donut, seam) > 0); // open: the pointer stays on the window there
+        Assert.Equal(0, AlphaAt(donut, DonutGeometry.PointAt(c, donut.OuterRadius + 40, DonutGeometry.MidAngle(0, 4)))); // not around the donut
+
+        // Where Windows or macOS still report the pointer leaving inside the donut or the ring, it didn't leave.
+        Assert.True(donut.LeftThroughSeam(seam));
+        Assert.True(donut.LeftThroughSeam(OnRing(donut, 0)));
+        Assert.False(donut.LeftThroughSeam(new Point(0, 0)));
         window.Close();
     }
 
