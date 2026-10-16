@@ -208,8 +208,11 @@ Filee 免费，并将一直免费。想支持开发的话，请看[赞助](#赞�
 
 ## 代码签名政策
 
-Filee 的代码签名政策（Code signing policy）和隐私政策见[英文 README](README.md#code-signing-policy)。Filee 不会上传文件，
-也不会发送任何使用数据。
+Filee 由 **Myeonggu Kim**（[KnifeLemon](https://github.com/KnifeLemon)）开发和发布。
+Windows 版本将使用颁发给 Myeonggu Kim 的 [Certum](https://www.certum.eu/) 开源代码签名证书签名，证书正在办理中。
+
+详细政策和隐私政策见[英文 README](README.md#code-signing-policy)。
+Filee 不会上传文件，也不会发送任何使用数据。
 
 ## 赞助
 
@@ -230,7 +233,7 @@ Filee 的"关于"页面（从下一个版本起，赞助期间有效）。一次
 
 ## 许可证
 
-MIT。随附的第三方组件遵循各自的许可证，详见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
+MIT，© 2026 Myeonggu Kim (KnifeLemon) 和 Filee 贡献者。随附的第三方组件遵循各自的许可证，详见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
 
 <p align="center">
   <a href="https://star-history.com/#KnifeLemon/Filee&Date"><img src="https://api.star-history.com/svg?repos=KnifeLemon/Filee&type=Date" alt="Star history" width="600"></a>
