@@ -133,6 +133,27 @@ public enum ResizeMode
     Width,
 }
 
+/// <summary>How an image is turned, after its EXIF orientation is applied.</summary>
+public enum ImageRotation
+{
+    None,
+    /// <summary>90° clockwise.</summary>
+    Right90,
+    /// <summary>90° counter-clockwise.</summary>
+    Left90,
+    Rotate180,
+}
+
+/// <summary>How an image is mirrored, after it is turned.</summary>
+public enum ImageFlip
+{
+    None,
+    /// <summary>Left ↔ right.</summary>
+    Horizontal,
+    /// <summary>Top ↔ bottom.</summary>
+    Vertical,
+}
+
 /// <summary>TIFF compression schemes.</summary>
 public enum TiffCompression
 {
@@ -148,6 +169,12 @@ public sealed class ImageOptions
     public int Quality { get; set; } = 90;
 
     public ResizeMode Resize { get; set; } = ResizeMode.None;
+
+    /// <summary>Turns the image (after its EXIF orientation is applied).</summary>
+    public ImageRotation Rotation { get; set; }
+
+    /// <summary>Mirrors the image (after <see cref="Rotation"/>).</summary>
+    public ImageFlip Flip { get; set; }
 
     /// <summary>Scale in percent when <see cref="Resize"/> is <see cref="ResizeMode.Percent"/>.</summary>
     public int ResizePercent { get; set; } = 50;

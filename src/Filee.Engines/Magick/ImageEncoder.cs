@@ -165,6 +165,25 @@ internal static class ImageEncoder
     {
         image.AutoOrient();
 
+        // After AutoOrient, so a phone photo turns the way it looks, not the way its pixels are stored.
+        switch (options.Rotation)
+        {
+            case ImageRotation.Right90:
+                image.Rotate(90);
+                break;
+            case ImageRotation.Left90:
+                image.Rotate(-90);
+                break;
+            case ImageRotation.Rotate180:
+                image.Rotate(180);
+                break;
+        }
+        // ImageMagick's Flop mirrors left ↔ right, Flip top ↔ bottom.
+        if (options.Flip == ImageFlip.Horizontal)
+            image.Flop();
+        else if (options.Flip == ImageFlip.Vertical)
+            image.Flip();
+
         switch (options.Resize)
         {
             case ResizeMode.Percent when options.ResizePercent is > 0 and not 100:

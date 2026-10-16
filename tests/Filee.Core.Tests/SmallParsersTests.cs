@@ -62,6 +62,20 @@ public class BuiltInDataTests
     }
 
     [Fact]
+    public void Built_in_groups_fan_out_existing_conversions_on_no_default_donut()
+    {
+        var presets = BuiltInData.CreatePresets().ToDictionary(p => p.Id);
+        var groups = presets.Values.Where(p => p.IsGroup).ToList();
+        Assert.NotEmpty(groups);
+        foreach (var group in groups)
+        {
+            Assert.InRange(group.SubPresetIds.Count, 1, Preset.MaxSubPresets);
+            Assert.All(group.SubPresetIds, id => Assert.False(presets[id].IsGroup, id));
+        }
+        Assert.DoesNotContain(BuiltInData.CreateProfiles(), p => p.PresetIds.Any(id => presets[id].IsGroup));
+    }
+
+    [Fact]
     public void Preset_ids_are_unique()
     {
         var presets = BuiltInData.CreatePresets();
