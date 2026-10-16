@@ -19,21 +19,31 @@ public enum PresetKind
 }
 
 /// <summary>
-/// Reads <see cref="PresetKind"/> by name. An unknown kind (a newer Filee's) becomes <see cref="PresetKind.Group"/>:
-/// never run as a conversion, and the rest of the presets still load (failing would reset them all to the defaults).
+/// Reads an enum by name. A value this version doesn't know (a newer Filee's, or a number outside the enum) becomes
+/// <see cref="Unknown"/>, the first value unless a subclass says otherwise: the preset still loads, instead of the
+/// whole preset file failing to read (which resets every preset to the defaults).
 /// </summary>
-public sealed class PresetKindJsonConverter : JsonConverter<PresetKind>
+public class LenientEnumJsonConverter<TEnum> : JsonConverter<TEnum> where TEnum : struct, Enum
 {
-    public override PresetKind Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        reader.TokenType == JsonTokenType.String &&
-        Enum.TryParse<PresetKind>(reader.GetString(), ignoreCase: true, out var kind) && Enum.IsDefined(kind)
-            ? kind
-            : reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var number) && Enum.IsDefined((PresetKind)number)
-                ? (PresetKind)number
-                : PresetKind.Group;
+    protected virtual TEnum Unknown => default;
 
-    public override void Write(Utf8JsonWriter writer, PresetKind value, JsonSerializerOptions options) =>
+    public override TEnum Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+        reader.TokenType == JsonTokenType.String && Enum.TryParse<TEnum>(reader.GetString(), ignoreCase: true, out var value) &&
+        Enum.IsDefined(value)
+            ? value
+            : reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var number) &&
+              Enum.IsDefined((TEnum)Enum.ToObject(typeof(TEnum), number))
+                ? (TEnum)Enum.ToObject(typeof(TEnum), number)
+                : Unknown;
+
+    public override void Write(Utf8JsonWriter writer, TEnum value, JsonSerializerOptions options) =>
         writer.WriteStringValue(value.ToString());
+}
+
+/// <summary>An unknown kind is read as a group: never run as a conversion.</summary>
+public sealed class PresetKindJsonConverter : LenientEnumJsonConverter<PresetKind>
+{
+    protected override PresetKind Unknown => PresetKind.Group;
 }
 
 /// <summary>
@@ -154,26 +164,6 @@ public enum ImageFlip
     Vertical,
 }
 
-/// <summary>
-/// Reads an enum by name, and a value this version doesn't know (a newer Filee's, or a number outside it) as its
-/// first value, "none": the preset loads without it instead of the whole preset file failing (which resets every
-/// preset to the defaults).
-/// </summary>
-public sealed class UnknownAsNoneJsonConverter<TEnum> : JsonConverter<TEnum> where TEnum : struct, Enum
-{
-    public override TEnum Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        reader.TokenType == JsonTokenType.String && Enum.TryParse<TEnum>(reader.GetString(), ignoreCase: true, out var value) &&
-        Enum.IsDefined(value)
-            ? value
-            : reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var number) &&
-              Enum.IsDefined((TEnum)Enum.ToObject(typeof(TEnum), number))
-                ? (TEnum)Enum.ToObject(typeof(TEnum), number)
-                : default;
-
-    public override void Write(Utf8JsonWriter writer, TEnum value, JsonSerializerOptions options) =>
-        writer.WriteStringValue(value.ToString());
-}
-
 /// <summary>TIFF compression schemes.</summary>
 public enum TiffCompression
 {
@@ -191,11 +181,11 @@ public sealed class ImageOptions
     public ResizeMode Resize { get; set; } = ResizeMode.None;
 
     /// <summary>Turns the image (after its EXIF orientation is applied).</summary>
-    [JsonConverter(typeof(UnknownAsNoneJsonConverter<ImageRotation>))]
+    [JsonConverter(typeof(LenientEnumJsonConverter<ImageRotation>))]
     public ImageRotation Rotation { get; set; }
 
     /// <summary>Mirrors the image (after <see cref="Rotation"/>).</summary>
-    [JsonConverter(typeof(UnknownAsNoneJsonConverter<ImageFlip>))]
+    [JsonConverter(typeof(LenientEnumJsonConverter<ImageFlip>))]
     public ImageFlip Flip { get; set; }
 
     /// <summary>Turns or mirrors the image: only engines that do (<see cref="Conversion.IImageTransformer"/>) can run it.</summary>
