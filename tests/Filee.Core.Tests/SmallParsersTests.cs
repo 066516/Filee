@@ -54,6 +54,18 @@ public class BuiltInDataTests
     }
 
     [Fact]
+    public void A_group_clone_keeps_its_kind_and_members()
+    {
+        var group = new Preset { Kind = PresetKind.Group, SubPresetIds = ["to-png", "to-jpg"] };
+        var clone = group.Clone();
+        Assert.True(clone.IsGroup);
+        Assert.Equal(["to-png", "to-jpg"], clone.SubPresetIds);
+        clone.SubPresetIds.Add("to-webp");
+        Assert.Equal(2, group.SubPresetIds.Count); // a copy, not the same list
+        Assert.False(new Preset { SubPresetIds = ["to-png"] }.IsGroup); // members alone don't make a group
+    }
+
+    [Fact]
     public void Preset_ids_are_unique()
     {
         var presets = BuiltInData.CreatePresets();

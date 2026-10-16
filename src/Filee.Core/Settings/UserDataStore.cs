@@ -122,6 +122,9 @@ public sealed class UserDataStore
 
     public Preset? FindPreset(string id) => Presets.FirstOrDefault(p => p.Id == id);
 
+    /// <summary>The preset <paramref name="id"/> when it converts (a group doesn't), for every place that runs one.</summary>
+    public Preset? FindConversion(string id) => Presets.FirstOrDefault(p => p.Id == id && !p.IsGroup);
+
     /// <summary>Exports presets and profiles to a shareable JSON file.</summary>
     public void Export(string path) =>
         Write(path, new PresetBundle { Presets = Presets, Profiles = Profiles }, FileeJsonContext.Default.PresetBundle);
@@ -159,6 +162,18 @@ public sealed class UserDataStore
         foreach (var profile in Profiles)
         {
             profile.PresetIds = profile.PresetIds.Where(ids.Contains).Distinct().Take(ToolbarProfile.MaxSlices).ToList();
+        }
+        // A Filee from before groups drops "kind" (and the presets) when it saves a group, which comes back as a
+        // conversion to "group": still a group, now an empty one, rather than a conversion that can never run.
+        foreach (var preset in Presets.Where(p => !p.IsGroup && p.TargetFormat == Preset.GroupTarget))
+            preset.Kind = PresetKind.Group;
+        // A group fans out conversions only (no group in a group), each once, at most MaxSubPresets, and has no
+        // target format an older Filee could run it with.
+        var conversions = Presets.Where(p => !p.IsGroup).Select(p => p.Id).ToHashSet();
+        foreach (var group in Presets.Where(p => p.IsGroup))
+        {
+            group.SubPresetIds = group.SubPresetIds.Where(conversions.Contains).Distinct().Take(Preset.MaxSubPresets).ToList();
+            group.TargetFormat = Preset.GroupTarget;
         }
 
         // Several mixed profiles are fine (each limited to the extensions checked on it); none is not.

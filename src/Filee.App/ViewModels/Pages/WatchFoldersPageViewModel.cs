@@ -29,7 +29,7 @@ public sealed partial class WatchFoldersPageViewModel : ObservableObject, IDispo
         _service = service;
         _loc = loc;
         _conversions = conversions;
-        Presets = store.Presets.Select(p => new Choice<string>(p.Id, loc.DisplayName(p), FormatLabels.NameOf(loc, p.TargetFormat))).ToList();
+        Presets = store.Presets.Where(p => !p.IsGroup).Select(p => new Choice<string>(p.Id, loc.DisplayName(p), FormatLabels.NameOf(loc, p.TargetFormat))).ToList();
         OriginalsChoices =
         [
             new Choice<AfterConversion>(AfterConversion.Keep, loc["watch.originals_keep"]),
@@ -80,7 +80,7 @@ public sealed partial class WatchFoldersPageViewModel : ObservableObject, IDispo
     /// </summary>
     internal (string Example, string Details)? PreviewOf(WatchRule rule)
     {
-        if (_store.FindPreset(rule.PresetId) is not { } preset)
+        if (_store.FindConversion(rule.PresetId) is not { } preset)
             return null;
         var folder = rule.Folder.Trim();
         var source = SampleFile(rule) ?? Path.Combine(folder, _loc["watch.sample_file"]);
@@ -98,7 +98,7 @@ public sealed partial class WatchFoldersPageViewModel : ObservableObject, IDispo
 
     /// <summary>The pattern a rule without its own file name rule uses: the preset's.</summary>
     internal string PresetNamePattern(WatchRule rule) =>
-        _store.FindPreset(rule.PresetId) is { } preset && !string.IsNullOrWhiteSpace(preset.Output.FileNamePattern)
+        _store.FindConversion(rule.PresetId) is { } preset && !string.IsNullOrWhiteSpace(preset.Output.FileNamePattern)
             ? preset.Output.FileNamePattern
             : "{name}";
 
@@ -111,7 +111,7 @@ public sealed partial class WatchFoldersPageViewModel : ObservableObject, IDispo
     /// <summary>The file name a source gets in this folder with a base name pattern and rules in place of the rule's.</summary>
     internal string OutputNameOf(WatchRule rule, string source, string pattern, IReadOnlyList<RenameStep> steps)
     {
-        if (_store.FindPreset(rule.PresetId) is not { } preset)
+        if (_store.FindConversion(rule.PresetId) is not { } preset)
             return source;
         var trial = rule.Clone();
         trial.FileNamePattern = pattern;

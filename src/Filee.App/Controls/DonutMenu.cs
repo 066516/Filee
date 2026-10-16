@@ -5,7 +5,8 @@
 // its exact wedge shape. Animations are tiny springs advanced on each rendered frame; with
 // Motion.Enabled == false every value jumps straight to its target.
 //
-// After a drop the donut turns into a progress ring: see DonutMenu.Progress.cs.
+// After a drop the donut turns into a progress ring: see DonutMenu.Progress.cs. Group slices, which fan out a ring
+// of presets, and the keyboard: DonutMenu.Groups.cs.
 
 using System.Globalization;
 using Avalonia;
@@ -31,6 +32,18 @@ public sealed class DonutItem
 
     /// <summary>Tooltip shown for disabled slices.</summary>
     public string? DisabledReason { get; init; }
+
+    /// <summary>
+    /// A group slice: converts nothing itself; hovering it fans these out in a small ring outside the donut, where they
+    /// are clicked or dropped on like ordinary slices.
+    /// </summary>
+    public IReadOnlyList<DonutItem>? Children { get; init; }
+
+    /// <summary>A group slice (<see cref="Children"/> set), even one left with nothing to fan out.</summary>
+    public bool IsGroup => Children is not null;
+
+    /// <summary>A group with something to fan out.</summary>
+    public bool CanExpand => Children is { Count: > 0 };
 }
 
 /// <summary>Donut-shaped menu control.</summary>
@@ -52,6 +65,8 @@ public sealed partial class DonutMenu : Control
         AvaloniaProperty.Register<DonutMenu, bool>(nameof(IsEditMode));
     public static readonly StyledProperty<bool> AllowContextEditProperty =
         AvaloniaProperty.Register<DonutMenu, bool>(nameof(AllowContextEdit));
+    public static readonly StyledProperty<bool> ReserveSubRingProperty =
+        AvaloniaProperty.Register<DonutMenu, bool>(nameof(ReserveSubRing));
 
     public static readonly StyledProperty<IBrush?> SliceBrushProperty =
         AvaloniaProperty.Register<DonutMenu, IBrush?>(nameof(SliceBrush), Brushes.White);
@@ -109,7 +124,7 @@ public sealed partial class DonutMenu : Control
 
     static DonutMenu()
     {
-        AffectsMeasure<DonutMenu>(OuterRadiusProperty);
+        AffectsMeasure<DonutMenu>(OuterRadiusProperty, ReserveSubRingProperty);
         AffectsRender<DonutMenu>(HoleRatioProperty, SliceOpacityProperty, CenterTitleProperty, CenterSubtitleProperty,
             IsEditModeProperty, SliceBrushProperty, SliceBorderBrushProperty, CenterBrushProperty, AccentBrushProperty,
             OnAccentBrushProperty, ForegroundProperty, SecondaryForegroundProperty, SuccessBrushProperty);
@@ -135,6 +150,12 @@ public sealed partial class DonutMenu : Control
     /// <summary>Live toolbar in click mode: right-click on a slice raises <see cref="SegmentContextRequested"/>.</summary>
     public bool AllowContextEdit { get => GetValue(AllowContextEditProperty); set => SetValue(AllowContextEditProperty, value); }
 
+    /// <summary>
+    /// Leave room for a group's ring even before the slices are known (the drag window is placed before files arrive),
+    /// so the window doesn't grow, and the donut move, when they do.
+    /// </summary>
+    public bool ReserveSubRing { get => GetValue(ReserveSubRingProperty); set => SetValue(ReserveSubRingProperty, value); }
+
     public IBrush? SliceBrush { get => GetValue(SliceBrushProperty); set => SetValue(SliceBrushProperty, value); }
     public IBrush? SliceBorderBrush { get => GetValue(SliceBorderBrushProperty); set => SetValue(SliceBorderBrushProperty, value); }
     public IBrush? CenterBrush { get => GetValue(CenterBrushProperty); set => SetValue(CenterBrushProperty, value); }
@@ -153,8 +174,17 @@ public sealed partial class DonutMenu : Control
     /// <summary>A slice was clicked (live toolbar, click mode).</summary>
     public event EventHandler<int>? SegmentInvoked;
 
+    /// <summary>A slice of a group's ring was clicked: (group, slice in the group).</summary>
+    public event EventHandler<(int Group, int Sub)>? SubSegmentInvoked;
+
+    /// <summary>The hovered slice of a group's ring, or -1. <see cref="ActiveIndexChanged"/> is raised when it changes.</summary>
+    public int ActiveSubIndex => _subHover;
+
     /// <summary>Right-click or ✎ on a slice.</summary>
     public event EventHandler<int>? SegmentContextRequested;
+
+    /// <summary>Right-click on a slice of a group's ring (live toolbar, click mode): (group, slice in the group).</summary>
+    public event EventHandler<(int Group, int Sub)>? SubSegmentContextRequested;
 
     /// <summary>The hole was clicked.</summary>
     public event EventHandler? CenterInvoked;
@@ -326,14 +356,30 @@ public sealed partial class DonutMenu : Control
         if (IsEditMode && _hoverIndex >= 0 && _hoverIndex < Count &&
             Distance(p, EditButtonCenter(_hoverIndex)) <= 13)
             return new DonutHit(DonutHitKind.EditButton, _hoverIndex);
-        return DonutGeometry.HitTest(Center, p, InnerRadius, OuterRadius, Count, PopOut);
+        var hit = DonutGeometry.HitTest(Center, p, InnerRadius, OuterRadius, Count, PopOut);
+        if (ExpandedChildren is { } children)
+        {
+            var (inner, outer) = SubRadii;
+            var parentMid = DonutGeometry.MidAngle(_expanded, Count);
+            var subSpan = SubSpanOf(children.Count);
+            var sub = DonutGeometry.SubIndexAt(Center, p, inner, outer, parentMid, children.Count, subSpan);
+            if (sub >= 0)
+                return new DonutHit(DonutHitKind.SubSegment, _expanded, sub);
+            // On the way out to the ring the pointer crosses the gap before it: there it still belongs to the group, or
+            // the ring would fold away (or the hint and the drag cursor flicker) just before it is reached. A neighbour's
+            // outer half stays that neighbour, so a click or a drop there converts with it; TrackGroups keeps the ring
+            // open over it (OnWayToRing).
+            if (hit.Kind == DonutHitKind.Outside && Distance(p, Center) < inner && InFan(p, _expanded))
+                return new DonutHit(DonutHitKind.Segment, _expanded);
+        }
+        return hit;
     }
 
     // ───────────────────────── Layout ─────────────────────────
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        var side = 2 * (OuterRadius + PopOut + 14);
+        var side = SideFor(OuterRadius, ReserveSubRing || (!IsEditMode && Items?.Any(i => i.IsGroup) == true));
         return new Size(side, side);
     }
 
@@ -352,6 +398,13 @@ public sealed partial class DonutMenu : Control
         _previewSpan = default;
         _mid = Enumerable.Range(0, n).Select(i => new Spring { Value = DonutGeometry.MidAngle(i, n) }).ToArray();
         _span = Enumerable.Range(0, n).Select(_ => new Spring { Value = DonutGeometry.Span(n) }).ToArray();
+        _expanded = _shownExpanded = _subHover = -1;
+        ClearPending();
+        _expand = default;
+        // The window is reused: a keyboard hold from the last time it was open must not swallow the first moves now.
+        _keyboardHold = _ringFromKeys = false;
+        _keyAnchor = _lastPointer = null;
+        InvalidateMeasure();
         InvalidateVisual();
     }
 
@@ -374,13 +427,27 @@ public sealed partial class DonutMenu : Control
             return;
         }
 
+        if (_keyboardHold)
+        {
+            if (_keyAnchor is not { } anchor)
+                _keyAnchor = anchor = p;
+            if (Distance(p, anchor) < KeyboardJitter)
+                return;
+            _keyboardHold = false;
+        }
+        _lastPointer = p;
+
         var hit = HitTest(p);
+        TrackGroups(hit, p);
         SetHover(hit.Kind switch
         {
-            DonutHitKind.Segment or DonutHitKind.EditButton => hit.Index,
+            DonutHitKind.Segment or DonutHitKind.EditButton or DonutHitKind.SubSegment => hit.Index,
             _ => -1,
         });
-        ToolTip.SetTip(this, _hoverIndex >= 0 && Items![_hoverIndex] is { IsEnabled: false } item ? item.DisabledReason : null);
+        // On a group's ring, why that slice (not the group) is disabled.
+        var hovered = hit.Kind == DonutHitKind.SubSegment ? Items![hit.Index].Children![hit.Sub]
+            : _hoverIndex >= 0 ? Items![_hoverIndex] : null;
+        ToolTip.SetTip(this, hovered is { IsEnabled: false } ? hovered.DisabledReason : null);
     }
 
     protected override void OnPointerExited(PointerEventArgs e)
@@ -391,8 +458,11 @@ public sealed partial class DonutMenu : Control
             OnProgressPointerMoved(new Point(double.MaxValue / 4, 0));
             return;
         }
-        if (_press is null)
+        if (_press is null && !LeftThroughSeam(e.GetPosition(this)))
+        {
+            CollapseGroup();
             SetHover(-1);
+        }
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -416,6 +486,11 @@ public sealed partial class DonutMenu : Control
             if (hit.Kind is DonutHitKind.Segment or DonutHitKind.EditButton && (IsEditMode || AllowContextEdit))
             {
                 SegmentContextRequested?.Invoke(this, hit.Index);
+                e.Handled = true;
+            }
+            else if (hit.Kind == DonutHitKind.SubSegment && AllowContextEdit)
+            {
+                SubSegmentContextRequested?.Invoke(this, (hit.Index, hit.Sub));
                 e.Handled = true;
             }
             return;
@@ -448,8 +523,17 @@ public sealed partial class DonutMenu : Control
             case DonutHitKind.EditButton:
                 SegmentContextRequested?.Invoke(this, hit.Index);
                 break;
-            case DonutHitKind.Segment when !IsEditMode && Items![hit.Index].IsEnabled:
+            case DonutHitKind.Segment when !IsEditMode && Items![hit.Index] is { IsEnabled: true, IsGroup: false }:
                 SegmentInvoked?.Invoke(this, hit.Index);
+                break;
+            case DonutHitKind.Segment when !IsEditMode && Items![hit.Index].Children is { Count: > 0 }:
+                Expand(hit.Index); // no waiting when clicked; a tap has no hover to rest on at all
+                break;
+            case DonutHitKind.Outside when !IsEditMode && _expanded >= 0:
+                CollapseGroup(); // clicked past the ring
+                break;
+            case DonutHitKind.SubSegment when !IsEditMode && Items![hit.Index].Children![hit.Sub].IsEnabled:
+                SubSegmentInvoked?.Invoke(this, (hit.Index, hit.Sub));
                 break;
             case DonutHitKind.Center when !IsEditMode:
                 CenterInvoked?.Invoke(this, EventArgs.Empty);
@@ -585,6 +669,9 @@ public sealed partial class DonutMenu : Control
         for (var i = 0; i < _hover.Length; i++)
             _hover[i] = new Spring { Value = i == ActiveIndex ? 1 : 0 };
         _centerPulse = default;
+        _expand = new Spring { Value = _expanded >= 0 ? 1 : 0 };
+        if (_expanded < 0)
+            _shownExpanded = -1;
         StepLayout(0, snap: true);
         if (_openClock < double.MaxValue)
         {
@@ -629,6 +716,9 @@ public sealed partial class DonutMenu : Control
             }
             Array.Fill(_open, _closing ? 0 : 1);
             _centerPulse = default;
+            _expand = new Spring { Value = _expanded >= 0 ? 1 : 0 };
+            if (_expanded < 0)
+                _shownExpanded = -1;
             StepLayout(dt);
             if (_closing)
                 FinishClose();
@@ -641,6 +731,11 @@ public sealed partial class DonutMenu : Control
             for (var i = 0; i < _hover.Length; i++)
                 active |= i == ActiveIndex ? _hover[i].Step(1, dt) : _hover[i].Step(0, dt, 320, CriticalDamping);
             active |= _centerPulse.Step(0, dt, 260, 12);
+            // A soft bounce opening, like the slices popping out; folding away settles without one. The bounce grows the
+            // ring by about a pixel, well inside the room kept for it (SubRingSpace).
+            active |= _expanded >= 0 ? _expand.Step(1, dt, 320, 24) : _expand.Step(0, dt, 320, CriticalDamping);
+            if (_expanded < 0 && _expand.Value <= 0.001)
+                _shownExpanded = -1;
             active |= StepProgress(dt);
             active |= StepLayout(dt);
 
@@ -757,6 +852,12 @@ public sealed partial class DonutMenu : Control
 
         if (IsEditMode && _previewSpan.Value > 0.01)
             DrawPreview(context, center, r1, r2, typeface, typefaceRegular);
+
+        var reaching = _expanded >= 0 ? _expanded : _pendingGroup;
+        if (!IsEditMode && reaching >= 0 && reaching < n && Items![reaching].Children is { Count: > 0 } reachable)
+            DrawHitBackdrop(context, center, reaching, reachable.Count);
+        if (!IsEditMode && _shownExpanded >= 0 && _shownExpanded < n && _expand.Value > 0.01)
+            DrawSubRing(context, center, typeface, typefaceRegular);
 
         DrawCenter(context, center, r1, typeface, typefaceRegular);
 

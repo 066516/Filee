@@ -1,5 +1,6 @@
 // Thin view for the live donut: forwards drag & drop and pointer events to RadialController.
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
@@ -39,6 +40,7 @@ public partial class RadialWindow : Window
 
     private int _dragOverEvents;
     private DonutHit _lastDragHit;
+    private Point? _lastDragAt;
 
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
@@ -49,27 +51,30 @@ public partial class RadialWindow : Window
             return;
         }
         _dragOverEvents = 0;
+        _lastDragAt = null;
         FilesEntered?.Invoke(files);
         OnDragOver(sender, e);
     }
 
     private void OnDragOver(object? sender, DragEventArgs e)
     {
-        var hit = Donut.HitTest(e.GetPosition(Donut));
+        var at = e.GetPosition(Donut);
+        var hit = Donut.HitTest(at);
         _dragOverEvents++;
         _lastDragHit = hit;
+        _lastDragAt = at;
         var files = e.DataTransfer.Contains(DataFormat.File);
-        Donut.SetExternalHighlight(hit.Kind == DonutHitKind.Segment ? hit.Index : -1, hit.Kind == DonutHitKind.Center);
+        Donut.SetExternalHit(hit, at);
 
         // Always COPY. Reporting MOVE would make Explorer delete the source files after the drop.
-        e.DragEffects = files && hit.Kind == DonutHitKind.Segment ? DragDropEffects.Copy : DragDropEffects.None;
+        e.DragEffects = files && Donut.Converts(hit) ? DragDropEffects.Copy : DragDropEffects.None;
         e.Handled = true;
     }
 
     private void OnDragLeave(object? sender, DragEventArgs e)
     {
         DragSummary?.Invoke(_dragOverEvents, _lastDragHit, Donut.LitAmount(_lastDragHit.Index));
-        Donut.SetExternalHighlight(-1);
+        Donut.ExternalDragLeft(_lastDragAt);
         DragLeft?.Invoke();
     }
 
@@ -77,8 +82,9 @@ public partial class RadialWindow : Window
     {
         var hit = Donut.HitTest(e.GetPosition(Donut));
         DragSummary?.Invoke(_dragOverEvents, hit, Donut.LitAmount(hit.Index));
+        Donut.CollapseGroup();
         Donut.SetExternalHighlight(-1);
-        e.DragEffects = hit.Kind == DonutHitKind.Segment ? DragDropEffects.Copy : DragDropEffects.None;
+        e.DragEffects = Donut.Converts(hit) ? DragDropEffects.Copy : DragDropEffects.None;
         Dropped?.Invoke(hit, LocalFiles(e));
         e.Handled = true;
     }
@@ -86,6 +92,11 @@ public partial class RadialWindow : Window
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        if (Donut.HandleKey(e.Key, e.KeyModifiers))
+        {
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.Escape)
         {
             EscapePressed?.Invoke();
@@ -94,6 +105,14 @@ public partial class RadialWindow : Window
     }
 
     public event Action? EscapePressed;
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        // Hidden, however that happened: a group waiting to open doesn't open on the hidden donut.
+        if (change.Property == IsVisibleProperty && !change.GetNewValue<bool>())
+            Donut.CollapseGroup();
+    }
 
     /// <summary>Local file paths in the drag data (folders and virtual items are ignored).</summary>
     private static IReadOnlyList<string> LocalFiles(DragEventArgs e) =>

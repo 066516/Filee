@@ -24,9 +24,13 @@ public enum DonutHitKind
     ProgressRing,
     /// <summary>The × (cancel) button on the progress ring.</summary>
     ProgressCancel,
+
+    /// <summary>A slice of the small ring a group slice fans out; <see cref="DonutHit.Index"/> is the group, <see cref="DonutHit.Sub"/> the slice.</summary>
+    SubSegment,
 }
 
-public readonly record struct DonutHit(DonutHitKind Kind, int Index = -1);
+/// <param name="Sub">With <see cref="DonutHitKind.SubSegment"/>: which of the group's presets.</param>
+public readonly record struct DonutHit(DonutHitKind Kind, int Index = -1, int Sub = -1);
 
 /// <summary>Geometry helpers.</summary>
 public static class DonutGeometry
@@ -55,6 +59,48 @@ public static class DonutGeometry
             return -1;
         var span = Span(count);
         return (int)Math.Floor((angle + span / 2) / span) % count;
+    }
+
+    /// <summary>How far a group's fan reaches into each neighbouring slice, as a share of a slice.</summary>
+    public const double SubOverhang = 0.25;
+
+    /// <summary>Narrowest a slice of a group's ring gets (along its middle), so its label still fits.</summary>
+    public const double MinSubWidth = 44;
+
+    /// <summary>
+    /// Width of one slice of a group's outer ring: the fan covers the group's slice and a quarter of each neighbour
+    /// (<see cref="SubOverhang"/>), split evenly, so it stays close to the slice it belongs to. On a crowded donut it
+    /// widens to keep each slice <see cref="MinSubWidth"/> wide at <paramref name="midRadius"/>; it never goes round
+    /// more than once (a donut of one slice), where slices would lie on top of each other.
+    /// </summary>
+    public static double SubSpan(double parentSpan, int count, double midRadius = 0)
+    {
+        if (count <= 0)
+            return 0;
+        var span = parentSpan * (1 + 2 * SubOverhang) / count;
+        if (midRadius > 0)
+            span = Math.Max(span, MinSubWidth / midRadius);
+        return Math.Min(span, 2 * Math.PI / count);
+    }
+
+    /// <summary>Centre angle of slice <paramref name="sub"/> of a fan of <paramref name="count"/>, centred on <paramref name="parentMid"/>.</summary>
+    public static double SubMidAngle(double parentMid, int sub, int count, double subSpan) =>
+        parentMid + (sub - (count - 1) / 2.0) * subSpan;
+
+    /// <summary>
+    /// Which slice of a group's fan (between <paramref name="innerRadius"/> and <paramref name="outerRadius"/>) holds
+    /// <paramref name="p"/>, or -1.
+    /// </summary>
+    public static int SubIndexAt(Point center, Point p, double innerRadius, double outerRadius, double parentMid, int count, double subSpan)
+    {
+        var distance = Math.Sqrt(Math.Pow(p.X - center.X, 2) + Math.Pow(p.Y - center.Y, 2));
+        if (count <= 0 || distance < innerRadius || distance > outerRadius)
+            return -1;
+        // Signed angle from the fan's centre, wrapped to -π..π so a fan across 12 o'clock works.
+        var delta = AngleOf(center, p) - parentMid;
+        delta = Math.IEEERemainder(delta, 2 * Math.PI);
+        var sub = (int)Math.Floor(delta / subSpan + count / 2.0);
+        return sub >= 0 && sub < count ? sub : -1;
     }
 
     /// <summary>Classifies a point. <paramref name="slack"/> extends the outer radius to include popped-out slices.</summary>

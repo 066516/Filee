@@ -335,6 +335,72 @@ public class RenderTests
         window.Close();
     }
 
+    /// <summary>
+    /// A group of three formats on the image donut: hovering it fans PNG / JPG / WEBP out outside it, and the slice
+    /// under the pointer there is what a drop or click converts with.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData("ko")]
+    [InlineData("en")]
+    public void A_group_slice_fans_out_its_presets(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var store = AppHost.Get<UserDataStore>();
+        var images = store.Profiles.Single(p => p.Id == "images");
+        var before = images.PresetIds.ToList();
+        var group = new Filee.Core.Presets.Preset
+        {
+            Id = "render-group",
+            Name = language == "ko" ? "형식" : "Formats",
+            Kind = Filee.Core.Presets.PresetKind.Group,
+            SubPresetIds = ["to-png", "to-jpg", "to-webp"],
+        };
+        try
+        {
+            store.Presets.Add(group);
+            images.PresetIds.Add(group.Id);
+            var vm = AppHost.Get<RadialViewModel>();
+            vm.Load([@"C:\photos\a.jpg"], clickMode: true);
+            vm.FitToThisDonut();
+            Assert.True(vm.ReserveSubRing);
+            var index = vm.Items.Count - 1;
+            Assert.Equal(3, vm.Items[index].Children!.Count);
+            Assert.Null(vm.PresetAt(index, -1)); // the group itself converts nothing
+            Assert.Equal("to-jpg", vm.PresetAt(index, 1)!.Id);
+
+            var window = new RadialWindow { DataContext = vm };
+            window.Show();
+            var donut = window.DonutControl;
+            donut.SetExternalHit(new DonutHit(DonutHitKind.Segment, index));
+            donut.ExpandPendingGroup(); // as after resting on it
+            donut.SetExternalHit(new DonutHit(DonutHitKind.SubSegment, index, 1));
+            vm.ShowHint(index, donut.ActiveSubIndex, centerHot: false);
+            Pump();
+
+            var n = vm.Items.Count;
+            var center = new Avalonia.Point(donut.Bounds.Width / 2, donut.Bounds.Height / 2);
+            var onRing = donut.SubSliceCenter(index, 1);
+            Assert.Equal(new DonutHit(DonutHitKind.SubSegment, index, 1), donut.HitTest(onRing));
+            // The gap before the ring keeps the group; a neighbour's slice, outer half or inner, is that neighbour (a click
+            // or drop there converts with it; DonutGroupTests checks the ring stays open over its outer half).
+            var neighbour = DonutGeometry.MidAngle(index, n) - DonutGeometry.Span(n) * 0.6;
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, index),
+                donut.HitTest(DonutGeometry.PointAt(center, vm.OuterRadius + 10, DonutGeometry.MidAngle(index, n))));
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, index - 1), donut.HitTest(DonutGeometry.PointAt(center, vm.OuterRadius - 8, neighbour)));
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, index - 1),
+                donut.HitTest(DonutGeometry.PointAt(center, vm.OuterRadius * vm.HoleRatio + 6, neighbour)));
+            Assert.Contains("JPG", vm.CenterSubtitle);
+            Save(window, $"donut-group-{language}.png");
+            window.Close();
+        }
+        finally
+        {
+            images.PresetIds.Clear();
+            images.PresetIds.AddRange(before);
+            store.Presets.Remove(group);
+        }
+    }
+
     /// <summary>The middle of slot <paramref name="slot"/> of a donut with <paramref name="slots"/> slices.</summary>
     private static Avalonia.Point DonutPoint(DonutMenu donut, int slot, int slots)
     {

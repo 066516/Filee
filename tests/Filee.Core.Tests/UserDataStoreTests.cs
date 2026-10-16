@@ -7,6 +7,94 @@ namespace Filee.Core.Tests;
 public class UserDataStoreTests
 {
     [Fact]
+    public void Groups_keep_only_conversions_once_and_at_most_six()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Presets.Add(new Preset { Id = "other", Name = "Other", Kind = PresetKind.Group, SubPresetIds = ["to-pdf"] });
+        store.Presets.Add(new Preset
+        {
+            Id = "mine",
+            Name = "Mine",
+            Kind = PresetKind.Group,
+            SubPresetIds = ["to-png", "gone", "to-png", "other", "to-jpg", "to-webp", "to-bmp", "to-gif", "to-ico", "to-tiff"],
+        });
+        store.SaveLibrary();
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        // A deleted preset and a group in the group are dropped, a repeat counts once, the rest is cut at six.
+        var group = reloaded.FindPreset("mine")!;
+        Assert.True(group.IsGroup);
+        Assert.Equal(["to-png", "to-jpg", "to-webp", "to-bmp", "to-gif", "to-ico"], group.SubPresetIds);
+        // No target format a Filee from before groups (which reads it as a conversion) could run it with.
+        Assert.Equal(Preset.GroupTarget, group.TargetFormat);
+        Assert.Null(Filee.Core.Formats.FormatRegistry.FindById(Preset.GroupTarget));
+    }
+
+    [Fact]
+    public void Only_a_conversion_is_found_to_run()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Presets.Add(new Preset { Id = "web", Name = "Web", Kind = PresetKind.Group, SubPresetIds = ["to-png"] });
+
+        Assert.NotNull(store.FindPreset("web")); // to edit it
+        Assert.Null(store.FindConversion("web")); // never to run it (a watch folder pointing at it converts nothing)
+        Assert.Equal("to-png", store.FindConversion("to-png")!.Id);
+    }
+
+    [Fact]
+    public void A_kind_from_a_newer_Filee_reads_as_a_group_and_the_other_presets_still_load()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Presets.Add(new Preset { Id = "future", Name = "Future", Kind = PresetKind.Group, SubPresetIds = ["to-png"] });
+        store.SaveLibrary();
+        var path = Path.Combine(dir.Path, "presets.json");
+        var json = File.ReadAllText(path);
+        Assert.Contains("\"kind\": \"Group\"", json);
+        File.WriteAllText(path, json.Replace("\"kind\": \"Group\"", "\"kind\": \"Chain\""));
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        Assert.True(reloaded.FindPreset("future")!.IsGroup); // never run as a conversion
+        Assert.NotNull(reloaded.FindPreset("to-png")); // and not every preset reset to the defaults
+        Assert.False(File.Exists(path + ".broken"));
+    }
+
+    [Fact]
+    public void A_group_saved_by_a_Filee_from_before_groups_is_still_a_group()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Presets.Add(new Preset { Id = "old-group", Name = "Rotate", Kind = PresetKind.Group, SubPresetIds = ["to-png"] });
+        store.SaveLibrary();
+
+        // An older Filee knows neither "kind" nor "subPresetIds" and leaves them out when it saves.
+        var path = Path.Combine(dir.Path, "presets.json");
+        var presets = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsArray();
+        var saved = presets.Single(p => (string?)p!["id"] == "old-group")!.AsObject();
+        Assert.True(saved.Remove("kind"));
+        Assert.True(saved.Remove("subPresetIds"));
+        File.WriteAllText(path, presets.ToJsonString());
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        var group = reloaded.FindPreset("old-group")!;
+        Assert.True(group.IsGroup); // not a conversion to "group" in the preset list, watch folders and the CLI
+        Assert.Empty(group.SubPresetIds);
+        Assert.Null(reloaded.FindConversion("old-group"));
+    }
+
+    [Fact]
     public void Round_trips_settings_presets_and_profiles()
     {
         using var dir = new TempDir();

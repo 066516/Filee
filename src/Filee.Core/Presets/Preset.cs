@@ -1,6 +1,40 @@
 // A preset is one slice of the donut toolbar: "convert to <TargetFormat> with these options".
 
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace Filee.Core.Presets;
+
+/// <summary>What a preset is: a conversion, or a group of conversions fanned out on the donut.</summary>
+public enum PresetKind
+{
+    /// <summary>Converts files.</summary>
+    Convert,
+
+    /// <summary>
+    /// Converts nothing itself: its donut slice fans out <see cref="Preset.SubPresetIds"/>. Never offered where a
+    /// conversion is picked (preset list, watch folders, <c>filee --preset</c>).
+    /// </summary>
+    Group,
+}
+
+/// <summary>
+/// Reads <see cref="PresetKind"/> by name. An unknown kind (a newer Filee's) becomes <see cref="PresetKind.Group"/>:
+/// never run as a conversion, and the rest of the presets still load (failing would reset them all to the defaults).
+/// </summary>
+public sealed class PresetKindJsonConverter : JsonConverter<PresetKind>
+{
+    public override PresetKind Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+        reader.TokenType == JsonTokenType.String &&
+        Enum.TryParse<PresetKind>(reader.GetString(), ignoreCase: true, out var kind) && Enum.IsDefined(kind)
+            ? kind
+            : reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var number) && Enum.IsDefined((PresetKind)number)
+                ? (PresetKind)number
+                : PresetKind.Group;
+
+    public override void Write(Utf8JsonWriter writer, PresetKind value, JsonSerializerOptions options) =>
+        writer.WriteStringValue(value.ToString());
+}
 
 /// <summary>
 /// A named conversion recipe. The donut toolbar shows presets; dropping files on one runs it.
@@ -44,6 +78,30 @@ public sealed class Preset
     /// <summary>Where and how output files are written.</summary>
     public OutputRule Output { get; set; } = new();
 
+    /// <summary>A conversion or a group. A kind this version doesn't know (from a newer Filee) is read as a group.</summary>
+    [JsonConverter(typeof(PresetKindJsonConverter))]
+    public PresetKind Kind { get; set; } = PresetKind.Convert;
+
+    /// <summary>Most presets one group fans out: more slices would get too narrow to hit.</summary>
+    public const int MaxSubPresets = 6;
+
+    /// <summary>
+    /// <see cref="TargetFormat"/> of a group: no format at all. A Filee from before groups reads a group as a
+    /// conversion; with this it finds no route and greys the slice out instead of re-encoding files "as the same format".
+    /// </summary>
+    public const string GroupTarget = "group";
+
+    /// <summary>
+    /// <see cref="PresetKind.Group"/>: the presets (by <see cref="Id"/>) its donut slice fans out in a small ring
+    /// outside it, e.g. "Rotate" → left 90° / right 90° / 180°. At most <see cref="MaxSubPresets"/>, never groups.
+    /// Ignored for a conversion.
+    /// </summary>
+    public List<string> SubPresetIds { get; set; } = [];
+
+    /// <summary>True for a <see cref="PresetKind.Group"/>.</summary>
+    [JsonIgnore]
+    public bool IsGroup => Kind == PresetKind.Group;
+
     /// <summary>Creates a new random preset id.</summary>
     public static string NewId() => Guid.NewGuid().ToString("N")[..12];
 
@@ -61,6 +119,8 @@ public sealed class Preset
         Archive = Archive.Clone(),
         Trace = Trace.Clone(),
         Output = Output.Clone(),
+        Kind = Kind,
+        SubPresetIds = [.. SubPresetIds],
     };
 }
 
