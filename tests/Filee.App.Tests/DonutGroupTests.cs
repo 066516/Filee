@@ -224,6 +224,38 @@ public class DonutGroupTests
     }
 
     [AvaloniaFact]
+    public void Only_a_donut_with_a_group_keeps_room_for_its_ring_when_clicked_open()
+    {
+        TestServices.EnsureInitialized("en");
+        var store = AppHost.Get<UserDataStore>();
+        var images = store.Profiles.Single(p => p.Id == "images");
+        var before = images.PresetIds.ToList();
+        var group = new Preset { Id = "test-room-group", Name = "Formats", Kind = PresetKind.Group, SubPresetIds = ["to-png"] };
+        try
+        {
+            store.Presets.Add(group);
+            images.PresetIds.Add(group.Id);
+            var vm = AppHost.Get<RadialViewModel>();
+
+            vm.ResetForDrag(); // dragging: the files (and so the donut) aren't known yet
+            Assert.True(vm.ReserveSubRing);
+
+            vm.Load([@"C:\docs\a.pdf"], clickMode: true); // the PDF donut has no group
+            vm.FitToThisDonut();
+            Assert.False(vm.ReserveSubRing);
+            vm.Load([@"C:\photos\a.jpg"], clickMode: true); // the image donut has
+            vm.FitToThisDonut();
+            Assert.True(vm.ReserveSubRing);
+        }
+        finally
+        {
+            images.PresetIds.Clear();
+            images.PresetIds.AddRange(before);
+            store.Presets.Remove(group);
+        }
+    }
+
+    [AvaloniaFact]
     public void A_group_left_without_presets_says_why_on_the_donut()
     {
         TestServices.EnsureInitialized("en");

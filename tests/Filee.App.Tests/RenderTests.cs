@@ -361,6 +361,7 @@ public class RenderTests
             images.PresetIds.Add(group.Id);
             var vm = AppHost.Get<RadialViewModel>();
             vm.Load([@"C:\photos\a.jpg"], clickMode: true);
+            vm.FitToThisDonut();
             Assert.True(vm.ReserveSubRing);
             var index = vm.Items.Count - 1;
             Assert.Equal(3, vm.Items[index].Children!.Count);

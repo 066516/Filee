@@ -20,7 +20,12 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
     [ObservableProperty] private double _holeRatio = 0.42;
     [ObservableProperty] private double _sliceOpacity = 0.96;
 
-    /// <summary>Some donut has a group slice: the window keeps room for the ring it fans out.</summary>
+    /// <summary>
+    /// The window keeps room for the ring a group fans out. Dragging, the donut is placed before the files (and so
+    /// the donut) are known: room when any donut has a group. In click mode only when this one does
+    /// (<see cref="FitToThisDonut"/>), so other donuts stay as small, and as close to the cursor at a screen edge, as
+    /// without groups.
+    /// </summary>
     [ObservableProperty] private bool _reserveSubRing;
 
     /// <summary>
@@ -78,6 +83,7 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
         Presets = [];
         _subPresets = [];
         ApplyAppearance();
+        ReserveSubRing = store.Profiles.Any(profile => profile.PresetIds.Any(id => store.FindPreset(id)?.IsGroup == true));
         Items = [];
         CenterTitle = loc["donut.center_drag"];
         CenterSubtitle = null;
@@ -167,9 +173,11 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
             CenterSubtitle = IsClickMode ? loc["donut.close_hint"] : null;
     }
 
+    /// <summary>Click mode, before the window is placed: room for a group's ring only if this donut has a group.</summary>
+    public void FitToThisDonut() => ReserveSubRing = Items.Any(item => item.IsGroup);
+
     private void ApplyAppearance()
     {
-        ReserveSubRing = store.Profiles.Any(profile => profile.PresetIds.Any(id => store.FindPreset(id)?.IsGroup == true));
         OuterRadius = Math.Clamp(store.Settings.Donut.OuterRadius, 100, 240);
         HoleRatio = store.Settings.Donut.HoleRatio;
         SliceOpacity = store.Settings.Donut.Opacity;

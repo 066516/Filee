@@ -72,6 +72,7 @@ public sealed class RadialController(
         var window = EnsureWindow();
         _dropped = false;
         viewModel.Load(files, clickMode: true);
+        viewModel.FitToThisDonut();
         window.DonutControl.AllowContextEdit = true;
         PlaceAndShow(window, x, y, activate: true);
         window.DonutControl.PlayOpenAnimation();
