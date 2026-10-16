@@ -153,6 +153,7 @@ public sealed class RadialController(
         donut.SubSegmentInvoked += (_, hit) => Convert(hit.Group, hit.Sub, viewModel.Files);
         donut.CenterInvoked += (_, _) => Close();
         donut.SegmentContextRequested += async (_, index) => await EditPresetAsync(index);
+        donut.SubSegmentContextRequested += async (_, hit) => await EditPresetAsync(hit.Group, hit.Sub);
         donut.ProgressCancelRequested += (_, _) => _progressJob?.CancelCommand.Execute(null);
         donut.ProgressClicked += (_, _) =>
         {
@@ -255,14 +256,15 @@ public sealed class RadialController(
         _window?.Hide();
     }
 
-    private async Task EditPresetAsync(int index)
+    /// <summary>Edits the preset of slice <paramref name="index"/>, or of slice <paramref name="sub"/> of its group's ring.</summary>
+    private async Task EditPresetAsync(int index, int sub = -1)
     {
-        if (_window is null || index < 0 || index >= viewModel.Presets.Count)
+        if (_window is null || viewModel.PresetShownAt(index, sub) is not { } preset)
             return;
         _editing = true;
         try
         {
-            if (await windows.EditPresetAsync(viewModel.Presets[index], _window))
+            if (await windows.EditPresetAsync(preset, _window))
             {
                 store.SaveLibrary();
                 viewModel.Load(viewModel.Files, viewModel.IsClickMode);

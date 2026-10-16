@@ -218,6 +218,9 @@ public sealed partial class DonutMenu : Control
     /// <summary>Right-click or ✎ on a slice.</summary>
     public event EventHandler<int>? SegmentContextRequested;
 
+    /// <summary>Right-click on a slice of a group's ring (live toolbar, click mode): (group, slice in the group).</summary>
+    public event EventHandler<(int Group, int Sub)>? SubSegmentContextRequested;
+
     /// <summary>The hole was clicked.</summary>
     public event EventHandler? CenterInvoked;
 
@@ -746,6 +749,11 @@ public sealed partial class DonutMenu : Control
             if (hit.Kind is DonutHitKind.Segment or DonutHitKind.EditButton && (IsEditMode || AllowContextEdit))
             {
                 SegmentContextRequested?.Invoke(this, hit.Index);
+                e.Handled = true;
+            }
+            else if (hit.Kind == DonutHitKind.SubSegment && AllowContextEdit)
+            {
+                SubSegmentContextRequested?.Invoke(this, (hit.Index, hit.Sub));
                 e.Handled = true;
             }
             return;

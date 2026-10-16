@@ -134,6 +134,53 @@ public class DonutGroupTests
     }
 
     [AvaloniaFact]
+    public void Right_click_on_a_ring_slice_asks_to_edit_that_preset()
+    {
+        var (donut, window) = Open();
+        donut.AllowContextEdit = true; // click mode
+        var edits = new List<(int, int)>();
+        var groupEdits = new List<int>();
+        donut.SubSegmentContextRequested += (_, hit) => edits.Add(hit);
+        donut.SegmentContextRequested += (_, index) => groupEdits.Add(index);
+        var inner = OnGroup(donut, donut.OuterRadius * 0.6);
+        donut.SetExternalHit(donut.HitTest(inner), inner);
+        donut.ExpandPendingGroup();
+
+        window.MouseDown(OnRing(donut, 2), MouseButton.Right);
+        window.MouseUp(OnRing(donut, 2), MouseButton.Right);
+        Assert.Equal([(Group, 2)], edits);
+        Assert.Empty(groupEdits); // that preset, not the group
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void The_preset_behind_each_ring_slice_is_the_one_edited()
+    {
+        TestServices.EnsureInitialized("en");
+        var store = AppHost.Get<UserDataStore>();
+        var images = store.Profiles.Single(p => p.Id == "images");
+        var before = images.PresetIds.ToList();
+        var group = new Preset { Id = "test-edit-group", Name = "Formats", Kind = PresetKind.Group, SubPresetIds = ["to-png", "to-jpg"] };
+        try
+        {
+            store.Presets.Add(group);
+            images.PresetIds.Add(group.Id);
+            var vm = AppHost.Get<RadialViewModel>();
+            vm.Load([@"C:\photos\a.jpg"], clickMode: true);
+            var index = vm.Items.Count - 1;
+            Assert.Same(group, vm.PresetShownAt(index, -1));
+            Assert.Equal("to-jpg", vm.PresetShownAt(index, 1)!.Id);
+            Assert.Null(vm.PresetShownAt(index, 2));
+        }
+        finally
+        {
+            images.PresetIds.Clear();
+            images.PresetIds.AddRange(before);
+            store.Presets.Remove(group);
+        }
+    }
+
+    [AvaloniaFact]
     public void An_open_ring_holds_across_the_gap_and_folds_when_the_pointer_goes_round_elsewhere()
     {
         var (donut, window) = Open();

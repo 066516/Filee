@@ -59,6 +59,12 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
             : null;
     }
 
+    /// <summary>The preset slice <paramref name="index"/> shows, or slice <paramref name="sub"/> of its group's ring (to edit it).</summary>
+    public Preset? PresetShownAt(int index, int sub) =>
+        index < 0 || index >= Presets.Count ? null
+        : sub < 0 ? Presets[index]
+        : sub < _subPresets[index].Count ? _subPresets[index][sub] : null;
+
     /// <summary>True when opened with known files (keyboard, context menu, drop zone): slices are clicked.</summary>
     public bool IsClickMode { get; private set; }
 
