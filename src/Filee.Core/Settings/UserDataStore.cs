@@ -252,8 +252,8 @@ internal static class SettingsMigrations
                 InsertBefore(settings.EnginePriority, id, "libreoffice");
         }
 
-        // v11: built-in "subtitle" engine (SRT, ASS, WebVTT, SAMI, LRC, TTML, ...), before FFmpeg.
-        if (settings.SchemaVersion < 11)
+        // v12: built-in "subtitle" engine (SRT, ASS, WebVTT, SAMI, LRC, TTML, ...), before FFmpeg.
+        if (settings.SchemaVersion < 12)
             InsertBefore(settings.EnginePriority, "subtitle", "ffmpeg");
 
         if (settings.Triggers.Count == 0)
@@ -365,9 +365,23 @@ internal static class SettingsMigrations
             changed = true;
         }
 
-        // v11: HEVC / AV1 video, ALAC and the new audio formats (WavPack, TTA, APE, DSD, ...), and a subtitles donut
-        //      after the audio donut. The video donut offers "MP4 HEVC" and "Extract subtitles".
+        // v11: more document formats (Org, AsciiDoc, Typst, ... through Pandoc; flat OpenDocument, templates,
+        //      ClarisWorks, ... through LibreOffice; KEPUB built in). Built-in donuts learn the new extensions unless
+        //      another donut already has them, and the e-books donut gets KEPUB after MOBI.
         if (from < 11)
+        {
+            if (presets.All(p => p.Id != "to-kepub"))
+            {
+                presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == "to-kepub"));
+                changed = true;
+                changed |= Offer(presets, profiles, "ebooks", "to-kepub", "to-mobi");
+            }
+            changed |= LearnExtensions(profiles, out _);
+        }
+
+        // v12: HEVC / AV1 video, ALAC and the new audio formats (WavPack, TTA, APE, DSD, ...), and a subtitles donut
+        //      after the audio donut. The video donut offers "MP4 HEVC" and "Extract subtitles".
+        if (from < 12)
             changed |= AddCodecsAndSubtitles(presets, profiles);
         return changed;
     }
@@ -380,11 +394,10 @@ internal static class SettingsMigrations
             presets.Add(preset);
             changed = true;
         }
-        changed |= AddNewDefaultExtensions(profiles);
+        changed |= LearnExtensions(profiles, out var claimed);
 
         if (profiles.All(p => p.Id != "subtitles"))
         {
-            var claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var subtitles = BuiltInData.SubtitleProfile();
             subtitles.Extensions = subtitles.Extensions.Where(claimed.Add).ToList();
             if (subtitles.Extensions.Count > 0)
@@ -404,13 +417,14 @@ internal static class SettingsMigrations
     }
 
     /// <summary>
-    /// Built-in donuts learn the extensions their defaults gained (new formats of their category), unless another
-    /// donut of the user already takes them. Extensions checked on a mixed-selection profile don't count as taken.
+    /// Adds the default extensions of the built-in donuts that no donut of the user takes yet.
     /// </summary>
-    private static bool AddNewDefaultExtensions(List<ToolbarProfile> profiles)
+    /// <param name="claimed">Every extension a donut takes afterwards.</param>
+    private static bool LearnExtensions(List<ToolbarProfile> profiles, out HashSet<string> claimed)
     {
         var changed = false;
-        var claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // Extensions checked on a mixed-selection profile only limit that profile; they don't claim files.
+        claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var defaults = BuiltInData.CreateProfiles().ToDictionary(p => p.Id);
         foreach (var profile in profiles.Where(p => !p.IsFallback && defaults.ContainsKey(p.Id)))
         {
@@ -432,10 +446,7 @@ internal static class SettingsMigrations
             changed = true;
         }
         var presetIds = presets.Select(p => p.Id).ToHashSet();
-
-        changed |= AddNewDefaultExtensions(profiles);
-        // Extensions checked on a mixed-selection profile only limit that profile; they don't claim files.
-        var claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        changed |= LearnExtensions(profiles, out var claimed);
 
         var text = profiles.FindIndex(p => p.Id == "text");
         var insertAt = text >= 0 ? text + 1 : profiles.FindIndex(p => p.IsFallback);
