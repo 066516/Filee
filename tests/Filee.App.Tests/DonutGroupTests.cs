@@ -220,6 +220,71 @@ public class DonutGroupTests
         window.Close();
     }
 
+    /// <summary>
+    /// <paramref name="count"/> slices with a group of six at <see cref="Group"/>, and a point on the outer half of the
+    /// next slice, in the direction of the group's ring (crossed on the way to its outer slices).
+    /// </summary>
+    private static (DonutMenu Donut, Window Window, Point Neighbour) OpenCrowded(int count)
+    {
+        var items = Enumerable.Range(0, count)
+            .Select(i => i == Group ? GroupOf([.. Enumerable.Range(0, Preset.MaxSubPresets).Select(k => Item($"R{k}"))]) : Item($"S{i}"))
+            .ToArray();
+        var (donut, window) = Open(items);
+        var neighbour = DonutGeometry.PointAt(Center(donut), donut.OuterRadius * 0.9,
+            DonutGeometry.MidAngle(Group, count) + DonutGeometry.Span(count) * 0.75);
+        return (donut, window, neighbour);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(12)]
+    [InlineData(8)]
+    public void A_click_on_a_neighbours_outer_half_under_an_open_ring_converts_with_that_neighbour(int count)
+    {
+        var (donut, window, neighbour) = OpenCrowded(count);
+        var invoked = new List<int>();
+        donut.SegmentInvoked += (_, index) => invoked.Add(index);
+        var inner = OnGroup(donut, donut.OuterRadius * 0.6);
+        window.MouseDown(inner, MouseButton.Left);
+        window.MouseUp(inner, MouseButton.Left);
+        Assert.True(IsOpen(donut));
+
+        window.MouseMove(neighbour);
+        Assert.Equal(new DonutHit(DonutHitKind.Segment, Group + 1), donut.HitTest(neighbour));
+        Assert.Equal(Group + 1, donut.ActiveIndex);
+        Assert.True(IsOpen(donut)); // still open: the pointer may be on its way to the ring's outer slices
+
+        window.MouseDown(neighbour, MouseButton.Left);
+        window.MouseUp(neighbour, MouseButton.Left);
+        Assert.Equal([Group + 1], invoked);
+        window.Close();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(12)]
+    [InlineData(8)]
+    public void A_drop_on_a_neighbours_outer_half_under_an_open_ring_converts_with_that_neighbour(int count)
+    {
+        var (donut, window, neighbour) = OpenCrowded(count);
+        var inner = OnGroup(donut, donut.OuterRadius * 0.6);
+        donut.SetExternalHit(donut.HitTest(inner), inner);
+        donut.ExpandPendingGroup();
+        Assert.True(IsOpen(donut));
+
+        donut.SetExternalHit(donut.HitTest(neighbour), neighbour);
+        Assert.True(IsOpen(donut));
+        Assert.Equal(Group + 1, donut.ActiveIndex);
+        var drop = donut.HitTest(neighbour); // what RadialWindow.OnDrop hands the controller
+        Assert.Equal(new DonutHit(DonutHitKind.Segment, Group + 1), drop);
+        Assert.True(donut.Converts(drop));
+
+        // Carrying on across it reaches the ring's last slice.
+        var last = OnRing(donut, Preset.MaxSubPresets - 1);
+        donut.SetExternalHit(donut.HitTest(last), last);
+        Assert.Equal(new DonutHit(DonutHitKind.SubSegment, Group, Preset.MaxSubPresets - 1), donut.HitTest(last));
+        Assert.Equal(Preset.MaxSubPresets - 1, donut.ActiveSubIndex);
+        window.Close();
+    }
+
     [AvaloniaFact]
     public void Only_enabled_slices_take_a_drop_and_an_empty_group_opens_nothing()
     {

@@ -74,6 +74,13 @@ public sealed partial class DonutMenu
             count, SubSpanOf(count)) >= 0;
     }
 
+    /// <summary>
+    /// True when <paramref name="p"/> is on the outer half of another slice, in the direction of the open ring: the
+    /// pointer crosses there on its way to the ring's outer slices.
+    /// </summary>
+    private bool OnWayToRing(Point p) =>
+        _expanded >= 0 && Distance(p, Center) > (InnerRadius + OuterRadius) / 2 && InFan(p, _expanded);
+
     /// <summary>Width of each slice of a ring of <paramref name="count"/>.</summary>
     private double SubSpanOf(int count) =>
         DonutGeometry.SubSpan(DonutGeometry.Span(Count), count, (SubRadii.Inner + SubRadii.Outer) / 2);
@@ -102,6 +109,11 @@ public sealed partial class DonutMenu
         {
             case DonutHitKind.Segment when hit.Index == _expanded:
                 _ringFromKeys = false; // the mouse reached it: from here on it leads
+                break;
+            case DonutHitKind.Segment when at is { } across && OnWayToRing(across):
+                // A neighbour's outer half under the open ring, crossed on the way to its outer slices: that neighbour is
+                // what a click or a drop here converts with, but the ring stays open.
+                ClearPending();
                 break;
             case DonutHitKind.Segment when hit.Index >= 0 && hit.Index < Count && Items![hit.Index].CanExpand:
                 _expanded = -1;
