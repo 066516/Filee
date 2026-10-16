@@ -250,7 +250,10 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
             Commit();
     }
 
-    /// <summary>A new group (a slice that fans out presets), added to the selected donut when there's room.</summary>
+    /// <summary>
+    /// A new group (a slice that fans out presets). It joins the available presets only: no donut gets it until the
+    /// user drags it there.
+    /// </summary>
     [RelayCommand]
     private async Task NewGroup()
     {
@@ -258,8 +261,6 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
         if (!await _windows.EditGroupAsync(group, _windows.Main, isNew: true))
             return;
         _store.Presets.Add(group);
-        if (Profile is not null && Profile.PresetIds.Count < ToolbarProfile.MaxSlices)
-            Profile.PresetIds.Add(group.Id);
         Commit();
     }
 
