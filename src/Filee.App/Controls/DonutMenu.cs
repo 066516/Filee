@@ -136,6 +136,16 @@ public sealed partial class DonutMenu : Control
     private int _subHover = -1;
     private Spring _expand;
 
+    // A group slice the pointer is on but hasn't opened yet (-1 none), and how far from the centre it came in.
+    private int _pendingGroup = -1;
+    private double _pendingDistance;
+
+    /// <summary>How long the pointer rests on a group slice before it opens: passing over on the way elsewhere doesn't.</summary>
+    internal static readonly TimeSpan ExpandDelay = TimeSpan.FromMilliseconds(160);
+
+    /// <summary>Moving this far outward on a group slice opens it at once (the user is heading for its ring).</summary>
+    private const double OutwardPixels = 10;
+
     static DonutMenu()
     {
         AffectsMeasure<DonutMenu>(OuterRadiusProperty, ReserveSubRingProperty);
@@ -403,36 +413,132 @@ public sealed partial class DonutMenu : Control
     private (double Inner, double Outer) SubRadii => (OuterRadius + PopOut + SubGap, OuterRadius + PopOut + SubGap + SubBand);
 
     /// <summary>
-    /// Fans a group out when its slice is reached and keeps it open while the pointer is on its ring or crossing the
-    /// gap to it; another slice or the hole folds it away.
+    /// Fans a group out once the pointer means it: after resting on its slice for <see cref="ExpandDelay"/>, or at once
+    /// when it moves outward on it (<paramref name="at"/>, when known). Keeps it open while the pointer is on its ring or
+    /// crossing the gap to it; another slice or the hole folds it away.
     /// </summary>
-    private void TrackGroups(DonutHit hit)
+    private void TrackGroups(DonutHit hit, Point? at)
     {
         if (IsEditMode)
             return;
         var sub = -1;
         switch (hit.Kind)
         {
-            case DonutHitKind.Segment:
-                _expanded = hit.Index >= 0 && hit.Index < Count && Items![hit.Index].IsGroup ? hit.Index : -1;
+            case DonutHitKind.Segment when hit.Index == _expanded:
+                break;
+            case DonutHitKind.Segment when hit.Index >= 0 && hit.Index < Count && Items![hit.Index].IsGroup:
+                _expanded = -1;
+                var distance = at is { } p ? Distance(p, Center) : 0;
+                if (_pendingGroup != hit.Index)
+                {
+                    _pendingGroup = hit.Index;
+                    _pendingDistance = distance;
+                    var group = hit.Index;
+                    DispatcherTimer.RunOnce(() =>
+                    {
+                        if (_pendingGroup == group)
+                            ExpandPendingGroup();
+                    }, ExpandDelay);
+                }
+                else if (at is not null && distance - _pendingDistance >= OutwardPixels)
+                {
+                    ExpandPendingGroup();
+                }
                 break;
             case DonutHitKind.SubSegment:
                 sub = hit.Sub;
                 break;
             case DonutHitKind.Outside:
+                _pendingGroup = -1; // left the slice before it opened: it stays closed
                 break;
             default:
-                _expanded = -1;
+                _expanded = _pendingGroup = -1;
                 break;
         }
-        if (_expanded >= 0)
-            _shownExpanded = _expanded;
-        if (_subHover != sub)
-        {
-            _subHover = sub;
-            ActiveIndexChanged?.Invoke(this, ActiveIndex);
-        }
+        SetSub(sub);
         StartAnimation();
+    }
+
+    /// <summary>Opens the group the pointer rests on (the timer of <see cref="TrackGroups"/>; tests call it directly).</summary>
+    internal void ExpandPendingGroup()
+    {
+        if (_pendingGroup < 0 || _pendingGroup >= Count)
+            return;
+        Expand(_pendingGroup);
+    }
+
+    private void Expand(int group)
+    {
+        _expanded = _shownExpanded = group;
+        _pendingGroup = -1;
+        ActiveIndexChanged?.Invoke(this, ActiveIndex);
+        StartAnimation();
+    }
+
+    private void SetSub(int sub)
+    {
+        if (_subHover == sub)
+            return;
+        _subHover = sub;
+        ActiveIndexChanged?.Invoke(this, ActiveIndex);
+        StartAnimation();
+    }
+
+    /// <summary>
+    /// Keyboard (click mode): arrows and Tab move around the donut, Enter converts or opens a group; in a group's ring
+    /// the arrows move between its slices, Enter converts and Esc / Backspace go back to the donut.
+    /// Returns false for keys left to the window (Esc on the donut closes it).
+    /// </summary>
+    public bool HandleKey(Key key, KeyModifiers modifiers = KeyModifiers.None)
+    {
+        if (IsEditMode || _progressMode || Count == 0)
+            return false;
+        var step = key switch
+        {
+            Key.Right or Key.Down => 1,
+            Key.Left or Key.Up => -1,
+            Key.Tab => modifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1,
+            _ => 0,
+        };
+
+        if (ExpandedChildren is { } children && _subHover >= 0)
+        {
+            switch (key)
+            {
+                case Key.Enter or Key.Space:
+                    if (children[_subHover].IsEnabled)
+                        SubSegmentInvoked?.Invoke(this, (_expanded, _subHover));
+                    return true;
+                case Key.Escape or Key.Back:
+                    CollapseGroup();
+                    return true;
+            }
+            if (step == 0)
+                return false;
+            SetSub((_subHover + step + children.Count) % children.Count);
+            return true;
+        }
+
+        var current = ActiveIndex;
+        switch (key)
+        {
+            case Key.Enter or Key.Space when current >= 0:
+                if (Items![current].IsGroup)
+                {
+                    Expand(current);
+                    SetSub(0);
+                }
+                else if (Items[current].IsEnabled)
+                {
+                    SegmentInvoked?.Invoke(this, current);
+                }
+                return true;
+        }
+        if (step == 0)
+            return false;
+        CollapseGroup();
+        SetHover(current < 0 ? (step > 0 ? 0 : Count - 1) : (current + step + Count) % Count);
+        return true;
     }
 
     /// <summary>True when dropping or clicking at <paramref name="hit"/> converts: a slice that isn't a group, or a slice of a group's ring.</summary>
@@ -446,15 +552,18 @@ public sealed partial class DonutMenu : Control
     /// <summary>Folds an open group away (the drag left the window, or files were dropped).</summary>
     public void CollapseGroup()
     {
-        _expanded = -1;
-        _subHover = -1;
+        _expanded = _pendingGroup = -1;
+        SetSub(-1);
         StartAnimation();
     }
 
-    /// <summary>Highlights what a drag is over from outside: a slice, a slice of a group's ring, or the hole.</summary>
-    public void SetExternalHit(DonutHit hit)
+    /// <summary>
+    /// Highlights what a drag is over from outside: a slice, a slice of a group's ring, or the hole.
+    /// <paramref name="at"/> (in this control) lets a group open at once when the drag heads outward on it.
+    /// </summary>
+    public void SetExternalHit(DonutHit hit, Point? at = null)
     {
-        TrackGroups(hit);
+        TrackGroups(hit, at);
         SetExternalHighlight(hit.Kind is DonutHitKind.Segment or DonutHitKind.SubSegment ? hit.Index : -1,
             hit.Kind == DonutHitKind.Center);
     }
@@ -474,7 +583,7 @@ public sealed partial class DonutMenu : Control
         _previewSpan = default;
         _mid = Enumerable.Range(0, n).Select(i => new Spring { Value = DonutGeometry.MidAngle(i, n) }).ToArray();
         _span = Enumerable.Range(0, n).Select(_ => new Spring { Value = DonutGeometry.Span(n) }).ToArray();
-        _expanded = _shownExpanded = _subHover = -1;
+        _expanded = _shownExpanded = _subHover = _pendingGroup = -1;
         _expand = default;
         InvalidateMeasure();
         InvalidateVisual();
@@ -500,7 +609,7 @@ public sealed partial class DonutMenu : Control
         }
 
         var hit = HitTest(p);
-        TrackGroups(hit);
+        TrackGroups(hit, p);
         SetHover(hit.Kind switch
         {
             DonutHitKind.Segment or DonutHitKind.EditButton or DonutHitKind.SubSegment => hit.Index,

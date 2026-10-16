@@ -276,6 +276,21 @@ public sealed class RadialController(
             _window.Activate();
     }
 
+    /// <summary>
+    /// Top-left corner of a <paramref name="sidePx"/> square window centred on <paramref name="cursor"/>, moved into
+    /// <paramref name="area"/> when that would cross its edge. With group slices the window holds the ring they fan out
+    /// (<see cref="DonutMenu.SideFor"/>), so near a screen edge the donut moves in far enough for every ring to fit.
+    /// </summary>
+    internal static PixelPoint WindowPosition(PixelPoint cursor, PixelRect? area, int sidePx)
+    {
+        var position = new PixelPoint(cursor.X - sidePx / 2, cursor.Y - sidePx / 2);
+        if (area is not { } a)
+            return position;
+        return new PixelPoint(
+            Math.Clamp(position.X, a.X, Math.Max(a.X, a.Right - sidePx)),
+            Math.Clamp(position.Y, a.Y, Math.Max(a.Y, a.Bottom - sidePx)));
+    }
+
     private void PlaceAndShow(RadialWindow window, int x, int y, bool activate)
     {
         var cursor = new PixelPoint(x, y);
@@ -285,14 +300,7 @@ public sealed class RadialController(
         // Window size follows the donut size (SizeToContent); compute it up front to centre on the cursor.
         var side = DonutMenu.SideFor(viewModel.OuterRadius, viewModel.ReserveSubRing);
         var sidePx = (int)Math.Ceiling(side * scaling);
-        var position = new PixelPoint(x - sidePx / 2, y - sidePx / 2);
-        if (screen is not null)
-        {
-            var area = screen.WorkingArea;
-            position = new PixelPoint(
-                Math.Clamp(position.X, area.X, Math.Max(area.X, area.Right - sidePx)),
-                Math.Clamp(position.Y, area.Y, Math.Max(area.Y, area.Bottom - sidePx)));
-        }
+        var position = WindowPosition(cursor, screen?.WorkingArea, sidePx);
 
         Motion.Refresh();
         window.Position = position;

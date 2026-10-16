@@ -55,11 +55,12 @@ public partial class RadialWindow : Window
 
     private void OnDragOver(object? sender, DragEventArgs e)
     {
-        var hit = Donut.HitTest(e.GetPosition(Donut));
+        var at = e.GetPosition(Donut);
+        var hit = Donut.HitTest(at);
         _dragOverEvents++;
         _lastDragHit = hit;
         var files = e.DataTransfer.Contains(DataFormat.File);
-        Donut.SetExternalHit(hit);
+        Donut.SetExternalHit(hit, at);
 
         // Always COPY. Reporting MOVE would make Explorer delete the source files after the drop.
         e.DragEffects = files && Donut.Converts(hit) ? DragDropEffects.Copy : DragDropEffects.None;
@@ -88,6 +89,11 @@ public partial class RadialWindow : Window
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        if (Donut.HandleKey(e.Key, e.KeyModifiers))
+        {
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.Escape)
         {
             EscapePressed?.Invoke();

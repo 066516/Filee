@@ -371,6 +371,7 @@ public class RenderTests
             window.Show();
             var donut = window.DonutControl;
             donut.SetExternalHit(new DonutHit(DonutHitKind.Segment, index));
+            donut.ExpandPendingGroup(); // as after resting on it
             donut.SetExternalHit(new DonutHit(DonutHitKind.SubSegment, index, 1));
             vm.ShowHint(index, donut.ActiveSubIndex, centerHot: false);
             Pump();
