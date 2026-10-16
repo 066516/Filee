@@ -888,8 +888,9 @@ public sealed partial class DonutMenu : Control
             for (var i = 0; i < _hover.Length; i++)
                 active |= i == ActiveIndex ? _hover[i].Step(1, dt) : _hover[i].Step(0, dt, 320, CriticalDamping);
             active |= _centerPulse.Step(0, dt, 260, 12);
-            // Critically damped: an overshoot would grow the ring past the room kept for it.
-            active |= _expand.Step(_expanded >= 0 ? 1 : 0, dt, 420, 41);
+            // A soft bounce opening, like the slices popping out; folding away settles without one. The bounce grows the
+            // ring by about a pixel, well inside the room kept for it (SubRingSpace).
+            active |= _expanded >= 0 ? _expand.Step(1, dt, 320, 24) : _expand.Step(0, dt, 320, CriticalDamping);
             if (_expanded < 0 && _expand.Value <= 0.001)
                 _shownExpanded = -1;
             active |= StepProgress(dt);
