@@ -179,12 +179,12 @@ public static class BuiltInData
         Tool("flip-vertical", "preset.flip_vertical", "{name}_flipped", i => i.Flip = ImageFlip.Vertical),
         new()
         {
-            Id = "rotate", NameKey = "preset.group_rotate", TargetFormat = SameAsSource, Kind = PresetKind.Group,
+            Id = "rotate", NameKey = "preset.group_rotate", TargetFormat = Preset.GroupTarget, Kind = PresetKind.Group,
             SubPresetIds = ["rotate-left", "rotate-right", "rotate-180"],
         },
         new()
         {
-            Id = "flip", NameKey = "preset.group_flip", TargetFormat = SameAsSource, Kind = PresetKind.Group,
+            Id = "flip", NameKey = "preset.group_flip", TargetFormat = Preset.GroupTarget, Kind = PresetKind.Group,
             SubPresetIds = ["flip-horizontal", "flip-vertical"],
         },
     ];

@@ -90,6 +90,11 @@ public class BuiltInDataTests
     public void Preset_targets_are_known_formats()
     {
         foreach (var preset in BuiltInData.CreatePresets())
-            Assert.True(preset.TargetFormat == BuiltInData.SameAsSource || FormatRegistry.FindById(preset.TargetFormat) is not null, preset.Id);
+        {
+            if (preset.IsGroup)
+                Assert.Equal(Preset.GroupTarget, preset.TargetFormat); // none an older Filee could run it with
+            else
+                Assert.True(preset.TargetFormat == BuiltInData.SameAsSource || FormatRegistry.FindById(preset.TargetFormat) is not null, preset.Id);
+        }
     }
 }
