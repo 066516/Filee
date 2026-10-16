@@ -2,7 +2,8 @@
 // body, or the plain text; pictures sent inline with "cid:" links become data URIs), as plain text, or its attachments
 // as a ZIP. MimeKit decodes the transfer encodings (quoted-printable, base64), encoded headers (RFC 2047 / 2231) and
 // charsets, including the Korean ones (EUC-KR / CP949, ISO-2022-KR); header text in raw 8-bit that is not UTF-8 is read
-// as CP949, as older Korean mail programs wrote it.
+// as CP949, as older Korean mail programs wrote it. Outlook .msg files are rebuilt as MIME messages first (see
+// OutlookMessage) and take the same path; MSG → EML writes that message.
 
 using System.Globalization;
 using System.IO.Compression;
@@ -15,23 +16,43 @@ using MimeKit;
 
 namespace Filee.Engines.Email;
 
-/// <summary>EML → HTML, TXT and ZIP (attachments).</summary>
+/// <summary>EML and MSG → HTML, TXT and ZIP (attachments); MSG → EML.</summary>
 public sealed partial class EmlConverter : IConverter
 {
     public string Id => "email";
     public string DisplayName => "E-mail (built-in)";
     public int MaxParallelism => 0;
 
-    public IReadOnlyList<ConversionEdge> Edges { get; } = [new("eml", "html"), new("eml", "txt"), new("eml", "zip")];
+    // MimeKit learns which charsets exist the first time it is used and never asks again. Register the code pages
+    // (CP949/EUC-KR, Shift_JIS, GBK…) before anything touches MimeKit, or a MSG converted first leaves every later
+    // Korean EML decoded as Latin-1.
+    static EmlConverter() => Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-    public EngineStatus GetStatus() => EngineStatus.Available("EML → HTML, TXT, ZIP (attachments)", $"{EngineVersions.BuiltIn} · {EngineVersions.Library("MimeKitLite", typeof(MimeKit.MimeMessage))}");
+    // MSG has direct edges too: through EML (cost 20) would rebuild and parse the message twice.
+    public IReadOnlyList<ConversionEdge> Edges { get; } =
+    [
+        new("eml", "html"), new("eml", "txt"), new("eml", "zip"),
+        new("msg", "eml"), new("msg", "html"), new("msg", "txt"), new("msg", "zip"),
+    ];
+
+    public EngineStatus GetStatus() => EngineStatus.Available("EML, MSG → HTML, TXT, ZIP (attachments); MSG → EML",
+        $"{EngineVersions.BuiltIn} · {EngineVersions.Library("MimeKitLite", typeof(MimeKit.MimeMessage))} · {EngineVersions.Library("MsgReader", typeof(MsgReader.Outlook.Storage))}");
 
     public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken) =>
         Task.Run<IReadOnlyList<string>>(() =>
         {
             progress?.Report(0.1);
-            var message = Load(step.InputPath, cancellationToken);
+            var message = step.From == "msg" ? OutlookMessage.Load(step.InputPath) : Load(step.InputPath, cancellationToken);
             progress?.Report(0.5);
+            if (step.To == "eml")
+            {
+                if (step.Output.Allocate("eml") is not { } eml)
+                    return [];
+                using (var file = File.Create(eml))
+                    message.WriteTo(FormatOptions.Default, file, cancellationToken);
+                progress?.Report(1);
+                return [eml];
+            }
             if (step.To == "zip")
             {
                 var attachments = Attachments(message);

@@ -87,6 +87,7 @@ public sealed class SingleInstance : IDisposable
             {
                 using var client = new NamedPipeClientStream(".", _name, PipeDirection.Out, PipeOptions.CurrentUserOnly);
                 client.Connect((int)Math.Clamp(left.TotalMilliseconds, 100, 1000));
+                Filee.Platform.Windows.Foreground.AllowOtherProcess(); // its donut takes the focus (Esc, click away)
                 JsonSerializer.Serialize(client, args, AppJsonContext.Default.StringArray);
                 return true;
             }

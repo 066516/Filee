@@ -18,7 +18,7 @@ namespace Filee.Engines.Pdf;
 /// <summary>PDF → every raster format ImageMagick writes (PNG, JPG, WEBP, TIFF, …, PSD, TGA, PPM).</summary>
 public sealed class PdfiumConverter : IConverter
 {
-    private static readonly HashSet<string> MultiPageTargets = ["tiff", "gif"];
+    private static readonly HashSet<string> MultiPageTargets = ["tiff", "gif", "apng", "mng"];
 
     /// <summary>A tall image beyond this many pixels is scaled down (a 300-page PDF at 300 dpi would need gigabytes).</summary>
     internal const long MaxStackedPixels = 200_000_000;

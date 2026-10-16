@@ -46,6 +46,8 @@ internal static class FfmpegRunner
         };
         foreach (var argument in arguments)
             psi.ArgumentList.Add(argument);
+        // SVT-AV1 logs its settings to stderr, where they would bury FFmpeg's error message: errors only.
+        psi.Environment["SVT_LOG"] = "1";
 
         using var process = new Process { StartInfo = psi };
         var lastActivity = Stopwatch.GetTimestamp();

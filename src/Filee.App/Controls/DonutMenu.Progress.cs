@@ -65,6 +65,12 @@ public sealed partial class DonutMenu
     /// <summary>True while the donut shows a conversion's progress instead of presets.</summary>
     public bool IsInProgressMode => _progressMode;
 
+    /// <summary>The finished ring is still holding its badge or fading out, and hides the window when it is done.</summary>
+    public bool IsFinishingProgress => _progressMode && _progressDone is not null;
+
+    /// <summary>Drops the progress ring (and its pending "done" callback) for a new gesture.</summary>
+    public void LeaveProgressMode() => ResetProgress();
+
     /// <summary>Outcome badge currently visible (null while running). For tests.</summary>
     internal DonutProgressOutcome? ShownOutcome => _outcome;
 

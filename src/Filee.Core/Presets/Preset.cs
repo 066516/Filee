@@ -72,6 +72,9 @@ public sealed class Preset
     /// <summary>Options used for archives (ZIP, 7Z, TAR ...).</summary>
     public ArchiveOptions Archive { get; set; } = new();
 
+    /// <summary>Options used when a raster image is traced into vector shapes (PNG → SVG, DXF ...).</summary>
+    public TracingOptions Trace { get; set; } = new();
+
     /// <summary>Where and how output files are written.</summary>
     public OutputRule Output { get; set; } = new();
 
@@ -114,6 +117,7 @@ public sealed class Preset
         Document = Document.Clone(),
         Media = Media.Clone(),
         Archive = Archive.Clone(),
+        Trace = Trace.Clone(),
         Output = Output.Clone(),
         Kind = Kind,
         SubPresetIds = [.. SubPresetIds],
@@ -300,10 +304,67 @@ public sealed class MediaOptions
     /// <summary>Sample rate in Hz of a WAV file (8000 … 48000); 0 keeps the source's.</summary>
     public int AudioSampleRate { get; set; }
 
-    /// <summary>How a WAV file stores its samples.</summary>
+    /// <summary>How a WAV (or W64) file stores its samples.</summary>
     public WavSampleFormat WavFormat { get; set; } = WavSampleFormat.Pcm16;
 
+    /// <summary>
+    /// Video codec for targets that can hold several (<see cref="MediaCodecs.VideoCodecsFor"/>); targets that can't
+    /// hold the chosen one use their usual codec.
+    /// </summary>
+    public VideoCodec VideoCodec { get; set; } = VideoCodec.Default;
+
+    /// <summary>Audio codec for targets that can hold several (<see cref="MediaCodecs.AudioCodecsFor"/>).</summary>
+    public AudioCodec AudioCodec { get; set; } = AudioCodec.Default;
+
     public MediaOptions Clone() => (MediaOptions)MemberwiseClone();
+}
+
+/// <summary>Video codec of a video target. <see cref="Default"/> is the target's usual codec (H.264, VP9 for WebM, ...).</summary>
+public enum VideoCodec
+{
+    Default,
+    /// <summary>H.265 / HEVC (x265): about half the size of H.264 at the same quality.</summary>
+    Hevc,
+    /// <summary>AV1 (SVT-AV1, or libaom): smaller still, slower to encode.</summary>
+    Av1,
+}
+
+/// <summary>Audio codec of an audio target. <see cref="Default"/> is the target's usual codec (AAC for M4A, ...).</summary>
+public enum AudioCodec
+{
+    Default,
+    /// <summary>Apple Lossless in M4A / M4B.</summary>
+    Alac,
+}
+
+/// <summary>Which targets take which codecs besides their default one.</summary>
+public static class MediaCodecs
+{
+    /// <summary>The video codecs <paramref name="target"/> can be written with; only Default for most targets.</summary>
+    public static IReadOnlyList<VideoCodec> VideoCodecsFor(string target) => target switch
+    {
+        // AV1 in MP4 plays in browsers, Android and Windows; QuickTime (MOV) has no AV1 mapping.
+        "mp4" or "m4v" or "mkv" => [VideoCodec.Default, VideoCodec.Hevc, VideoCodec.Av1],
+        "mov" => [VideoCodec.Default, VideoCodec.Hevc],
+        // The WebM specification allows VP8, VP9 and AV1.
+        "webm" => [VideoCodec.Default, VideoCodec.Av1],
+        _ => [VideoCodec.Default],
+    };
+
+    /// <summary>The audio codecs <paramref name="target"/> can be written with; only Default for most targets.</summary>
+    public static IReadOnlyList<AudioCodec> AudioCodecsFor(string target) => target switch
+    {
+        "m4a" or "m4b" => [AudioCodec.Default, AudioCodec.Alac],
+        _ => [AudioCodec.Default],
+    };
+
+    /// <summary>The codec <paramref name="target"/> is written with: the chosen one if the target takes it, else Default.</summary>
+    public static VideoCodec Effective(string target, VideoCodec codec) =>
+        VideoCodecsFor(target).Contains(codec) ? codec : VideoCodec.Default;
+
+    /// <summary>The codec <paramref name="target"/> is written with: the chosen one if the target takes it, else Default.</summary>
+    public static AudioCodec Effective(string target, AudioCodec codec) =>
+        AudioCodecsFor(target).Contains(codec) ? codec : AudioCodec.Default;
 }
 
 /// <summary>Sample format of a WAV file. 16-bit PCM is what every player reads (and was the only one before 1.6).</summary>
@@ -335,4 +396,33 @@ public sealed class ArchiveOptions
     public ArchiveLevel Level { get; set; } = ArchiveLevel.Normal;
 
     public ArchiveOptions Clone() => (ArchiveOptions)MemberwiseClone();
+}
+
+/// <summary>How a raster image is traced.</summary>
+public enum TracingMode
+{
+    /// <summary>The image is reduced to <see cref="TracingOptions.Colors"/> colours, each traced as stacked shapes.</summary>
+    Color,
+    /// <summary>Dark pixels become black shapes on a transparent background (logos, signatures, scans).</summary>
+    BlackAndWhite,
+}
+
+/// <summary>Raster → vector tracing options.</summary>
+public sealed class TracingOptions
+{
+    /// <summary>Smallest and largest <see cref="Colors"/>.</summary>
+    public const int MinColors = 2, MaxColors = 64;
+
+    public TracingMode Mode { get; set; } = TracingMode.Color;
+
+    /// <summary>Number of colours in <see cref="TracingMode.Color"/> mode (2–64).</summary>
+    public int Colors { get; set; } = 16;
+
+    /// <summary>
+    /// 0–100: low values smooth the outlines and drop specks, high values follow the pixels more closely and keep
+    /// small details.
+    /// </summary>
+    public int Detail { get; set; } = 50;
+
+    public TracingOptions Clone() => (TracingOptions)MemberwiseClone();
 }
