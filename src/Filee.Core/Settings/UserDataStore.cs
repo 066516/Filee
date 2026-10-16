@@ -360,6 +360,11 @@ internal static class SettingsMigrations
             presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == "remove-background"));
             changed = true;
         }
+
+        // v11: more image formats (APNG, MNG, QOI, DDS, DICOM, OpenEXR, …, Fujifilm's .hif): the images donut learns
+        //      their extensions unless another donut already has them.
+        if (from < 11)
+            changed |= LearnExtensions(profiles, ClaimedExtensions(profiles));
         return changed;
     }
 
@@ -373,17 +378,8 @@ internal static class SettingsMigrations
         }
         var presetIds = presets.Select(p => p.Id).ToHashSet();
 
-        // Extensions checked on a mixed-selection profile only limit that profile; they don't claim files.
-        var claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var defaults = BuiltInData.CreateProfiles().ToDictionary(p => p.Id);
-        foreach (var profile in profiles.Where(p => !p.IsFallback && defaults.ContainsKey(p.Id)))
-        {
-            foreach (var extension in defaults[profile.Id].Extensions.Where(claimed.Add))
-            {
-                profile.Extensions.Add(extension);
-                changed = true;
-            }
-        }
+        var claimed = ClaimedExtensions(profiles);
+        changed |= LearnExtensions(profiles, claimed);
 
         var text = profiles.FindIndex(p => p.Id == "text");
         var insertAt = text >= 0 ? text + 1 : profiles.FindIndex(p => p.IsFallback);
@@ -401,6 +397,29 @@ internal static class SettingsMigrations
 
         changed |= Offer(presets, profiles, "pdf", "to-docx", "to-jpg");
         changed |= Offer(presets, profiles, profiles.FirstOrDefault(p => p.IsFallback)?.Id ?? "mixed", "zip-all", "merge-pdf");
+        return changed;
+    }
+
+    /// <summary>Extensions the user's donuts open. Those checked on a mixed-selection profile only limit that profile.</summary>
+    private static HashSet<string> ClaimedExtensions(List<ToolbarProfile> profiles) =>
+        profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Gives the built-in donuts the extensions their defaults have now, unless a donut already has them
+    /// (<paramref name="claimed"/> gains what was added). Returns true when something was added.
+    /// </summary>
+    private static bool LearnExtensions(List<ToolbarProfile> profiles, HashSet<string> claimed)
+    {
+        var changed = false;
+        var defaults = BuiltInData.CreateProfiles().ToDictionary(p => p.Id);
+        foreach (var profile in profiles.Where(p => !p.IsFallback && defaults.ContainsKey(p.Id)))
+        {
+            foreach (var extension in defaults[profile.Id].Extensions.Where(claimed.Add))
+            {
+                profile.Extensions.Add(extension);
+                changed = true;
+            }
+        }
         return changed;
     }
 

@@ -29,7 +29,7 @@
 <table>
   <tr>
     <td width="33%" valign="top"><b>커서 바로 옆에서</b><br>앱 창을 열 필요가 없어요. 끌고 있는 파일에 맞는 형식만 지금 있는 자리에 나타나요.</td>
-    <td width="33%" valign="top"><b>180가지 형식, 다른 프로그램 없이</b><br>이미지, PDF, 워드, 엑셀, 파워포인트, HWP, 전자책, 압축 파일, 글꼴, CAD를 오피스·한컴오피스·LibreOffice 없이 변환해요.</td>
+    <td width="33%" valign="top"><b>190가지 형식, 다른 프로그램 없이</b><br>이미지, PDF, 워드, 엑셀, 파워포인트, HWP, 전자책, 압축 파일, 글꼴, CAD를 오피스·한컴오피스·LibreOffice 없이 변환해요.</td>
     <td width="33%" valign="top"><b>내 컴퓨터 안에서만</b><br>아무것도 업로드하지 않아요. 오프라인으로 동작하고 결과는 원본 옆에 저장해요.</td>
   </tr>
 </table>
@@ -81,7 +81,7 @@
 
 | 원본 | 변환 대상 |
 |---|---|
-| **이미지**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC; GIMP XCF, 카메라 RAW(CR2, CR3, NEF, ARW, DNG 등)는 읽기 | 위 형식끼리(HEIC⁵), PDF, 크기 조정, 흑백 |
+| **이미지**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR 등; GIMP XCF, 카메라 RAW(CR2, CR3, NEF, ARW, DNG 등), DICOM, OpenEXR, HDR은 읽기 | 위 형식끼리(HEIC⁵), PDF, 크기 조정, 흑백 |
 | **벡터**: SVG, SVGZ, EMF, WMF, AI · EPS, PS¹ · CDR, VSD, CGM, ODG² | PDF(벡터), PNG 등 이미지, SVG ↔ SVGZ, PDF → EPS/PS¹ |
 | **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ; 합치기, 나누기, 페이지 범위 |
 | **문서**: DOCX, DOCM, DOTX, EML · DOC, ODT, RTF, WPS, WPD, Pages 등² | PDF, DOCX, HWPX, EPUB, TXT, HTML |
@@ -90,7 +90,7 @@
 | **한글**: HWP, HWPX | PDF, PNG, DOCX, HWPX ↔ HWP, TXT, 마크다운, HTML |
 | **텍스트**: TXT, 마크다운, HTML · reStructuredText, LaTeX³ | PDF, DOCX, HWPX, EPUB |
 | **전자책**: EPUB, MOBI, AZW3, AZW, AZW4, FB2, CBZ, CBR, CB7, HTMLZ, TXTZ · LIT, LRF, CHM, PDB 등⁴ | PDF, EPUB, DOCX, TXT, HTML, HWPX · MOBI, AZW3⁴ |
-| **동영상**⁵: MP4, MOV, MKV, WEBM, AVI, WMV, FLV, MPEG, TS, M2TS, 3GP, OGV, VOB 등 | MP4, WEBM, MOV, MKV, AVI, GIF, MP3, M4A, 720p |
+| **동영상**⁵: MP4, MOV, MKV, WEBM, AVI, WMV, FLV, MPEG, TS, M2TS, 3GP, OGV, VOB 등 | MP4, WEBM, MOV, MKV, AVI, GIF, APNG, MP3, M4A, 720p |
 | **오디오**⁵: MP3, M4A, AAC, WAV, FLAC, OGG, OPUS, WMA, AIFF, AMR 등 | MP3, M4A, WAV, FLAC, OGG, OPUS, AAC |
 | **압축 파일**: ZIP, 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG 등 | 압축 풀기, ZIP, 7Z, TAR, TAR.GZ; 여러 파일 → ZIP 하나 |
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |

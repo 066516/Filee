@@ -50,6 +50,8 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [InlineData("gif", "mp4")]
     [InlineData("gif", "webm")]
     [InlineData("png", "mov")]
+    [InlineData("apng", "mp4")]
+    [InlineData("mov", "apng")]
     [InlineData("rm", "mp4")]
     [InlineData("dss", "mp3")]
     public void Media_conversions_take_one_ffmpeg_step(string from, string to)
@@ -76,6 +78,7 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [InlineData("jpg", "mp4", "magick")]
     [InlineData("avif", "webm", "magick")]
     [InlineData("svg", "mov", "vector")]
+    [InlineData("qoi", "mp4", "magick")]
     public void Photos_reach_video_as_a_full_colour_png_not_a_gif(string from, string to, string imageEngine)
     {
         var route = Planner().Plan(from, to);
@@ -87,6 +90,7 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [InlineData("pdf", "mp4", "pdfium")] // a slideshow of the pages
     [InlineData("webp", "mov", "magick")] // an animated WebP keeps moving
     [InlineData("tiff", "webm", "magick")]
+    [InlineData("mng", "mp4", "magick")]
     public void Animations_and_pages_still_reach_video_through_gif(string from, string to, string imageEngine)
     {
         var route = Planner().Plan(from, to);
@@ -260,6 +264,20 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal(palette, second[second.ToList().LastIndexOf("-i") + 1]);
         Assert.Contains("fps=12,scale=w='min(iw,480)':h='min(ih,200)'", After(second, "-filter_complex"));
         Assert.Contains("paletteuse", After(second, "-filter_complex"));
+    }
+
+    [Fact]
+    public void Apng_is_one_full_colour_looping_pass_with_the_gif_limits()
+    {
+        var pass = Assert.Single(MediaEncoding.Plan("in.mp4", "out.apng", "apng", new MediaOptions { Quality = MediaQuality.High },
+            new MediaInfo(TimeSpan.FromSeconds(3), Hd, new AudioStreamInfo(2, 44100), null), "work"));
+        var args = pass.Arguments;
+        Assert.Equal("fps=15,scale=w='min(iw,640)':h=ih:force_original_aspect_ratio=decrease:flags=lanczos", After(args, "-vf"));
+        Assert.Equal("apng", After(args, "-c:v"));
+        Assert.Equal("rgb24", After(args, "-pix_fmt"));
+        Assert.Equal("0", After(args, "-plays"));
+        Assert.Equal("apng", After(args, "-f"));
+        Assert.Contains("-an", args);
     }
 
     [Fact]
@@ -534,6 +552,51 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal("h264", mp4.Video?.Codec);
         Assert.Equal((480, 270), (mp4.Video!.Width, mp4.Video.Height));
         Assert.InRange(mp4.Duration, 1.5, 2.5);
+    }
+
+    [Fact]
+    public async Task Video_becomes_an_apng_and_back()
+    {
+        SkipUnlessInstalled();
+        var source = await MakeClipAsync(fx.NewFolder(), "anim.mp4", seconds: 1, size: "640x360", audio: false);
+        var apng = await ConvertAsync(source, "apng");
+        var probed = await ProbeAsync(apng);
+        Assert.Equal("apng", probed.Video?.Codec);
+        Assert.Equal((480, 270), (probed.Video!.Width, probed.Video.Height)); // Balanced: at most 480 px wide
+        Assert.InRange(probed.Video.Frames, 10, 15); // 1 s at 12 fps
+
+        // Filee's own reader takes FFmpeg's APNG: every frame, as GIF.
+        var gif = await ConvertAsync(apng, "gif");
+        using (var frames = new ImageMagick.MagickImageCollection(gif))
+            Assert.Equal(probed.Video.Frames, frames.Count);
+
+        // APNG → MP4 straight through FFmpeg.
+        var mp4 = await ProbeAsync(await ConvertAsync(apng, "mp4"));
+        Assert.Equal("h264", mp4.Video?.Codec);
+        Assert.InRange(mp4.Duration, 0.7, 1.3);
+    }
+
+    [Fact]
+    public async Task Ffmpeg_reads_the_apng_filee_writes()
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        var gif = Path.Combine(folder, "anim.gif");
+        using (var frames = new ImageMagick.MagickImageCollection())
+        {
+            foreach (var color in new[] { ImageMagick.MagickColors.Red, ImageMagick.MagickColors.Lime, ImageMagick.MagickColors.Blue })
+                frames.Add(new ImageMagick.MagickImage(color, 64, 48) { AnimationDelay = 20 });
+            frames.Write(gif, ImageMagick.MagickFormat.Gif);
+        }
+
+        var apng = await ConvertAsync(gif, "apng");
+
+        var probed = await ProbeAsync(apng);
+        Assert.Equal("apng", probed.Video?.Codec);
+        Assert.Equal((64, 48, 3), (probed.Video!.Width, probed.Video.Height, probed.Video.Frames));
+        // FFmpeg takes the frame delays: three frames of 0.2 s make a 0.6 s video.
+        var mp4 = await ProbeAsync(await ConvertAsync(apng, "mp4"));
+        Assert.InRange(mp4.Duration, 0.5, 0.75);
     }
 
     [Fact]

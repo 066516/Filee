@@ -123,6 +123,8 @@ internal static class MediaEncoding
     {
         if (target == "gif")
             return AnimatedGif(input, output, options, info, workDirectory);
+        if (target == "apng")
+            return [new FfmpegPass(AnimatedPng(input, output, options, info), 1)];
         if (target == "png")
             return [new FfmpegPass(PosterFrame(input, output, info), 1)];
         if (VideoTargets.TryGetValue(target, out var video))
@@ -513,6 +515,22 @@ internal static class MediaEncoding
             "-map", "[gif]", "-loop", "0", "-f", "gif", "-progress", "pipe:1", output,
         ];
         return [new FfmpegPass(first, 0.4), new FfmpegPass(second, 0.6)];
+    }
+
+    /// <summary>
+    /// Animated PNG with FFmpeg's APNG encoder and muxer: full colour (24-bit RGB, no palette pass), looping, with the
+    /// frame rate and width limits of GIF, since every frame is stored losslessly.
+    /// </summary>
+    private static List<string> AnimatedPng(string input, string output, MediaOptions options, MediaInfo info)
+    {
+        var video = info.Video ?? throw new InvalidOperationException("The file has no video stream.");
+        var quality = options.Quality;
+        var chain = GifFrames(video, options.MaxHeight, fps: Choose(quality, 15, 12, 10), maxWidth: Choose(quality, 640, 480, 320));
+        return
+        [
+            .. Common, "-i", input, "-map", "0:V:0", "-vf", chain, "-an",
+            "-c:v", "apng", "-pix_fmt", "rgb24", "-pred", "mixed", "-plays", "0", "-f", "apng", "-progress", "pipe:1", output,
+        ];
     }
 
     /// <summary>Frame rate, square pixels and size of the GIF frames (never upscaled).</summary>

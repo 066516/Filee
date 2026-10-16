@@ -211,6 +211,26 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_10_libraries_open_the_new_image_formats_on_the_images_donut()
+    {
+        // As written by 1.11.x: the images donut knows no APNG, QOI, DICOM or .hif; a donut of the user takes DDS.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var images = profiles.Single(p => p.Id == "images");
+        images.Extensions.RemoveAll(e => e is "apng" or "qoi" or "dcm" or "hif" or "dds");
+        profiles.Insert(0, new ToolbarProfile { Id = "game", Name = "Game textures", Extensions = ["dds"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(10, presets, profiles));
+
+        Assert.Contains("apng", images.Extensions);
+        Assert.Contains("qoi", images.Extensions);
+        Assert.Contains("dcm", images.Extensions);
+        Assert.Contains("hif", images.Extensions);
+        Assert.DoesNotContain("dds", images.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(10, presets, profiles)); // once only
+    }
+
+    [Fact]
     public void Catalog_migration_ignores_extensions_checked_on_mixed_profiles()
     {
         // Schema-5 data where the user already limited a mixed-files donut to MP3 and JPG: those checks must not

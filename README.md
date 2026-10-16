@@ -29,7 +29,7 @@
 <table>
   <tr>
     <td width="33%" valign="top"><b>Right at your cursor</b><br>No app window to open. The formats appear where you already are, only the ones that make sense for the files you drag.</td>
-    <td width="33%" valign="top"><b>180 formats, no other software</b><br>Images, PDF, Word, Excel, PowerPoint, HWP, e-books, archives, fonts and CAD work without Office, Hancom Office or LibreOffice.</td>
+    <td width="33%" valign="top"><b>190 formats, no other software</b><br>Images, PDF, Word, Excel, PowerPoint, HWP, e-books, archives, fonts and CAD work without Office, Hancom Office or LibreOffice.</td>
     <td width="33%" valign="top"><b>Stays on your computer</b><br>Nothing is uploaded. Filee works offline and saves the result next to the original.</td>
   </tr>
 </table>
@@ -81,7 +81,7 @@ Filee shows new releases in its menu and updates itself, keeping your settings a
 
 | From | To |
 |---|---|
-| **Images**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC; GIMP XCF, camera RAW (CR2, CR3, NEF, ARW, DNG, …) read | any of these (HEIC⁵), PDF, resized, grayscale |
+| **Images**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …; GIMP XCF, camera RAW (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR read | any of these (HEIC⁵), PDF, resized, grayscale |
 | **Vector**: SVG, SVGZ, EMF, WMF, AI · EPS, PS¹ · CDR, VSD, CGM, ODG² | PDF (vector), PNG and other images, SVG ↔ SVGZ, PDF → EPS/PS¹ |
 | **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ; merge, split, page ranges |
 | **Documents**: DOCX, DOCM, DOTX, EML · DOC, ODT, RTF, WPS, WPD, Pages, …² | PDF, DOCX, HWPX, EPUB, TXT, HTML |
@@ -90,7 +90,7 @@ Filee shows new releases in its menu and updates itself, keeping your settings a
 | **HWP**: HWP, HWPX | PDF, PNG, DOCX, HWPX ↔ HWP, TXT, Markdown, HTML |
 | **Text**: TXT, Markdown, HTML · reStructuredText, LaTeX³ | PDF, DOCX, HWPX, EPUB |
 | **E-books**: EPUB, MOBI, AZW3, AZW, AZW4, FB2, CBZ, CBR, CB7, HTMLZ, TXTZ · LIT, LRF, CHM, PDB, …⁴ | PDF, EPUB, DOCX, TXT, HTML, HWPX · MOBI, AZW3⁴ |
-| **Video**⁵: MP4, MOV, MKV, WEBM, AVI, WMV, FLV, MPEG, TS, M2TS, 3GP, OGV, VOB, … | MP4, WEBM, MOV, MKV, AVI, GIF, MP3, M4A, 720p |
+| **Video**⁵: MP4, MOV, MKV, WEBM, AVI, WMV, FLV, MPEG, TS, M2TS, 3GP, OGV, VOB, … | MP4, WEBM, MOV, MKV, AVI, GIF, APNG, MP3, M4A, 720p |
 | **Audio**⁵: MP3, M4A, AAC, WAV, FLAC, OGG, OPUS, WMA, AIFF, AMR, … | MP3, M4A, WAV, FLAC, OGG, OPUS, AAC |
 | **Archives**: ZIP, 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG, … | extract, ZIP, 7Z, TAR, TAR.GZ; any files → one ZIP |
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
