@@ -50,6 +50,7 @@
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>
+    <v:SupportersView x:Name="Supporters" />
     <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource sponsor.star}" />
   </StackPanel>
 </Window>
