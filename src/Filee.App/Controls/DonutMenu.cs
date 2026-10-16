@@ -1154,7 +1154,7 @@ public sealed partial class DonutMenu : Control
         var parentMid = DonutGeometry.MidAngle(group, Count);
         var subSpan = SubSpanOf(children.Count);
         var (inner, outer) = SubRadii;
-        var t =Math.Max(0, _expand.Value);
+        var t = Math.Max(0, _expand.Value);
         var opening = _open.Length == 0 ? 1 : Math.Clamp(_open.Average(), 0, 1);
         // Grows outward from the group's slice: scaled about the point where it meets the donut.
         var anchor = DonutGeometry.PointAt(center, inner, parentMid);

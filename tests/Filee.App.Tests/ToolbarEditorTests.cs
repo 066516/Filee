@@ -244,7 +244,10 @@ public class ToolbarPageTests
 
             vm.AddGroup(new Filee.Core.Presets.Preset
             {
-                Id = "test-new-group", Name = "Web", Kind = Filee.Core.Presets.PresetKind.Group, SubPresetIds = ["to-png"],
+                Id = "test-new-group",
+                Name = "Web",
+                Kind = Filee.Core.Presets.PresetKind.Group,
+                SubPresetIds = ["to-png"],
             });
 
             Assert.Equal("", vm.PaletteSearch);
