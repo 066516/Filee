@@ -636,6 +636,32 @@ public class RenderTests
     }
 
     [AvaloniaFact]
+    public void Preset_editor_keeps_rotation_visible_for_pdf_and_drops_it_for_targets_that_cannot_turn()
+    {
+        TestServices.EnsureInitialized("en");
+        var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+
+        // Photos → PDF are turned on the pages: the PDF card shows the rotation, and it is kept.
+        var toPdf = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "rotate-left");
+        var vm = new PresetEditorViewModel(toPdf, loc);
+        vm.Target = vm.Targets.Single(t => t.Value == "pdf");
+        Assert.False(vm.ShowImage);
+        Assert.True(vm.ShowTurnForPdf);
+        Assert.True(vm.Apply());
+        Assert.Equal(Filee.Core.Presets.ImageRotation.Left90, toPdf.Image.Rotation);
+
+        // A video can't be turned: a rotation left from the image target would fail every file with nothing on screen.
+        var toVideo = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "rotate-left");
+        vm = new PresetEditorViewModel(toVideo, loc);
+        vm.Flip = vm.Flips.Single(f => f.Value == Filee.Core.Presets.ImageFlip.Vertical);
+        vm.Target = vm.Targets.Single(t => t.Value == "mp4");
+        Assert.False(vm.ShowTurnForPdf);
+        Assert.True(vm.Apply());
+        Assert.Equal(Filee.Core.Presets.ImageRotation.None, toVideo.Image.Rotation);
+        Assert.Equal(Filee.Core.Presets.ImageFlip.None, toVideo.Image.Flip);
+    }
+
+    [AvaloniaFact]
     public void Preset_editor_shows_and_saves_background_removal()
     {
         TestServices.EnsureInitialized("ko");
