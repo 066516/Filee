@@ -45,8 +45,17 @@ public sealed class RadialController(
     private JobViewModel? _progressJob;   // job currently shown by the ring (null once finished / handed off)
     private JobViewModel? _lastRingJob;   // for "click the ✓ to open the folder"
     private IDisposable? _handOffTimer;
+    private int _dragGeneration;
+
+    /// <summary>
+    /// How long a drag that never brought files may keep the invisible window up, in case the button release is
+    /// missed (the system dropped the input hook, a UAC prompt took the desktop): the window catches clicks.
+    /// </summary>
+    private static readonly TimeSpan EmptyDragLimit = TimeSpan.FromSeconds(10);
 
     public bool IsVisible => _visible;
+
+    internal RadialWindow? Window => _window;
 
     /// <summary>
     /// Drag gesture started at the given physical screen point. The window is placed under the cursor but stays
@@ -57,10 +66,19 @@ public sealed class RadialController(
     {
         ReleaseProgressToToast();
         var window = EnsureWindow();
+        // A ring from an earlier conversion (finished or handed to the toast) must not keep this gesture's window up.
+        window.DonutControl.LeaveProgressMode();
         _dropped = false;
         viewModel.ResetForDrag();
         window.DonutControl.AllowContextEdit = false;
         PlaceAndShow(window, x, y, activate: false);
+
+        var generation = ++_dragGeneration;
+        DispatcherTimer.RunOnce(() =>
+        {
+            if (generation == _dragGeneration && _visible && !viewModel.HasFiles && !viewModel.IsClickMode)
+                Close(animate: false);
+        }, EmptyDragLimit);
     }
 
     /// <summary>Opens the donut for known files (click mode).</summary>
@@ -83,6 +101,12 @@ public sealed class RadialController(
     {
         if (!_visible || viewModel.IsClickMode)
             return;
+        // Nothing was brought to the donut: the window is invisible but catches clicks, so go right away.
+        if (!viewModel.HasFiles && !_window!.DonutControl.IsInProgressMode)
+        {
+            Close(animate: false);
+            return;
+        }
         // A drop on the donut arrives around the same time as the button release; give it a moment.
         DispatcherTimer.RunOnce(() =>
         {
@@ -99,11 +123,19 @@ public sealed class RadialController(
         {
             // Esc / click elsewhere while the ring is showing: let the toast carry on (a finishing ✓ just fades).
             if (_progressJob is not null)
+            {
                 HandOffToToast();
-            return;
+                return;
+            }
+            if (_window.DonutControl.IsFinishingProgress)
+                return;
+            // A ring left over after it finished: nothing is showing any more, so close like any donut.
+            _window.DonutControl.LeaveProgressMode();
         }
         _visible = false;
         var window = _window;
+        // A group about to open (its dwell timer running) must not open on a closing donut.
+        window.DonutControl.CollapseGroup();
         if (animate)
             window.DonutControl.PlayCloseAnimation(() =>
             {
@@ -254,6 +286,7 @@ public sealed class RadialController(
     private void HideWindow()
     {
         _visible = false;
+        _window?.DonutControl.CollapseGroup();
         _window?.Hide();
     }
 

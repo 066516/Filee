@@ -140,6 +140,9 @@ public class DonutGroupTests
         donut.SetExternalHit(donut.HitTest(inner), inner);
         donut.ExpandPendingGroup();
 
+        // The mouse comes onto the ring first: right after another test's click, a headless press with no move before it
+        // can miss the donut.
+        window.MouseMove(OnRing(donut, 2));
         window.MouseDown(OnRing(donut, 2), MouseButton.Right);
         window.MouseUp(OnRing(donut, 2), MouseButton.Right);
         Assert.Equal([(Group, 2)], edits);
@@ -218,6 +221,140 @@ public class DonutGroupTests
         donut.SetExternalHit(donut.HitTest(far), far);
         Assert.False(IsOpen(donut));
         window.Close();
+    }
+
+    /// <summary>
+    /// <paramref name="count"/> slices with a group of six at <see cref="Group"/>, and a point on the outer half of the
+    /// next slice, in the direction of the group's ring (crossed on the way to its outer slices).
+    /// </summary>
+    private static (DonutMenu Donut, Window Window, Point Neighbour) OpenCrowded(int count)
+    {
+        var items = Enumerable.Range(0, count)
+            .Select(i => i == Group ? GroupOf([.. Enumerable.Range(0, Preset.MaxSubPresets).Select(k => Item($"R{k}"))]) : Item($"S{i}"))
+            .ToArray();
+        var (donut, window) = Open(items);
+        var neighbour = DonutGeometry.PointAt(Center(donut), donut.OuterRadius * 0.9,
+            DonutGeometry.MidAngle(Group, count) + DonutGeometry.Span(count) * 0.75);
+        return (donut, window, neighbour);
+    }
+
+    [AvaloniaTheory]
+    [InlineData(12)]
+    [InlineData(8)]
+    public void A_click_on_a_neighbours_outer_half_under_an_open_ring_converts_with_that_neighbour(int count)
+    {
+        var (donut, window, neighbour) = OpenCrowded(count);
+        var invoked = new List<int>();
+        donut.SegmentInvoked += (_, index) => invoked.Add(index);
+        var inner = OnGroup(donut, donut.OuterRadius * 0.6);
+        window.MouseMove(inner);
+        window.MouseDown(inner, MouseButton.Left);
+        window.MouseUp(inner, MouseButton.Left);
+        Assert.True(IsOpen(donut));
+
+        window.MouseMove(neighbour);
+        Assert.Equal(new DonutHit(DonutHitKind.Segment, Group + 1), donut.HitTest(neighbour));
+        Assert.Equal(Group + 1, donut.ActiveIndex);
+        Assert.True(IsOpen(donut)); // still open: the pointer may be on its way to the ring's outer slices
+
+        window.MouseDown(neighbour, MouseButton.Left);
+        window.MouseUp(neighbour, MouseButton.Left);
+        Assert.Equal([Group + 1], invoked);
+        window.Close();
+    }
+
+    [AvaloniaTheory]
+    [InlineData(12)]
+    [InlineData(8)]
+    public void A_drop_on_a_neighbours_outer_half_under_an_open_ring_converts_with_that_neighbour(int count)
+    {
+        var (donut, window, neighbour) = OpenCrowded(count);
+        var inner = OnGroup(donut, donut.OuterRadius * 0.6);
+        donut.SetExternalHit(donut.HitTest(inner), inner);
+        donut.ExpandPendingGroup();
+        Assert.True(IsOpen(donut));
+
+        donut.SetExternalHit(donut.HitTest(neighbour), neighbour);
+        Assert.True(IsOpen(donut));
+        Assert.Equal(Group + 1, donut.ActiveIndex);
+        var drop = donut.HitTest(neighbour); // what RadialWindow.OnDrop hands the controller
+        Assert.Equal(new DonutHit(DonutHitKind.Segment, Group + 1), drop);
+        Assert.True(donut.Converts(drop));
+
+        // Carrying on across it reaches the ring's last slice.
+        var last = OnRing(donut, Preset.MaxSubPresets - 1);
+        donut.SetExternalHit(donut.HitTest(last), last);
+        Assert.Equal(new DonutHit(DonutHitKind.SubSegment, Group, Preset.MaxSubPresets - 1), donut.HitTest(last));
+        Assert.Equal(Preset.MaxSubPresets - 1, donut.ActiveSubIndex);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Leaving_the_window_past_the_ring_or_over_its_edge_folds_it()
+    {
+        TestServices.EnsureInitialized("en");
+        var donut = new DonutMenu { Items = [Item("PNG"), Item("JPG"), GroupOf(Item("WEBP"), Item("PDF"), Item("TIFF")), Item("BMP")] };
+        var window = new Window { Content = new Border { Padding = new Thickness(40), Child = donut }, SizeToContent = SizeToContent.WidthAndHeight };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var origin = donut.TranslatePoint(new Point(0, 0), window)!.Value;
+        Point InWindow(Point p) => new(p.X + origin.X, p.Y + origin.Y);
+
+        // The mouse opens the ring, goes onto it and on out of the donut.
+        var inner = OnGroup(donut, donut.OuterRadius * 0.6);
+        window.MouseMove(InWindow(inner));
+        window.MouseDown(InWindow(inner), MouseButton.Left);
+        window.MouseUp(InWindow(inner), MouseButton.Left);
+        window.MouseMove(InWindow(OnRing(donut, 1)));
+        Assert.True(IsOpen(donut));
+        window.MouseMove(new Point(2, 2));
+        Assert.False(IsOpen(donut));
+
+        // A drag last seen on the ring's outer rim went out over it: not a see-through seam.
+        donut.SetExternalHit(donut.HitTest(inner), inner);
+        donut.ExpandPendingGroup();
+        Assert.True(IsOpen(donut));
+        var middle = OnRing(donut, 1);
+        var c = Center(donut);
+        var along = Math.Sqrt(Math.Pow(middle.X - c.X, 2) + Math.Pow(middle.Y - c.Y, 2));
+        var rim = new Point(c.X + (middle.X - c.X) * (along + 21) / along, c.Y + (middle.Y - c.Y) * (along + 21) / along);
+        donut.ExternalDragLeft(rim);
+        Assert.False(IsOpen(donut));
+        Assert.Equal(-1, donut.ActiveIndex);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void A_group_about_to_open_stays_closed_once_the_donut_closed()
+    {
+        TestServices.EnsureInitialized("en");
+        var store = AppHost.Get<UserDataStore>();
+        var images = store.Profiles.Single(p => p.Id == "images");
+        var before = images.PresetIds.ToList();
+        var group = new Preset { Id = "test-close-group", Name = "Formats", Kind = PresetKind.Group, SubPresetIds = ["to-png", "to-jpg"] };
+        var radial = AppHost.Get<RadialController>();
+        try
+        {
+            store.Presets.Add(group);
+            images.PresetIds.Insert(0, group.Id);
+            radial.ShowForFiles(400, 400, ["/photos/a.jpg"]);
+            Dispatcher.UIThread.RunJobs();
+            var donut = radial.Window!.DonutControl;
+            var onGroup = DonutGeometry.PointAt(Center(donut), donut.OuterRadius * 0.6, DonutGeometry.MidAngle(0, donut.Items!.Count));
+            donut.SetExternalHit(donut.HitTest(onGroup), onGroup); // resting on it: the dwell timer runs
+
+            radial.Close(animate: false); // Esc, or a click elsewhere
+            donut.ExpandPendingGroup(); // what the timer would do, had it outlived the donut
+            Assert.Equal(-1, donut.ActiveSubIndex);
+            Assert.NotEqual(DonutHitKind.SubSegment, donut.HitTest(donut.SubSliceCenter(0, 1)).Kind);
+        }
+        finally
+        {
+            radial.Close(animate: false);
+            images.PresetIds.Clear();
+            images.PresetIds.AddRange(before);
+            store.Presets.Remove(group);
+        }
     }
 
     [AvaloniaFact]

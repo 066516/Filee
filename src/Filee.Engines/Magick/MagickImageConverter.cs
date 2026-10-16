@@ -7,8 +7,9 @@ using ImageMagick;
 namespace Filee.Engines.Magick;
 
 /// <summary>
-/// Converts between PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA and PPM, and reads
-/// HEIC, XCF, camera RAW and (on Windows) EMF/WMF.
+/// Converts between PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, APNG, MNG, QOI,
+/// DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster and MIFF, and reads HEIC, XCF, camera RAW, DICOM,
+/// Photo CD, OpenEXR, Radiance HDR and (on Windows) EMF/WMF.
 /// </summary>
 public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransformer
 {
@@ -68,11 +69,13 @@ public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransf
     public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken) =>
         Task.Run<IReadOnlyList<string>>(() =>
         {
-            using var images = ImageReader.Read(step.InputPath, step.From, step.Preset);
+            // Animated PNGs are often saved as .png: read them as APNG, so they stay animated as GIF or WebP.
+            var from = step.From == "png" && Apng.IsAnimated(step.InputPath) ? "apng" : step.From;
+            using var images = ImageReader.Read(step.InputPath, from, step.Preset);
             cancellationToken.ThrowIfCancellationRequested();
             progress?.Report(0.3);
 
-            var frames = ImageEncoder.SelectFrames(images, step.From, step.To);
+            var frames = ImageEncoder.SelectFrames(images, from, step.To);
             foreach (var frame in frames)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -81,7 +84,7 @@ public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransf
             progress?.Report(0.7);
 
             var written = ImageEncoder.Write(frames, step.To, step.Output, step.Preset.Image, step.InputPath,
-                ImageEncoder.KeepsAnimation(step.From, step.To));
+                ImageEncoder.KeepsAnimation(from, step.To));
             progress?.Report(1);
             return written;
         }, cancellationToken);

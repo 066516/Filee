@@ -1,7 +1,8 @@
 // Built-in e-book conversions, no external program: EPUB, MOBI / AZW / AZW3 / PRC, FB2, HTMLZ and TXTZ are read into
 // the HWPX document model and written as EPUB, HWPX (→ PDF / images through rhwp and PDFium), TXT, HTML, Markdown,
 // FB2, HTMLZ or TXTZ; HTML, Markdown, TXT and DOCX become e-books too. Comics (CBZ / CBR / CB7 / CBT / CBC) become
-// PDF, fixed-layout EPUB or CBZ, PDF becomes CBZ, and AZW4 (Print Replica) gives back its PDF.
+// PDF, fixed-layout EPUB or CBZ, PDF becomes CBZ, and AZW4 (Print Replica) gives back its PDF. EPUB ↔ KEPUB (Kobo)
+// adds or removes Kobo's sentence markup and keeps the rest of the book as it is.
 // Formats only calibre reads or writes (LIT, LRF, PDB, MOBI / AZW3 output, ...) are in CalibreConverter.
 
 using System.Text;
@@ -16,7 +17,7 @@ namespace Filee.Engines.Ebooks;
 public sealed class EbookConverter : IConverter
 {
     /// <summary>E-book formats read into the document model.</summary>
-    private static readonly string[] BookReaders = ["epub", "mobi", "azw3", "azw", "prc", "fb2", "htmlz", "txtz"];
+    private static readonly string[] BookReaders = ["epub", "kepub", "mobi", "azw3", "azw", "prc", "fb2", "htmlz", "txtz"];
 
     /// <summary>Formats written from the document model.</summary>
     private static readonly string[] BookWriters = ["epub", "hwpx", "txt", "html", "md", "fb2", "htmlz", "txtz"];
@@ -34,7 +35,12 @@ public sealed class EbookConverter : IConverter
 
     public IReadOnlyList<ConversionEdge> Edges { get; } =
     [
-        .. BookReaders.SelectMany(from => BookWriters.Where(to => to != from).Select(to => new ConversionEdge(from, to, to == "md" ? 12 : 10))),
+        // KEPUB → EPUB is below: the book is copied without Kobo's markup instead of being written anew.
+        .. BookReaders.SelectMany(from => BookWriters.Where(to => to != from && !(from == "kepub" && to == "epub"))
+            .Select(to => new ConversionEdge(from, to, to == "md" ? 12 : 10))),
+        // Every other format reaches KEPUB through EPUB.
+        new("epub", "kepub"),
+        new("kepub", "epub"),
         .. DocumentReaders.SelectMany(from => EbookWriters.Select(to => new ConversionEdge(from, to))),
         // HTML → TXT has no other built-in route; HTML → Markdown is a fallback for when Pandoc is not installed.
         new("html", "txt"),
@@ -46,7 +52,7 @@ public sealed class EbookConverter : IConverter
         new("azw4", "pdf"),
     ];
 
-    public EngineStatus GetStatus() => EngineStatus.Available("EPUB, MOBI / AZW3, FB2, HTMLZ, TXTZ, CBZ / CBR / CB7 / CBT / CBC, AZW4",
+    public EngineStatus GetStatus() => EngineStatus.Available("EPUB, KEPUB, MOBI / AZW3, FB2, HTMLZ, TXTZ, CBZ / CBR / CB7 / CBT / CBC, AZW4",
         $"{EngineVersions.BuiltIn} · {EngineVersions.Library("AngleSharp", typeof(AngleSharp.BrowsingContext))}");
 
     public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken) =>
@@ -68,6 +74,18 @@ public sealed class EbookConverter : IConverter
             progress?.Report(1);
             return [target];
         }
+        if (step.To == "kepub" || step.From == "kepub" && step.To == "epub")
+        {
+            var target = step.Output.Allocate(Filee.Core.Formats.FormatRegistry.Get(step.To).PrimaryExtension);
+            if (target is null)
+                return [];
+            if (step.To == "kepub")
+                Kepub.FromEpub(step.InputPath, target, cancellationToken);
+            else
+                Kepub.ToEpub(step.InputPath, target, cancellationToken);
+            progress?.Report(1);
+            return [target];
+        }
 
         var book = Read(step, work, cancellationToken);
         progress?.Report(0.5);
@@ -86,7 +104,7 @@ public sealed class EbookConverter : IConverter
         var media = Path.Combine(work, "media");
         switch (step.From)
         {
-            case "epub":
+            case "epub" or "kepub":
                 return EpubReader.ReadBook(input, work, cancellationToken);
             case "mobi" or "azw3" or "azw" or "prc":
                 return MobiReader.ReadBook(input, work, cancellationToken);

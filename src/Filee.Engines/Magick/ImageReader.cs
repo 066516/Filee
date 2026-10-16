@@ -1,6 +1,8 @@
 // Reads source images with ImageMagick, handling the formats that need more than "open the file": camera RAW
 // (LibRaw settings), layered PSD/PSB/XCF (one flattened picture instead of one file per layer) and Windows
-// metafiles (rendered at the preset's DPI). Used by every engine that takes a raster image as input.
+// metafiles (rendered at the preset's DPI), APNG (Filee's own reader composes the frames) and uncompressed DICOM
+// (Filee's own reader, as ImageMagick's Q8 build reads only 8-bit DICOM). Used by every engine that takes a raster
+// image as input.
 
 using System.Buffers.Binary;
 using Filee.Core.Presets;
@@ -21,11 +23,23 @@ internal static class ImageReader
     /// </summary>
     public static MagickImageCollection Read(string path, string formatId, Preset preset)
     {
+        if (formatId == "apng")
+            return Apng.Read(path);
+        if (formatId == "dcm" && Dicom.TryRead(path) is { } scan)
+            return scan;
+
         var images = new MagickImageCollection();
         var settings = Settings(formatId, preset);
         try
         {
             images.Read(path, settings);
+        }
+        catch (MagickException ex) when (formatId == "dcm")
+        {
+            images.Dispose();
+            throw new InvalidOperationException(
+                "This DICOM image is compressed in a way Filee can't read (more than 8 bits per sample, or an unusual " +
+                "compression). Export it uncompressed from the viewing software and try again. (" + ex.Message + ")", ex);
         }
         catch (MagickException ex) when (formatId == "xcf")
         {
@@ -48,6 +62,18 @@ internal static class ImageReader
                 image.Density = density;
         }
 
+        // A MIFF palette image keeps its transparency per pixel while its palette says opaque, so writers that store a
+        // palette (PNG) would lose it: make it direct colour with the pixels' own alpha.
+        if (formatId == "miff")
+        {
+            foreach (var image in images.Where(i => i.ClassType == ClassType.Pseudo && i.HasAlpha))
+            {
+                var rgba = image.GetPixels().ToByteArray(PixelMapping.RGBA)!;
+                image.ClassType = ClassType.Direct;
+                image.ImportPixels(rgba, new PixelImportSettings(image.Width, image.Height, StorageType.Char, PixelMapping.RGBA));
+            }
+        }
+
         if (formatId == "xcf" && images.Count > 0)
         {
             var flat = FlattenXcf(images, XcfCanvasSize(path));
@@ -61,6 +87,8 @@ internal static class ImageReader
     internal static MagickReadSettings Settings(string formatId, Preset preset)
     {
         var settings = new MagickReadSettings();
+        if (ImageEncoder.ExplicitCoder.Contains(formatId))
+            settings.Format = ImageEncoder.ToMagickFormat(formatId);
         switch (formatId)
         {
             case "raw":

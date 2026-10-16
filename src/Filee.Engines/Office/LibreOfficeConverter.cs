@@ -1,6 +1,8 @@
 // Office documents via LibreOffice in headless mode (MPL-2.0): the optional fallback for formats the built-in engines
 // don't handle (DOC, XLS, PPT, OpenDocument, ...) and the only reader of rarer ones: Works / WPS, WordPerfect, Lotus
-// Word Pro, AbiWord, Apple Pages / Numbers / Keynote, StarOffice, WPS Office, Publisher, CorelDRAW, Visio, CGM.
+// Word Pro, AbiWord, Apple Pages / Numbers / Keynote, StarOffice, WPS Office, ClarisWorks / AppleWorks, MacWrite, T602,
+// Pocket Word, flat OpenDocument, Publisher, CorelDRAW, Visio, CGM. It also writes the OpenDocument templates, FODT,
+// XLT and EMF / WMF, and turns SVG into EMF / WMF / ODG and a PDF page into SVG.
 // Uses a selected installation, Filee's downloaded copy, or the system installation.
 //
 // Gotchas handled here:
@@ -16,6 +18,8 @@
 using Filee.Core.Conversion;
 using Filee.Core.Formats;
 using Filee.Engines.Infrastructure;
+using PdfSharp.Pdf;
+using PdfSharp.Pdf.IO;
 
 namespace Filee.Engines.Office;
 
@@ -28,21 +32,32 @@ public sealed class LibreOfficeConverter : IConverter
     /// <summary>Usual time of one conversion with a prepared profile (drives the progress estimate).</summary>
     private static readonly TimeSpan TypicalDuration = TimeSpan.FromSeconds(4);
 
-    private static readonly string[] Writer = ["docx", "doc", "odt", "rtf"];
-    private static readonly string[] Calc = ["xlsx", "xls", "ods", "csv"];
-    private static readonly string[] Impress = ["pptx", "ppt", "odp"];
+    // Read and written: FODT (flat XML) and the OpenDocument templates (OTT, OTS, OTP), XLT (Excel 97 template).
+    private static readonly string[] Writer = ["docx", "doc", "odt", "rtf", "fodt", "ott"];
+    private static readonly string[] Calc = ["xlsx", "xls", "ods", "csv", "xlt", "ots"];
+    private static readonly string[] Impress = ["pptx", "ppt", "odp", "otp"];
 
     // Formats LibreOffice only reads, by the application that opens them (checked against the filter registry of
-    // LibreOffice 26.2: the DocumentService of each type's preferred import filter).
-    private static readonly string[] WriterImport = ["dot", "wps", "wpd", "lwp", "abw", "pages", "sdw"];
-    private static readonly string[] CalcImport = ["et", "numbers", "sdc"];
+    // LibreOffice 26.2: the DocumentService of each type's preferred import filter). ClarisWorks / AppleWorks files can
+    // also be spreadsheets or drawings; they are taken as word processor files, the common case.
+    private static readonly string[] WriterImport = ["dot", "wps", "wpd", "lwp", "abw", "pages", "sdw", "cwk", "mcw", "602", "psw"];
+    private static readonly string[] CalcImport = ["et", "numbers", "sdc", "fods"];
 
     /// <summary>"sda" also covers .sdd: StarDraw files (.sda) open in Draw, StarImpress files (.sdd) in Impress.</summary>
-    private static readonly string[] ImpressImport = ["key", "dps", "sda"];
+    private static readonly string[] ImpressImport = ["key", "dps", "sda", "fodp"];
 
-    /// <summary>CGM opens in Impress but is a drawing: exported like one (PDF, ODG, SVG, PNG).</summary>
+    /// <summary>CGM opens in Impress but is a drawing: exported like one (PDF, ODG, SVG, PNG, EMF, WMF).</summary>
     private static readonly string[] ImpressGraphics = ["cgm"];
-    private static readonly string[] Draw = ["pub", "cdr", "vsd", "odg", "emf", "wmf"];
+    private static readonly string[] Draw = ["pub", "cdr", "vsd", "odg", "fodg", "emf", "wmf"];
+
+    /// <summary>What a drawing is exported as. SVG, PNG, EMF and WMF hold the first page.</summary>
+    private static readonly string[] DrawTargets = ["pdf", "odg", "svg", "png", "emf", "wmf"];
+
+    /// <summary>
+    /// Opened in Draw although another engine reads them better: SVG (only → EMF / WMF / ODG; the vector engine draws it
+    /// to PDF and images) and PDF (only → SVG / ODG; one page for SVG, see <see cref="FirstPage"/>).
+    /// </summary>
+    private static readonly string[] DrawOnlyFor = ["svg", "pdf"];
 
     private readonly EngineEnvironment _env;
 
@@ -89,9 +104,10 @@ public sealed class LibreOfficeConverter : IConverter
             Directory.CreateDirectory(outDir);
 
             progress?.Report(0.1);
+            var input = step.From == "pdf" && step.To == "svg" ? FirstPage(step) : step.InputPath;
             ProcessResult result;
             using (ProgressEstimate.Start(progress, TypicalDuration))
-                result = await RunAsync(soffice, slot, FilterFor(step.From, step.To, step.Preset.Document.PdfA, FormatRegistry.ExtensionOf(step.InputPath)), outDir, step.InputPath, cancellationToken);
+                result = await RunAsync(soffice, slot, FilterFor(step.From, step.To, step.Preset.Document.PdfA, FormatRegistry.ExtensionOf(step.InputPath)), outDir, input, cancellationToken);
             var produced = Directory.EnumerateFiles(outDir).FirstOrDefault(f => new FileInfo(f).Length > 0);
             if (produced is null)
                 throw new InvalidOperationException(
@@ -108,6 +124,25 @@ public sealed class LibreOfficeConverter : IConverter
         {
             ReturnProfile(slot);
         }
+    }
+
+    /// <summary>
+    /// The first page of the preset's page range as a PDF of its own: Draw's SVG export writes every page of a PDF on
+    /// top of each other, so it gets one page (like the other drawings, whose SVG holds the first page).
+    /// </summary>
+    private static string FirstPage(ConversionStep step)
+    {
+        using var source = PdfReader.Open(step.InputPath, PdfDocumentOpenMode.Import);
+        var pages = PageRange.Parse(step.Preset.Pdf.PageRange, source.PageCount);
+        if (pages.Count == 0)
+            throw new InvalidOperationException("The PDF has no pages in the selected range.");
+        using var single = new PdfDocument();
+        single.AddPage(source.Pages[pages[0]]);
+        var folder = Path.Combine(step.WorkDirectory, "lo-page-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(folder);
+        var path = Path.Combine(folder, FormatRegistry.NameWithoutExtension(step.InputPath) + ".pdf");
+        single.Save(path);
+        return path;
     }
 
     /// <summary>
@@ -211,21 +246,28 @@ public sealed class LibreOfficeConverter : IConverter
             "docx" => "docx:MS Word 2007 XML",
             "doc" => "doc:MS Word 97",
             "odt" => "odt",
+            "fodt" => "fodt:OpenDocument Text Flat XML",
+            "ott" => "ott:writer8_template",
             "rtf" => "rtf:Rich Text Format",
             "txt" => "txt:Text (encoded):UTF8",
             "html" when family == "calc" => "html:HTML (StarCalc)",
             "html" => "html:HTML (StarWriter)",
             "xlsx" => "xlsx:Calc MS Excel 2007 XML",
             "xls" => "xls:MS Excel 97",
+            "xlt" => "xlt:MS Excel 97 Vorlage/Template",
             "ods" => "ods",
+            "ots" => "ots:calc8_template",
             "csv" => "csv:Text - txt - csv (StarCalc):44,34,76",
             "pptx" => "pptx:Impress MS PowerPoint 2007 XML",
             "ppt" => "ppt:MS PowerPoint 97",
             "odp" => "odp",
+            "otp" => "otp:impress8_template",
             "odg" when family == "impress" => "odg:impress8_draw",
             "odg" => "odg:draw8",
             "svg" => $"svg:{family}_svg_Export",
             "png" => $"png:{family}_png_Export",
+            "emf" => $"emf:{family}_emf_Export",
+            "wmf" => $"wmf:{family}_wmf_Export",
             _ => to,
         };
     }
@@ -239,7 +281,7 @@ public sealed class LibreOfficeConverter : IConverter
             return "calc";
         if (Impress.Contains(from) || ImpressImport.Contains(from) || ImpressGraphics.Contains(from))
             return "impress";
-        return Draw.Contains(from) ? "draw" : "writer";
+        return Draw.Contains(from) || DrawOnlyFor.Contains(from) ? "draw" : "writer";
     }
 
     /// <param name="hwp">H2Orestart is installed (HWP / HWPX import).</param>
@@ -255,7 +297,9 @@ public sealed class LibreOfficeConverter : IConverter
             foreach (var s in sources)
                 foreach (var t in targets)
                     if (s != t)
-                        edges.Add(new ConversionEdge(s, t, cost));
+                        // An image that reached a drawing or a PDF would come back as a picture inside the SVG:
+                        // images are traced instead.
+                        edges.Add(new ConversionEdge(s, t, cost, NotForImageSources: t == "svg"));
         }
 
         // LibreOffice is the fallback: its costs make the built-in engines win wherever they can do the job
@@ -280,7 +324,9 @@ public sealed class LibreOfficeConverter : IConverter
         Add(WriterImport, [.. Writer, "pdf", "txt", "html"], Fallback);
         Add(CalcImport, [.. Calc, "pdf", "html"], Fallback);
         Add(ImpressImport, [.. Impress, "pdf"], Fallback);
-        Add([.. ImpressGraphics, .. Draw], ["pdf", "odg", "svg", "png"], Fallback);
+        Add([.. ImpressGraphics, .. Draw], DrawTargets, Fallback);
+        Add(["svg"], ["odg", "emf", "wmf"], Fallback);
+        Add(["pdf"], ["svg", "odg"], Fallback);
         if (hwp)
         {
             Add(["hwp", "hwpx"], ["docx", "odt", "rtf"], Fallback + 6);

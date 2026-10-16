@@ -365,13 +365,11 @@ public sealed partial class DonutMenu : Control
             var sub = DonutGeometry.SubIndexAt(Center, p, inner, outer, parentMid, children.Count, subSpan);
             if (sub >= 0)
                 return new DonutHit(DonutHitKind.SubSegment, _expanded, sub);
-            // On the way out to the ring the pointer crosses the gap before it, and for the ring's outer slices the
-            // neighbours' outer edge: there it still belongs to the group, or the ring would fold away (or switch, and
-            // the hint and the drag cursor flicker) just before it is reached.
-            var distance = Distance(p, Center);
-            var crossing = hit.Kind == DonutHitKind.Outside ||
-                           hit.Kind == DonutHitKind.Segment && hit.Index != _expanded && distance > (InnerRadius + OuterRadius) / 2;
-            if (crossing && distance < inner && InFan(p, _expanded))
+            // On the way out to the ring the pointer crosses the gap before it: there it still belongs to the group, or
+            // the ring would fold away (or the hint and the drag cursor flicker) just before it is reached. A neighbour's
+            // outer half stays that neighbour, so a click or a drop there converts with it; TrackGroups keeps the ring
+            // open over it (OnWayToRing).
+            if (hit.Kind == DonutHitKind.Outside && Distance(p, Center) < inner && InFan(p, _expanded))
                 return new DonutHit(DonutHitKind.Segment, _expanded);
         }
         return hit;

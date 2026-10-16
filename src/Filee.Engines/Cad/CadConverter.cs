@@ -107,7 +107,7 @@ public sealed class CadConverter(ILogger? logger = null) : IConverter, IImageTra
         using var image = new MagickImage(data.ToArray());
         image.Density = new Density(dpi, dpi, DensityUnit.PixelsPerInch);
         ImageEncoder.ApplyOptions(image, step.Preset.Image, step.To);
-        image.Write(output, ImageEncoder.ToMagickFormat(step.To));
+        ImageEncoder.WriteImage(image, output, step.To);
     }
 
     private void Report(string input, CadScene scene)

@@ -4,6 +4,8 @@
 // two hops, e.g. HWPX → PDF (rhwp) → PNG (PDFium). Treating formats as nodes and converter edges as
 // weighted arcs lets new engines automatically unlock new routes without touching any other code.
 
+using Filee.Core.Formats;
+
 namespace Filee.Core.Conversion;
 
 /// <summary>One hop of a route.</summary>
@@ -30,8 +32,8 @@ public sealed class RoutePlanner
     /// <summary>Maximum number of hops. Longer chains are almost always lossy and slow.</summary>
     public const int MaxSteps = 3;
 
-    private readonly IReadOnlyList<IConverter> _converters;
-    private readonly Func<IConverter, int> _priorityPenalty;
+    /// <summary>Every edge with its cost (priority penalty included), by source format.</summary>
+    private readonly Dictionary<string, List<(IConverter Converter, ConversionEdge Edge, int Cost)>> _edgesFrom;
 
     /// <param name="converters">Converters that are currently available.</param>
     /// <param name="priorityPenalty">
@@ -40,8 +42,12 @@ public sealed class RoutePlanner
     /// </param>
     public RoutePlanner(IEnumerable<IConverter> converters, Func<IConverter, int>? priorityPenalty = null)
     {
-        _converters = converters.ToList();
-        _priorityPenalty = priorityPenalty ?? (_ => 0);
+        var penalty = priorityPenalty ?? (_ => 0);
+        _edgesFrom = converters
+            .SelectMany(c => c.Edges.Select(e =>
+                (c, e with { From = e.From.ToLowerInvariant(), To = e.To.ToLowerInvariant() }, e.Cost + penalty(c))))
+            .GroupBy(e => e.Item2.From)
+            .ToDictionary(g => g.Key, g => g.ToList());
     }
 
     /// <summary>Returns the cheapest route, or <c>null</c> if the conversion is impossible.</summary>
@@ -53,8 +59,8 @@ public sealed class RoutePlanner
         // Same-format "conversions" (re-encode, split, compress) must use an explicit self edge.
         if (from == to)
         {
-            var best = AllEdges()
-                .Where(e => e.Edge.From == from && e.Edge.To == to)
+            var best = EdgesFrom(from)
+                .Where(e => e.Edge.To == to)
                 .OrderBy(e => e.Cost)
                 .FirstOrDefault();
             return best.Converter is null
@@ -62,9 +68,10 @@ public sealed class RoutePlanner
                 : new Route([new RouteStep(best.Converter, from, to)], best.Cost);
         }
 
-        // Dijkstra over formats. The graph is tiny (dozens of nodes), so a simple list-based
-        // priority queue is fine and easy to read.
-        var edges = AllEdges().Where(e => e.Edge.From != e.Edge.To).ToList();
+        // Edges for raster images only (tracing) are left out unless the file itself is one.
+        var imageSource = FormatRegistry.FindById(from)?.Category == FormatCategory.Image;
+
+        // Dijkstra over formats. The graph is small (a few hundred nodes).
         var dist = new Dictionary<string, int> { [from] = 0 };
         var prev = new Dictionary<string, (string Node, RouteStep Step)>();
         var hops = new Dictionary<string, int> { [from] = 0 };
@@ -80,8 +87,10 @@ public sealed class RoutePlanner
             if (hops[node] >= MaxSteps)
                 continue;
 
-            foreach (var (converter, edge, edgeCost) in edges.Where(e => e.Edge.From == node))
+            foreach (var (converter, edge, edgeCost) in EdgesFrom(node))
             {
+                if (edge.To == edge.From || (edge.ImageSourcesOnly && !imageSource) || (edge.NotForImageSources && imageSource))
+                    continue;
                 var next = cost + edgeCost;
                 if (dist.TryGetValue(edge.To, out var known) && known <= next)
                     continue;
@@ -106,7 +115,6 @@ public sealed class RoutePlanner
     /// <summary>True if <paramref name="from"/> can be converted to <paramref name="to"/>.</summary>
     public bool CanConvert(string from, string to) => Plan(from, to) is not null;
 
-    private IEnumerable<(IConverter Converter, ConversionEdge Edge, int Cost)> AllEdges() =>
-        _converters.SelectMany(c => c.Edges.Select(e =>
-            (c, e with { From = e.From.ToLowerInvariant(), To = e.To.ToLowerInvariant() }, e.Cost + _priorityPenalty(c))));
+    private IReadOnlyList<(IConverter Converter, ConversionEdge Edge, int Cost)> EdgesFrom(string format) =>
+        _edgesFrom.TryGetValue(format, out var edges) ? edges : [];
 }
