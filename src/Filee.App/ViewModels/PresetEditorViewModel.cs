@@ -233,7 +233,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowMultiPageTiff => TargetId is "tiff";
     public bool ShowIco => TargetId == "ico";
     /// <summary>PDF options (also used when a PDF source becomes images) mean nothing for media, archive and font targets.</summary>
-    public bool ShowPdf => TargetCategory is not (FormatCategory.Video or FormatCategory.Audio or FormatCategory.Archive or FormatCategory.Font);
+    public bool ShowPdf => TargetCategory is not (FormatCategory.Video or FormatCategory.Audio or FormatCategory.Archive or FormatCategory.Font or FormatCategory.Model3D);
     public bool ShowPdfBuild => TargetId == "pdf";
     public bool ShowPdfSplit => TargetId == "pdf";
 

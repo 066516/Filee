@@ -28,6 +28,7 @@
     <PackageReference Include="MimeKitLite" />
     <PackageReference Include="ACadSharp" />
     <PackageReference Include="AngleSharp" />
+    <PackageReference Include="SharpGLTF.Core" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 

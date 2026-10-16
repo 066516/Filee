@@ -252,6 +252,10 @@ internal static class SettingsMigrations
                 InsertBefore(settings.EnginePriority, id, "libreoffice");
         }
 
+        // v11: built-in "model3d" engine (3D models: GLB, glTF, STL, OBJ, 3MF, PLY), next to the CAD engine.
+        if (settings.SchemaVersion < 11)
+            InsertBefore(settings.EnginePriority, "model3d", "archive");
+
         if (settings.Triggers.Count == 0)
             settings.Triggers = TriggerGesture.Defaults();
 
@@ -360,7 +364,36 @@ internal static class SettingsMigrations
             presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == "remove-background"));
             changed = true;
         }
+
+        // v11: 3D models (GLB, glTF, STL, OBJ, 3MF, PLY) get presets and their own donut after "fonts" (else before the
+        //      mixed-files one), with the extensions no donut of the user takes yet.
+        if (from < 11)
+            changed |= AddModels(presets, profiles);
         return changed;
+    }
+
+    private static bool AddModels(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        foreach (var preset in BuiltInData.ModelPresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+        {
+            presets.Add(preset);
+            changed = true;
+        }
+        if (profiles.Any(p => p.Id == "models"))
+            return changed;
+
+        var claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var models = BuiltInData.ModelProfile();
+        models.Extensions = models.Extensions.Where(claimed.Add).ToList();
+        if (models.Extensions.Count == 0)
+            return changed;
+        var ids = presets.Select(p => p.Id).ToHashSet();
+        models.PresetIds = models.PresetIds.Where(ids.Contains).ToList();
+        var fonts = profiles.FindIndex(p => p.Id == "fonts");
+        var insertAt = fonts >= 0 ? fonts + 1 : profiles.FindIndex(p => p.IsFallback);
+        profiles.Insert(insertAt < 0 ? profiles.Count : insertAt, models);
+        return true;
     }
 
     private static bool AddCatalog(List<Preset> presets, List<ToolbarProfile> profiles)

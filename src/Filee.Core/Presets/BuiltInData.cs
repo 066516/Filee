@@ -74,6 +74,7 @@ public static class BuiltInData
         new() { Id = "to-html", Name = "HTML", TargetFormat = "html" },
         .. SpreadsheetPresets(),
         .. CatalogPresets(),
+        .. ModelPresets(),
     ];
 
     /// <summary>HWP as a target, through HWPX (added in settings schema 7, see SettingsMigrations).</summary>
@@ -87,6 +88,17 @@ public static class BuiltInData
     [
         new() { Id = "to-xlsx", Name = "XLSX", TargetFormat = "xlsx" },
         new() { Id = "to-csv", Name = "CSV", TargetFormat = "csv" },
+    ];
+
+    /// <summary>3D model targets (added in settings schema 11, see SettingsMigrations). glTF is on no donut: GLB is the same in one file.</summary>
+    public static List<Preset> ModelPresets() =>
+    [
+        new() { Id = "to-glb", Name = "GLB", TargetFormat = "glb" },
+        new() { Id = "to-stl", Name = "STL", TargetFormat = "stl" },
+        new() { Id = "to-obj", Name = "OBJ", TargetFormat = "obj" },
+        new() { Id = "to-3mf", Name = "3MF", TargetFormat = "3mf" },
+        new() { Id = "to-ply", Name = "PLY", TargetFormat = "ply" },
+        new() { Id = "to-gltf", Name = "glTF", TargetFormat = "gltf" },
     ];
 
     /// <summary>
@@ -196,6 +208,7 @@ public static class BuiltInData
         },
         TextProfile(),
         .. CatalogProfiles(),
+        ModelProfile(),
         new()
         {
             Id = "mixed", NameKey = "profile.mixed", IsFallback = true,
@@ -276,6 +289,15 @@ public static class BuiltInData
             PresetIds = ["to-woff2", "to-woff", "to-ttf", "to-otf", "to-eot"],
         },
     ];
+
+    /// <summary>3D models: GLB, glTF, STL, OBJ, 3MF, PLY (added in settings schema 11, after "fonts").</summary>
+    public static ToolbarProfile ModelProfile() => new()
+    {
+        Id = "models",
+        NameKey = "profile.models",
+        Extensions = ExtensionsOf(FormatCategory.Model3D),
+        PresetIds = ["to-glb", "to-stl", "to-obj", "to-3mf", "to-ply", "to-png"],
+    };
 
     /// <summary>Every file extension of the formats in <paramref name="category"/>.</summary>
     public static List<string> ExtensionsOf(FormatCategory category) =>

@@ -76,6 +76,7 @@
   "engine.icns.description": "macOS 앱 아이콘(ICNS)을 이미지로, 이미지를 ICNS로.",
   "engine.font.description": "글꼴: TTF, OTF, WOFF, WOFF2, EOT를 서로 변환해요.",
   "engine.cad.description": "오토캐드 도면: DWG ↔ DXF, 그리고 둘 다 PDF, SVG, PNG로.",
+  "engine.model3d.description": "3D 모델: GLB, glTF, STL, OBJ, 3MF, PLY를 서로 변환하고 PNG 미리보기도 만들어요.",
   "engine.archive.description": "ZIP, 7Z, RAR, TAR, ISO 등을 풀고, ZIP·7Z·TAR.GZ로 묶어요(7-Zip).",
   "engine.ebook.description": "EPUB, MOBI, AZW3, FB2, 만화책(CBZ, CBR)을 PDF, EPUB, DOCX, 텍스트로 바꿔요.\n문서는 EPUB으로, PDF는 CBZ로도 만들어요.",
   "engine.ffmpeg.description": "MP4, MOV, MKV, WEBM, MP3, M4A, WAV, FLAC 등 동영상·오디오를 변환해요.\n소리 추출, GIF 만들기, 이미지 → HEIC도 해요.",
@@ -98,6 +99,7 @@
   "profile.archives": "압축 파일",
   "profile.cad": "CAD 도면",
   "profile.fonts": "글꼴",
+  "profile.models": "3D 모델",
   "profile.mixed": "혼합 파일",
 
   "preset.half_size": "50% 축소",
@@ -124,6 +126,7 @@
   "format.category.Vector": "벡터",
   "format.category.Cad": "CAD",
   "format.category.Font": "글꼴",
+  "format.category.Model3D": "3D 모델",
 
   "general.title": "일반",
   "general.language": "언어",
@@ -500,7 +503,7 @@
   "common.no": "아니요",
 
   "setup.title": "변환 엔진 선택",
-  "setup.description": "이미지, PDF, 오피스 문서, HWP, 전자책, 압축 파일, 글꼴, CAD는 지금 바로 변환돼요.\n동영상·오디오나 드문 형식이 필요할 때만 엔진을 받으세요.",
+  "setup.description": "이미지, PDF, 오피스 문서, HWP, 전자책, 압축 파일, 글꼴, CAD, 3D 모델은 지금 바로 변환돼요.\n동영상·오디오나 드문 형식이 필요할 때만 엔진을 받으세요.",
   "setup.note": "엔진은 언제든 설정 → 변환 엔진에서 설치하거나 제거할 수 있어요.",
   "setup.install": "선택한 엔진 설치",
   "setup.later": "나중에",
