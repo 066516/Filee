@@ -18,7 +18,8 @@ public sealed class VectorConverter : IConverter
     /// <summary>
     /// Cost of tracing a raster image into SVG. Tracing redraws the picture, so it must never be a step on the way to
     /// another format (PNG → SVG → PDF instead of PNG → PDF): its cost is higher than any route from an image to a
-    /// format SVG leads to, and the planner only takes it when SVG (or DXF, DWG through SVG) is the target.
+    /// format SVG leads to, and the planner only takes it when SVG (or DXF, DWG through SVG) is the target. Its edges
+    /// are for raster sources only: a PDF, EPS or other vector file that can be rendered to PNG is never traced.
     /// </summary>
     public const int TraceCost = 40;
 
@@ -37,8 +38,8 @@ public sealed class VectorConverter : IConverter
         new("svgz", "dxf"),
         // Illustrator files are PDF inside (or PostScript, see ConvertIllustratorAsync).
         new("ai", "pdf"),
-        // Raster images (and, through PNG, anything that becomes one) are traced.
-        .. ImageEncoder.Readable.Select(source => new ConversionEdge(source, "svg", TraceCost)),
+        // Raster images are traced (other raster formats through PNG, e.g. ICNS; never vector files or documents).
+        .. ImageEncoder.Readable.Select(source => new ConversionEdge(source, "svg", TraceCost, ImageSourcesOnly: true)),
     ];
 
     public EngineStatus GetStatus() => EngineStatus.Available(version: $"{EngineVersions.BuiltIn} · {EngineVersions.Library("Svg.Skia", typeof(Svg.Skia.SKSvg))}");

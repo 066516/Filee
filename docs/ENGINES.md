@@ -105,8 +105,9 @@ current.
 
 Built in (`Vector/Tracing`), no Potrace or other program: Filee's own code, written from published descriptions of the
 steps (no code of Potrace, AutoTrace or VTracer is used). Every raster format ImageMagick reads (PNG, JPG, BMP, GIF,
-WEBP, TIFF, HEIC, PSD, RAW, …) is traced; anything else that becomes a PNG first (ICNS, PDF pages, …) is traced from
-that PNG. The first frame or page is used, turned upright, in sRGB. The SVG has the picture's pixel size
+WEBP, TIFF, HEIC, PSD, RAW, …) is traced, and other raster images through PNG (ICNS). Only raster images are traced:
+PDF, EPS, PS, AI, EMF/WMF, CDR, documents and videos are never redrawn from a rendering, so without a real vector
+route they have no SVG target. The first frame or page is used, turned upright, in sRGB. The SVG has the picture's pixel size
 (`width`/`height`/`viewBox` in pixels), so it lines up with the original.
 
 - **Black and white** (*Line art to SVG*: logos, signatures, scans): pixels darker than Otsu's threshold are ink
@@ -137,8 +138,9 @@ that PNG. The first frame or page is used, turned upright, in sRGB. The SVG has 
   20 MB SVG). Photos are not what tracing is for: they come out as posterized patches.
 - **Routes**: tracing is the only raster → SVG route and costs 40 (`VectorConverter.TraceCost`), more than any route
   from an image to a format SVG leads to, so it is never a step on the way to PDF, PNG, EPS, …; a test checks every
-  pair of formats. Through SVG, pictures reach DXF and DWG. Formats without a vector route to SVG (PDF, EPS, AI;
-  EMF/WMF without LibreOffice) are traced from their rendering.
+  pair of formats. Its edges are marked `ImageSourcesOnly`: the planner uses them only when the file being
+  converted is a raster image (`FormatCategory.Image`), so a vector file rendered to PNG can't be traced; a test
+  checks this for every pair of formats too. Through SVG, pictures reach DXF and DWG.
 
 ## SVG → DXF / DWG
 

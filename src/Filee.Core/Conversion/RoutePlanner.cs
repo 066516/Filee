@@ -4,6 +4,8 @@
 // two hops, e.g. HWPX → PDF (rhwp) → PNG (PDFium). Treating formats as nodes and converter edges as
 // weighted arcs lets new engines automatically unlock new routes without touching any other code.
 
+using Filee.Core.Formats;
+
 namespace Filee.Core.Conversion;
 
 /// <summary>One hop of a route.</summary>
@@ -54,6 +56,9 @@ public sealed class RoutePlanner
                 : new Route([new RouteStep(best.Converter, from, to)], best.Cost);
         }
 
+        // Edges for raster images only (tracing) are left out unless the file itself is one.
+        var imageSource = FormatRegistry.FindById(from)?.Category == FormatCategory.Image;
+
         // Dijkstra over formats. The graph is small (a few hundred nodes).
         var dist = new Dictionary<string, int> { [from] = 0 };
         var prev = new Dictionary<string, (string Node, RouteStep Step)>();
@@ -72,7 +77,7 @@ public sealed class RoutePlanner
 
             foreach (var (converter, edge, edgeCost) in EdgesFrom(node))
             {
-                if (edge.To == edge.From)
+                if (edge.To == edge.From || (edge.ImageSourcesOnly && !imageSource))
                     continue;
                 var next = cost + edgeCost;
                 if (dist.TryGetValue(edge.To, out var known) && known <= next)

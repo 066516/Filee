@@ -28,6 +28,18 @@ public class RoutePlannerTests
     }
 
     [Fact]
+    public void Edges_for_image_sources_only_are_skipped_for_other_sources()
+    {
+        var tracer = new FakeConverter("trace", new ConversionEdge("png", "svg", 40, ImageSourcesOnly: true));
+        var render = new FakeConverter("render", new ConversionEdge("pdf", "png"), new ConversionEdge("icns", "png"));
+        var planner = new RoutePlanner([tracer, render]);
+
+        Assert.Equal(["png→svg"], planner.Plan("png", "svg")!.Steps.Select(s => $"{s.From}→{s.To}"));
+        Assert.Equal(["icns→png", "png→svg"], planner.Plan("icns", "svg")!.Steps.Select(s => $"{s.From}→{s.To}")); // a raster image too
+        Assert.Null(planner.Plan("pdf", "svg")); // a document rendered to PNG is never traced
+    }
+
+    [Fact]
     public void Cheaper_route_wins()
     {
         var slow = new FakeConverter("slow", new ConversionEdge("docx", "pdf", 30));

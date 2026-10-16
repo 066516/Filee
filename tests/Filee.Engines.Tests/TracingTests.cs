@@ -400,6 +400,36 @@ public class TracingTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public void Icns_is_traced_through_png()
+    {
+        var route = fx.Catalog.CreatePlanner().Plan("icns", "svg");
+
+        Assert.NotNull(route);
+        Assert.Equal(["png", "svg"], route.Steps.Select(s => s.To));
+    }
+
+    [Theory]
+    [InlineData("pdf")]
+    [InlineData("eps")]
+    [InlineData("ps")]
+    [InlineData("ai")]
+    [InlineData("emf")]
+    [InlineData("wmf")]
+    [InlineData("cdr")]
+    [InlineData("docx")]
+    [InlineData("mp4")]
+    public void Files_that_are_not_raster_images_are_never_traced(string from)
+    {
+        // With every optional engine as if installed: a vector route (LibreOffice for EMF, CDR) is fine, tracing a
+        // rendering is not, so PDF and EPS have no SVG target at all.
+        var planner = fx.Catalog.CreatePlanner(fx.Converters.Select(c => c.Id).ToArray());
+        foreach (var to in new[] { "svg", "svgz", "dxf", "dwg" })
+            Assert.DoesNotContain(planner.Plan(from, to)?.Steps ?? [], IsTracing);
+        if (from is "pdf" or "eps" or "ps" or "ai")
+            Assert.Null(planner.Plan(from, "svg"));
+    }
+
+    [Fact]
     public void Tracing_is_never_a_step_towards_a_format_that_has_another_route()
     {
         // Every engine as if installed, so optional engines' edges are part of the check.
@@ -416,10 +446,13 @@ public class TracingTests(EngineFixture fx) : IClassFixture<EngineFixture>
         {
             foreach (var to in formats.Where(t => t != from))
             {
+                var route = withTracing.Plan(from, to);
+                // Only raster images are ever traced.
+                if (FormatRegistry.FindById(from)?.Category != FormatCategory.Image)
+                    Assert.False(route?.Steps.Any(IsTracing) ?? false, $"{from} → {to} traces a rendering");
                 var other = without.Plan(from, to);
                 if (other is null)
                     continue;
-                var route = withTracing.Plan(from, to);
                 Assert.NotNull(route);
                 Assert.False(route.Steps.Any(IsTracing), $"{from} → {to} traces: {string.Join(" → ", route.Steps.Select(s => s.To))}");
                 Assert.Equal(other.Cost, route.Cost);
@@ -437,7 +470,7 @@ public class TracingTests(EngineFixture fx) : IClassFixture<EngineFixture>
         public string Id => inner.Id;
         public string DisplayName => inner.DisplayName;
         public int MaxParallelism => inner.MaxParallelism;
-        public IReadOnlyList<ConversionEdge> Edges { get; } = inner.Edges.Where(e => e.Cost != VectorConverter.TraceCost).ToList();
+        public IReadOnlyList<ConversionEdge> Edges { get; } = inner.Edges.Where(e => !e.ImageSourcesOnly).ToList();
         public EngineStatus GetStatus() => inner.GetStatus();
         public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken) =>
             inner.ConvertAsync(step, progress, cancellationToken);
