@@ -3,6 +3,7 @@
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Threading;
@@ -96,6 +97,26 @@ public class DonutGroupTests
         var away = DonutGeometry.PointAt(Center(donut), donut.OuterRadius + 30, mid + Math.PI);
         donut.SetExternalHit(donut.HitTest(away), away);
         donut.ExpandPendingGroup();
+        Assert.False(IsOpen(donut));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void A_click_or_tap_opens_a_group_at_once_and_a_click_past_its_ring_folds_it()
+    {
+        var (donut, window) = Open();
+        var invoked = 0;
+        donut.SegmentInvoked += (_, _) => invoked++;
+        var inner = OnGroup(donut, donut.OuterRadius * 0.6);
+        window.MouseDown(inner, MouseButton.Left); // a tap: no hover before it
+        window.MouseUp(inner, MouseButton.Left);
+        Assert.True(IsOpen(donut));
+        Assert.Equal(0, invoked); // the group itself converts nothing
+
+        var past = OnGroup(donut, donut.OuterRadius + 7 + DonutMenu.SubRingSpace - 6);
+        Assert.Equal(DonutHitKind.Outside, donut.HitTest(past).Kind);
+        window.MouseDown(past, MouseButton.Left);
+        window.MouseUp(past, MouseButton.Left);
         Assert.False(IsOpen(donut));
         window.Close();
     }

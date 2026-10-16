@@ -721,6 +721,12 @@ public sealed partial class DonutMenu : Control
             case DonutHitKind.Segment when !IsEditMode && Items![hit.Index] is { IsEnabled: true, IsGroup: false }:
                 SegmentInvoked?.Invoke(this, hit.Index);
                 break;
+            case DonutHitKind.Segment when !IsEditMode && Items![hit.Index].Children is { Count: > 0 }:
+                Expand(hit.Index); // no waiting when clicked; a tap has no hover to rest on at all
+                break;
+            case DonutHitKind.Outside when !IsEditMode && _expanded >= 0:
+                CollapseGroup(); // clicked past the ring
+                break;
             case DonutHitKind.SubSegment when !IsEditMode && Items![hit.Index].Children![hit.Sub].IsEnabled:
                 SubSegmentInvoked?.Invoke(this, (hit.Index, hit.Sub));
                 break;
