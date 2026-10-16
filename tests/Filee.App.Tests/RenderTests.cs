@@ -388,6 +388,19 @@ public class RenderTests
         Save(window, "window-sponsor-supporters-en.png");
         window.Close();
 
+        var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+        vm.Navigate("about");
+        var main = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+        main.Show();
+        Pump();
+        var about = main.GetVisualDescendants().OfType<Filee.App.Views.Pages.AboutPage>().Single();
+        about.Supporters.Show(new SupporterList(
+            [new Supporter("Acme", "https://acme.example", "acme.png"), new Supporter("Globex", "https://globex.example")],
+            [new("Kim"), new("Lee"), new("Park")]), _ => Logo());
+        Pump();
+        Save(main, "page-about-supporters-en.png");
+        main.Close();
+
         // A stand-in logo: a wide coloured mark like a company's.
         static Avalonia.Media.Imaging.Bitmap Logo()
         {

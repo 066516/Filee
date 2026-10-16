@@ -23,6 +23,13 @@
         </StackPanel>
       </StackPanel>
     </Border>
+    <!-- The sponsors right below Filee itself, while there are any -->
+    <Border Classes="card" IsVisible="{Binding #Supporters.IsVisible}">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="{DynamicResource sponsor.thanks}" />
+        <v:SupportersView x:Name="Supporters" ShowTitle="False" LogoHeight="40" />
+      </StackPanel>
+    </Border>
     <Border Classes="card">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="{DynamicResource about.updates}" />
@@ -53,7 +60,6 @@
             </StackPanel>
           </Button>
         </WrapPanel>
-        <v:SupportersView Margin="0,6,0,0" />
       </StackPanel>
     </Border>
     <Border Classes="card">

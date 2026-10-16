@@ -14,10 +14,37 @@ public sealed record SupporterItem(string Name, string? Url, Bitmap? Logo);
 /// <summary>The sponsors' logos and the backers' names shipped with this release; hidden while there are none.</summary>
 public partial class SupportersView : UserControl
 {
+    public static readonly StyledProperty<double> LogoHeightProperty =
+        AvaloniaProperty.Register<SupportersView, double>(nameof(LogoHeight), 28);
+
+    public static readonly StyledProperty<bool> ShowTitleProperty =
+        AvaloniaProperty.Register<SupportersView, bool>(nameof(ShowTitle), true);
+
+    /// <summary>Height of the logos: small in the Sponsor window, larger on the About page.</summary>
+    public double LogoHeight
+    {
+        get => GetValue(LogoHeightProperty);
+        set => SetValue(LogoHeightProperty, value);
+    }
+
+    /// <summary>Whether the view shows its own "Thank you" line (the About page card has a heading instead).</summary>
+    public bool ShowTitle
+    {
+        get => GetValue(ShowTitleProperty);
+        set => SetValue(ShowTitleProperty, value);
+    }
+
     public SupportersView()
     {
         InitializeComponent();
         Show(Supporters.Bundled, BundledLogo);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == ShowTitleProperty)
+            Title.IsVisible = ShowTitle;
     }
 
     /// <summary>Shows <paramref name="list"/>, the logos read by <paramref name="logo"/> (null when missing).</summary>

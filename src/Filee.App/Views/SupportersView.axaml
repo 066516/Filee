@@ -13,7 +13,7 @@
     </Style>
   </UserControl.Styles>
   <StackPanel Spacing="6">
-    <TextBlock Classes="label" Text="{DynamicResource sponsor.thanks}" />
+    <TextBlock x:Name="Title" Classes="label" Text="{DynamicResource sponsor.thanks}" />
     <ItemsControl x:Name="Logos">
       <ItemsControl.ItemsPanel>
         <ItemsPanelTemplate>
@@ -24,7 +24,7 @@
         <DataTemplate x:DataType="v:SupporterItem">
           <Button Classes="supporter" Click="OnOpen" Tag="{Binding Url}" ToolTip.Tip="{Binding Name}">
             <Panel>
-              <Image Source="{Binding Logo}" Height="28" MaxWidth="140" Stretch="Uniform"
+              <Image Source="{Binding Logo}" Height="{Binding $parent[v:SupportersView].LogoHeight}" MaxWidth="200" Stretch="Uniform"
                      IsVisible="{Binding Logo, Converter={x:Static ObjectConverters.IsNotNull}}" />
               <TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center"
                          IsVisible="{Binding Logo, Converter={x:Static ObjectConverters.IsNull}}" />
