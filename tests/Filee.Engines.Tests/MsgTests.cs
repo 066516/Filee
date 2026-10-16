@@ -59,7 +59,8 @@ public class MsgTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal("copy@example.com", mime.Cc.Mailboxes.Single().Address);
         Assert.Equal(new DateTimeOffset(2026, 10, 1, 0, 30, 0, TimeSpan.Zero), mime.Date.ToUniversalTime());
         Assert.Equal("meeting-1@example.com", mime.MessageId);
-        Assert.Equal("안녕하세요. 자료를 보냅니다.\r\n둘째 줄", mime.TextBody.TrimEnd());
+        // MimeKit writes the EML with the platform's line endings (LF on macOS and Linux).
+        Assert.Equal("안녕하세요. 자료를 보냅니다.\n둘째 줄", mime.TextBody.TrimEnd().ReplaceLineEndings("\n"));
         Assert.Contains("<img src=\"cid:logo@filee\">", mime.HtmlBody);
 
         var attachments = mime.Attachments.ToList();
