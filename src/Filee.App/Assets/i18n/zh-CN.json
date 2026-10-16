@@ -270,7 +270,7 @@
   "toolbar.new_preset": "新预设",
   "toolbar.new_group": "新建组",
   "group.editor_title": "组",
-  "group.hint": "组把多个预设放进圆环的一格：停留在上面或向外移动，它们就会在周围展开。",
+  "group.hint": "组把多个预设放进圆环的一格。停留在上面或向外移动，它们就会在周围展开。",
   "group.members": "预设（{0} / {1}）",
   "group.empty": "还没有预设。请在下方添加。",
   "group.add": "添加",
