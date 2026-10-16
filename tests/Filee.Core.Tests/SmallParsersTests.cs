@@ -53,6 +53,20 @@ public class BuiltInDataTests
             Assert.All(profile.PresetIds, id => Assert.Contains(id, ids));
     }
 
+    [Theory]
+    [InlineData("\"left90\"", ImageRotation.Left90)]
+    [InlineData("\"Rotate180\"", ImageRotation.Rotate180)]
+    [InlineData("3", ImageRotation.Rotate180)]
+    [InlineData("\"Left90, Rotate180\"", ImageRotation.None)] // flags OR'd into another value
+    [InlineData("\"2\"", ImageRotation.None)] // a number in a string isn't a name
+    [InlineData("\"Sideways\"", ImageRotation.None)]
+    [InlineData("null", ImageRotation.None)]
+    public void Saved_enum_values_are_read_by_name_and_anything_else_is_the_default(string json, ImageRotation expected)
+    {
+        var options = new System.Text.Json.JsonSerializerOptions { Converters = { new LenientEnumJsonConverter<ImageRotation>() } };
+        Assert.Equal(expected, System.Text.Json.JsonSerializer.Deserialize<ImageRotation>(json, options));
+    }
+
     [Fact]
     public void A_group_clone_keeps_its_kind_and_members()
     {

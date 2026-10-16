@@ -27,14 +27,22 @@ public class LenientEnumJsonConverter<TEnum> : JsonConverter<TEnum> where TEnum 
 {
     protected virtual TEnum Unknown => default;
 
-    public override TEnum Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        reader.TokenType == JsonTokenType.String && Enum.TryParse<TEnum>(reader.GetString(), ignoreCase: true, out var value) &&
-        Enum.IsDefined(value)
-            ? value
-            : reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var number) &&
-              Enum.IsDefined((TEnum)Enum.ToObject(typeof(TEnum), number))
+    public override TEnum Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.String)
+        {
+            // A name, matched whole: Enum.TryParse would also take "Left90, Rotate180" (the flags OR'd into another
+            // value) or "2".
+            var text = reader.GetString();
+            return Enum.GetNames<TEnum>().FirstOrDefault(n => string.Equals(n, text, StringComparison.OrdinalIgnoreCase)) is { } name
+                ? Enum.Parse<TEnum>(name)
+                : Unknown;
+        }
+        return reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var number) &&
+            Enum.IsDefined((TEnum)Enum.ToObject(typeof(TEnum), number))
                 ? (TEnum)Enum.ToObject(typeof(TEnum), number)
                 : Unknown;
+    }
 
     public override void Write(Utf8JsonWriter writer, TEnum value, JsonSerializerOptions options) =>
         writer.WriteStringValue(value.ToString());
