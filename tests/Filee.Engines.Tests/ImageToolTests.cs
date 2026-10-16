@@ -77,6 +77,54 @@ public class ImageToolTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.True(result.Orientation is OrientationType.TopLeft or OrientationType.Undefined, $"{result.Orientation}");
     }
 
+    /// <summary>
+    /// EXIF data with orientation <paramref name="orientation"/> and a small JPEG preview, as cameras and phones write
+    /// it: a TIFF header, IFD0 with the orientation, IFD1 pointing at the preview.
+    /// </summary>
+    private static ExifProfile ExifWithThumbnail(ushort orientation)
+    {
+        byte[] thumbnail;
+        using (var small = new MagickImage(MagickColors.Blue, 8, 4))
+            thumbnail = small.ToByteArray(MagickFormat.Jpeg);
+        var data = new List<byte>();
+        void U16(int v) => data.AddRange(BitConverter.GetBytes((ushort)v));
+        void U32(int v) => data.AddRange(BitConverter.GetBytes((uint)v));
+        data.AddRange("II"u8.ToArray());
+        U16(42);
+        U32(8);
+        U16(1); // IFD0 at 8: one entry
+        U16(0x0112); U16(3); U32(1); U16(orientation); U16(0);
+        U32(26); // IFD1 at 8 + 2 + 12 + 4
+        U16(2); // IFD1: the preview's offset and length
+        U16(0x0201); U16(4); U32(1); U32(26 + 2 + 24 + 4);
+        U16(0x0202); U16(4); U32(1); U32(thumbnail.Length);
+        U32(0);
+        data.AddRange(thumbnail);
+        return new ExifProfile([.. "Exif\0\0"u8.ToArray(), .. data]);
+    }
+
+    [Fact]
+    public async Task A_turned_photo_drops_the_unturned_preview_in_its_EXIF_data()
+    {
+        var dir = fx.NewFolder();
+        var source = Path.Combine(dir, "camera.jpg");
+        using (var image = Marked())
+        {
+            image.SetProfile(ExifWithThumbnail(1));
+            image.Write(source, MagickFormat.Jpeg);
+        }
+        using (var written = new MagickImage(source))
+            Assert.True(written.GetExifProfile()!.ThumbnailLength > 0); // the test photo has a preview
+
+        var job = await fx.ConvertAsync([source], Tool("rotate-right"));
+
+        Assert.Equal(JobState.Completed, job.State);
+        using var result = new MagickImage(job.Outputs.Single());
+        var exif = result.GetExifProfile();
+        Assert.NotNull(exif); // the metadata stays (KeepMetadata), only the stale preview goes
+        Assert.Equal(0u, exif.ThumbnailLength);
+    }
+
     [Fact]
     public async Task Every_frame_of_an_animation_turns()
     {
