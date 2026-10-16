@@ -360,6 +360,41 @@ internal static class SettingsMigrations
             presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == "remove-background"));
             changed = true;
         }
+
+        // v11: more document formats (Org, AsciiDoc, Typst, ... through Pandoc; flat OpenDocument, templates,
+        //      ClarisWorks, ... through LibreOffice; KEPUB built in). Built-in donuts learn the new extensions unless
+        //      another donut already has them, and the e-books donut gets KEPUB after MOBI.
+        if (from < 11)
+        {
+            if (presets.All(p => p.Id != "to-kepub"))
+            {
+                presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == "to-kepub"));
+                changed = true;
+                changed |= Offer(presets, profiles, "ebooks", "to-kepub", "to-mobi");
+            }
+            changed |= LearnExtensions(profiles, out _);
+        }
+        return changed;
+    }
+
+    /// <summary>
+    /// Adds the default extensions of the built-in donuts that no donut of the user takes yet.
+    /// </summary>
+    /// <param name="claimed">Every extension a donut takes afterwards.</param>
+    private static bool LearnExtensions(List<ToolbarProfile> profiles, out HashSet<string> claimed)
+    {
+        var changed = false;
+        // Extensions checked on a mixed-selection profile only limit that profile; they don't claim files.
+        claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var defaults = BuiltInData.CreateProfiles().ToDictionary(p => p.Id);
+        foreach (var profile in profiles.Where(p => !p.IsFallback && defaults.ContainsKey(p.Id)))
+        {
+            foreach (var extension in defaults[profile.Id].Extensions.Where(claimed.Add))
+            {
+                profile.Extensions.Add(extension);
+                changed = true;
+            }
+        }
         return changed;
     }
 
@@ -372,18 +407,7 @@ internal static class SettingsMigrations
             changed = true;
         }
         var presetIds = presets.Select(p => p.Id).ToHashSet();
-
-        // Extensions checked on a mixed-selection profile only limit that profile; they don't claim files.
-        var claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var defaults = BuiltInData.CreateProfiles().ToDictionary(p => p.Id);
-        foreach (var profile in profiles.Where(p => !p.IsFallback && defaults.ContainsKey(p.Id)))
-        {
-            foreach (var extension in defaults[profile.Id].Extensions.Where(claimed.Add))
-            {
-                profile.Extensions.Add(extension);
-                changed = true;
-            }
-        }
+        changed |= LearnExtensions(profiles, out var claimed);
 
         var text = profiles.FindIndex(p => p.Id == "text");
         var insertAt = text >= 0 ? text + 1 : profiles.FindIndex(p => p.IsFallback);

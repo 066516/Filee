@@ -112,6 +112,7 @@ public static class BuiltInData
         new() { Id = "to-epub", Name = "EPUB", TargetFormat = "epub" },
         new() { Id = "to-mobi", Name = "MOBI", TargetFormat = "mobi" },
         new() { Id = "to-azw3", Name = "AZW3", TargetFormat = "azw3" },
+        new() { Id = "to-kepub", Name = "KEPUB", TargetFormat = "kepub" },
         new() { Id = "to-fb2", Name = "FB2", TargetFormat = "fb2" },
         new() { Id = "to-cbz", Name = "CBZ", TargetFormat = "cbz" },
 
@@ -237,7 +238,7 @@ public static class BuiltInData
         {
             Id = "ebooks", NameKey = "profile.ebooks",
             Extensions = ExtensionsOf(FormatCategory.Ebook),
-            PresetIds = ["to-pdf", "to-epub", "to-docx", "to-txt", "to-azw3", "to-mobi", "to-hwpx", "to-hwp", "to-html"],
+            PresetIds = ["to-pdf", "to-epub", "to-docx", "to-txt", "to-azw3", "to-mobi", "to-kepub", "to-hwpx", "to-hwp", "to-html"],
         },
         new()
         {
