@@ -667,6 +667,9 @@ public sealed partial class DonutMenu : Control
         _expanded = _shownExpanded = _subHover = -1;
         ClearPending();
         _expand = default;
+        // The window is reused: a keyboard hold from the last time it was open must not swallow the first moves now.
+        _keyboardHold = false;
+        _keyAnchor = _lastPointer = null;
         InvalidateMeasure();
         InvalidateVisual();
     }

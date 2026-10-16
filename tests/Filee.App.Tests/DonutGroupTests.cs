@@ -369,6 +369,20 @@ public class DonutGroupTests
     }
 
     [AvaloniaFact]
+    public void Opened_again_the_donut_follows_the_mouse_at_once_after_the_keyboard_was_used_last_time()
+    {
+        var (donut, window) = Open();
+        var png = DonutGeometry.PointAt(Center(donut), donut.OuterRadius * 0.6, DonutGeometry.MidAngle(0, 4));
+        window.MouseMove(png);
+        donut.HandleKey(Key.Right); // the keyboard took over last time, with the mouse resting on PNG
+
+        donut.Items = [.. donut.Items!]; // opened again for new files: the window is reused
+        window.MouseMove(new Point(png.X + 2, png.Y)); // a small move near where the hold was
+        Assert.Equal(0, donut.ActiveIndex); // followed, not swallowed by last time's hold
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void With_animations_off_a_group_opens_at_once()
     {
         var (donut, window) = Open();
