@@ -297,7 +297,9 @@ public sealed class LibreOfficeConverter : IConverter
             foreach (var s in sources)
                 foreach (var t in targets)
                     if (s != t)
-                        edges.Add(new ConversionEdge(s, t, cost));
+                        // An image that reached a drawing or a PDF would come back as a picture inside the SVG:
+                        // images are traced instead.
+                        edges.Add(new ConversionEdge(s, t, cost, NotForImageSources: t == "svg"));
         }
 
         // LibreOffice is the fallback: its costs make the built-in engines win wherever they can do the job

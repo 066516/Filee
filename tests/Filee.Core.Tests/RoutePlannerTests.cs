@@ -40,6 +40,18 @@ public class RoutePlannerTests
     }
 
     [Fact]
+    public void Edges_not_for_image_sources_leave_images_to_tracing()
+    {
+        // LibreOffice's PDF → SVG keeps a PDF's vectors, but a photo through PDF would only be a picture in the SVG.
+        var tracer = new FakeConverter("trace", new ConversionEdge("png", "svg", 40, ImageSourcesOnly: true));
+        var pdf = new FakeConverter("pdf", new ConversionEdge("png", "pdf"), new ConversionEdge("pdf", "svg", 25, NotForImageSources: true));
+        var planner = new RoutePlanner([tracer, pdf]);
+
+        Assert.Equal(["png→svg"], planner.Plan("png", "svg")!.Steps.Select(s => $"{s.From}→{s.To}"));
+        Assert.Equal(["pdf→svg"], planner.Plan("pdf", "svg")!.Steps.Select(s => $"{s.From}→{s.To}"));
+    }
+
+    [Fact]
     public void Cheaper_route_wins()
     {
         var slow = new FakeConverter("slow", new ConversionEdge("docx", "pdf", 30));

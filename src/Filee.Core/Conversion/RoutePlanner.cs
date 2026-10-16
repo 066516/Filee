@@ -77,7 +77,7 @@ public sealed class RoutePlanner
 
             foreach (var (converter, edge, edgeCost) in EdgesFrom(node))
             {
-                if (edge.To == edge.From || (edge.ImageSourcesOnly && !imageSource))
+                if (edge.To == edge.From || (edge.ImageSourcesOnly && !imageSource) || (edge.NotForImageSources && imageSource))
                     continue;
                 var next = cost + edgeCost;
                 if (dist.TryGetValue(edge.To, out var known) && known <= next)
