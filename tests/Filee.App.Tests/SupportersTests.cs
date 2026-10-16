@@ -66,4 +66,29 @@ public class SupportersTests
         Assert.Null(acme.Logo); // a missing logo shows the name instead
         Assert.Equal("Kim · Lee", view.Names.Text);
     }
+
+    [AvaloniaFact]
+    public void In_the_dark_theme_a_logo_without_a_dark_version_keeps_a_light_tile()
+    {
+        TestServices.EnsureInitialized("en");
+        var app = Avalonia.Application.Current!;
+        var theme = app.RequestedThemeVariant;
+        app.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
+        try
+        {
+            var view = new SupportersView();
+            var read = new List<string>();
+            view.Show(new SupporterList([new("Acme", null, "acme.png", "acme-dark.png"), new("Globex", null, "globex.png")], []),
+                file => { read.Add(file); return new Avalonia.Media.Imaging.WriteableBitmap(new Avalonia.PixelSize(4, 2), new Avalonia.Vector(96, 96)); });
+
+            var items = Assert.IsAssignableFrom<IEnumerable<SupporterItem>>(view.Logos.ItemsSource).ToList();
+            Assert.Equal(["acme-dark.png", "globex.png"], read);
+            Assert.False(items[0].LightOnly);
+            Assert.True(items[1].LightOnly);
+        }
+        finally
+        {
+            app.RequestedThemeVariant = theme;
+        }
+    }
 }

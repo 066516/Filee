@@ -9,7 +9,8 @@ using Filee.App.Services;
 namespace Filee.App.Views;
 
 /// <summary>A sponsor's logo (or its name when the logo is missing) and where it leads.</summary>
-public sealed record SupporterItem(string Name, string? Url, Bitmap? Logo);
+/// <param name="LightOnly">A logo without a dark version, shown in the dark theme: it keeps a light tile.</param>
+public sealed record SupporterItem(string Name, string? Url, Bitmap? Logo, bool LightOnly = false);
 
 /// <summary>The sponsors' logos and the backers' names shipped with this release; hidden while there are none.</summary>
 public partial class SupportersView : UserControl
@@ -53,8 +54,8 @@ public partial class SupportersView : UserControl
         IsVisible = !list.IsEmpty;
         var dark = Application.Current?.ActualThemeVariant == ThemeVariant.Dark;
         Logos.ItemsSource = list.Sponsors
-            .Select(s => new SupporterItem(s.Name, s.Url,
-                (dark ? s.LogoDark ?? s.Logo : s.Logo) is { } file ? logo(file) : null))
+            .Select(s => (s, Logo: (dark ? s.LogoDark ?? s.Logo : s.Logo) is { } file ? logo(file) : null))
+            .Select(x => new SupporterItem(x.s.Name, x.s.Url, x.Logo, dark && x.Logo is not null && x.s.LogoDark is null))
             .ToList();
         Logos.IsVisible = list.Sponsors.Count > 0;
         Names.Text = string.Join(" · ", list.Backers.Select(b => b.Name));

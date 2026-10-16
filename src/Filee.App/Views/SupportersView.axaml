@@ -11,6 +11,13 @@
       <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
       <Setter Property="BorderThickness" Value="0" />
     </Style>
+    <!-- A logo without a dark version keeps a light tile in the dark theme -->
+    <Style Selector="Button.supporter.lightOnly">
+      <Setter Property="Background" Value="#F4F3F0" />
+    </Style>
+    <Style Selector="Button.supporter.lightOnly:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#E9E7E2" />
+    </Style>
   </UserControl.Styles>
   <StackPanel Spacing="6">
     <TextBlock x:Name="Title" Classes="label" Text="{DynamicResource sponsor.thanks}" />
@@ -22,7 +29,7 @@
       </ItemsControl.ItemsPanel>
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="v:SupporterItem">
-          <Button Classes="supporter" Click="OnOpen" Tag="{Binding Url}" ToolTip.Tip="{Binding Name}">
+          <Button Classes="supporter" Classes.lightOnly="{Binding LightOnly}" Click="OnOpen" Tag="{Binding Url}" ToolTip.Tip="{Binding Name}">
             <Panel>
               <Image Source="{Binding Logo}" Height="{Binding $parent[v:SupportersView].LogoHeight}" MaxWidth="200" Stretch="Uniform"
                      IsVisible="{Binding Logo, Converter={x:Static ObjectConverters.IsNotNull}}" />
