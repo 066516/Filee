@@ -641,6 +641,20 @@ public sealed partial class DonutMenu : Control
         _ => false,
     };
 
+    /// <summary>
+    /// A drag from outside left the window, last seen at <paramref name="lastAt"/>: clears what it lit up and folds a
+    /// group. Unless it was still on the donut or on the fan of a group that is open or about to open: Windows and macOS
+    /// report a drag leaving when it crosses a see-through pixel, or when the window's shape changes under it (as the
+    /// backdrop is drawn for a group about to open); taken as leaving, the group would never get to open.
+    /// </summary>
+    public void ExternalDragLeft(Point? lastAt)
+    {
+        if (lastAt is { } at && LeftThroughSeam(at))
+            return;
+        CollapseGroup();
+        SetExternalHighlight(-1);
+    }
+
     /// <summary>Folds an open group away (the drag left the window, or files were dropped).</summary>
     public void CollapseGroup()
     {

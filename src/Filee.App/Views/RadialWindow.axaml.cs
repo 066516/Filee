@@ -1,5 +1,6 @@
 // Thin view for the live donut: forwards drag & drop and pointer events to RadialController.
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
@@ -39,6 +40,7 @@ public partial class RadialWindow : Window
 
     private int _dragOverEvents;
     private DonutHit _lastDragHit;
+    private Point? _lastDragAt;
 
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
@@ -49,6 +51,7 @@ public partial class RadialWindow : Window
             return;
         }
         _dragOverEvents = 0;
+        _lastDragAt = null;
         FilesEntered?.Invoke(files);
         OnDragOver(sender, e);
     }
@@ -59,6 +62,7 @@ public partial class RadialWindow : Window
         var hit = Donut.HitTest(at);
         _dragOverEvents++;
         _lastDragHit = hit;
+        _lastDragAt = at;
         var files = e.DataTransfer.Contains(DataFormat.File);
         Donut.SetExternalHit(hit, at);
 
@@ -70,8 +74,7 @@ public partial class RadialWindow : Window
     private void OnDragLeave(object? sender, DragEventArgs e)
     {
         DragSummary?.Invoke(_dragOverEvents, _lastDragHit, Donut.LitAmount(_lastDragHit.Index));
-        Donut.CollapseGroup();
-        Donut.SetExternalHighlight(-1);
+        Donut.ExternalDragLeft(_lastDragAt);
         DragLeft?.Invoke();
     }
 

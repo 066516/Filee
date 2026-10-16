@@ -195,6 +195,30 @@ public class DonutGroupTests
     }
 
     [AvaloniaFact]
+    public void A_drag_reported_leaving_over_the_donut_still_opens_the_group_it_rests_on()
+    {
+        var (donut, window) = Open();
+        var onGroup = OnGroup(donut, donut.OuterRadius * 0.6);
+        donut.SetExternalHit(donut.HitTest(onGroup), onGroup);
+
+        // As macOS does while the backdrop is drawn under the drag: "left", though still on the group's slice.
+        donut.ExternalDragLeft(onGroup);
+        Assert.Equal(Group, donut.ActiveIndex); // still lit
+        donut.SetExternalHit(donut.HitTest(onGroup), onGroup); // and back with the next drag event
+        donut.ExpandPendingGroup(); // the delay runs out
+        Assert.True(IsOpen(donut));
+
+        donut.ExternalDragLeft(OnRing(donut, 1)); // "left" from the ring: still there too
+        Assert.True(IsOpen(donut));
+
+        // Really gone: last seen away from the donut and the ring.
+        donut.ExternalDragLeft(DonutGeometry.PointAt(Center(donut), donut.OuterRadius + 30, DonutGeometry.MidAngle(0, 4)));
+        Assert.False(IsOpen(donut));
+        Assert.Equal(-1, donut.ActiveIndex);
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void An_open_ring_holds_across_the_gap_and_folds_when_the_pointer_goes_round_elsewhere()
     {
         var (donut, window) = Open();
