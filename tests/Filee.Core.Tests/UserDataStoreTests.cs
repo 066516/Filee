@@ -69,6 +69,32 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void A_group_saved_by_a_Filee_from_before_groups_is_still_a_group()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Presets.Add(new Preset { Id = "old-group", Name = "Rotate", Kind = PresetKind.Group, SubPresetIds = ["to-png"] });
+        store.SaveLibrary();
+
+        // An older Filee knows neither "kind" nor "subPresetIds" and leaves them out when it saves.
+        var path = Path.Combine(dir.Path, "presets.json");
+        var presets = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsArray();
+        var saved = presets.Single(p => (string?)p!["id"] == "old-group")!.AsObject();
+        Assert.True(saved.Remove("kind"));
+        Assert.True(saved.Remove("subPresetIds"));
+        File.WriteAllText(path, presets.ToJsonString());
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        var group = reloaded.FindPreset("old-group")!;
+        Assert.True(group.IsGroup); // not a conversion to "group" in the preset list, watch folders and the CLI
+        Assert.Empty(group.SubPresetIds);
+        Assert.Null(reloaded.FindConversion("old-group"));
+    }
+
+    [Fact]
     public void Round_trips_settings_presets_and_profiles()
     {
         using var dir = new TempDir();

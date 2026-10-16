@@ -163,6 +163,10 @@ public sealed class UserDataStore
         {
             profile.PresetIds = profile.PresetIds.Where(ids.Contains).Distinct().Take(ToolbarProfile.MaxSlices).ToList();
         }
+        // A Filee from before groups drops "kind" (and the presets) when it saves a group, which comes back as a
+        // conversion to "group": still a group, now an empty one, rather than a conversion that can never run.
+        foreach (var preset in Presets.Where(p => !p.IsGroup && p.TargetFormat == Preset.GroupTarget))
+            preset.Kind = PresetKind.Group;
         // A group fans out conversions only (no group in a group), each once, at most MaxSubPresets, and has no
         // target format an older Filee could run it with.
         var conversions = Presets.Where(p => !p.IsGroup).Select(p => p.Id).ToHashSet();
