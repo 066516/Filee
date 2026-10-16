@@ -118,7 +118,8 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
             return new DonutItem
             {
                 Id = p.Id,
-                Label = loc.DisplayName(p),
+                // On a group's ring the group's name gives the context: "Rotate" → Left / Right / 180°.
+                Label = caption ? loc.DisplayName(p) : loc.RingName(p),
                 Caption = !caption ? null
                     : p.TargetFormat == BuiltInData.SameAsSource
                         ? string.Join("/", formats.Select(f => f.DisplayName).Take(2))
