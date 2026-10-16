@@ -224,14 +224,11 @@ Filee is free and stays free. If you'd like to support its development, see [Spo
 
 ## Code signing policy
 
-Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by
-[SignPath Foundation](https://signpath.org/).
+Filee is developed and published by **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
 
-> Filee has applied for this program. Until it is approved, releases are not code-signed and Windows SmartScreen may
-> warn when you run the installer ("More info" → "Run anyway"). macOS packages are ad-hoc signed and not notarized.
-
-- Committers and reviewers: [KnifeLemon](https://github.com/KnifeLemon)
-- Approvers: [KnifeLemon](https://github.com/KnifeLemon)
+Windows releases will be signed with a [Certum](https://www.certum.eu/) open source code signing certificate issued
+to Myeonggu Kim. The certificate is being issued; until then, releases are not code-signed and Windows SmartScreen
+may warn when you run the installer ("More info" → "Run anyway"). macOS packages are ad-hoc signed and not notarized.
 
 Only the installer and files built by this repository's GitHub Actions release workflow are signed, and every release
 is approved by hand. Bundled third-party programs (rhwp, 7-Zip) keep their own publishers' files.
@@ -268,7 +265,7 @@ One-time supporters can ask to be listed by name too.
 
 ## License
 
-MIT. Bundled third-party components keep their own licenses, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+MIT, © 2026 Myeonggu Kim (KnifeLemon) and Filee contributors. Bundled third-party components keep their own licenses, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 <p align="center">
   <a href="https://star-history.com/#KnifeLemon/Filee&Date"><img src="https://api.star-history.com/svg?repos=KnifeLemon/Filee&type=Date" alt="Star history" width="600"></a>
