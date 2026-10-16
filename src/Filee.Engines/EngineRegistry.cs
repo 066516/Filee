@@ -15,6 +15,7 @@ using Filee.Engines.Magick;
 using Filee.Engines.Media;
 using Filee.Engines.Office;
 using Filee.Engines.Pdf;
+using Filee.Engines.Subtitles;
 using Filee.Engines.Text;
 using Filee.Engines.Vector;
 
@@ -47,6 +48,7 @@ public static class EngineRegistry
         new PdfTextConverter(),
         new EmlConverter(),
         new DataConverter(),
+        new SubtitleConverter(),
         new FfmpegConverter(),
         new CadConverter(),
         new EbookConverter(),

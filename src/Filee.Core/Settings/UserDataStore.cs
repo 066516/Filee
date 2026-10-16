@@ -252,8 +252,12 @@ internal static class SettingsMigrations
                 InsertBefore(settings.EnginePriority, id, "libreoffice");
         }
 
-        // v11: built-in "data" engine (JSON, YAML, TOML, XML, CSV, vCard), next to the e-mail engine.
-        if (settings.SchemaVersion < 11 && !settings.EnginePriority.Contains("data"))
+        // v12: built-in "subtitle" engine (SRT, ASS, WebVTT, SAMI, LRC, TTML, ...), before FFmpeg.
+        if (settings.SchemaVersion < 12)
+            InsertBefore(settings.EnginePriority, "subtitle", "ffmpeg");
+
+        // v14: built-in "data" engine (JSON, YAML, TOML, XML, CSV, vCard), next to the e-mail engine.
+        if (settings.SchemaVersion < 14 && !settings.EnginePriority.Contains("data"))
         {
             var email = settings.EnginePriority.IndexOf("email");
             if (email >= 0)
@@ -371,9 +375,33 @@ internal static class SettingsMigrations
             changed = true;
         }
 
-        // v11: structured data (JSON, YAML, TOML, XML, vCard) gets its own donut after "fonts", Outlook MSG joins
-        //      the documents donut next to EML, and the spreadsheets donut gets JSON after CSV.
+        // v11: more document formats (Org, AsciiDoc, Typst, ... through Pandoc; flat OpenDocument, templates,
+        //      ClarisWorks, ... through LibreOffice; KEPUB built in). Built-in donuts learn the new extensions unless
+        //      another donut already has them, and the e-books donut gets KEPUB after MOBI.
         if (from < 11)
+        {
+            if (presets.All(p => p.Id != "to-kepub"))
+            {
+                presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == "to-kepub"));
+                changed = true;
+                changed |= Offer(presets, profiles, "ebooks", "to-kepub", "to-mobi");
+            }
+            changed |= LearnExtensions(profiles, out _);
+        }
+
+        // v12: HEVC / AV1 video, ALAC and the new audio formats (WavPack, TTA, APE, DSD, ...), and a subtitles donut
+        //      after the audio donut. The video donut offers "MP4 HEVC" and "Extract subtitles".
+        if (from < 12)
+            changed |= AddCodecsAndSubtitles(presets, profiles);
+
+        // v13: more image formats (APNG, MNG, QOI, DDS, DICOM, OpenEXR, …, Fujifilm's .hif): the images donut learns
+        //      their extensions unless another donut already has them.
+        if (from < 13)
+            changed |= LearnExtensions(profiles, out _);
+
+        // v14: structured data (JSON, YAML, TOML, XML, vCard) gets its own donut after "fonts", Outlook MSG joins
+        //      the documents donut next to EML, and the spreadsheets donut gets JSON after CSV.
+        if (from < 14)
             changed |= AddData(presets, profiles);
         return changed;
     }
@@ -405,6 +433,36 @@ internal static class SettingsMigrations
         }
 
         changed |= Offer(presets, profiles, "spreadsheets", "to-json", "to-csv");
+        return changed;
+    }
+
+    private static bool AddCodecsAndSubtitles(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        foreach (var preset in BuiltInData.CodecAndSubtitlePresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+        {
+            presets.Add(preset);
+            changed = true;
+        }
+        changed |= LearnExtensions(profiles, out var claimed);
+
+        if (profiles.All(p => p.Id != "subtitles"))
+        {
+            var subtitles = BuiltInData.SubtitleProfile();
+            subtitles.Extensions = subtitles.Extensions.Where(claimed.Add).ToList();
+            if (subtitles.Extensions.Count > 0)
+            {
+                var ids = presets.Select(p => p.Id).ToHashSet();
+                subtitles.PresetIds = subtitles.PresetIds.Where(ids.Contains).ToList();
+                var audio = profiles.FindIndex(p => p.Id == "audio");
+                var insertAt = audio >= 0 ? audio + 1 : profiles.FindIndex(p => p.IsFallback);
+                profiles.Insert(insertAt < 0 ? profiles.Count : insertAt, subtitles);
+                changed = true;
+            }
+        }
+
+        changed |= Offer(presets, profiles, "video", "mp4-hevc", "mp4-720");
+        changed |= Offer(presets, profiles, "video", "extract-subtitles", "to-mp3");
         return changed;
     }
 

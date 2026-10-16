@@ -50,8 +50,21 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [InlineData("gif", "mp4")]
     [InlineData("gif", "webm")]
     [InlineData("png", "mov")]
+    [InlineData("apng", "mp4")]
+    [InlineData("mov", "apng")]
     [InlineData("rm", "mp4")]
     [InlineData("dss", "mp3")]
+    [InlineData("ape", "flac")]
+    [InlineData("wv", "mp3")]
+    [InlineData("tta", "wv")]
+    [InlineData("mpc", "m4a")]
+    [InlineData("tak", "flac")]
+    [InlineData("dsf", "wav")]
+    [InlineData("dff", "flac")]
+    [InlineData("dts", "eac3")]
+    [InlineData("spx", "ogg")]
+    [InlineData("wav", "w64")]
+    [InlineData("mkv", "eac3")]
     public void Media_conversions_take_one_ffmpeg_step(string from, string to)
     {
         var route = Planner().Plan(from, to);
@@ -76,6 +89,7 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [InlineData("jpg", "mp4", "magick")]
     [InlineData("avif", "webm", "magick")]
     [InlineData("svg", "mov", "vector")]
+    [InlineData("qoi", "mp4", "magick")]
     public void Photos_reach_video_as_a_full_colour_png_not_a_gif(string from, string to, string imageEngine)
     {
         var route = Planner().Plan(from, to);
@@ -87,6 +101,7 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [InlineData("pdf", "mp4", "pdfium")] // a slideshow of the pages
     [InlineData("webp", "mov", "magick")] // an animated WebP keeps moving
     [InlineData("tiff", "webm", "magick")]
+    [InlineData("mng", "mp4", "magick")]
     public void Animations_and_pages_still_reach_video_through_gif(string from, string to, string imageEngine)
     {
         var route = Planner().Plan(from, to);
@@ -213,6 +228,98 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public void Hevc_and_av1_presets_encode_with_x265_and_svt_av1()
+    {
+        var hevc = Args("mp4", new MediaOptions { VideoCodec = VideoCodec.Hevc });
+        Assert.Equal(("libx265", "26", "yuv420p", "hvc1"), (After(hevc, "-c:v"), After(hevc, "-crf"), After(hevc, "-pix_fmt"), After(hevc, "-tag:v")));
+        Assert.Equal("log-level=error", After(hevc, "-x265-params"));
+        Assert.Equal("aac", After(hevc, "-c:a"));
+        Assert.Equal(("22", "30"), (After(Args("mkv", new MediaOptions { VideoCodec = VideoCodec.Hevc, Quality = MediaQuality.High }), "-crf"),
+            After(Args("mkv", new MediaOptions { VideoCodec = VideoCodec.Hevc, Quality = MediaQuality.Small }), "-crf")));
+        Assert.DoesNotContain("-tag:v", Args("mkv", new MediaOptions { VideoCodec = VideoCodec.Hevc }));
+
+        var av1 = Args("mp4", new MediaOptions { VideoCodec = VideoCodec.Av1 });
+        Assert.Equal(("libsvtav1", "8", "32"), (After(av1, "-c:v"), After(av1, "-preset"), After(av1, "-crf")));
+        var webm = Args("webm", new MediaOptions { VideoCodec = VideoCodec.Av1 });
+        Assert.Equal(("libsvtav1", "libopus"), (After(webm, "-c:v"), After(webm, "-c:a")));
+
+        // Targets that can't hold the codec keep their own: WebM has no HEVC, QuickTime no AV1, AVI neither.
+        Assert.Equal("libvpx-vp9", After(Args("webm", new MediaOptions { VideoCodec = VideoCodec.Hevc }), "-c:v"));
+        Assert.Equal("libx264", After(Args("mov", new MediaOptions { VideoCodec = VideoCodec.Av1 }), "-c:v"));
+        Assert.Equal("mpeg4", After(Args("avi", new MediaOptions { VideoCodec = VideoCodec.Hevc }), "-c:v"));
+    }
+
+    [Fact]
+    public void Av1_falls_back_to_libaom_and_a_missing_encoder_is_reported()
+    {
+        var info = new MediaInfo(TimeSpan.FromSeconds(10), Hd, new AudioStreamInfo(2, 48000), null);
+        IReadOnlyList<string> Plan(VideoCodec codec, params string[] encoders) => MediaEncoding.Plan("in.mov", "out.mkv", "mkv",
+            new MediaOptions { VideoCodec = codec }, info, "work", encoders: encoders.ToHashSet()).Single().Arguments;
+
+        var aom = Plan(VideoCodec.Av1, "libaom-av1", "libx264", "aac");
+        Assert.Equal(("libaom-av1", "0", "32", "6"), (After(aom, "-c:v"), After(aom, "-b:v"), After(aom, "-crf"), After(aom, "-cpu-used")));
+        Assert.Contains("AV1 encoder", Assert.Throws<InvalidOperationException>(() => Plan(VideoCodec.Av1, "libx264")).Message);
+        Assert.Contains("HEVC encoder", Assert.Throws<InvalidOperationException>(() => Plan(VideoCodec.Hevc, "libx264")).Message);
+        // A video already in the codec needs no encoder at all.
+        var hevcSource = info with { Video = Hd with { Codec = "hevc", PixelFormat = "yuv420p" } };
+        Assert.Equal("copy", After(MediaEncoding.Plan("in.mov", "out.mkv", "mkv", new MediaOptions { VideoCodec = VideoCodec.Hevc }, hevcSource, "work",
+            encoders: new HashSet<string>()).Single().Arguments, "-c:v"));
+    }
+
+    [Fact]
+    public void Ten_bit_and_hdr_sources_stay_ten_bit_and_matching_codecs_are_copied()
+    {
+        var hlg = new VideoColor("bt2020", "arib-std-b67", "bt2020nc", "tv");
+        var phone = new MediaInfo(TimeSpan.FromSeconds(10), new VideoStreamInfo(3840, 2160, 1, 0, 30, "hevc", "yuv420p10le", hlg),
+            new AudioStreamInfo(2, 48000, "aac"), null);
+
+        // HEVC asked for, HEVC given: rewrapped, 10-bit HDR untouched.
+        Assert.Equal("copy", After(Args("mp4", new MediaOptions { VideoCodec = VideoCodec.Hevc }, phone), "-c:v"));
+        // AV1 asked for: encoded in 10 bits with the HDR tags.
+        var av1 = Args("mkv", new MediaOptions { VideoCodec = VideoCodec.Av1 }, phone);
+        Assert.Equal(("libsvtav1", "yuv420p10le"), (After(av1, "-c:v"), After(av1, "-pix_fmt")));
+        Assert.Equal(("bt2020", "arib-std-b67", "bt2020nc"), (After(av1, "-color_primaries"), After(av1, "-color_trc"), After(av1, "-colorspace")));
+        // Scaled down: re-encoded, still 10 bits.
+        var small = Args("mp4", new MediaOptions { VideoCodec = VideoCodec.Hevc, MaxHeight = 1080 }, phone);
+        Assert.Equal(("libx265", "yuv420p10le"), (After(small, "-c:v"), After(small, "-pix_fmt")));
+
+        // An H.264 source with HEVC asked for is encoded; an AV1 source with AV1 asked for goes into MP4 as it is.
+        var h264 = phone with { Video = new VideoStreamInfo(1920, 1080, 1, 0, 30, "h264", "yuv420p") };
+        var hevc = Args("mp4", new MediaOptions { VideoCodec = VideoCodec.Hevc }, h264);
+        Assert.Equal(("libx265", "yuv420p"), (After(hevc, "-c:v"), After(hevc, "-pix_fmt")));
+        Assert.DoesNotContain("-color_trc", hevc);
+        var av1Source = phone with { Video = new VideoStreamInfo(1920, 1080, 1, 0, 30, "av1", "yuv420p") };
+        Assert.Equal("copy", After(Args("mp4", new MediaOptions { VideoCodec = VideoCodec.Av1 }, av1Source), "-c:v"));
+        Assert.Equal("libx264", After(Args("mp4", info: av1Source), "-c:v")); // H.264 stays the default for MP4
+
+        Assert.True(new VideoStreamInfo(1, 1, 1, 0, 0, PixelFormat: "p010le").IsHighBitDepth);
+        Assert.True(new VideoStreamInfo(1, 1, 1, 0, 0, PixelFormat: "yuv422p12le").IsHighBitDepth);
+        Assert.False(new VideoStreamInfo(1, 1, 1, 0, 0, PixelFormat: "yuvj420p").IsHighBitDepth);
+    }
+
+    [Fact]
+    public void Lossless_and_new_audio_targets_get_their_encoders()
+    {
+        var alac = Args("m4a", new MediaOptions { AudioCodec = AudioCodec.Alac, AudioBitrateKbps = 128 });
+        Assert.Equal(("alac", "ipod"), (After(alac, "-c:a"), After(alac, "-f")));
+        Assert.DoesNotContain("-b:a", alac);
+        Assert.Equal("libmp3lame", After(Args("mp3", new MediaOptions { AudioCodec = AudioCodec.Alac }), "-c:a")); // ALAC is for M4A only
+        Assert.Equal(("wavpack", "wv"), (After(Args("wv"), "-c:a"), After(Args("wv"), "-f")));
+        Assert.Equal(("tta", "tta"), (After(Args("tta"), "-c:a"), After(Args("tta"), "-f")));
+        var w64 = Args("w64", new MediaOptions { WavFormat = WavSampleFormat.Pcm24, AudioSampleRate = 48000 });
+        Assert.Equal(("pcm_s24le", "48000", "w64"), (After(w64, "-c:a"), After(w64, "-ar"), After(w64, "-f")));
+        Assert.Equal(("eac3", "576k"), (After(Args("eac3"), "-c:a"), After(Args("eac3"), "-b:a"))); // 192k per pair × 3 (5.1)
+
+        // DSD (2.8 MHz) becomes 88.2 kHz PCM for lossless targets; lossy encoders choose their own rate.
+        var dsd = new MediaInfo(TimeSpan.FromSeconds(10), null, new AudioStreamInfo(2, 2_822_400, "dsd_lsbf_planar"), null);
+        Assert.Equal("88200", After(Args("flac", info: dsd), "-ar"));
+        Assert.Equal("88200", After(Args("wav", info: dsd), "-ar"));
+        Assert.Equal("16000", After(Args("wav", new MediaOptions { AudioSampleRate = 16000 }, dsd), "-ar"));
+        Assert.Equal("44100", After(Args("ogg", info: dsd), "-ar"));
+        Assert.DoesNotContain("-ar", Args("mp3", info: dsd));
+    }
+
+    [Fact]
     public void Dvd_and_dv_frames_are_letterboxed_into_the_nearest_tv_shape()
     {
         // 16:9 source: fills the anamorphic 16:9 NTSC frame.
@@ -260,6 +367,20 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal(palette, second[second.ToList().LastIndexOf("-i") + 1]);
         Assert.Contains("fps=12,scale=w='min(iw,480)':h='min(ih,200)'", After(second, "-filter_complex"));
         Assert.Contains("paletteuse", After(second, "-filter_complex"));
+    }
+
+    [Fact]
+    public void Apng_is_one_full_colour_looping_pass_with_the_gif_limits()
+    {
+        var pass = Assert.Single(MediaEncoding.Plan("in.mp4", "out.apng", "apng", new MediaOptions { Quality = MediaQuality.High },
+            new MediaInfo(TimeSpan.FromSeconds(3), Hd, new AudioStreamInfo(2, 44100), null), "work"));
+        var args = pass.Arguments;
+        Assert.Equal("fps=15,scale=w='min(iw,640)':h=ih:force_original_aspect_ratio=decrease:flags=lanczos", After(args, "-vf"));
+        Assert.Equal("apng", After(args, "-c:v"));
+        Assert.Equal("rgb24", After(args, "-pix_fmt"));
+        Assert.Equal("0", After(args, "-plays"));
+        Assert.Equal("apng", After(args, "-f"));
+        Assert.Contains("-an", args);
     }
 
     [Fact]
@@ -314,7 +435,8 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
                   "disposition": { "attached_pic": 0 }, "side_data_list": [ { "side_data_type": "Display Matrix", "rotation": -90 } ] },
                 { "index": 1, "codec_name": "aac", "codec_type": "audio", "channels": 2, "sample_rate": "48000", "duration": "12.5" },
                 { "index": 2, "codec_name": "mjpeg", "codec_type": "video", "width": 300, "height": 300,
-                  "disposition": { "attached_pic": 1 } }
+                  "disposition": { "attached_pic": 1 } },
+                { "index": 3, "codec_name": "subrip", "codec_type": "subtitle", "tags": { "language": "kor" } }
               ],
               "format": { "duration": "12.480000" }
             }
@@ -326,6 +448,7 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal(1920, info.Video.DisplayHeight);
         Assert.Equal(new AudioStreamInfo(2, 48000, "aac"), info.Audio);
         Assert.Equal(2, info.CoverStreamIndex);
+        Assert.Equal([new SubtitleStreamInfo(3, "subrip", "kor")], info.Subtitles);
 
         var raw = MediaInfo.Parse("""{ "streams": [ { "index": 0, "codec_type": "audio", "channels": 1, "sample_rate": "8000" } ], "format": {} }""");
         Assert.Null(raw.Duration);
@@ -482,6 +605,55 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public async Task Hevc_and_av1_presets_write_those_codecs_and_keep_ten_bits()
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        var h264 = await MakeClipAsync(folder, "clip.mp4", seconds: 1, size: "320x240");
+        // A 10-bit HLG source, like a phone's HDR video.
+        var hdr = await MakeClipAsync(folder, "hdr.mkv", seconds: 1, size: "320x240",
+            extra: ["-c:v", "libx265", "-pix_fmt", "yuv420p10le",
+                    "-x265-params", "colorprim=bt2020:transfer=arib-std-b67:colormatrix=bt2020nc:log-level=error"]);
+
+        async Task<JsonElement> VideoOf(string file)
+        {
+            var result = await ProcessRunner.RunAsync(Tools!.Value.Ffprobe,
+                ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name,codec_tag_string,pix_fmt,color_transfer", "-of", "json", file],
+                TimeSpan.FromMinutes(1), CancellationToken.None);
+            return JsonDocument.Parse(result.StandardOutput).RootElement.GetProperty("streams")[0].Clone();
+        }
+
+        var hevc = await VideoOf(await ConvertAsync(h264, "mp4", new MediaOptions { VideoCodec = VideoCodec.Hevc }));
+        Assert.Equal(("hevc", "hvc1", "yuv420p"), (hevc.GetProperty("codec_name").GetString(), hevc.GetProperty("codec_tag_string").GetString(), hevc.GetProperty("pix_fmt").GetString()));
+
+        var av1 = await VideoOf(await ConvertAsync(hdr, "mp4", new MediaOptions { VideoCodec = VideoCodec.Av1 }));
+        Assert.Equal(("av1", "yuv420p10le", "arib-std-b67"), (av1.GetProperty("codec_name").GetString(), av1.GetProperty("pix_fmt").GetString(), av1.GetProperty("color_transfer").GetString()));
+
+        var webm = await VideoOf(await ConvertAsync(h264, "webm", new MediaOptions { VideoCodec = VideoCodec.Av1, Quality = MediaQuality.Small }));
+        Assert.Equal("av1", webm.GetProperty("codec_name").GetString());
+    }
+
+    [Fact]
+    public async Task Alac_speex_and_dts_are_written_and_read()
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        var tone = await MakeToneAsync(folder, "tone.wav");
+        var alac = await ProbeAsync(await ConvertAsync(tone, "m4a", new MediaOptions { AudioCodec = AudioCodec.Alac }));
+        Assert.Equal("alac", alac.Audio?.Codec);
+        Assert.InRange(alac.Duration, 1.9, 2.1);
+
+        // Formats Filee only reads, made with FFmpeg's own encoders (DTS's is experimental), then converted.
+        var spx = Path.Combine(folder, "voice.spx");
+        await RunAsync(Tools!.Value.Ffmpeg, ["-hide_banner", "-nostdin", "-v", "error", "-y", "-i", tone, "-ar", "16000", "-ac", "1", "-c:a", "libspeex", "-f", "ogg", spx]);
+        var dts = Path.Combine(folder, "surround.dts");
+        await RunAsync(Tools.Value.Ffmpeg, ["-hide_banner", "-nostdin", "-v", "error", "-y", "-i", tone, "-ar", "48000", "-c:a", "dca", "-strict", "-2", "-f", "dts", dts]);
+        Assert.Equal("pcm_s16le", (await ProbeAsync(await ConvertAsync(spx, "wav"))).Audio?.Codec);
+        Assert.Equal("flac", (await ProbeAsync(await ConvertAsync(dts, "flac"))).Audio?.Codec);
+        Assert.Equal("wavpack", (await ProbeAsync(await ConvertAsync(dts, "wv"))).Audio?.Codec);
+    }
+
+    [Fact]
     public async Task An_iphone_hdr_mov_is_rewrapped_into_mp4_without_re_encoding()
     {
         SkipUnlessInstalled();
@@ -534,6 +706,51 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal("h264", mp4.Video?.Codec);
         Assert.Equal((480, 270), (mp4.Video!.Width, mp4.Video.Height));
         Assert.InRange(mp4.Duration, 1.5, 2.5);
+    }
+
+    [Fact]
+    public async Task Video_becomes_an_apng_and_back()
+    {
+        SkipUnlessInstalled();
+        var source = await MakeClipAsync(fx.NewFolder(), "anim.mp4", seconds: 1, size: "640x360", audio: false);
+        var apng = await ConvertAsync(source, "apng");
+        var probed = await ProbeAsync(apng);
+        Assert.Equal("apng", probed.Video?.Codec);
+        Assert.Equal((480, 270), (probed.Video!.Width, probed.Video.Height)); // Balanced: at most 480 px wide
+        Assert.InRange(probed.Video.Frames, 10, 15); // 1 s at 12 fps
+
+        // Filee's own reader takes FFmpeg's APNG: every frame, as GIF.
+        var gif = await ConvertAsync(apng, "gif");
+        using (var frames = new ImageMagick.MagickImageCollection(gif))
+            Assert.Equal(probed.Video.Frames, frames.Count);
+
+        // APNG → MP4 straight through FFmpeg.
+        var mp4 = await ProbeAsync(await ConvertAsync(apng, "mp4"));
+        Assert.Equal("h264", mp4.Video?.Codec);
+        Assert.InRange(mp4.Duration, 0.7, 1.3);
+    }
+
+    [Fact]
+    public async Task Ffmpeg_reads_the_apng_filee_writes()
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        var gif = Path.Combine(folder, "anim.gif");
+        using (var frames = new ImageMagick.MagickImageCollection())
+        {
+            foreach (var color in new[] { ImageMagick.MagickColors.Red, ImageMagick.MagickColors.Lime, ImageMagick.MagickColors.Blue })
+                frames.Add(new ImageMagick.MagickImage(color, 64, 48) { AnimationDelay = 20 });
+            frames.Write(gif, ImageMagick.MagickFormat.Gif);
+        }
+
+        var apng = await ConvertAsync(gif, "apng");
+
+        var probed = await ProbeAsync(apng);
+        Assert.Equal("apng", probed.Video?.Codec);
+        Assert.Equal((64, 48, 3), (probed.Video!.Width, probed.Video.Height, probed.Video.Frames));
+        // FFmpeg takes the frame delays: three frames of 0.2 s make a 0.6 s video.
+        var mp4 = await ProbeAsync(await ConvertAsync(apng, "mp4"));
+        Assert.InRange(mp4.Duration, 0.5, 0.75);
     }
 
     [Fact]

@@ -5,7 +5,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 
 | Engine | How it gets there | Handles |
 |---|---|---|
-| ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM ↔ each other; HEIC (written with FFmpeg), XCF, camera RAW (LibRaw) and EMF/WMF (Windows) read |
+| ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, MNG, QOI, DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster, MIFF ↔ each other, and **APNG** (Filee's own reader and writer); HEIC (written with FFmpeg), XCF, camera RAW (LibRaw), DICOM (uncompressed ones by Filee's own reader), Photo CD, OpenEXR, Radiance HDR and EMF/WMF (Windows) read |
 | Vector graphics | built in (Svg.Skia, SkiaSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, PDF-compatible AI → PDF |
 | ICNS | built in | images → ICNS (16–1024 px), ICNS → images |
 | PDFsharp | built in (library) | images → PDF, merge, split, page ranges |
@@ -20,14 +20,15 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | PDF text | built in (PdfPig) | **PDF → TXT** (reading order, also two columns; no OCR) |
 | E-mail | built in (MimeKit, MsgReader) | **EML, Outlook MSG → HTML** (headers + body, inline pictures), **TXT**, **ZIP** (the attachments); **MSG → EML** |
 | Data | built in (System.Text.Json, YamlDotNet, Tomlyn, System.Xml) | **JSON, JSON Lines, YAML, TOML, XML, CSV ↔ each other** (CSV for tables); **vCard ↔ CSV**; spreadsheets and contacts reach JSON / YAML / TOML / XML through CSV |
-| **E-books** | built in | **EPUB, MOBI/AZW/AZW3/PRC, FB2, HTMLZ, TXTZ → EPUB, HWPX (→ PDF), TXT, HTML, Markdown, FB2, HTMLZ, TXTZ**; HTML, Markdown, TXT, DOCX → EPUB/FB2/HTMLZ/TXTZ; HTML → TXT; comics CBZ/CBR/CB7/CBT/CBC → PDF, EPUB, CBZ; PDF → CBZ; AZW4 → PDF |
+| **E-books** | built in | **EPUB, MOBI/AZW/AZW3/PRC, FB2, HTMLZ, TXTZ → EPUB, HWPX (→ PDF), TXT, HTML, Markdown, FB2, HTMLZ, TXTZ**; HTML, Markdown, TXT, DOCX → EPUB/FB2/HTMLZ/TXTZ; HTML → TXT; comics CBZ/CBR/CB7/CBT/CBC → PDF, EPUB, CBZ; PDF → CBZ; AZW4 → PDF; **EPUB ↔ KEPUB** (Kobo) |
 | CAD (ACadSharp + built-in renderer) | built in (library) | **DWG ↔ DXF**; DWG/DXF → **PDF** (vector), **SVG**, PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF |
+| **Subtitles** | built in | **SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD, SCC → SRT, ASS, WebVTT, SAMI, LRC, TTML, MicroDVD**, always UTF-8 (Korean CP949 / EUC-KR files read correctly) |
 | rhwp | bundled with the installer (`engines/rhwp`) | HWP/HWPX → PDF, **HWP → HWPX, HWPX → HWP** |
 | Archives (7-Zip) | bundled with the installer (`engines/7zip`, ~2.5 MB) + built-in readers | ZIP, 7Z, RAR, TAR (+ GZ/BZ2/XZ/Z/7Z/LZ), CAB, ISO, DMG, … **→ folder, ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ**; ALZ, EGG, lzip read in-process; "Compress into one archive" for any files |
-| LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats |
-| Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, reStructuredText and LaTeX ↔ Markdown/HTML/DOCX/ODT (and → RTF, EPUB, TXT) |
+| LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats; FODT, OpenDocument templates (OTT, OTS, OTP) and XLT out; SVG → EMF/WMF/ODG, a PDF page → SVG |
+| Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, markup languages (reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML) ↔ Markdown/HTML/DOCX/ODT and each other (and → RTF, EPUB, TXT), Markdown and markup → PPTX slides |
 | Ghostscript | **optional download** (~20 MB, 31 MB on disk) | EPS/PS → PDF, PDF → EPS/PS, PostScript-based AI → PDF (images through PDF and PDFium) |
-| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video, video → animated GIF or a still frame, audio extraction, audio ↔ audio, GIF and photos → MP4/WEBM/MOV, images → HEIC |
+| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG or a still frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, images → HEIC |
 | Calibre | **optional download** (~216 MB, 660 MB on disk) | rare e-book formats: LIT, LRF, CHM, PDB, PML, RB, SNB, TCR, OEB → EPUB; EPUB → MOBI, AZW3, LIT, LRF, PDB, PML, RB, SNB, TCR |
 
 DOCX, XLSX, XLS, ODS and PPTX → PDF need neither Microsoft Office nor LibreOffice: they are read in-process, written as HWPX
@@ -79,9 +80,45 @@ current.
 
 ## Images and vector graphics
 
-- **Animations.** An animated GIF or WebP keeps every frame and its timing when converted to GIF or WebP (animated
-  GIF ↔ animated WebP, lossy or lossless as the preset says) and becomes a multi-page TIFF; other targets get the first
-  frame. Multi-page TIFFs and PDFs stay one image per page in WebP.
+- **Animations.** An animated GIF, WebP, APNG or MNG keeps every frame and its timing when converted to one of these
+  (animated GIF ↔ animated WebP ↔ APNG ↔ MNG, WebP lossy or lossless as the preset says) and becomes a multi-page TIFF;
+  other targets get the first frame. Multi-page TIFFs and PDFs stay one image per page in WebP.
+- **APNG** (`Magick/Apng.cs`) is Filee's own code, written from the APNG specification: ImageMagick reads only an
+  APNG's default image and writes APNG through an external FFmpeg. Every frame is an ordinary PNG decoded or encoded by
+  ImageMagick; Filee handles the chunks around them.
+  - Reading composes each frame onto the canvas as a player shows it: `fcTL` regions and offsets, blend `SOURCE` / `OVER`,
+    dispose `NONE` / `BACKGROUND` / `PREVIOUS`, delays (a denominator of 0 means hundredths) and the loop count. A
+    default image that comes before the first `fcTL` is not part of the animation and is skipped. Animated PNGs saved
+    as `.png` are recognised by their `acTL` chunk and stay animated as GIF, WebP or APNG; other targets get the first
+    frame.
+  - Writing gives every frame the same pixel format (8-bit RGB, or RGBA when any frame is transparent or smaller than
+    the canvas): the first frame is the default image (`IDAT`, so viewers without APNG support show it), the others are
+    `fdAT` chunks holding only the rectangle that changed (dispose `NONE`, blend `SOURCE`); a frame identical to the one
+    before lengthens its delay instead. Checked with FFmpeg's APNG demuxer.
+  - APNG ↔ video needs FFmpeg: video → APNG uses its `apng` encoder and muxer (24-bit RGB, looping, the GIF's frame rate
+    and width limits), APNG → MP4/WEBM/MOV its APNG demuxer. Animated WebP and GIF still reach video through GIF, a
+    still picture through PNG.
+- **More raster formats** through ImageMagick's own coders, each checked against `MagickNET.SupportedFormats` and
+  converted there and back in `ImageFormatTests`: QOI, MNG (animated), DDS (DXT block compression, which is lossy; of
+  a texture with mipmaps the largest image is read), PCX, CUR (at most 256 × 256, larger pictures are scaled down), XPM,
+  XBM and WBMP (1-bit), PAM, PFM, SGI (`.sgi`, `.rgb`, `.rgba`, `.bw`, always read as SGI; ImageMagick would take
+  `.rgb` for headerless pixels), Sun Raster (`.ras`, `.sun`) and MIFF. XBM, WBMP, PFM, PCX and Sun Raster are written
+  without transparency (flattened onto the preset's background): PFM has none, and the alpha planes ImageMagick can
+  put into PCX and Sun Raster are read by hardly any other program. Not offered: PICT, because ImageMagick can't read
+  back direct-colour PICTs wider than about 130 pixels that it wrote itself.
+- **Read only**: Photo CD (the 768 × 512 base image), OpenEXR and Radiance HDR. The bundled Magick.NET is the 8-bit
+  (Q8) build without HDRI, so high-dynamic-range values are clipped to the displayable range and stored with 8 bits per
+  channel; there is no tone mapping. Writing EXR or HDR from 8-bit pictures would only make larger files, so they are
+  not targets.
+- **DICOM** (`.dcm`, `.dicom`, read only). The Q8 build reads only 8-bit DICOM, while CT, MR and X-ray scanners store
+  12 or 16 bits, so `Magick/Dicom.cs` (written from the DICOM standard, PS3.5 and PS3.3 C.7.6.3 / C.11.2) reads
+  uncompressed files itself: implicit and explicit VR little endian, explicit VR big endian and deflated files, with or
+  without the 128-byte preamble; 8 or 16 bits allocated, signed or unsigned; MONOCHROME1 (inverted) and MONOCHROME2,
+  RGB and YBR_FULL (interleaved or planar); every frame of a multi-frame file. Grey values go through the rescale
+  slope / intercept and the file's first window (centre / width) like a viewer's default view, or are stretched over
+  the file's range when there is no window, to 8 bits. Compressed pixel data (JPEG, JPEG-LS, JPEG 2000, RLE) is left to
+  ImageMagick, which manages only 8-bit images; others fail with a message asking for an uncompressed export.
+- **Fujifilm HEIF** (`.hif`) is read as HEIC.
 - **Layered files.** PSD/PSB convert from Photoshop's composite (ImageMagick merges the layers when a file was saved
   without "maximize compatibility"). GIMP XCF layers are composited at their offsets with their blend modes; hidden
   layers are left out. ImageMagick reads 8-bit XCF without zlib tile compression (GIMP 2.10+ "better but slower
@@ -162,7 +199,7 @@ Not converted: Word charts, SmartArt, equations (kept as text), free-form shapes
 
 ## Spreadsheets
 
-`SpreadsheetConverter` (engine id `spreadsheet`) converts between XLSX, XLS (also `.xlt`), ODS, CSV and TSV (also
+`SpreadsheetConverter` (engine id `spreadsheet`) converts between XLSX, XLS (and XLT templates, read only), ODS, CSV and TSV (also
 `.tab`) in-process; every format goes through one in-memory workbook (`Office/Sheets/Workbook.cs`) whose cells keep
 the text the spreadsheet shows, the value behind it and its Excel number format.
 
@@ -434,6 +471,15 @@ writer, so every e-book also reaches HWPX, PDF and images. The document model is
   footnotes, pictures come from the base64 binaries; the XML declaration's encoding (often windows-1251) is used.
   FB2 output nests sections by heading level.
 - **HTMLZ / TXTZ** (calibre's zipped formats) are read and written, with their `metadata.opf`.
+- **KEPUB** (Kobo, `Ebooks/Kepub.cs`, written from the format's public descriptions): EPUB → KEPUB copies the book
+  and changes only the XHTML documents of the spine. Every sentence becomes `<span class="koboSpan"
+  id="kobo.P.S">` (P counts the block elements of the chapter, S the sentences in it; a sentence ends at . ! ? …
+  followed by a space, or at the full-width 。！？), every picture gets a span of its own, and the body's content
+  is wrapped in `<div id="book-columns"><div id="book-inner">`. Scripts, styles, SVG and MathML are left alone; a
+  chapter that isn't well-formed XML (after HTML entities such as `&nbsp;` became character references) is copied
+  unchanged. Files are named `name.kepub.epub`, which tells Kobo devices to use their KEPUB reader. Other formats
+  reach KEPUB through EPUB (Markdown → EPUB → KEPUB); KEPUB → EPUB removes the markup again, and a KEPUB is read
+  like any EPUB.
 - **Comics**: CBZ, CBR, CB7, CBT and CBC (a ZIP of CBZ files) are opened with SharpCompress; pages are sorted
   naturally ("page2" before "page10"). → PDF has one page per picture sized like the picture (JPEGs are embedded
   as they are), → EPUB is fixed-layout, → CBZ repacks. PDF → CBZ renders the pages with PDFium at the preset DPI.
@@ -508,12 +554,72 @@ bundled with the installer), never a 7-Zip installed on the PC. It runs as a sep
 - HWP/HWPX import comes from the H2Orestart extension, which is written in Java; Filee points LibreOffice at the
   downloaded JRE (`-env:UNO_JAVA_JFW_JREHOME`).
 - It is the only reader of rarer formats, converted to PDF and to the editable formats of their kind: DOT, Works /
-  WPS Writer, WordPerfect, Lotus Word Pro, AbiWord, Apple Pages and StarWriter (→ DOCX, ODT, DOC, RTF, TXT, HTML);
-  WPS Spreadsheets (ET), Apple Numbers and StarCalc (→ XLSX, ODS, XLS, CSV, HTML); Apple Keynote, WPS
-  Presentation (DPS) and StarImpress / StarDraw (→ PPTX, ODP, PPT); Publisher, CorelDRAW, Visio, CGM and ODG
-  (→ ODG, SVG, PNG). The `--convert-to` filter follows the application that opens the file (checked against
-  LibreOffice's filter registry): Publisher, CorelDRAW and Visio open in Draw, CGM in Impress, and "SDA" files
-  in Draw (.sda) or Impress (.sdd). SVG and PNG export the first page.
+  WPS Writer, WordPerfect, Lotus Word Pro, AbiWord, Apple Pages, StarWriter, ClarisWorks / AppleWorks (`.cwk`),
+  MacWrite (`.mcw`), T602 (`.602`) and Pocket Word (`.psw`) (→ DOCX, ODT, FODT, OTT, DOC, RTF, TXT, HTML); WPS
+  Spreadsheets (ET), Apple Numbers, StarCalc and flat ODS (`.fods`) (→ XLSX, ODS, OTS, XLS, XLT, CSV, HTML); Apple
+  Keynote, WPS Presentation (DPS), StarImpress / StarDraw and flat ODP (`.fodp`) (→ PPTX, ODP, OTP, PPT);
+  Publisher, CorelDRAW, Visio, CGM, ODG and flat ODG (`.fodg`) (→ ODG, SVG, PNG, EMF, WMF). The `--convert-to`
+  filter follows the application that opens the file (checked against LibreOffice's filter registry): Publisher,
+  CorelDRAW and Visio open in Draw, CGM in Impress, and "SDA" files in Draw (.sda) or Impress (.sdd). ClarisWorks
+  files can also be spreadsheets or drawings; Filee treats them as text documents, the common case. SVG, PNG, EMF
+  and WMF export the first page.
+- Written only by LibreOffice: FODT (`OpenDocument Text Flat XML`), the OpenDocument templates OTT / OTS / OTP
+  (`writer8_template`, `calc8_template`, `impress8_template`) and XLT (`MS Excel 97 Vorlage/Template`). XLT is read
+  by the built-in spreadsheet engine like XLS.
+- SVG opens in Draw only for EMF, WMF and ODG; the vector engine keeps SVG → PDF and images. PDF opens in Draw
+  (`draw_pdf_import`) only for SVG and ODG: Draw's SVG export draws every page of a PDF on top of each other, so Filee
+  first copies the first page of the preset's page range into a PDF of its own (PDFsharp). EPS and PS reach SVG
+  through Ghostscript's PDF; Draw would only show their preview picture.
+- Checked with LibreOffice 26.2.6 (`LibreOfficeFormatTests`): FODT, FODS, FODP, FODG, T602 and SVG inputs, the
+  template and FODT outputs, XLT read back by the spreadsheet engine, EMF / WMF headers and the one-page PDF → SVG.
+  ClarisWorks, MacWrite and Pocket Word are binary formats without sample files in the repository: only their
+  filters (`ClarisWorks`, `MacWrite`, `PocketWord File`, all opening in Writer) were checked in the registry.
+
+## Pandoc
+
+`Office/PandocConverter.cs` runs Pandoc for the markup languages Filee doesn't read itself: reStructuredText,
+LaTeX, Org (`.org`), AsciiDoc (`.adoc`, `.asciidoc`), Typst (`.typ`), MediaWiki (`.mediawiki`, `.wiki`),
+DocBook (`.dbk`, `.docbook`; written as DocBook 5), Jupyter notebooks (`.ipynb`), Textile (`.textile`), man pages
+(`.man`) and OPML (`.opml`). Pandoc 3.12 reads and writes all of them.
+
+- Each converts to and from Markdown, HTML, DOCX and ODT and into each other, and to RTF, EPUB and TXT. Through
+  Pandoc's JSON AST they are also read by the HWPX writer, so they reach HWPX, HWP and PDF (HWPX writer → rhwp).
+  There is no PDF through Pandoc itself (that would need a TeX or Typst engine).
+- Edges into a markup language cost 11, one more than into Markdown, so a route with a Pandoc step in the middle
+  (an e-mail's HTML → ? → RTF) stays on Markdown.
+- Markdown, reStructuredText, Org, AsciiDoc, Typst, MediaWiki, Textile and notebooks → **PPTX** with Pandoc's
+  PowerPoint writer (a slide per heading). These edges cost 20: with LibreOffice's cheap PPTX → PDF, Markdown → PPTX
+  → PDF would otherwise beat Markdown → HWPX → PDF.
+- Extensions that mean other things are not claimed: man pages only as `.man` (`.1` … `.9` are also rotated logs,
+  `app.log.1`), DocBook as `.dbk` / `.docbook`, never every `.xml`.
+- DocBook, man pages, OPML, Typst, HTML and LaTeX are written with `--standalone` (a root element, a `.TH` header,
+  a preamble), the text formats extract pictures into `<name>_files` next to the result.
+
+## Subtitles
+
+`Subtitles/SubtitleConverter.cs` (engine id `subtitle`) converts text subtitles in managed code, no FFmpeg needed.
+Every reader produces one cue model (`SubtitleModel.cs`: start, end and text with line breaks and SRT's own tags
+`<i>`, `<b>`, `<u>`, `<font color>`), every writer takes it, so any format converts to any other and to itself (an
+SRT or SAMI file in CP949 comes out as UTF-8).
+
+| Format | Read | Written |
+|---|---|---|
+| SRT | numbers optional, blank lines inside cues and missing between them, `,` or `.` before the milliseconds, `{\an8}` codes dropped | UTF-8 with BOM, CRLF, tags kept |
+| ASS / SSA | `Dialogue:` lines in the order of the `Format:` line; `\i \b \u \c`, bold/italic/underline styles, `\N`; drawings (`\p1`) and comments left out, shadow layers merged | ASS v4.00+ for 1920 × 1080, one "Default" style, override codes (SSA is read only) |
+| WebVTT | NOTE / STYLE / REGION blocks skipped, cue settings ignored, `<i> <b> <u>`, the colour classes (`<c.yellow>`), entities; voices and timestamps dropped | UTF-8, the basic colour classes, text escaped |
+| SAMI (SMI) | hand-made HTML: unquoted attributes, unclosed `<SYNC>` / `<P>`, `&nbsp` with or without `;`; of several languages (KRCC, ENCC, …) the one with the most lines | one class from the text's language (KRCC for Korean), `&nbsp;` where the screen goes blank, UTF-8 with BOM |
+| LRC | `[mm:ss.xx]` (several per line), `[ti:]`, `[offset:]`, enhanced word times dropped; a line lasts until the next one | plain text, lines joined, an empty time line where the screen goes blank |
+| TTML / DFXP | TTML 1 and the 2006 DFXP namespace; times relative to their parents; clock, frames (`ttp:frameRate`), ticks and offset times; spans and referenced styles | TTML 1 with a bottom region and tts: spans |
+| MicroDVD (.sub) | `{frame}{frame}text` with the rate of a `{1}{1}25` first line (else 23.976), `\|` between lines, `{y:i}` / `{c:$BBGGRR}`; VobSub `.sub` (pictures) and SubViewer fail with a clear message | 23.976 fps, first line states it, plain text, `{Y:i}` for all-italic cues |
+| SCC | CEA-608 caption channel 1: pop-on, paint-on and roll-up captions, row preambles, italics, special and extended characters, doubled control codes, drop-frame time codes | — |
+
+- **Encodings**: a byte order mark (UTF-8, UTF-16) or valid UTF-8 decide first, then a `charset=` / `encoding=` the
+  file declares. Otherwise CP949 when the bytes are CP949 pairs, most of them Hangul syllables of KS X 1001 and hardly
+  any with a lead byte above C8 (Chinese GBK text uses those for many common characters), then the PC's code page on
+  Chinese or Japanese Windows, else the Western one (Windows-1252 on Korean Windows). Everything is written as UTF-8.
+- Cues without an end (LRC, the last SAMI line, an unterminated SCC caption) last 4 seconds; empty cues are dropped.
+- Not kept: positions and alignment, fonts and sizes, karaoke timing, ASS animations, WebVTT regions and voices.
+- Tests (`SubtitleTests.cs`) write every input in code, CP949 and GBK bytes included.
 
 ## DjVu
 
@@ -525,9 +631,9 @@ Filee (with the GPL source offer), then an `engines.json` component and an optio
 
 ## FFmpeg
 
-`Media/FfmpegConverter.cs` converts every video format to every video format, to animated GIF, to a still PNG frame
-and to every audio format (the sound track); every audio format to every audio format; and GIF and PNG to MP4, WEBM
-and MOV.
+`Media/FfmpegConverter.cs` converts every video format to every video format, to animated GIF or APNG, to a still PNG
+frame, to every audio format (the sound track) and to SRT, ASS and WebVTT (the subtitles); every audio format to every
+audio format; and GIF, APNG and PNG to MP4, WEBM and MOV.
 Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on MP3 files.
 
 - The download is the gyan.dev **9.0.2 "full_build-shared"** Windows build (GPL-3.0, run as a separate program).
@@ -548,8 +654,15 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   | DV | DV25 with the same NTSC/PAL frames as VOB, 48 kHz stereo PCM |
   | MXF | OP1a with long-GOP MPEG-2 + 48 kHz PCM |
   | GIF | two passes: palettegen over the whole clip, then paletteuse; 15/12/10 fps and at most 640/480/320 px wide (High/Balanced/Small) |
-  | MP3 · M4A/M4B · AAC · OGG · OPUS · WEBA · MKA · WMA · MP2 · AC3 · AMR | LAME VBR (V0/V2/V5) or CBR · AAC · AAC (ADTS) · Vorbis · Opus · Opus · Opus · WMA 2 · MP2 · AC-3 · AMR-NB 12.2k (8 kHz mono) |
-  | WAV · AIFF · AU · CAF · VOC · FLAC | 16-bit PCM (WAV: 8/16/24/32-bit or 32-bit float; RF64 over 4 GB) · FLAC |
+  | APNG | one pass with the `apng` encoder (24-bit RGB, mixed prediction) and muxer, looping; the same frame rates and widths as GIF |
+  | MP4, M4V, MKV with *Video codec* HEVC · MOV with HEVC | x265 (preset medium, `hvc1` tag in MP4/M4V/MOV) + AAC |
+  | MP4, M4V, MKV, WEBM with *Video codec* AV1 | SVT-AV1 (preset 8), or libaom-av1 (cpu-used 6, row multithreading) with an FFmpeg that lacks SVT-AV1 |
+  | MP3 · M4A/M4B · AAC · OGG · OPUS · WEBA · MKA · WMA · MP2 · AC3 · E-AC3 · AMR | LAME VBR (V0/V2/V5) or CBR · AAC, or ALAC with *Audio codec* ALAC · AAC (ADTS) · Vorbis · Opus · Opus · Opus · WMA 2 · MP2 · AC-3 · E-AC-3 · AMR-NB 12.2k (8 kHz mono) |
+  | WAV · W64 · AIFF · AU · CAF · VOC · FLAC · WV · TTA | 16-bit PCM (WAV and W64: 8/16/24/32-bit or 32-bit float; WAV switches to RF64 over 4 GB, Sony Wave64 has no limit) · FLAC · WavPack (lossless) · TTA |
+  | SRT · ASS · VTT (from video) | the video's first text subtitle track, copied when it already is that format, else converted by FFmpeg |
+
+  Read only (FFmpeg's decoders): APE (Monkey's Audio), Musepack (MPC), TAK, DSF and DFF (DSD), DTS, Speex (SPX) and the
+  formats above. No encoder for them is in the build, or (DTS) only an experimental one.
 
 - **Rewrapping instead of re-encoding.** When the target container takes the source's codecs as they are
   (`MediaEncoding.Remuxable`: H.264/HEVC + AAC, ALAC, AC-3, E-AC-3 or MP3 for MP4/M4V/MOV, also ProRes and PCM for
@@ -560,12 +673,26 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   is needed; audio only when no bitrate or other channel count is set. Quality *Small* always re-encodes (the user
   asked for a smaller file); *High* and *Balanced* only set how a stream that has to be encoded is encoded. A
   stream that can't be copied is encoded as below, the other one is still copied.
-- Preset options (`MediaOptions`): *Quality* picks CRF 18/23/28 (x264), 24/32/38 (VP9), quantizer 2/4/7 (MPEG-4,
-  WMV, MPEG-2), Theora 8/6/4 and the audio bitrates (e.g. AAC 256/192/128 kbit/s per stereo pair); *MaxHeight*
-  scales down only, keeps the aspect ratio and even sizes; *AudioBitrateKbps* overrides the audio bitrate (snapped to
-  the MP3/MP2/AC-3 bitrate tables; the editor offers 32 to 320 kbit/s); *RemoveAudio* drops the sound;
-  *AudioChannels* (0 source, 1 mono, 2 stereo) applies to every audio target but AMR; *AudioSampleRate* (8 to
-  48 kHz) and *WavFormat* (bit depth) apply to WAV.
+- Preset options (`MediaOptions`): *Quality* picks CRF 18/23/28 (x264), 22/26/30 (x265), 26/32/40 (SVT-AV1 and
+  libaom), 24/32/38 (VP9), quantizer 2/4/7 (MPEG-4, WMV, MPEG-2), Theora 8/6/4 and the audio bitrates (e.g. AAC and
+  E-AC-3 256/192/128 kbit/s per stereo pair); *MaxHeight* scales down only, keeps the aspect ratio and even sizes;
+  *AudioBitrateKbps* overrides the audio bitrate (snapped to the MP3/MP2/AC-3 bitrate tables; the editor offers 32 to
+  320 kbit/s); *RemoveAudio* drops the sound; *AudioChannels* (0 source, 1 mono, 2 stereo) applies to every audio
+  target but AMR; *AudioSampleRate* (8 to 48 kHz) and *WavFormat* (bit depth) apply to WAV and W64.
+- *VideoCodec* (Default, HEVC, AV1) and *AudioCodec* (Default, ALAC) pick another codec where the target takes it
+  (`MediaCodecs` in Filee.Core: HEVC for MP4/M4V/MKV/MOV, AV1 for MP4/M4V/MKV/WEBM, ALAC for M4A/M4B); for any other
+  target the usual codec is written. The presets "MP4 HEVC" (on the video donut), "MP4 AV1" and "ALAC" use them. A
+  video already in the chosen codec is copied (the rules above, with AV1 also into MP4); HEVC and AV1 keep 10 bits
+  (`yuv420p10le`, Main 10) for 10-bit and HDR sources and write their colour tags (BT.2020, PQ or HLG), 8-bit 4:2:0
+  for the rest. The encoders are looked up with `ffmpeg -encoders` once per FFmpeg, so a copy the user picked without
+  x265 or AV1 fails with a clear message instead of an FFmpeg error. x265 and SVT-AV1 log only errors
+  (`-x265-params log-level=error`, `SVT_LOG=1`).
+- DSD (DSF, DFF) decodes at 2.8 MHz or more: lossless and PCM targets get 88.2 kHz, Vorbis and WMA 44.1 kHz, the
+  other lossy encoders their nearest supported rate.
+- Subtitle extraction takes the first text subtitle track (SubRip, ASS/SSA, WebVTT, MP4 timed text, CEA-608, …).
+  A video without subtitles fails with "The video has no subtitle track."; one with only picture subtitles (Blu-ray
+  PGS, DVD, DVB) says they can't be turned into text without OCR. Video → SAMI, LRC, TTML, … goes through SRT and the
+  subtitle engine (ASS and WebVTT extraction cost 11 so SRT is the hub).
 - The first video stream (cover pictures excluded) and the first audio stream are converted; files without sound
   still convert to video. Title, artist and other tags and chapters are kept, album art too for MP3, M4A, M4B and
   FLAC. Portrait phone videos are turned upright. Odd sizes are evened out, frame rates that MPEG-2/MXF/MPEG-4 part 2
@@ -582,9 +709,10 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   PNG's ICC profile is read (`-flags2 +icc_profiles`), so primaries and transfer are tagged as the photo's (Display
   P3 stays P3); RGB → BT.709 YUV in TV range; transparency is premultiplied onto black. The size is kept (made even)
   unless it exceeds H.264/VP9 level 6.2 (8192 × 4352 pixels, 16384 per side) or the preset's maximum height. The
-  image engines' still picture → GIF edges cost 12 (`ImageEncoder.Edge`) and PNG → video 11, so a photo takes the
-  PNG route (21 < 22) while animated GIF/WebP, multi-page TIFF and PDF keep the GIF route (20): a moving video or a
-  slideshow of the pages.
+  image engines' still picture → GIF and → APNG edges cost 12 (`ImageEncoder.Edge`) and PNG → video 11, so a photo
+  takes the PNG route (21 < 22) while animated GIF/WebP/MNG, multi-page TIFF and PDF keep the GIF route (20): a moving
+  video or a slideshow of the pages. APNG → video costs 11, so an APNG goes straight to video and nothing else detours
+  through it.
 - **Images → HEIC** (`Heic/HeicWriter.cs`): ImageMagick has no HEVC encoder and FFmpeg no HEIF muxer, so the work is
   split. ImageMagick reads any image it knows and applies the preset (orientation, resize, metadata; transparency is
   flattened onto the background colour, HEIC alpha needs an auxiliary picture Filee does not write) and writes an
