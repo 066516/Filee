@@ -383,6 +383,33 @@ public class DonutGroupTests
     }
 
     [AvaloniaFact]
+    public void A_ring_the_keyboard_opened_stays_while_the_mouse_comes_from_the_hole_to_click_it()
+    {
+        var (donut, window) = Open();
+        var c = Center(donut);
+        window.MouseMove(c); // opened at the cursor: it rests in the hole
+        donut.HandleKey(Key.Right);
+        donut.HandleKey(Key.Right);
+        donut.HandleKey(Key.Right); // to the group
+        donut.HandleKey(Key.Enter); // its ring opens
+        Assert.True(IsOpen(donut));
+
+        // The mouse heads for the ring: out of the hole, across the group's slice, to a ring slice.
+        foreach (var radius in new[] { 15.0, donut.OuterRadius * 0.3, donut.OuterRadius * 0.7 })
+        {
+            window.MouseMove(OnGroup(donut, radius));
+            Assert.True(IsOpen(donut), $"folded at {radius:0}");
+        }
+        window.MouseMove(OnRing(donut, 2));
+        Assert.Equal(2, donut.ActiveSubIndex);
+
+        // From here the mouse leads as usual: back in the hole the ring folds.
+        window.MouseMove(new Point(c.X + 10, c.Y));
+        Assert.False(IsOpen(donut));
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void With_animations_off_a_group_opens_at_once()
     {
         var (donut, window) = Open();

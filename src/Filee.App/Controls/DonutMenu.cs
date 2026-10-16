@@ -153,6 +153,10 @@ public sealed partial class DonutMenu : Control
 
     // Keyboard: set by a handled key until the mouse moves KeyboardJitter away from where it was then.
     private bool _keyboardHold;
+
+    // A ring opened with Enter: the mouse, resting in the hole as the donut opened at the cursor, crosses the hole on
+    // its way to it. Until it reaches the group (its slice or ring) the hole doesn't fold it.
+    private bool _ringFromKeys;
     private Point? _keyAnchor;
     private Point? _lastPointer;
     private const double KeyboardJitter = 6;
@@ -466,6 +470,7 @@ public sealed partial class DonutMenu : Control
         switch (hit.Kind)
         {
             case DonutHitKind.Segment when hit.Index == _expanded:
+                _ringFromKeys = false; // the mouse reached it: from here on it leads
                 break;
             case DonutHitKind.Segment when hit.Index >= 0 && hit.Index < Count && Items![hit.Index].CanExpand:
                 _expanded = -1;
@@ -487,6 +492,7 @@ public sealed partial class DonutMenu : Control
                 }
                 break;
             case DonutHitKind.SubSegment:
+                _ringFromKeys = false;
                 sub = hit.Sub;
                 break;
             case DonutHitKind.Outside when _pendingGroup >= 0 && at is { } flick && InFan(flick, _pendingGroup) &&
@@ -498,8 +504,12 @@ public sealed partial class DonutMenu : Control
                 if (_expanded >= 0 && at is { } q && !InFan(q, _expanded))
                     _expanded = -1; // went round the outside, away from the ring
                 break;
+            case DonutHitKind.Center when _ringFromKeys:
+                sub = _subHover; // on its way out of the hole to the ring
+                break;
             default:
                 _expanded = -1;
+                _ringFromKeys = false;
                 ClearPending();
                 break;
         }
@@ -526,6 +536,7 @@ public sealed partial class DonutMenu : Control
 
     private void Expand(int group)
     {
+        _ringFromKeys = false;
         // Another group's ring still folding away: this one grows out of its own slice, not from half open.
         if (_shownExpanded != group)
             _expand = default;
@@ -603,6 +614,7 @@ public sealed partial class DonutMenu : Control
                 {
                     Expand(current);
                     SetSub(0);
+                    _ringFromKeys = true;
                 }
                 else if (Items[current].IsEnabled)
                 {
@@ -633,6 +645,7 @@ public sealed partial class DonutMenu : Control
     public void CollapseGroup()
     {
         _expanded = -1;
+        _ringFromKeys = false;
         ClearPending();
         SetSub(-1);
         StartAnimation();
@@ -668,7 +681,7 @@ public sealed partial class DonutMenu : Control
         ClearPending();
         _expand = default;
         // The window is reused: a keyboard hold from the last time it was open must not swallow the first moves now.
-        _keyboardHold = false;
+        _keyboardHold = _ringFromKeys = false;
         _keyAnchor = _lastPointer = null;
         InvalidateMeasure();
         InvalidateVisual();
