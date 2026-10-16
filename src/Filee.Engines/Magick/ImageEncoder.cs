@@ -11,13 +11,16 @@ internal static class ImageEncoder
 {
     /// <summary>
     /// Image formats ImageMagick can read (see <see cref="ImageReader"/> for RAW, layered and metafile sources).
-    /// Camera RAW is decoded by LibRaw, XCF and HEIC are read only. EMF/WMF are Windows metafiles, which ImageMagick
-    /// renders through GDI+ on Windows only (<see cref="Metafiles"/>).
+    /// Camera RAW is decoded by LibRaw; XCF, HEIC, DICOM, Photo CD, OpenEXR and Radiance HDR are read only. EMF/WMF
+    /// are Windows metafiles, which ImageMagick renders through GDI+ on Windows only (<see cref="Metafiles"/>). APNG is
+    /// read and written by Filee's own <see cref="Apng"/> (its frames decoded and encoded by ImageMagick).
     /// </summary>
     public static readonly string[] Readable =
     [
         "png", "jpg", "webp", "tiff", "bmp", "gif", "ico", "avif", "heic",
         "jxl", "jp2", "psd", "psb", "tga", "ppm", "xcf", "raw",
+        "apng", "mng", "qoi", "dds", "pcx", "cur", "xpm", "xbm", "wbmp", "pam", "pfm", "sgi", "ras", "miff",
+        "dcm", "pcd", "exr", "hdr",
     ];
 
     /// <summary>Vector metafiles ImageMagick rasterizes (Windows only: it uses GDI+).</summary>
@@ -31,24 +34,26 @@ internal static class ImageEncoder
     [
         "png", "jpg", "webp", "tiff", "bmp", "gif", "ico", "avif",
         "jxl", "jp2", "psd", "psb", "tga", "ppm",
+        "apng", "mng", "qoi", "dds", "pcx", "cur", "xpm", "xbm", "wbmp", "pam", "pfm", "sgi", "ras", "miff",
     ];
 
     /// <summary>Formats that store several frames/pages in one file.</summary>
-    private static readonly HashSet<string> MultiFrame = ["tiff", "gif"];
+    private static readonly HashSet<string> MultiFrame = ["tiff", "gif", "apng", "mng"];
 
     /// <summary>
     /// Formats whose frames are an animation. Between these, all frames are kept with their timing (an animated GIF
     /// becomes an animated WebP and the other way round); any other target gets the first frame.
     /// </summary>
-    private static readonly HashSet<string> Animated = ["gif", "webp"];
+    private static readonly HashSet<string> Animated = ["gif", "webp", "apng", "mng"];
 
     /// <summary>
     /// The edge an image engine offers from a picture in <paramref name="source"/> to <paramref name="target"/>. GIF
     /// holds 256 colours, so a still picture costs more there: it reaches video through a full-colour PNG instead
-    /// (FFmpeg), while animations and multi-page files still go through GIF and keep their frames.
+    /// (FFmpeg), while animations and multi-page files still go through GIF and keep their frames. Still picture → APNG
+    /// costs as much, so photos never reach video as a one-frame animation.
     /// </summary>
     public static ConversionEdge Edge(string source, string target) =>
-        new(source, target, target == "gif" && !MultiFrame.Contains(source) && !Animated.Contains(source) ? 12 : 10);
+        new(source, target, target is "gif" or "apng" && !MultiFrame.Contains(source) && !Animated.Contains(source) ? 12 : 10);
 
     /// <summary>True when frames of <paramref name="sourceFormat"/> are written as one animation in <paramref name="targetFormat"/>.</summary>
     public static bool KeepsAnimation(string sourceFormat, string targetFormat) =>
@@ -56,9 +61,21 @@ internal static class ImageEncoder
 
     /// <summary>
     /// Formats written without an alpha channel: transparent pixels are flattened onto the background colour. HEIC
-    /// could carry alpha as an auxiliary picture; Filee's writer (Heic/HeicWriter) does not.
+    /// could carry alpha as an auxiliary picture; Filee's writer (Heic/HeicWriter) does not. XBM and WBMP are 1-bit, PFM
+    /// has no alpha, and the alpha planes of PCX and Sun Raster are an ImageMagick extension other programs ignore (its
+    /// palette writers drop them altogether).
     /// </summary>
-    private static readonly HashSet<string> NoAlpha = ["jpg", "ppm", "heic"];
+    private static readonly HashSet<string> NoAlpha = ["jpg", "ppm", "heic", "xbm", "wbmp", "pfm", "pcx", "ras"];
+
+    /// <summary>
+    /// Formats read with their ImageMagick coder named instead of guessed from the file: some extensions mean another
+    /// format to ImageMagick (.rgb and .bw are headerless pixel data there, SGI here) and WBMP has no signature.
+    /// </summary>
+    public static readonly HashSet<string> ExplicitCoder =
+        ["mng", "qoi", "dds", "pcx", "cur", "xpm", "xbm", "wbmp", "pam", "pfm", "sgi", "ras", "miff", "dcm", "pcd", "exr", "hdr"];
+
+    /// <summary>Formats holding one picture in several sizes (icons) or mipmaps: the largest is converted.</summary>
+    private static readonly HashSet<string> SizeVariants = ["ico", "cur", "dds"];
 
     /// <summary>Every format ImageMagick reads as input: the raster formats plus, on Windows, the metafiles.</summary>
     public static IEnumerable<string> Sources =>
@@ -81,6 +98,25 @@ internal static class ImageEncoder
         "psb" => MagickFormat.Psb,
         "tga" => MagickFormat.Tga,
         "ppm" => MagickFormat.Ppm,
+        "mng" => MagickFormat.Mng,
+        "qoi" => MagickFormat.Qoi,
+        "dds" => MagickFormat.Dds,
+        "pcx" => MagickFormat.Pcx,
+        "cur" => MagickFormat.Cur,
+        "xpm" => MagickFormat.Xpm,
+        "xbm" => MagickFormat.Xbm,
+        "wbmp" => MagickFormat.Wbmp,
+        "pam" => MagickFormat.Pam,
+        "pfm" => MagickFormat.Pfm,
+        "sgi" => MagickFormat.Sgi,
+        "ras" => MagickFormat.Sun,
+        "miff" => MagickFormat.Miff,
+        "dcm" => MagickFormat.Dcm,
+        "pcd" => MagickFormat.Pcd,
+        "exr" => MagickFormat.Exr,
+        "hdr" => MagickFormat.Hdr,
+        // Every frame is a PNG; Apng assembles the animation (ImageMagick would need FFmpeg for it).
+        "apng" => MagickFormat.Png,
         _ => throw new NotSupportedException($"ImageMagick cannot handle '{formatId}'."),
     };
 
@@ -105,7 +141,8 @@ internal static class ImageEncoder
 
     /// <summary>
     /// Chooses which frames of a (possibly multi-frame) source are converted.
-    /// ICO: the largest icon. Animated GIF/WebP: every frame for a GIF/WebP/TIFF target, else the first frame.
+    /// ICO, CUR, DDS: the largest image. Animations (GIF, WebP, APNG, MNG): every frame for an animated or TIFF
+    /// target, else the first frame.
     /// PSD/PSB: the composite (frame 0; any further frames are layers). Otherwise: all frames/pages.
     /// </summary>
     public static List<IMagickImage<byte>> SelectFrames(MagickImageCollection images, string sourceFormat, string targetFormat)
@@ -118,7 +155,7 @@ internal static class ImageEncoder
             return frames;
         if (sourceFormat is "psd" or "psb")
             return [frames[0]];
-        if (sourceFormat == "ico")
+        if (SizeVariants.Contains(sourceFormat))
             return [frames.OrderByDescending(f => (long)f.Width * f.Height).First()];
         if (Animated.Contains(sourceFormat) && !MultiFrame.Contains(targetFormat) && !KeepsAnimation(sourceFormat, targetFormat))
             return [frames[0]];
@@ -232,6 +269,11 @@ internal static class ImageEncoder
             case "ico":
                 PrepareIcon(image, options);
                 break;
+            case "cur":
+                // A cursor stores at most 256 × 256 pixels.
+                if (image.Width > 256 || image.Height > 256)
+                    image.Resize(new MagickGeometry(256, 256));
+                break;
             case "psd":
             case "psb":
                 // ImageMagick writes a broken layer section for palette images with transparency (as read from
@@ -253,6 +295,17 @@ internal static class ImageEncoder
     {
         var written = new List<string>();
         var (format, extension) = OutputFormat(targetFormat, options ?? new ImageOptions(), sourcePath);
+
+        if (targetFormat == "apng")
+        {
+            // One file, also for a single frame (a one-frame animation).
+            var animationPath = output.Allocate(extension);
+            if (animationPath is null)
+                return written;
+            Apng.Write(frames, animationPath);
+            written.Add(animationPath);
+            return written;
+        }
 
         if (frames.Count > 1 && (MultiFrame.Contains(targetFormat) || animation))
         {
@@ -276,6 +329,15 @@ internal static class ImageEncoder
             written.Add(path);
         }
         return written;
+    }
+
+    /// <summary>Writes one image as <paramref name="targetFormat"/> (APNG through <see cref="Apng"/>).</summary>
+    public static void WriteImage(IMagickImage<byte> image, string path, string targetFormat)
+    {
+        if (targetFormat == "apng")
+            Apng.Write([image], path);
+        else
+            image.Write(path, ToMagickFormat(targetFormat));
     }
 
     private static void PrepareIcon(IMagickImage<byte> image, ImageOptions options)

@@ -29,7 +29,7 @@
 <table>
   <tr>
     <td width="33%" valign="top"><b>就在光标旁</b><br>无需打开应用窗口。只显示适合当前拖动文件的格式，就在你所在的位置。</td>
-    <td width="33%" valign="top"><b>180 种格式，无需其他软件</b><br>图片、PDF、Word、Excel、PowerPoint、HWP、电子书、压缩包、字体和 CAD，无需 Office、韩文办公软件或 LibreOffice。</td>
+    <td width="33%" valign="top"><b>230 种格式，无需其他软件</b><br>图片、PDF、Word、Excel、PowerPoint、HWP、电子书、压缩包、字体和 CAD，无需 Office、韩文办公软件或 LibreOffice。</td>
     <td width="33%" valign="top"><b>只在你的电脑上</b><br>不上传任何文件。Filee 离线工作，结果保存在原文件旁边。</td>
   </tr>
 </table>
@@ -80,7 +80,7 @@
 
 | 源格式 | 目标格式 |
 |---|---|
-| **图片**：JPG、PNG、WEBP、AVIF、TIFF、BMP、GIF、ICO、ICNS、JPEG XL、JPEG 2000、PSD/PSB、TGA、PPM、HEIC；GIMP XCF、相机 RAW（CR2、CR3、NEF、ARW、DNG 等）仅读取 | 上述格式互转（HEIC⁵）、PDF、缩放、灰度 |
+| **图片**：JPG、PNG、WEBP、AVIF、TIFF、BMP、GIF、APNG、ICO、ICNS、JPEG XL、JPEG 2000、PSD/PSB、TGA、PPM、HEIC、QOI、DDS、PCX、MNG、CUR 等；GIMP XCF、相机 RAW（CR2、CR3、NEF、ARW、DNG 等）、DICOM、OpenEXR、HDR 仅读取 | 上述格式互转（HEIC⁵）、PDF、缩放、灰度 |
 | **矢量图**：SVG、SVGZ、EMF、WMF、AI · EPS、PS¹ · CDR、VSD、CGM、ODG、FODG² | PDF（矢量）、PNG 等图片、SVG ↔ SVGZ、PDF → EPS/PS¹、SVG → EMF、WMF、ODG² |
 | **PDF** | DOCX、HWPX、TXT、PNG、JPG、TIFF、CBZ、SVG²；合并、拆分、页码范围 |
 | **文档**：DOCX、DOCM、DOTX、EML · DOC、ODT、FODT、OTT、RTF、WPS、WPD、Pages、ClarisWorks、MacWrite、T602 等² | PDF、DOCX、HWPX、EPUB、TXT、HTML · ODT、FODT、OTT² |
@@ -89,7 +89,7 @@
 | **HWP**：HWP、HWPX | PDF、PNG、DOCX、HWPX ↔ HWP、TXT、Markdown、HTML |
 | **文本**：TXT、Markdown、HTML · reStructuredText、LaTeX、Org、AsciiDoc、Typst、MediaWiki、DocBook、Jupyter、Textile、man、OPML³ | PDF、DOCX、HWPX、EPUB · 互相转换、PPTX 幻灯片³ |
 | **电子书**：EPUB、KEPUB、MOBI、AZW3、AZW、AZW4、FB2、CBZ、CBR、CB7、HTMLZ、TXTZ · LIT、LRF、CHM、PDB 等⁴ | PDF、EPUB、KEPUB（Kobo）、DOCX、TXT、HTML、HWPX · MOBI、AZW3⁴ |
-| **视频**⁵：MP4、MOV、MKV、WEBM、AVI、WMV、FLV、MPEG、TS、M2TS、3GP、OGV、VOB 等 | MP4（H.264、HEVC、AV1）、WEBM、MOV、MKV、AVI、GIF、MP3、M4A、720p、字幕（SRT、ASS、WebVTT） |
+| **视频**⁵：MP4、MOV、MKV、WEBM、AVI、WMV、FLV、MPEG、TS、M2TS、3GP、OGV、VOB 等 | MP4（H.264、HEVC、AV1）、WEBM、MOV、MKV、AVI、GIF、APNG、MP3、M4A、720p、字幕（SRT、ASS、WebVTT） |
 | **音频**⁵：MP3、M4A、AAC、WAV、FLAC、OGG、OPUS、WMA、AIFF、AMR、APE、WavPack、TTA、DSD（DSF、DFF）、DTS、AC3、E-AC3 等 | MP3、M4A（AAC、ALAC）、WAV、FLAC、OGG、OPUS、AAC、WavPack、TTA、W64、AC3、E-AC3 |
 | **字幕**：SRT、ASS/SSA、WebVTT、SAMI（SMI）、LRC、TTML、MicroDVD、SCC | 互相转换，保存为 UTF-8（也能读取 CP949 韩文字幕） |
 | **压缩包**：ZIP、7Z、RAR、TAR、TAR.GZ、TAR.BZ2、TAR.XZ、GZ、ISO、CAB、DMG、ALZ、EGG 等 | 解压、ZIP、7Z、TAR、TAR.GZ；多个文件 → 一个 ZIP |

@@ -5,7 +5,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 
 | Engine | How it gets there | Handles |
 |---|---|---|
-| ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM ↔ each other; HEIC (written with FFmpeg), XCF, camera RAW (LibRaw) and EMF/WMF (Windows) read |
+| ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, MNG, QOI, DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster, MIFF ↔ each other, and **APNG** (Filee's own reader and writer); HEIC (written with FFmpeg), XCF, camera RAW (LibRaw), DICOM (uncompressed ones by Filee's own reader), Photo CD, OpenEXR, Radiance HDR and EMF/WMF (Windows) read |
 | Vector graphics | built in (Svg.Skia, SkiaSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, PDF-compatible AI → PDF |
 | ICNS | built in | images → ICNS (16–1024 px), ICNS → images |
 | PDFsharp | built in (library) | images → PDF, merge, split, page ranges |
@@ -27,7 +27,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats; FODT, OpenDocument templates (OTT, OTS, OTP) and XLT out; SVG → EMF/WMF/ODG, a PDF page → SVG |
 | Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, markup languages (reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML) ↔ Markdown/HTML/DOCX/ODT and each other (and → RTF, EPUB, TXT), Markdown and markup → PPTX slides |
 | Ghostscript | **optional download** (~20 MB, 31 MB on disk) | EPS/PS → PDF, PDF → EPS/PS, PostScript-based AI → PDF (images through PDF and PDFium) |
-| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF or a still frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF and photos → MP4/WEBM/MOV, images → HEIC |
+| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG or a still frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, images → HEIC |
 | Calibre | **optional download** (~216 MB, 660 MB on disk) | rare e-book formats: LIT, LRF, CHM, PDB, PML, RB, SNB, TCR, OEB → EPUB; EPUB → MOBI, AZW3, LIT, LRF, PDB, PML, RB, SNB, TCR |
 
 DOCX, XLSX, XLS, ODS and PPTX → PDF need neither Microsoft Office nor LibreOffice: they are read in-process, written as HWPX
@@ -79,9 +79,45 @@ current.
 
 ## Images and vector graphics
 
-- **Animations.** An animated GIF or WebP keeps every frame and its timing when converted to GIF or WebP (animated
-  GIF ↔ animated WebP, lossy or lossless as the preset says) and becomes a multi-page TIFF; other targets get the first
-  frame. Multi-page TIFFs and PDFs stay one image per page in WebP.
+- **Animations.** An animated GIF, WebP, APNG or MNG keeps every frame and its timing when converted to one of these
+  (animated GIF ↔ animated WebP ↔ APNG ↔ MNG, WebP lossy or lossless as the preset says) and becomes a multi-page TIFF;
+  other targets get the first frame. Multi-page TIFFs and PDFs stay one image per page in WebP.
+- **APNG** (`Magick/Apng.cs`) is Filee's own code, written from the APNG specification: ImageMagick reads only an
+  APNG's default image and writes APNG through an external FFmpeg. Every frame is an ordinary PNG decoded or encoded by
+  ImageMagick; Filee handles the chunks around them.
+  - Reading composes each frame onto the canvas as a player shows it: `fcTL` regions and offsets, blend `SOURCE` / `OVER`,
+    dispose `NONE` / `BACKGROUND` / `PREVIOUS`, delays (a denominator of 0 means hundredths) and the loop count. A
+    default image that comes before the first `fcTL` is not part of the animation and is skipped. Animated PNGs saved
+    as `.png` are recognised by their `acTL` chunk and stay animated as GIF, WebP or APNG; other targets get the first
+    frame.
+  - Writing gives every frame the same pixel format (8-bit RGB, or RGBA when any frame is transparent or smaller than
+    the canvas): the first frame is the default image (`IDAT`, so viewers without APNG support show it), the others are
+    `fdAT` chunks holding only the rectangle that changed (dispose `NONE`, blend `SOURCE`); a frame identical to the one
+    before lengthens its delay instead. Checked with FFmpeg's APNG demuxer.
+  - APNG ↔ video needs FFmpeg: video → APNG uses its `apng` encoder and muxer (24-bit RGB, looping, the GIF's frame rate
+    and width limits), APNG → MP4/WEBM/MOV its APNG demuxer. Animated WebP and GIF still reach video through GIF, a
+    still picture through PNG.
+- **More raster formats** through ImageMagick's own coders, each checked against `MagickNET.SupportedFormats` and
+  converted there and back in `ImageFormatTests`: QOI, MNG (animated), DDS (DXT block compression, which is lossy; of
+  a texture with mipmaps the largest image is read), PCX, CUR (at most 256 × 256, larger pictures are scaled down), XPM,
+  XBM and WBMP (1-bit), PAM, PFM, SGI (`.sgi`, `.rgb`, `.rgba`, `.bw`, always read as SGI; ImageMagick would take
+  `.rgb` for headerless pixels), Sun Raster (`.ras`, `.sun`) and MIFF. XBM, WBMP, PFM, PCX and Sun Raster are written
+  without transparency (flattened onto the preset's background): PFM has none, and the alpha planes ImageMagick can
+  put into PCX and Sun Raster are read by hardly any other program. Not offered: PICT, because ImageMagick can't read
+  back direct-colour PICTs wider than about 130 pixels that it wrote itself.
+- **Read only**: Photo CD (the 768 × 512 base image), OpenEXR and Radiance HDR. The bundled Magick.NET is the 8-bit
+  (Q8) build without HDRI, so high-dynamic-range values are clipped to the displayable range and stored with 8 bits per
+  channel; there is no tone mapping. Writing EXR or HDR from 8-bit pictures would only make larger files, so they are
+  not targets.
+- **DICOM** (`.dcm`, `.dicom`, read only). The Q8 build reads only 8-bit DICOM, while CT, MR and X-ray scanners store
+  12 or 16 bits, so `Magick/Dicom.cs` (written from the DICOM standard, PS3.5 and PS3.3 C.7.6.3 / C.11.2) reads
+  uncompressed files itself: implicit and explicit VR little endian, explicit VR big endian and deflated files, with or
+  without the 128-byte preamble; 8 or 16 bits allocated, signed or unsigned; MONOCHROME1 (inverted) and MONOCHROME2,
+  RGB and YBR_FULL (interleaved or planar); every frame of a multi-frame file. Grey values go through the rescale
+  slope / intercept and the file's first window (centre / width) like a viewer's default view, or are stretched over
+  the file's range when there is no window, to 8 bits. Compressed pixel data (JPEG, JPEG-LS, JPEG 2000, RLE) is left to
+  ImageMagick, which manages only 8-bit images; others fail with a message asking for an uncompressed export.
+- **Fujifilm HEIF** (`.hif`) is read as HEIC.
 - **Layered files.** PSD/PSB convert from Photoshop's composite (ImageMagick merges the layers when a file was saved
   without "maximize compatibility"). GIMP XCF layers are composited at their offsets with their blend modes; hidden
   layers are left out. ImageMagick reads 8-bit XCF without zlib tile compression (GIMP 2.10+ "better but slower
@@ -553,9 +589,9 @@ Filee (with the GPL source offer), then an `engines.json` component and an optio
 
 ## FFmpeg
 
-`Media/FfmpegConverter.cs` converts every video format to every video format, to animated GIF, to a still PNG frame,
-to every audio format (the sound track) and to SRT, ASS and WebVTT (the subtitles); every audio format to every audio
-format; and GIF and PNG to MP4, WEBM and MOV.
+`Media/FfmpegConverter.cs` converts every video format to every video format, to animated GIF or APNG, to a still PNG
+frame, to every audio format (the sound track) and to SRT, ASS and WebVTT (the subtitles); every audio format to every
+audio format; and GIF, APNG and PNG to MP4, WEBM and MOV.
 Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on MP3 files.
 
 - The download is the gyan.dev **9.0.2 "full_build-shared"** Windows build (GPL-3.0, run as a separate program).
@@ -576,6 +612,7 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   | DV | DV25 with the same NTSC/PAL frames as VOB, 48 kHz stereo PCM |
   | MXF | OP1a with long-GOP MPEG-2 + 48 kHz PCM |
   | GIF | two passes: palettegen over the whole clip, then paletteuse; 15/12/10 fps and at most 640/480/320 px wide (High/Balanced/Small) |
+  | APNG | one pass with the `apng` encoder (24-bit RGB, mixed prediction) and muxer, looping; the same frame rates and widths as GIF |
   | MP4, M4V, MKV with *Video codec* HEVC · MOV with HEVC | x265 (preset medium, `hvc1` tag in MP4/M4V/MOV) + AAC |
   | MP4, M4V, MKV, WEBM with *Video codec* AV1 | SVT-AV1 (preset 8), or libaom-av1 (cpu-used 6, row multithreading) with an FFmpeg that lacks SVT-AV1 |
   | MP3 · M4A/M4B · AAC · OGG · OPUS · WEBA · MKA · WMA · MP2 · AC3 · E-AC3 · AMR | LAME VBR (V0/V2/V5) or CBR · AAC, or ALAC with *Audio codec* ALAC · AAC (ADTS) · Vorbis · Opus · Opus · Opus · WMA 2 · MP2 · AC-3 · E-AC-3 · AMR-NB 12.2k (8 kHz mono) |
@@ -630,9 +667,10 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   PNG's ICC profile is read (`-flags2 +icc_profiles`), so primaries and transfer are tagged as the photo's (Display
   P3 stays P3); RGB → BT.709 YUV in TV range; transparency is premultiplied onto black. The size is kept (made even)
   unless it exceeds H.264/VP9 level 6.2 (8192 × 4352 pixels, 16384 per side) or the preset's maximum height. The
-  image engines' still picture → GIF edges cost 12 (`ImageEncoder.Edge`) and PNG → video 11, so a photo takes the
-  PNG route (21 < 22) while animated GIF/WebP, multi-page TIFF and PDF keep the GIF route (20): a moving video or a
-  slideshow of the pages.
+  image engines' still picture → GIF and → APNG edges cost 12 (`ImageEncoder.Edge`) and PNG → video 11, so a photo
+  takes the PNG route (21 < 22) while animated GIF/WebP/MNG, multi-page TIFF and PDF keep the GIF route (20): a moving
+  video or a slideshow of the pages. APNG → video costs 11, so an APNG goes straight to video and nothing else detours
+  through it.
 - **Images → HEIC** (`Heic/HeicWriter.cs`): ImageMagick has no HEVC encoder and FFmpeg no HEIF muxer, so the work is
   split. ImageMagick reads any image it knows and applies the preset (orientation, resize, metadata; transparency is
   flattened onto the background colour, HEIC alpha needs an auxiliary picture Filee does not write) and writes an

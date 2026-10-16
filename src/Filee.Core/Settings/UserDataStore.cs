@@ -383,6 +383,11 @@ internal static class SettingsMigrations
         //      after the audio donut. The video donut offers "MP4 HEVC" and "Extract subtitles".
         if (from < 12)
             changed |= AddCodecsAndSubtitles(presets, profiles);
+
+        // v13: more image formats (APNG, MNG, QOI, DDS, DICOM, OpenEXR, …, Fujifilm's .hif): the images donut learns
+        //      their extensions unless another donut already has them.
+        if (from < 13)
+            changed |= LearnExtensions(profiles, out _);
         return changed;
     }
 

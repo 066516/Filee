@@ -1,7 +1,7 @@
 // Video and audio conversion with FFmpeg (GPL-3.0 build, an optional download run as a separate program in
-// engines/ffmpeg): video ↔ video (H.264, HEVC, AV1, …), video → animated GIF or a still frame, audio extraction,
-// subtitle extraction (the first text track as SRT / ASS / WebVTT), audio ↔ audio and GIF or a still picture →
-// video, and images → HEIC (FFmpeg's HEVC encoder, Filee's own container writer).
+// engines/ffmpeg): video ↔ video (H.264, HEVC, AV1, …), video → animated GIF / APNG or a still frame, audio
+// extraction, subtitle extraction (the first text track as SRT / ASS / WebVTT), audio ↔ audio and GIF, APNG or a still
+// picture → video, and images → HEIC (FFmpeg's HEVC encoder, Filee's own container writer).
 // Container and codec choices live in MediaEncoding, the process handling in FfmpegRunner.
 
 using System.Collections.Concurrent;
@@ -31,18 +31,18 @@ public sealed partial class FfmpegConverter : IConverter
     public IReadOnlyList<ConversionEdge> Edges { get; } = BuildEdges();
 
     /// <summary>
-    /// Every video format (read by FFmpeg's demuxers) → every video target, animated GIF, a still PNG frame, every
-    /// audio target and SRT / ASS / WebVTT (its subtitles); every audio format → every audio target (including
-    /// itself: re-encode with another bitrate);
-    /// GIF and PNG → MP4, WEBM, MOV; every image ImageMagick reads → HEIC. Only formats the pinned build can write
-    /// are targets (see MediaEncoding).
+    /// Every video format (read by FFmpeg's demuxers) → every video target, animated GIF or APNG, a still PNG frame,
+    /// every audio target and SRT / ASS / WebVTT (its subtitles); every audio format → every audio target (including
+    /// itself: re-encode with another bitrate); GIF, APNG and PNG → MP4, WEBM, MOV; every image ImageMagick reads →
+    /// HEIC. Only formats the pinned build can write are targets (see MediaEncoding).
     /// </summary>
     /// <remarks>
-    /// The GIF edge costs more (slow, 256 colours), so video → JPG / PDF / TIFF … goes through the still frame
-    /// (video → PNG → image engines) and never renders an animated GIF of a whole film just to take one frame of it.
-    /// The other way, a photo (HEIC, JPG, …) reaches video as a full-colour PNG: the image engines' still → GIF edges
-    /// cost 12 (<see cref="Magick.ImageEncoder.Edge"/>), so 10 + 11 beats 12 + 10. Animated GIF/WebP and PDF or TIFF
-    /// pages keep the GIF route (10 + 10), which keeps their frames.
+    /// The GIF and APNG edges cost more (slow, large), so video → JPG / PDF / TIFF … goes through the still frame
+    /// (video → PNG → image engines) and never renders an animation of a whole film just to take one frame of it.
+    /// The other way, a photo (HEIC, JPG, …) reaches video as a full-colour PNG: the image engines' still → GIF and
+    /// still → APNG edges cost 12 (<see cref="Magick.ImageEncoder.Edge"/>), so 10 + 11 beats 12 + 10 and 12 + 11.
+    /// Animated GIF/WebP and PDF or TIFF pages keep the GIF route (10 + 10, APNG costs 10 + 11), which keeps their
+    /// frames; an APNG goes straight to video.
     /// </remarks>
     private static List<ConversionEdge> BuildEdges()
     {
@@ -57,8 +57,10 @@ public sealed partial class FfmpegConverter : IConverter
             .. from source in videos from target in MediaEncoding.SubtitleTargets.Keys
                select new ConversionEdge(source, target, target == "srt" ? 10 : 11),
             .. videos.Select(source => new ConversionEdge(source, "gif", 15)),
+            .. videos.Select(source => new ConversionEdge(source, "apng", 15)),
             .. from source in audios from target in MediaEncoding.AudioTargets.Keys select new ConversionEdge(source, target),
             .. MediaEncoding.PictureToVideoTargets.Select(target => new ConversionEdge("gif", target)),
+            .. MediaEncoding.PictureToVideoTargets.Select(target => new ConversionEdge("apng", target, 11)),
             .. MediaEncoding.PictureToVideoTargets.Select(target => new ConversionEdge("png", target, 11)),
             // HEIC: ImageMagick reads, x265 encodes, Filee writes the container (see Heic/HeicWriter).
             .. ImageEncoder.Sources.Select(source => new ConversionEdge(source, "heic")),

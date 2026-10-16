@@ -213,6 +213,26 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_12_libraries_open_the_new_image_formats_on_the_images_donut()
+    {
+        // As written with schema 12: the images donut knows no APNG, QOI, DICOM or .hif; a donut of the user takes DDS.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var images = profiles.Single(p => p.Id == "images");
+        images.Extensions.RemoveAll(e => e is "apng" or "qoi" or "dcm" or "hif" or "dds");
+        profiles.Insert(0, new ToolbarProfile { Id = "game", Name = "Game textures", Extensions = ["dds"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(12, presets, profiles));
+
+        Assert.Contains("apng", images.Extensions);
+        Assert.Contains("qoi", images.Extensions);
+        Assert.Contains("dcm", images.Extensions);
+        Assert.Contains("hif", images.Extensions);
+        Assert.DoesNotContain("dds", images.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(12, presets, profiles)); // once only
+    }
+
+    [Fact]
     public void Version_11_libraries_get_codecs_new_audio_formats_and_a_subtitles_donut()
     {
         // As written with schema 11: no HEVC / AV1 / ALAC / subtitle presets, no subtitles donut, the video donut and

@@ -288,8 +288,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowPdfBuild => TargetId == "pdf";
     public bool ShowPdfSplit => TargetId == "pdf";
 
-    /// <summary>PDF → a single-image format: the pages can be stacked into one tall image (TIFF and GIF keep pages).</summary>
-    public bool ShowPdfCombine => TargetCategory == FormatCategory.Image && TargetId is not ("tiff" or "gif" or "ico" or "icns" or "svg" or "pdf");
+    /// <summary>PDF → a single-image format: the pages can be stacked into one tall image (TIFF, GIF, APNG and MNG keep pages).</summary>
+    public bool ShowPdfCombine => TargetCategory == FormatCategory.Image
+        && TargetId is not ("tiff" or "gif" or "apng" or "mng" or "ico" or "cur" or "icns" or "svg" or "pdf");
     public bool ShowDocument => TargetId == "pdf";
     public bool ShowMedia => ShowMediaQuality || ShowMaxHeight || ShowRemoveAudio || ShowAudioChannels || ShowVideoCodec || ShowAudioCodec;
     /// <summary>Mono / stereo for every audio target but AMR, which is mono by definition.</summary>
