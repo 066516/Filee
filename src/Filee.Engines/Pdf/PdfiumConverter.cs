@@ -62,6 +62,8 @@ public sealed class PdfiumConverter : IConverter, IImageTransformer
                     var frame = ToMagick(bitmap, dpi);
                     if (stack)
                     {
+                        // Each page turns, then they stack: a turned long image would lie on its side instead.
+                        ImageEncoder.Turn(frame, step.Preset.Image);
                         if (step.Preset.Pdf.TrimPageMargins)
                             TrimVertically(frame, dpi);
                         collected.Add(frame); // stacked after the loop; the image options apply to the tall image
@@ -91,11 +93,14 @@ public sealed class PdfiumConverter : IConverter, IImageTransformer
 
                 if (stack)
                 {
-                    var parts = step.Preset.Pdf.SplitTallImage ? Split(collected, step.To, step.Preset.Image) : [collected];
+                    var unturned = step.Preset.Image.Clone(); // the pages are turned already
+                    unturned.Rotation = ImageRotation.None;
+                    unturned.Flip = ImageFlip.None;
+                    var parts = step.Preset.Pdf.SplitTallImage ? Split(collected, step.To, unturned) : [collected];
                     for (var part = 0; part < parts.Count; part++)
                     {
                         using var tall = Stack(parts[part]);
-                        ImageEncoder.ApplyOptions(tall, step.Preset.Image, step.To); // also scales it to fit the format
+                        ImageEncoder.ApplyOptions(tall, unturned, step.To); // also scales it to fit the format
                         if (step.Output.Allocate(extension, parts.Count > 1 ? $"_{part + 1}" : null) is { } path)
                         {
                             tall.Write(path, format);

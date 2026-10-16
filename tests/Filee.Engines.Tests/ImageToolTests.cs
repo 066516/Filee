@@ -189,6 +189,32 @@ public class ImageToolTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public async Task A_long_image_of_turned_pages_still_runs_top_to_bottom()
+    {
+        var dir = fx.NewFolder();
+        var source = Path.Combine(dir, "slides.pdf");
+        using (var pdf = new PdfSharp.Pdf.PdfDocument())
+        {
+            for (var i = 0; i < 2; i++)
+            {
+                var page = pdf.AddPage();
+                page.Width = PdfSharp.Drawing.XUnit.FromPoint(200); // landscape slides
+                page.Height = PdfSharp.Drawing.XUnit.FromPoint(100);
+            }
+            pdf.Save(source);
+        }
+        var preset = Tool("pdf-long-image");
+        preset.Image.Rotation = ImageRotation.Right90;
+
+        var job = await fx.ConvertAsync([source], preset);
+
+        Assert.Equal(JobState.Completed, job.State);
+        using var result = new MagickImage(job.Outputs.Single());
+        // Each page turned (100 × 200), then stacked: four times as tall as wide, not the whole strip on its side.
+        Assert.InRange(result.Height / (double)result.Width, 3.5, 4.5);
+    }
+
+    [Fact]
     public async Task An_image_into_a_PDF_is_turned_on_the_way()
     {
         var dir = fx.NewFolder();

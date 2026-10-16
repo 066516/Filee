@@ -160,13 +160,9 @@ internal static class ImageEncoder
         _ => 1,
     };
 
-    /// <summary>Applies resize / colour / metadata options to one frame.</summary>
-    public static void ApplyOptions(IMagickImage<byte> image, ImageOptions options, string targetFormat)
+    /// <summary>Turns and mirrors an image as <paramref name="options"/> say (part of <see cref="ApplyOptions"/>).</summary>
+    public static void Turn(IMagickImage<byte> image, ImageOptions options)
     {
-        var turned = options.TurnsOrMirrors || image.Orientation is not (OrientationType.TopLeft or OrientationType.Undefined);
-        image.AutoOrient();
-
-        // After AutoOrient, so a phone photo turns the way it looks, not the way its pixels are stored.
         switch (options.Rotation)
         {
             case ImageRotation.Right90:
@@ -184,6 +180,16 @@ internal static class ImageEncoder
             image.Flop();
         else if (options.Flip == ImageFlip.Vertical)
             image.Flip();
+    }
+
+    /// <summary>Applies resize / colour / metadata options to one frame.</summary>
+    public static void ApplyOptions(IMagickImage<byte> image, ImageOptions options, string targetFormat)
+    {
+        var turned = options.TurnsOrMirrors || image.Orientation is not (OrientationType.TopLeft or OrientationType.Undefined);
+        image.AutoOrient();
+
+        // After AutoOrient, so a phone photo turns the way it looks, not the way its pixels are stored.
+        Turn(image, options);
         // The small preview kept in the EXIF data still shows the picture as it was: Explorer and photo apps that
         // use it would show it unturned. As HeicWriter does, drop it once the pixels turned.
         if (turned && image.GetExifProfile() is { } exif && exif.ThumbnailLength > 0)
