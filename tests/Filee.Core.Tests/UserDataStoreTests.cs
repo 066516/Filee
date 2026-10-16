@@ -7,6 +7,28 @@ namespace Filee.Core.Tests;
 public class UserDataStoreTests
 {
     [Fact]
+    public void Groups_keep_only_conversions_once_and_at_most_six()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Presets.Add(new Preset
+        {
+            Id = "mine", Name = "Mine", Kind = PresetKind.Group,
+            SubPresetIds = ["to-png", "gone", "to-png", "rotate", "to-jpg", "to-webp", "to-bmp", "to-gif", "to-ico", "to-tiff"],
+        });
+        store.SaveLibrary();
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        // A deleted preset and a group in the group are dropped, a repeat counts once, the rest is cut at six.
+        var group = reloaded.FindPreset("mine")!;
+        Assert.True(group.IsGroup);
+        Assert.Equal(["to-png", "to-jpg", "to-webp", "to-bmp", "to-gif", "to-ico"], group.SubPresetIds);
+    }
+
+    [Fact]
     public void Round_trips_settings_presets_and_profiles()
     {
         using var dir = new TempDir();
@@ -219,6 +241,7 @@ public class UserDataStoreTests
 
         Assert.True(SettingsMigrations.ApplyToLibrary(10, presets, profiles));
 
+        Assert.Equal(PresetKind.Group, presets.Single(p => p.Id == "rotate").Kind);
         Assert.Equal(["rotate-left", "rotate-right", "rotate-180"], presets.Single(p => p.Id == "rotate").SubPresetIds);
         Assert.Equal(ImageRotation.Left90, presets.Single(p => p.Id == "rotate-left").Image.Rotation);
         Assert.Equal(ImageFlip.Horizontal, presets.Single(p => p.Id == "flip-horizontal").Image.Flip);

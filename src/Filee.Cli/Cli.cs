@@ -231,6 +231,13 @@ internal static class Cli
                 errors.WriteLine($"filee: no preset '{wanted}'. Run 'filee presets' for the list.");
                 return null;
             }
+            if (found.IsGroup)
+            {
+                // A donut group converts nothing; name what it holds so the right one is easy to pick.
+                var members = found.SubPresetIds.Select(host.Store.FindPreset).OfType<Preset>().Select(p => p.Id);
+                errors.WriteLine($"filee: '{wanted}' is a group on the donut, not a conversion. Use one of: {string.Join(", ", members)}");
+                return null;
+            }
             preset = found.Clone();
         }
         preset = host.Store.Settings.WithDefaultOutput(preset);
@@ -321,7 +328,7 @@ internal static class Cli
     private static int ListPresets(CliHost host, TextWriter output)
     {
         output.WriteLine($"{"ID",-24} {"NAME",-28} TARGET");
-        foreach (var preset in host.Store.Presets)
+        foreach (var preset in host.Store.Presets.Where(p => !p.IsGroup))
             output.WriteLine($"{preset.Id,-24} {host.Texts.DisplayName(preset),-28} {preset.TargetFormat}");
         output.WriteLine();
         output.WriteLine("Use one with: filee convert <files> --preset <id or name>");

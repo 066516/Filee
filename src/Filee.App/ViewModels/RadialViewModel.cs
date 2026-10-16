@@ -96,7 +96,8 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
             .ToList();
 
         _subPresets = Presets
-            .Select(p => (IReadOnlyList<Preset>)p.SubPresetIds.Select(store.FindPreset).OfType<Preset>().Where(c => !c.IsGroup).ToList())
+            .Select(p => (IReadOnlyList<Preset>)(p.IsGroup ? p.SubPresetIds : [])
+                .Select(store.FindPreset).OfType<Preset>().Where(c => !c.IsGroup).Take(Preset.MaxSubPresets).ToList())
             .ToList();
 
         DonutItem ItemOf(Preset p, bool caption = true)

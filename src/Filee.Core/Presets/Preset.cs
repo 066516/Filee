@@ -2,6 +2,19 @@
 
 namespace Filee.Core.Presets;
 
+/// <summary>What a preset is: a conversion, or a group of conversions fanned out on the donut.</summary>
+public enum PresetKind
+{
+    /// <summary>Converts files.</summary>
+    Convert,
+
+    /// <summary>
+    /// Converts nothing itself: its donut slice fans out <see cref="Preset.SubPresetIds"/>. Never offered where a
+    /// conversion is picked (preset list, watch folders, <c>filee --preset</c>).
+    /// </summary>
+    Group,
+}
+
 /// <summary>
 /// A named conversion recipe. The donut toolbar shows presets; dropping files on one runs it.
 /// </summary>
@@ -41,16 +54,21 @@ public sealed class Preset
     /// <summary>Where and how output files are written.</summary>
     public OutputRule Output { get; set; } = new();
 
+    public PresetKind Kind { get; set; } = PresetKind.Convert;
+
+    /// <summary>Most presets one group fans out: more slices would get too narrow to hit.</summary>
+    public const int MaxSubPresets = 6;
+
     /// <summary>
-    /// Makes this preset a group: its donut slice converts nothing itself but fans out these presets (by
-    /// <see cref="Id"/>) in a small ring outside it, e.g. "Rotate" → left 90° / right 90° / 180°.
-    /// Empty for an ordinary preset.
+    /// <see cref="PresetKind.Group"/>: the presets (by <see cref="Id"/>) its donut slice fans out in a small ring
+    /// outside it, e.g. "Rotate" → left 90° / right 90° / 180°. At most <see cref="MaxSubPresets"/>, never groups.
+    /// Ignored for a conversion.
     /// </summary>
     public List<string> SubPresetIds { get; set; } = [];
 
-    /// <summary>True when this preset only groups others (<see cref="SubPresetIds"/>).</summary>
+    /// <summary>True for a <see cref="PresetKind.Group"/>.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
-    public bool IsGroup => SubPresetIds.Count > 0;
+    public bool IsGroup => Kind == PresetKind.Group;
 
     /// <summary>Creates a new random preset id.</summary>
     public static string NewId() => Guid.NewGuid().ToString("N")[..12];
@@ -68,6 +86,7 @@ public sealed class Preset
         Media = Media.Clone(),
         Archive = Archive.Clone(),
         Output = Output.Clone(),
+        Kind = Kind,
         SubPresetIds = [.. SubPresetIds],
     };
 }

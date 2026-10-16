@@ -132,6 +132,9 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services)
     /// <summary>Opens the preset popup. Returns true when the user saved (the preset object was updated).</summary>
     public async Task<bool> EditPresetAsync(Preset preset, Window? owner)
     {
+        // The conversion editor has nothing to edit on a group (it converts nothing).
+        if (preset.IsGroup)
+            return false;
         var dialog = new PresetEditorWindow
         {
             DataContext = new PresetEditorViewModel(preset, loc),
