@@ -78,7 +78,30 @@ internal static class MediaEncoding
         ["mp2"] = new("mp2", null, "mp2"),
         // 16-bit PCM in an extended block: exact sample rate (8-bit blocks can only approximate it).
         ["voc"] = new("voc", null, "pcm_s16le"),
+        // Lossless: WavPack and TTA (FFmpeg's own encoders); Sony Wave64 is WAV without the 4 GB limit.
+        ["wv"] = new("wv", null, "wavpack"),
+        ["tta"] = new("tta", null, "tta"),
+        ["w64"] = new("w64", null, "pcm_s16le"),
+        ["eac3"] = new("eac3", null, "eac3"),
     };
+
+    /// <summary>Subtitle formats a video's first text subtitle track can be taken out as: (muxer, encoder).</summary>
+    public static IReadOnlyDictionary<string, (string Muxer, string Encoder)> SubtitleTargets { get; } = new Dictionary<string, (string, string)>
+    {
+        ["srt"] = ("srt", "srt"),
+        ["ass"] = ("ass", "ass"),
+        ["vtt"] = ("webvtt", "webvtt"),
+    };
+
+    /// <summary>
+    /// Subtitle codecs that are text (FFmpeg decodes them to text; CEA-608 captions too). Blu-ray PGS, DVD VobSub and
+    /// DVB subtitles are pictures.
+    /// </summary>
+    private static readonly HashSet<string> TextSubtitleCodecs =
+    [
+        "subrip", "srt", "ass", "ssa", "webvtt", "mov_text", "text", "microdvd", "sami", "realtext", "subviewer", "subviewer1",
+        "jacosub", "mpl2", "pjs", "vplayer", "stl", "eia_608", "ttml",
+    ];
 
     /// <summary>Formats an animated GIF or a still picture (PNG) can be turned into.</summary>
     public static IReadOnlyList<string> PictureToVideoTargets { get; } = ["mp4", "webm", "mov"];
@@ -117,24 +140,30 @@ internal static class MediaEncoding
     /// </summary>
     /// <param name="workDirectory">Scratch folder (the GIF palette goes there).</param>
     /// <param name="cover">The source's cover for targets FFmpeg can't put a picture stream into (<see cref="CoverArt"/>).</param>
+    /// <param name="encoders">The encoders the FFmpeg in use has (<c>ffmpeg -encoders</c>); null assumes the pinned build's.</param>
     /// <exception cref="InvalidOperationException">The file lacks the stream the target needs (e.g. no audio track).</exception>
     public static IReadOnlyList<FfmpegPass> Plan(string input, string output, string target, MediaOptions options, MediaInfo info, string workDirectory,
-        CoverExtras? cover = null)
+        CoverExtras? cover = null, IReadOnlySet<string>? encoders = null)
     {
         if (target == "gif")
             return AnimatedGif(input, output, options, info, workDirectory);
+        if (target == "apng")
+            return [new FfmpegPass(AnimatedPng(input, output, options, info), 1)];
         if (target == "png")
             return [new FfmpegPass(PosterFrame(input, output, info), 1)];
         if (VideoTargets.TryGetValue(target, out var video))
-            return [new FfmpegPass(Video(input, output, target, video, options, info), 1)];
+            return [new FfmpegPass(Video(input, output, target, video, options, info, encoders), 1)];
         if (AudioTargets.TryGetValue(target, out var audio))
             return [new FfmpegPass(Audio(input, output, target, audio, options, info, cover), 1)];
+        if (SubtitleTargets.ContainsKey(target))
+            return [new FfmpegPass(Subtitles(input, output, target, info), 1)];
         throw new NotSupportedException($"FFmpeg cannot write '{target}'.");
     }
 
     // ───────────────────────── Video ─────────────────────────
 
-    private static List<string> Video(string input, string output, string target, MediaTarget spec, MediaOptions options, MediaInfo info)
+    private static List<string> Video(string input, string output, string target, MediaTarget spec, MediaOptions options, MediaInfo info,
+        IReadOnlySet<string>? encoders)
     {
         var video = info.Video ?? throw new InvalidOperationException("The file has no video stream.");
         // An input without sound is fine: the output simply has no audio track.
@@ -155,7 +184,7 @@ internal static class MediaEncoding
         {
             var pal = IsPal(video.FrameRate);
             args.AddRange(["-vf", target is "vob" or "dv" ? DvdOrDvFilter(video, pal) : ScaleFilter(options.MaxHeight)]);
-            args.AddRange(VideoCodecArguments(target, spec.VideoCodec!, options.Quality, video, pal));
+            args.AddRange(VideoCodecArguments(target, VideoEncoder(target, spec.VideoCodec!, options.VideoCodec, encoders), options.Quality, video, pal));
         }
 
         if (audio is null)
@@ -195,13 +224,47 @@ internal static class MediaEncoding
     /// <summary>
     /// True when the video stream can be copied: the target container takes its codec in a pixel format players
     /// decode, it needs no scaling down, and the preset does not ask for a small file (Small always re-encodes; High
-    /// and Balanced only describe how a video that has to be encoded anyway is encoded).
+    /// and Balanced only describe how a video that has to be encoded anyway is encoded). A preset that asks for HEVC
+    /// or AV1 copies only a video in that codec (an AV1 video goes into MP4 then too).
     /// </summary>
-    internal static bool CanCopyVideo(string target, VideoStreamInfo video, MediaOptions options) =>
-        options.Quality != MediaQuality.Small
-        && Remuxable.TryGetValue(target, out var codecs) && video.Codec is { } codec && codecs.Video.Contains(codec)
-        && (codec == "prores" || video.PixelFormat is { } format && PlayablePixelFormats.Contains(format))
-        && !(options.MaxHeight > 0 && video.DisplayHeight > Math.Max(16, options.MaxHeight));
+    internal static bool CanCopyVideo(string target, VideoStreamInfo video, MediaOptions options)
+    {
+        if (options.Quality == MediaQuality.Small || options.MaxHeight > 0 && video.DisplayHeight > Math.Max(16, options.MaxHeight)
+            || video.Codec is not { } codec || !Remuxable.TryGetValue(target, out var codecs))
+            return false;
+        var takes = MediaCodecs.Effective(target, options.VideoCodec) switch
+        {
+            VideoCodec.Hevc => codec == "hevc",
+            VideoCodec.Av1 => codec == "av1",
+            _ => codecs.Video.Contains(codec),
+        };
+        return takes && (codec == "prores" || video.PixelFormat is { } format && PlayablePixelFormats.Contains(format));
+    }
+
+    /// <summary>
+    /// The encoder for a video that has to be encoded: the preset's codec where the target takes it (x265 for HEVC;
+    /// SVT-AV1 for AV1, libaom where an FFmpeg lacks SVT-AV1), else the target's usual one.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The FFmpeg in use has no encoder for the chosen codec.</exception>
+    internal static string VideoEncoder(string target, string defaultEncoder, VideoCodec codec, IReadOnlySet<string>? encoders)
+    {
+        bool Has(string encoder) => encoders is null || encoders.Contains(encoder);
+        switch (MediaCodecs.Effective(target, codec))
+        {
+            case VideoCodec.Hevc when Has("libx265"):
+                return "libx265";
+            case VideoCodec.Hevc:
+                throw new InvalidOperationException("This FFmpeg has no HEVC encoder (libx265). Filee's FFmpeg download has one.");
+            case VideoCodec.Av1 when Has("libsvtav1"):
+                return "libsvtav1";
+            case VideoCodec.Av1 when Has("libaom-av1"):
+                return "libaom-av1";
+            case VideoCodec.Av1:
+                throw new InvalidOperationException("This FFmpeg has no AV1 encoder (libsvtav1 or libaom-av1). Filee's FFmpeg download has one.");
+            default:
+                return defaultEncoder;
+        }
+    }
 
     /// <summary>
     /// True when the audio stream can be copied: the container takes it, no bitrate is set and the channels stay
@@ -249,6 +312,19 @@ internal static class MediaEncoding
                 // CRF 18 is visually lossless, 23 is x264's default, 28 is clearly smaller. Preset medium is x264's
                 // default speed/size balance; yuv420p (8-bit 4:2:0) is the only format every H.264 decoder plays.
                 return ["-c:v", "libx264", "-preset", "medium", "-crf", Text(Choose(quality, 18, 23, 28)), "-pix_fmt", "yuv420p"];
+            case "libx265":
+                // x265's CRF 28 looks like x264's 23 at about half the size; 22 / 26 / 30 keep High clean and Small
+                // clearly smaller than H.264 Small. Apple plays HEVC in MP4 / MOV only under the "hvc1" tag.
+                return ["-c:v", "libx265", "-preset", "medium", "-crf", Text(Choose(quality, 22, 26, 30)),
+                        .. HighBitDepthArguments(video), "-x265-params", "log-level=error",
+                        .. target is "mp4" or "m4v" or "mov" ? ["-tag:v", "hvc1"] : Array.Empty<string>()];
+            case "libsvtav1":
+                // SVT-AV1 preset 8: fast enough on a desktop, a little larger than the slow presets.
+                return ["-c:v", "libsvtav1", "-preset", "8", "-crf", Text(Choose(quality, 26, 32, 40)), .. HighBitDepthArguments(video)];
+            case "libaom-av1":
+                // Constant quality (-b:v 0 + CRF); cpu-used 6 with row multithreading and tiles keeps libaom bearable.
+                return ["-c:v", "libaom-av1", "-b:v", "0", "-crf", Text(Choose(quality, 26, 32, 40)), "-cpu-used", "6", "-row-mt", "1",
+                        "-tiles", "2x2", .. HighBitDepthArguments(video)];
             case "libvpx-vp9":
                 // Constant quality mode (-b:v 0 + CRF). Row multithreading and speed 4 keep VP9 usable on a desktop:
                 // the slower speeds gain little size for several times the encoding time.
@@ -281,6 +357,27 @@ internal static class MediaEncoding
             default:
                 throw new NotSupportedException(codec);
         }
+    }
+
+    /// <summary>
+    /// HEVC and AV1 keep 10 bits for 10-bit and HDR sources (Main 10; 8 bits would band and break HDR) and 8-bit 4:2:0
+    /// for everything else, which every player decodes. HDR colour tags (BT.2020 primaries, PQ or HLG transfer) are
+    /// written as the source has them.
+    /// </summary>
+    internal static string[] HighBitDepthArguments(VideoStreamInfo video)
+    {
+        var tenBit = video.IsHighBitDepth || video.IsHdr;
+        List<string> args = ["-pix_fmt", tenBit ? "yuv420p10le" : "yuv420p"];
+        if (tenBit && video.Color is { } color)
+        {
+            if (color.Primaries is { } primaries)
+                args.AddRange(["-color_primaries", primaries]);
+            if (color.Transfer is { } transfer)
+                args.AddRange(["-color_trc", transfer]);
+            if (color.Matrix is { } matrix)
+                args.AddRange(["-colorspace", matrix]);
+        }
+        return [.. args];
     }
 
     /// <summary><c>-r</c> for a rate, nothing when the source rate is unknown (FFmpeg then keeps its own guess).</summary>
@@ -353,14 +450,23 @@ internal static class MediaEncoding
             args.AddRange(["-map", $"0:{cover}", "-c:v", "copy", "-disposition:v:0", "attached_pic"]);
         if (extras is { AttachmentFile: { } picture, AttachmentMime: { } mime })
             args.AddRange(["-attach", picture, "-metadata:s:t", "mimetype=" + mime, "-metadata:s:t", "filename=" + Path.GetFileName(picture)]);
-        var codec = target == "wav" ? WavCodec(options.WavFormat) : spec.AudioCodec;
+        var codec = AudioEncoder(target, spec.AudioCodec, options);
         args.AddRange(AudioCodecArguments(target, codec, options, audio, inVideo: false));
-        args.AddRange(ChannelAndRateArguments(target, codec, options));
+        args.AddRange(ChannelAndRateArguments(target, codec, options, audio.SampleRate));
         args.AddRange(MetadataArguments(extras?.MetadataFile is null ? 0 : 1));
         args.AddRange(ContainerArguments(target));
         args.AddRange(["-f", spec.Muxer, "-progress", "pipe:1", output]);
         return args;
     }
+
+    /// <summary>
+    /// The audio encoder of a target: the PCM format the preset picks for WAV and W64, ALAC for M4A / M4B when the
+    /// preset asks for Apple Lossless, else the target's usual one.
+    /// </summary>
+    internal static string AudioEncoder(string target, string defaultEncoder, MediaOptions options) =>
+        target is "wav" or "w64" ? WavCodec(options.WavFormat)
+        : MediaCodecs.Effective(target, options.AudioCodec) == Core.Presets.AudioCodec.Alac ? "alac"
+        : defaultEncoder;
 
     /// <summary>The PCM codec of a WAV sample format (little-endian, 8-bit is unsigned as WAV defines it).</summary>
     internal static string WavCodec(WavSampleFormat format) => format switch
@@ -374,21 +480,37 @@ internal static class MediaEncoding
 
     /// <summary>
     /// Mono or stereo for any audio target (after the codec's own limits, so the user's choice wins), and the sample
-    /// rate for WAV, whose PCM takes any rate. Codecs with a fixed layout (AMR is mono, 8 kHz) are left alone.
+    /// rate for WAV and W64, whose PCM takes any rate. Codecs with a fixed layout (AMR is mono, 8 kHz) are left alone.
     /// </summary>
-    internal static IEnumerable<string> ChannelAndRateArguments(string target, string codec, MediaOptions options)
+    /// <param name="sourceSampleRate">
+    /// The source's rate. DSD (DSF, DFF) decodes at 352.8 kHz or more: lossless and PCM targets get 88.2 kHz (the
+    /// usual rate for DSD as PCM), Vorbis and WMA 44.1 kHz; the other lossy encoders pick a rate they support.
+    /// </param>
+    internal static IEnumerable<string> ChannelAndRateArguments(string target, string codec, MediaOptions options, int sourceSampleRate = 0)
     {
         if (options.AudioChannels is 1 or 2 && codec != "libopencore_amrnb")
         {
             yield return "-ac";
             yield return options.AudioChannels.ToString(CultureInfo.InvariantCulture);
         }
-        if (target == "wav" && options.AudioSampleRate is >= 8000 and <= 192000)
+        if (target is "wav" or "w64" && options.AudioSampleRate is >= 8000 and <= 192000)
         {
             yield return "-ar";
             yield return options.AudioSampleRate.ToString(CultureInfo.InvariantCulture);
         }
+        else if (sourceSampleRate > 192000 && (LosslessEncoders.Contains(codec) || codec.StartsWith("pcm_", StringComparison.Ordinal)))
+        {
+            yield return "-ar";
+            yield return "88200";
+        }
+        else if (sourceSampleRate > 192000 && codec is "libvorbis" or "wmav2")
+        {
+            yield return "-ar";
+            yield return "44100";
+        }
     }
+
+    private static readonly HashSet<string> LosslessEncoders = ["flac", "alac", "wavpack", "tta"];
 
     /// <summary>
     /// Encoder options for one audio codec. <see cref="MediaOptions.AudioBitrateKbps"/> wins when set (clamped to
@@ -449,6 +571,10 @@ internal static class MediaEncoding
                 if (requested > 0)
                     args.AddRange(Bitrate(Snap(requested, Ac3Bitrates), 32, 640));
                 break;
+            case "eac3":
+                // E-AC-3 takes any bitrate; per stereo pair 256 / 192 / 128 kbit/s like AAC.
+                args.AddRange(Bitrate(requested > 0 ? requested : Scaled(Choose(quality, 256, 192, 128), channels), 32, 6144));
+                break;
             case "libopencore_amrnb":
                 // AMR-NB is defined for 8 kHz mono only; 12.2 kbit/s is its best mode.
                 args.AddRange(["-ar", "8000", "-ac", "1", "-b:a", "12.2k"]);
@@ -478,6 +604,24 @@ internal static class MediaEncoding
     private static readonly int[] Mp3Bitrates = [32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320];
     private static readonly int[] Mp2Bitrates = [32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384];
     private static readonly int[] Ac3Bitrates = [32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 448, 512, 576, 640];
+
+    // ───────────────────────── Subtitles ─────────────────────────
+
+    /// <summary>
+    /// The first text subtitle track of a video as SRT, ASS or WebVTT (UTF-8). A track already in the target's format is
+    /// copied as it is (an ASS track keeps its styles); others are converted by FFmpeg.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The video has no subtitle track, or only picture subtitles.</exception>
+    private static List<string> Subtitles(string input, string output, string target, MediaInfo info)
+    {
+        var track = info.Subtitles.FirstOrDefault(s => s.Codec is { } codec && TextSubtitleCodecs.Contains(codec))
+            ?? throw new InvalidOperationException(info.Subtitles.Count == 0
+                ? "The video has no subtitle track."
+                : "The video's subtitles are pictures (Blu-ray PGS, DVD or DVB subtitles), not text. Picture subtitles can't be turned into text without OCR.");
+        var (muxer, encoder) = SubtitleTargets[target];
+        var same = (target, track.Codec) is ("srt", "subrip" or "srt") or ("ass", "ass") or ("vtt", "webvtt");
+        return [.. Common, "-i", input, "-map", $"0:{track.Index}", "-c:s", same ? "copy" : encoder, "-f", muxer, "-progress", "pipe:1", output];
+    }
 
     // ───────────────────────── Animated GIF ─────────────────────────
 
@@ -513,6 +657,22 @@ internal static class MediaEncoding
             "-map", "[gif]", "-loop", "0", "-f", "gif", "-progress", "pipe:1", output,
         ];
         return [new FfmpegPass(first, 0.4), new FfmpegPass(second, 0.6)];
+    }
+
+    /// <summary>
+    /// Animated PNG with FFmpeg's APNG encoder and muxer: full colour (24-bit RGB, no palette pass), looping, with the
+    /// frame rate and width limits of GIF, since every frame is stored losslessly.
+    /// </summary>
+    private static List<string> AnimatedPng(string input, string output, MediaOptions options, MediaInfo info)
+    {
+        var video = info.Video ?? throw new InvalidOperationException("The file has no video stream.");
+        var quality = options.Quality;
+        var chain = GifFrames(video, options.MaxHeight, fps: Choose(quality, 15, 12, 10), maxWidth: Choose(quality, 640, 480, 320));
+        return
+        [
+            .. Common, "-i", input, "-map", "0:V:0", "-vf", chain, "-an",
+            "-c:v", "apng", "-pix_fmt", "rgb24", "-pred", "mixed", "-plays", "0", "-f", "apng", "-progress", "pipe:1", output,
+        ];
     }
 
     /// <summary>Frame rate, square pixels and size of the GIF frames (never upscaled).</summary>

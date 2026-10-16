@@ -19,6 +19,9 @@ public enum FormatCategory
     Vector,
     Cad,
     Font,
+    Subtitle,
+    Data,
+    Model3D,
 }
 
 /// <summary>

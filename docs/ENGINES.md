@@ -5,7 +5,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 
 | Engine | How it gets there | Handles |
 |---|---|---|
-| ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM ↔ each other; HEIC (written with FFmpeg), XCF, camera RAW (LibRaw) and EMF/WMF (Windows) read |
+| ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, MNG, QOI, DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster, MIFF ↔ each other, and **APNG** (Filee's own reader and writer); HEIC (written with FFmpeg), XCF, camera RAW (LibRaw), DICOM (uncompressed ones by Filee's own reader), Photo CD, OpenEXR, Radiance HDR and EMF/WMF (Windows) read |
 | Vector graphics | built in (Svg.Skia, SkiaSharp, ACadSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, **SVG → DXF** (→ DWG with the CAD engine), **raster images → SVG (tracing)**, PDF-compatible AI → PDF |
 | ICNS | built in | images → ICNS (16–1024 px), ICNS → images |
 | PDFsharp | built in (library) | images → PDF, merge, split, page ranges |
@@ -18,15 +18,18 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | **HWPX writer** | built in | **DOCX (+ DOCM/DOTX/DOTM), XLSX (+ XLSM/XLTX), XLS, ODS, CSV, TSV, PPTX (+ PPTM/POTX/PPSX), PDF, HTML, EPUB, MOBI/AZW3, FB2, HWPX, TXT, Markdown → HWPX** (and with rhwp → PDF and images); ODT, RTF, reStructuredText, LaTeX → HWPX with Pandoc |
 | **DOCX writer** | built in | **HWPX (and HWP through rhwp), PDF, HTML, EPUB, MOBI/AZW3, FB2, Markdown, TXT, XLSX, XLS, ODS, CSV, PPTX (+ variants) → DOCX** |
 | PDF text | built in (PdfPig) | **PDF → TXT** (reading order, also two columns; no OCR) |
-| E-mail | built in (MimeKit) | **EML → HTML** (headers + body, inline pictures), **TXT**, **ZIP** (the attachments) |
-| **E-books** | built in | **EPUB, MOBI/AZW/AZW3/PRC, FB2, HTMLZ, TXTZ → EPUB, HWPX (→ PDF), TXT, HTML, Markdown, FB2, HTMLZ, TXTZ**; HTML, Markdown, TXT, DOCX → EPUB/FB2/HTMLZ/TXTZ; HTML → TXT; comics CBZ/CBR/CB7/CBT/CBC → PDF, EPUB, CBZ; PDF → CBZ; AZW4 → PDF |
+| E-mail | built in (MimeKit, MsgReader) | **EML, Outlook MSG → HTML** (headers + body, inline pictures), **TXT**, **ZIP** (the attachments); **MSG → EML** |
+| Data | built in (System.Text.Json, YamlDotNet, Tomlyn, System.Xml) | **JSON, JSON Lines, YAML, TOML, XML, CSV ↔ each other** (CSV for tables); **vCard ↔ CSV**; spreadsheets and contacts reach JSON / YAML / TOML / XML through CSV |
+| **E-books** | built in | **EPUB, MOBI/AZW/AZW3/PRC, FB2, HTMLZ, TXTZ → EPUB, HWPX (→ PDF), TXT, HTML, Markdown, FB2, HTMLZ, TXTZ**; HTML, Markdown, TXT, DOCX → EPUB/FB2/HTMLZ/TXTZ; HTML → TXT; comics CBZ/CBR/CB7/CBT/CBC → PDF, EPUB, CBZ; PDF → CBZ; AZW4 → PDF; **EPUB ↔ KEPUB** (Kobo) |
 | CAD (ACadSharp + built-in renderer) | built in (library) | **DWG ↔ DXF**; DWG/DXF → **PDF** (vector), **SVG**, PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF |
+| **Subtitles** | built in | **SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD, SCC → SRT, ASS, WebVTT, SAMI, LRC, TTML, MicroDVD**, always UTF-8 (Korean CP949 / EUC-KR files read correctly) |
+| 3D models (SharpGLTF for glTF) | built in (library) | **GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY ↔ each other**; → PNG, JPG, … (an isometric preview) |
 | rhwp | bundled with the installer (`engines/rhwp`) | HWP/HWPX → PDF, **HWP → HWPX, HWPX → HWP** |
 | Archives (7-Zip) | bundled with the installer (`engines/7zip`, ~2.5 MB) + built-in readers | ZIP, 7Z, RAR, TAR (+ GZ/BZ2/XZ/Z/7Z/LZ), CAB, ISO, DMG, … **→ folder, ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ**; ALZ, EGG, lzip read in-process; "Compress into one archive" for any files |
-| LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats |
-| Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, reStructuredText and LaTeX ↔ Markdown/HTML/DOCX/ODT (and → RTF, EPUB, TXT) |
+| LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats; FODT, OpenDocument templates (OTT, OTS, OTP) and XLT out; SVG → EMF/WMF/ODG, a PDF page → SVG |
+| Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, markup languages (reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML) ↔ Markdown/HTML/DOCX/ODT and each other (and → RTF, EPUB, TXT), Markdown and markup → PPTX slides |
 | Ghostscript | **optional download** (~20 MB, 31 MB on disk) | EPS/PS → PDF, PDF → EPS/PS, PostScript-based AI → PDF (images through PDF and PDFium) |
-| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video, video → animated GIF or a still frame, audio extraction, audio ↔ audio, GIF and photos → MP4/WEBM/MOV, images → HEIC |
+| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG or a still frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, images → HEIC |
 | Calibre | **optional download** (~216 MB, 660 MB on disk) | rare e-book formats: LIT, LRF, CHM, PDB, PML, RB, SNB, TCR, OEB → EPUB; EPUB → MOBI, AZW3, LIT, LRF, PDB, PML, RB, SNB, TCR |
 
 DOCX, XLSX, XLS, ODS and PPTX → PDF need neither Microsoft Office nor LibreOffice: they are read in-process, written as HWPX
@@ -78,9 +81,45 @@ current.
 
 ## Images and vector graphics
 
-- **Animations.** An animated GIF or WebP keeps every frame and its timing when converted to GIF or WebP (animated
-  GIF ↔ animated WebP, lossy or lossless as the preset says) and becomes a multi-page TIFF; other targets get the first
-  frame. Multi-page TIFFs and PDFs stay one image per page in WebP.
+- **Animations.** An animated GIF, WebP, APNG or MNG keeps every frame and its timing when converted to one of these
+  (animated GIF ↔ animated WebP ↔ APNG ↔ MNG, WebP lossy or lossless as the preset says) and becomes a multi-page TIFF;
+  other targets get the first frame. Multi-page TIFFs and PDFs stay one image per page in WebP.
+- **APNG** (`Magick/Apng.cs`) is Filee's own code, written from the APNG specification: ImageMagick reads only an
+  APNG's default image and writes APNG through an external FFmpeg. Every frame is an ordinary PNG decoded or encoded by
+  ImageMagick; Filee handles the chunks around them.
+  - Reading composes each frame onto the canvas as a player shows it: `fcTL` regions and offsets, blend `SOURCE` / `OVER`,
+    dispose `NONE` / `BACKGROUND` / `PREVIOUS`, delays (a denominator of 0 means hundredths) and the loop count. A
+    default image that comes before the first `fcTL` is not part of the animation and is skipped. Animated PNGs saved
+    as `.png` are recognised by their `acTL` chunk and stay animated as GIF, WebP or APNG; other targets get the first
+    frame.
+  - Writing gives every frame the same pixel format (8-bit RGB, or RGBA when any frame is transparent or smaller than
+    the canvas): the first frame is the default image (`IDAT`, so viewers without APNG support show it), the others are
+    `fdAT` chunks holding only the rectangle that changed (dispose `NONE`, blend `SOURCE`); a frame identical to the one
+    before lengthens its delay instead. Checked with FFmpeg's APNG demuxer.
+  - APNG ↔ video needs FFmpeg: video → APNG uses its `apng` encoder and muxer (24-bit RGB, looping, the GIF's frame rate
+    and width limits), APNG → MP4/WEBM/MOV its APNG demuxer. Animated WebP and GIF still reach video through GIF, a
+    still picture through PNG.
+- **More raster formats** through ImageMagick's own coders, each checked against `MagickNET.SupportedFormats` and
+  converted there and back in `ImageFormatTests`: QOI, MNG (animated), DDS (DXT block compression, which is lossy; of
+  a texture with mipmaps the largest image is read), PCX, CUR (at most 256 × 256, larger pictures are scaled down), XPM,
+  XBM and WBMP (1-bit), PAM, PFM, SGI (`.sgi`, `.rgb`, `.rgba`, `.bw`, always read as SGI; ImageMagick would take
+  `.rgb` for headerless pixels), Sun Raster (`.ras`, `.sun`) and MIFF. XBM, WBMP, PFM, PCX and Sun Raster are written
+  without transparency (flattened onto the preset's background): PFM has none, and the alpha planes ImageMagick can
+  put into PCX and Sun Raster are read by hardly any other program. Not offered: PICT, because ImageMagick can't read
+  back direct-colour PICTs wider than about 130 pixels that it wrote itself.
+- **Read only**: Photo CD (the 768 × 512 base image), OpenEXR and Radiance HDR. The bundled Magick.NET is the 8-bit
+  (Q8) build without HDRI, so high-dynamic-range values are clipped to the displayable range and stored with 8 bits per
+  channel; there is no tone mapping. Writing EXR or HDR from 8-bit pictures would only make larger files, so they are
+  not targets.
+- **DICOM** (`.dcm`, `.dicom`, read only). The Q8 build reads only 8-bit DICOM, while CT, MR and X-ray scanners store
+  12 or 16 bits, so `Magick/Dicom.cs` (written from the DICOM standard, PS3.5 and PS3.3 C.7.6.3 / C.11.2) reads
+  uncompressed files itself: implicit and explicit VR little endian, explicit VR big endian and deflated files, with or
+  without the 128-byte preamble; 8 or 16 bits allocated, signed or unsigned; MONOCHROME1 (inverted) and MONOCHROME2,
+  RGB and YBR_FULL (interleaved or planar); every frame of a multi-frame file. Grey values go through the rescale
+  slope / intercept and the file's first window (centre / width) like a viewer's default view, or are stretched over
+  the file's range when there is no window, to 8 bits. Compressed pixel data (JPEG, JPEG-LS, JPEG 2000, RLE) is left to
+  ImageMagick, which manages only 8-bit images; others fail with a message asking for an uncompressed export.
+- **Fujifilm HEIF** (`.hif`) is read as HEIC.
 - **Layered files.** PSD/PSB convert from Photoshop's composite (ImageMagick merges the layers when a file was saved
   without "maximize compatibility"). GIMP XCF layers are composited at their offsets with their blend modes; hidden
   layers are left out. ImageMagick reads 8-bit XCF without zlib tile compression (GIMP 2.10+ "better but slower
@@ -105,9 +144,9 @@ current.
 
 Built in (`Vector/Tracing`), no Potrace or other program: Filee's own code, written from published descriptions of the
 steps (no code of Potrace, AutoTrace or VTracer is used). Every raster format ImageMagick reads (PNG, JPG, BMP, GIF,
-WEBP, TIFF, HEIC, PSD, RAW, …) is traced, and other raster images through PNG (ICNS). Only raster images are traced:
+WEBP, TIFF, HEIC, PSD, RAW, DICOM, …) is traced, and other raster images through PNG (ICNS, APNG). Only raster images are traced:
 PDF, EPS, PS, AI, EMF/WMF, CDR, documents and videos are never redrawn from a rendering, so without a real vector
-route they have no SVG target. The first frame or page is used, turned upright, in sRGB. The SVG has the picture's pixel size
+route they have no SVG target (PDF → SVG, for example, needs LibreOffice). The first frame or page is used, turned upright, in sRGB. The SVG has the picture's pixel size
 (`width`/`height`/`viewBox` in pixels), so it lines up with the original.
 
 - **Black and white** (*Line art to SVG*: logos, signatures, scans): pixels darker than Otsu's threshold are ink
@@ -220,7 +259,7 @@ Not converted: Word charts, SmartArt, equations (kept as text), free-form shapes
 
 ## Spreadsheets
 
-`SpreadsheetConverter` (engine id `spreadsheet`) converts between XLSX, XLS (also `.xlt`), ODS, CSV and TSV (also
+`SpreadsheetConverter` (engine id `spreadsheet`) converts between XLSX, XLS (and XLT templates, read only), ODS, CSV and TSV (also
 `.tab`) in-process; every format goes through one in-memory workbook (`Office/Sheets/Workbook.cs`) whose cells keep
 the text the spreadsheet shows, the value behind it and its Excel number format.
 
@@ -346,10 +385,51 @@ XLSM → CSV, PPSX → DOCX ...).
 headers (RFC 2047 / 2231) and charsets including EUC-KR / CP949 and ISO-2022-KR; raw 8-bit header text that is not
 UTF-8 is read as CP949, as older Korean mail programs wrote it.
 
+Outlook .msg files are read with MsgReader (MIT, `Email/OutlookMessage.cs`) and rebuilt as a MIME message with
+MimeKit: sender, To / Cc / Bcc, subject, sent date, Message-ID, the text and HTML bodies (MsgReader takes the HTML out
+of RTF-only messages), attachments, pictures the HTML shows (`cid:`, kept with the body) and attached Outlook items
+(as attached .eml messages). That message then goes the EML way below, so MSG → HTML / TXT / ZIP are direct edges
+(cost 10; through EML would be 20 and parse twice) and **MSG → EML** writes the rebuilt message. Attachments that only
+link to a file elsewhere (`ATTACH_BY_REFERENCE`) are not followed. MsgReader brings OpenMcdf (MPL-2.0, the compound
+file reader), RtfPipe (MIT) and UTF.Unknown (MPL-1.1, charset detection for old ANSI messages).
+
 - **EML → HTML**: a standalone page with From / To / Cc / Date / Subject / Attachments and the HTML body (its style
   sheets kept, scripts removed) or the text body; pictures sent inline (`cid:`) become data URIs.
 - **EML → TXT**: the same headers and the text body (or the HTML body as text).
 - **EML → ZIP**: the attachments (attached messages as .eml) with safe, unique file names.
+
+## Data (JSON, YAML, TOML, XML, CSV, vCard)
+
+`Data/DataConverter.cs` (engine id `data`) reads every format into one tree (`Data/DataTree.cs`: objects with their
+keys in file order, arrays, text, true / false, integers of any size, floats, TOML dates and null) and writes it
+again, so structure and types carry over as far as the target can hold them. Output is UTF-8 without BOM with LF
+line ends, indented by two spaces (CSV: like the spreadsheet engine, UTF-8 with BOM and CRLF for Excel). There are no
+options: the output is always pretty-printed.
+
+| Format | Library | Read | Written / lost |
+|---|---|---|---|
+| JSON (`.json`) | System.Text.Json | comments and trailing commas allowed (JSONC) | non-ASCII text as it is; NaN / infinities as text ("NaN") |
+| JSON Lines (`.jsonl`, `.ndjson`) | System.Text.Json | one value per line, blank lines skipped, read as an array | one compact line per record (the array, or the array inside wrappers, see CSV) |
+| YAML (`.yaml`, `.yml`) | YamlDotNet (MIT) | YAML 1.2 core schema: unquoted `true`, `null` / `~`, numbers (`0x`, `0o`, `.inf`, `.nan`) are typed, the rest and anything quoted is text (`yes` / `no` stay text); explicit `!!str` / `!!int` … tags; anchors and aliases resolved (copied), merge keys (`<<`) applied; several documents (`---`) become an array; comments dropped; alias "bombs" (more than 5 million values) and nesting deeper than 256 refused | block style; text that would read back as another type (`"true"`, `"007"`, `""`, YAML 1.1's `yes` / `on`, dates) is quoted; multi-line text as a literal block (`\|`) |
+| TOML (`.toml`) | Tomlyn (BSD-2-Clause, TOML 1.1) | dates and times keep their TOML spelling (text in JSON / YAML) | written by Filee: plain keys, then `[tables]` and `[[arrays of tables]]`; **null values are left out** (TOML has none); a root that is not an object goes under `items` (`[[items]]`); integers beyond 64 bits as text |
+| XML (`.xml`) | System.Xml | root element = an object with one key; attributes as `@name`, text next to attributes or children as `#text`, repeated elements as an array (**one child is no array**), `<a/>` → null, `<a></a>` → empty text, CDATA as text; all values are text (XML has no types); comments, processing instructions and the DTD dropped, external entities never loaded; the encoding from the declaration (EUC-KR …) | a root that is not one object with one key goes into `<root>`, items of nested arrays into `<item>`; names that are not XML names are escaped (`first name` → `first_x0020_name`, unescaped when read back); `x:name` keeps its namespace when `@xmlns:x` declares it; control characters XML 1.0 can't hold are removed |
+| CSV (`.csv`) | Filee (`Office/Sheets/CsvFormat.cs`) | first row = keys, one object per row; plain numbers (not `007`) and `true` / `false` typed, the rest text; delimiter and encoding detected as for spreadsheets | only tables: an array of objects (columns = every key, first seen first; an object inside a row becomes `parent.child` columns, one level only), an object of arrays (columns), an array of arrays (rows) or one flat object (one row); objects that only wrap the array (`{"users": […]}`, `<rows><row/>…</rows>`) are looked through. Anything else stops with a message saying what is not a table |
+
+**`.csv` and `.xml` ownership.** CSV stays a spreadsheet format: the spreadsheets donut, XLSX / ODS routes and
+"Merge into PDF" are unchanged, and the data engine only adds edges `csv ↔ json / jsonl / yaml / toml / xml`. Routes
+combine: XLSX → CSV → JSON, YAML → CSV → XLSX, vCard → CSV → JSON. The spreadsheets donut gets "JSON". `.xml` had no
+owner before; XML-based formats Filee converts have their own extensions (`.svg`, `.fb2`, `.dbk`, `.opml` …), so a
+plain `.xml` file is treated as data and opens the data donut.
+
+**vCard** (`Data/VCard.cs`, own parser): vCard 2.1, 3.0 and 4.0 → CSV with the columns Full name, Given name, Family
+name, Organization, Title, Email, Phone, Address, Birthday, Note (one row per contact; several values joined with
+`; `, each with its kind in brackets: `010-1234-5678 (mobile); 02-123-4567 (work)`). Folded lines, quoted-printable
+with soft line breaks, `CHARSET` parameters, escapes, groups (`item1.EMAIL`), 2.1's bare types (`TEL;CELL`) and 4.0's
+quoted type lists and `tel:` URIs are read; a value without `CHARSET` is UTF-8 when valid, else CP949 (address books
+of older Korean phones); UTF-16 files with a BOM are read too. Pictures and nested cards (2.1 `AGENT`) are skipped,
+a missing full name is made from the name parts (홍길동, "Ada Lovelace"). CSV → vCard reads those columns (also
+`Name`, `Company`, `Mobile`, `E-mail` … and Korean / Chinese headers such as 이름, 전화번호, 이메일, 姓名, 电话) and writes
+vCard 3.0 in UTF-8, lines folded at 75 bytes; an address goes into the street field.
 
 ## CAD drawings (DWG, DXF)
 
@@ -399,6 +479,57 @@ and writes the files; Filee's own renderer draws them with SkiaSharp (one drawin
 - **Limits**: 1 000 000 drawn primitives, block nesting depth 16, 10 000 MINSERT cells, 2 000 000 hatch pattern
   segments in total; beyond that the drawing is cut short with a warning in the log. Damaged or truncated files fail
   with "The file is not a valid DWG/DXF drawing or is damaged: …".
+
+## 3D models
+
+`Filee.Engines/Models3D` converts GLB, glTF, STL, OBJ, 3MF and PLY into each other in managed code: every reader
+fills one in-memory model (`Model3D`: parts with positions, normals, UVs, vertex colours and triangles; materials
+with a base colour and a base colour texture) and every writer takes it, so each pair is one step. glTF and GLB are
+read and written with [SharpGLTF](https://github.com/vpenades/SharpGLTF) (MIT); STL, OBJ/MTL, PLY and 3MF are Filee's
+own code. No native library (Assimp) and no download.
+
+- **Units**: STL, OBJ and PLY have none; they are read and written as **millimetres**, as slicers and CAD programs
+  treat them. 3MF has a `unit` attribute (micron to metre) and is written in millimetres. glTF is metres. So a 20 mm
+  STL cube is 0.02 m in GLB and 20 mm again in STL. There is no preset option for another unit.
+- **Axes** follow Blender's defaults: STL, 3MF and PLY are Z up, OBJ and glTF Y up, so a part standing on a printer's
+  bed stands upright in a glTF viewer and comes back on its base.
+- **Structure**: node hierarchies, 3MF components and build items are flattened: every mesh instance becomes a part in
+  world coordinates (one glTF node / OBJ object / 3MF object per part). Polygons are triangulated (ear clipping, so
+  concave faces are right). OBJ negative indices, `\` line continuations and 0–255 vertex colours are understood.
+- **Vertices**: binary STL is streamed in blocks and vertices are merged by position (a 1,000,000-triangle STL
+  converts to GLB in a few seconds with about 150 MB of memory). STL normals are not kept: GLB written from STL has
+  none, which glTF viewers must shade flat; STL output gets facet normals from the winding. 3MF output welds vertices
+  by position, so meshes split for normals or UVs stay closed for slicers.
+- **Colours**: vertex colours are kept as sRGB and converted to linear for glTF `COLOR_0`; material colours are glTF's
+  linear base colour, OBJ's `Kd` as it is and 3MF's sRGB `displaycolor`. glTF materials are written metallic-roughness,
+  not metallic, roughness 0.8.
+
+What each format keeps:
+
+| Format | Read | Written |
+|---|---|---|
+| GLB / glTF | default scene (else all root nodes), triangles, strips and fans, `POSITION`, `NORMAL`, `TEXCOORD_n` of the base colour texture, `COLOR_0`, base colour factor and texture (metallic-roughness or specular-glossiness), double-sided; `.gltf` with embedded (data URI) or separate `.bin` and picture files | one node and mesh per part, 16- or 32-bit indices, PNG/JPEG textures (others are converted to PNG); **`.gltf` is one self-contained file** (its buffer is a base64 data URI, about a third larger than GLB) |
+| STL | binary (also with a header starting with "solid") and ASCII (one part per `solid`) | binary, one solid |
+| OBJ + MTL | `o` / `g` / `usemtl` as parts, `v` (+ r g b), `vt`, `vn`, faces of any size; `mtllib` with `Kd`, `d` / `Tr`, `map_Kd` (options skipped) next to the file | **the `.mtl` and the textures are written next to the `.obj`** (`name.obj`, `name.mtl`, `name_texture.png`, named like the output); vertex colours as `v x y z r g b` |
+| 3MF | objects, components (also in other model parts, as Bambu Studio writes them), build transforms, base materials, colour groups (materials extension); `support` / `other` objects skipped | one object per part, base materials from material colours, a colour group from vertex colours |
+| PLY | ASCII, binary little / big endian; vertex position, normal, UV (`s`/`t`, `u`/`v`, `texture_u`/`texture_v`), colours of any type; face lists with per-corner `texcoord` and face colours; `comment TextureFile`; other elements skipped | binary little endian, one mesh; material colours become vertex colours |
+
+Lost on the way (no place in the target): **STL** keeps only the triangles (no colours, UVs, normals or materials);
+**PLY** has no materials (their colours become vertex colours, textures are dropped); **OBJ** has no standard vertex
+colours (the common `v x y z r g b` extension is written and read; alpha is lost); **3MF** output has no normals, UVs or
+textures; and every format drops what Filee's model has no place for: animations, skins, morph targets, cameras,
+lights, metallic / roughness / normal / emissive maps, and lines and points. Draco- and meshopt-compressed glTF fail with
+a clear message, as do damaged files ("cut short", an index that does not exist, no triangles).
+
+**3D → pictures**: a small software rasteriser (`MeshRenderer`) draws an isometric view from the front right, above,
+with one light and flat shading per triangle, vertex colours or the texture interpolated across it, and a z-buffer,
+at 2048 px and scaled down to 1024 px for smooth edges, on a transparent background. The preset's image options
+(resize, background for JPG, quality) apply as for other pictures.
+
+Tests (`tests/Filee.Engines.Tests/ModelTests.cs`) build a cube, a sphere and a fan of coloured triangles in code and
+convert each through every format pair, checking triangle counts, bounds, signed volume (winding), normals, UVs,
+colours and materials where both formats keep them; hand-written STL, OBJ, PLY, 3MF and glTF files cover the reading
+details, and a generated 1,000,000-triangle STL the speed.
 
 ## HWPX reader
 
@@ -451,6 +582,15 @@ writer, so every e-book also reaches HWPX, PDF and images. The document model is
   footnotes, pictures come from the base64 binaries; the XML declaration's encoding (often windows-1251) is used.
   FB2 output nests sections by heading level.
 - **HTMLZ / TXTZ** (calibre's zipped formats) are read and written, with their `metadata.opf`.
+- **KEPUB** (Kobo, `Ebooks/Kepub.cs`, written from the format's public descriptions): EPUB → KEPUB copies the book
+  and changes only the XHTML documents of the spine. Every sentence becomes `<span class="koboSpan"
+  id="kobo.P.S">` (P counts the block elements of the chapter, S the sentences in it; a sentence ends at . ! ? …
+  followed by a space, or at the full-width 。！？), every picture gets a span of its own, and the body's content
+  is wrapped in `<div id="book-columns"><div id="book-inner">`. Scripts, styles, SVG and MathML are left alone; a
+  chapter that isn't well-formed XML (after HTML entities such as `&nbsp;` became character references) is copied
+  unchanged. Files are named `name.kepub.epub`, which tells Kobo devices to use their KEPUB reader. Other formats
+  reach KEPUB through EPUB (Markdown → EPUB → KEPUB); KEPUB → EPUB removes the markup again, and a KEPUB is read
+  like any EPUB.
 - **Comics**: CBZ, CBR, CB7, CBT and CBC (a ZIP of CBZ files) are opened with SharpCompress; pages are sorted
   naturally ("page2" before "page10"). → PDF has one page per picture sized like the picture (JPEGs are embedded
   as they are), → EPUB is fixed-layout, → CBZ repacks. PDF → CBZ renders the pages with PDFium at the preset DPI.
@@ -525,12 +665,72 @@ bundled with the installer), never a 7-Zip installed on the PC. It runs as a sep
 - HWP/HWPX import comes from the H2Orestart extension, which is written in Java; Filee points LibreOffice at the
   downloaded JRE (`-env:UNO_JAVA_JFW_JREHOME`).
 - It is the only reader of rarer formats, converted to PDF and to the editable formats of their kind: DOT, Works /
-  WPS Writer, WordPerfect, Lotus Word Pro, AbiWord, Apple Pages and StarWriter (→ DOCX, ODT, DOC, RTF, TXT, HTML);
-  WPS Spreadsheets (ET), Apple Numbers and StarCalc (→ XLSX, ODS, XLS, CSV, HTML); Apple Keynote, WPS
-  Presentation (DPS) and StarImpress / StarDraw (→ PPTX, ODP, PPT); Publisher, CorelDRAW, Visio, CGM and ODG
-  (→ ODG, SVG, PNG). The `--convert-to` filter follows the application that opens the file (checked against
-  LibreOffice's filter registry): Publisher, CorelDRAW and Visio open in Draw, CGM in Impress, and "SDA" files
-  in Draw (.sda) or Impress (.sdd). SVG and PNG export the first page.
+  WPS Writer, WordPerfect, Lotus Word Pro, AbiWord, Apple Pages, StarWriter, ClarisWorks / AppleWorks (`.cwk`),
+  MacWrite (`.mcw`), T602 (`.602`) and Pocket Word (`.psw`) (→ DOCX, ODT, FODT, OTT, DOC, RTF, TXT, HTML); WPS
+  Spreadsheets (ET), Apple Numbers, StarCalc and flat ODS (`.fods`) (→ XLSX, ODS, OTS, XLS, XLT, CSV, HTML); Apple
+  Keynote, WPS Presentation (DPS), StarImpress / StarDraw and flat ODP (`.fodp`) (→ PPTX, ODP, OTP, PPT);
+  Publisher, CorelDRAW, Visio, CGM, ODG and flat ODG (`.fodg`) (→ ODG, SVG, PNG, EMF, WMF). The `--convert-to`
+  filter follows the application that opens the file (checked against LibreOffice's filter registry): Publisher,
+  CorelDRAW and Visio open in Draw, CGM in Impress, and "SDA" files in Draw (.sda) or Impress (.sdd). ClarisWorks
+  files can also be spreadsheets or drawings; Filee treats them as text documents, the common case. SVG, PNG, EMF
+  and WMF export the first page.
+- Written only by LibreOffice: FODT (`OpenDocument Text Flat XML`), the OpenDocument templates OTT / OTS / OTP
+  (`writer8_template`, `calc8_template`, `impress8_template`) and XLT (`MS Excel 97 Vorlage/Template`). XLT is read
+  by the built-in spreadsheet engine like XLS.
+- SVG opens in Draw only for EMF, WMF and ODG; the vector engine keeps SVG → PDF and images. PDF opens in Draw
+  (`draw_pdf_import`) only for SVG and ODG: Draw's SVG export draws every page of a PDF on top of each other, so Filee
+  first copies the first page of the preset's page range into a PDF of its own (PDFsharp). EPS and PS reach SVG
+  through Ghostscript's PDF; Draw would only show their preview picture.
+- Checked with LibreOffice 26.2.6 (`LibreOfficeFormatTests`): FODT, FODS, FODP, FODG, T602 and SVG inputs, the
+  template and FODT outputs, XLT read back by the spreadsheet engine, EMF / WMF headers and the one-page PDF → SVG.
+  ClarisWorks, MacWrite and Pocket Word are binary formats without sample files in the repository: only their
+  filters (`ClarisWorks`, `MacWrite`, `PocketWord File`, all opening in Writer) were checked in the registry.
+
+## Pandoc
+
+`Office/PandocConverter.cs` runs Pandoc for the markup languages Filee doesn't read itself: reStructuredText,
+LaTeX, Org (`.org`), AsciiDoc (`.adoc`, `.asciidoc`), Typst (`.typ`), MediaWiki (`.mediawiki`, `.wiki`),
+DocBook (`.dbk`, `.docbook`; written as DocBook 5), Jupyter notebooks (`.ipynb`), Textile (`.textile`), man pages
+(`.man`) and OPML (`.opml`). Pandoc 3.12 reads and writes all of them.
+
+- Each converts to and from Markdown, HTML, DOCX and ODT and into each other, and to RTF, EPUB and TXT. Through
+  Pandoc's JSON AST they are also read by the HWPX writer, so they reach HWPX, HWP and PDF (HWPX writer → rhwp).
+  There is no PDF through Pandoc itself (that would need a TeX or Typst engine).
+- Edges into a markup language cost 11, one more than into Markdown, so a route with a Pandoc step in the middle
+  (an e-mail's HTML → ? → RTF) stays on Markdown.
+- Markdown, reStructuredText, Org, AsciiDoc, Typst, MediaWiki, Textile and notebooks → **PPTX** with Pandoc's
+  PowerPoint writer (a slide per heading). These edges cost 20: with LibreOffice's cheap PPTX → PDF, Markdown → PPTX
+  → PDF would otherwise beat Markdown → HWPX → PDF.
+- Extensions that mean other things are not claimed: man pages only as `.man` (`.1` … `.9` are also rotated logs,
+  `app.log.1`), DocBook as `.dbk` / `.docbook`, never every `.xml`.
+- DocBook, man pages, OPML, Typst, HTML and LaTeX are written with `--standalone` (a root element, a `.TH` header,
+  a preamble), the text formats extract pictures into `<name>_files` next to the result.
+
+## Subtitles
+
+`Subtitles/SubtitleConverter.cs` (engine id `subtitle`) converts text subtitles in managed code, no FFmpeg needed.
+Every reader produces one cue model (`SubtitleModel.cs`: start, end and text with line breaks and SRT's own tags
+`<i>`, `<b>`, `<u>`, `<font color>`), every writer takes it, so any format converts to any other and to itself (an
+SRT or SAMI file in CP949 comes out as UTF-8).
+
+| Format | Read | Written |
+|---|---|---|
+| SRT | numbers optional, blank lines inside cues and missing between them, `,` or `.` before the milliseconds, `{\an8}` codes dropped | UTF-8 with BOM, CRLF, tags kept |
+| ASS / SSA | `Dialogue:` lines in the order of the `Format:` line; `\i \b \u \c`, bold/italic/underline styles, `\N`; drawings (`\p1`) and comments left out, shadow layers merged | ASS v4.00+ for 1920 × 1080, one "Default" style, override codes (SSA is read only) |
+| WebVTT | NOTE / STYLE / REGION blocks skipped, cue settings ignored, `<i> <b> <u>`, the colour classes (`<c.yellow>`), entities; voices and timestamps dropped | UTF-8, the basic colour classes, text escaped |
+| SAMI (SMI) | hand-made HTML: unquoted attributes, unclosed `<SYNC>` / `<P>`, `&nbsp` with or without `;`; of several languages (KRCC, ENCC, …) the one with the most lines | one class from the text's language (KRCC for Korean), `&nbsp;` where the screen goes blank, UTF-8 with BOM |
+| LRC | `[mm:ss.xx]` (several per line), `[ti:]`, `[offset:]`, enhanced word times dropped; a line lasts until the next one | plain text, lines joined, an empty time line where the screen goes blank |
+| TTML / DFXP | TTML 1 and the 2006 DFXP namespace; times relative to their parents; clock, frames (`ttp:frameRate`), ticks and offset times; spans and referenced styles | TTML 1 with a bottom region and tts: spans |
+| MicroDVD (.sub) | `{frame}{frame}text` with the rate of a `{1}{1}25` first line (else 23.976), `\|` between lines, `{y:i}` / `{c:$BBGGRR}`; VobSub `.sub` (pictures) and SubViewer fail with a clear message | 23.976 fps, first line states it, plain text, `{Y:i}` for all-italic cues |
+| SCC | CEA-608 caption channel 1: pop-on, paint-on and roll-up captions, row preambles, italics, special and extended characters, doubled control codes, drop-frame time codes | — |
+
+- **Encodings**: a byte order mark (UTF-8, UTF-16) or valid UTF-8 decide first, then a `charset=` / `encoding=` the
+  file declares. Otherwise CP949 when the bytes are CP949 pairs, most of them Hangul syllables of KS X 1001 and hardly
+  any with a lead byte above C8 (Chinese GBK text uses those for many common characters), then the PC's code page on
+  Chinese or Japanese Windows, else the Western one (Windows-1252 on Korean Windows). Everything is written as UTF-8.
+- Cues without an end (LRC, the last SAMI line, an unterminated SCC caption) last 4 seconds; empty cues are dropped.
+- Not kept: positions and alignment, fonts and sizes, karaoke timing, ASS animations, WebVTT regions and voices.
+- Tests (`SubtitleTests.cs`) write every input in code, CP949 and GBK bytes included.
 
 ## DjVu
 
@@ -542,9 +742,9 @@ Filee (with the GPL source offer), then an `engines.json` component and an optio
 
 ## FFmpeg
 
-`Media/FfmpegConverter.cs` converts every video format to every video format, to animated GIF, to a still PNG frame
-and to every audio format (the sound track); every audio format to every audio format; and GIF and PNG to MP4, WEBM
-and MOV.
+`Media/FfmpegConverter.cs` converts every video format to every video format, to animated GIF or APNG, to a still PNG
+frame, to every audio format (the sound track) and to SRT, ASS and WebVTT (the subtitles); every audio format to every
+audio format; and GIF, APNG and PNG to MP4, WEBM and MOV.
 Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on MP3 files.
 
 - The download is the gyan.dev **9.0.2 "full_build-shared"** Windows build (GPL-3.0, run as a separate program).
@@ -565,8 +765,15 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   | DV | DV25 with the same NTSC/PAL frames as VOB, 48 kHz stereo PCM |
   | MXF | OP1a with long-GOP MPEG-2 + 48 kHz PCM |
   | GIF | two passes: palettegen over the whole clip, then paletteuse; 15/12/10 fps and at most 640/480/320 px wide (High/Balanced/Small) |
-  | MP3 · M4A/M4B · AAC · OGG · OPUS · WEBA · MKA · WMA · MP2 · AC3 · AMR | LAME VBR (V0/V2/V5) or CBR · AAC · AAC (ADTS) · Vorbis · Opus · Opus · Opus · WMA 2 · MP2 · AC-3 · AMR-NB 12.2k (8 kHz mono) |
-  | WAV · AIFF · AU · CAF · VOC · FLAC | 16-bit PCM (WAV: 8/16/24/32-bit or 32-bit float; RF64 over 4 GB) · FLAC |
+  | APNG | one pass with the `apng` encoder (24-bit RGB, mixed prediction) and muxer, looping; the same frame rates and widths as GIF |
+  | MP4, M4V, MKV with *Video codec* HEVC · MOV with HEVC | x265 (preset medium, `hvc1` tag in MP4/M4V/MOV) + AAC |
+  | MP4, M4V, MKV, WEBM with *Video codec* AV1 | SVT-AV1 (preset 8), or libaom-av1 (cpu-used 6, row multithreading) with an FFmpeg that lacks SVT-AV1 |
+  | MP3 · M4A/M4B · AAC · OGG · OPUS · WEBA · MKA · WMA · MP2 · AC3 · E-AC3 · AMR | LAME VBR (V0/V2/V5) or CBR · AAC, or ALAC with *Audio codec* ALAC · AAC (ADTS) · Vorbis · Opus · Opus · Opus · WMA 2 · MP2 · AC-3 · E-AC-3 · AMR-NB 12.2k (8 kHz mono) |
+  | WAV · W64 · AIFF · AU · CAF · VOC · FLAC · WV · TTA | 16-bit PCM (WAV and W64: 8/16/24/32-bit or 32-bit float; WAV switches to RF64 over 4 GB, Sony Wave64 has no limit) · FLAC · WavPack (lossless) · TTA |
+  | SRT · ASS · VTT (from video) | the video's first text subtitle track, copied when it already is that format, else converted by FFmpeg |
+
+  Read only (FFmpeg's decoders): APE (Monkey's Audio), Musepack (MPC), TAK, DSF and DFF (DSD), DTS, Speex (SPX) and the
+  formats above. No encoder for them is in the build, or (DTS) only an experimental one.
 
 - **Rewrapping instead of re-encoding.** When the target container takes the source's codecs as they are
   (`MediaEncoding.Remuxable`: H.264/HEVC + AAC, ALAC, AC-3, E-AC-3 or MP3 for MP4/M4V/MOV, also ProRes and PCM for
@@ -577,12 +784,26 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   is needed; audio only when no bitrate or other channel count is set. Quality *Small* always re-encodes (the user
   asked for a smaller file); *High* and *Balanced* only set how a stream that has to be encoded is encoded. A
   stream that can't be copied is encoded as below, the other one is still copied.
-- Preset options (`MediaOptions`): *Quality* picks CRF 18/23/28 (x264), 24/32/38 (VP9), quantizer 2/4/7 (MPEG-4,
-  WMV, MPEG-2), Theora 8/6/4 and the audio bitrates (e.g. AAC 256/192/128 kbit/s per stereo pair); *MaxHeight*
-  scales down only, keeps the aspect ratio and even sizes; *AudioBitrateKbps* overrides the audio bitrate (snapped to
-  the MP3/MP2/AC-3 bitrate tables; the editor offers 32 to 320 kbit/s); *RemoveAudio* drops the sound;
-  *AudioChannels* (0 source, 1 mono, 2 stereo) applies to every audio target but AMR; *AudioSampleRate* (8 to
-  48 kHz) and *WavFormat* (bit depth) apply to WAV.
+- Preset options (`MediaOptions`): *Quality* picks CRF 18/23/28 (x264), 22/26/30 (x265), 26/32/40 (SVT-AV1 and
+  libaom), 24/32/38 (VP9), quantizer 2/4/7 (MPEG-4, WMV, MPEG-2), Theora 8/6/4 and the audio bitrates (e.g. AAC and
+  E-AC-3 256/192/128 kbit/s per stereo pair); *MaxHeight* scales down only, keeps the aspect ratio and even sizes;
+  *AudioBitrateKbps* overrides the audio bitrate (snapped to the MP3/MP2/AC-3 bitrate tables; the editor offers 32 to
+  320 kbit/s); *RemoveAudio* drops the sound; *AudioChannels* (0 source, 1 mono, 2 stereo) applies to every audio
+  target but AMR; *AudioSampleRate* (8 to 48 kHz) and *WavFormat* (bit depth) apply to WAV and W64.
+- *VideoCodec* (Default, HEVC, AV1) and *AudioCodec* (Default, ALAC) pick another codec where the target takes it
+  (`MediaCodecs` in Filee.Core: HEVC for MP4/M4V/MKV/MOV, AV1 for MP4/M4V/MKV/WEBM, ALAC for M4A/M4B); for any other
+  target the usual codec is written. The presets "MP4 HEVC" (on the video donut), "MP4 AV1" and "ALAC" use them. A
+  video already in the chosen codec is copied (the rules above, with AV1 also into MP4); HEVC and AV1 keep 10 bits
+  (`yuv420p10le`, Main 10) for 10-bit and HDR sources and write their colour tags (BT.2020, PQ or HLG), 8-bit 4:2:0
+  for the rest. The encoders are looked up with `ffmpeg -encoders` once per FFmpeg, so a copy the user picked without
+  x265 or AV1 fails with a clear message instead of an FFmpeg error. x265 and SVT-AV1 log only errors
+  (`-x265-params log-level=error`, `SVT_LOG=1`).
+- DSD (DSF, DFF) decodes at 2.8 MHz or more: lossless and PCM targets get 88.2 kHz, Vorbis and WMA 44.1 kHz, the
+  other lossy encoders their nearest supported rate.
+- Subtitle extraction takes the first text subtitle track (SubRip, ASS/SSA, WebVTT, MP4 timed text, CEA-608, …).
+  A video without subtitles fails with "The video has no subtitle track."; one with only picture subtitles (Blu-ray
+  PGS, DVD, DVB) says they can't be turned into text without OCR. Video → SAMI, LRC, TTML, … goes through SRT and the
+  subtitle engine (ASS and WebVTT extraction cost 11 so SRT is the hub).
 - The first video stream (cover pictures excluded) and the first audio stream are converted; files without sound
   still convert to video. Title, artist and other tags and chapters are kept, album art too for MP3, M4A, M4B and
   FLAC. Portrait phone videos are turned upright. Odd sizes are evened out, frame rates that MPEG-2/MXF/MPEG-4 part 2
@@ -599,9 +820,10 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   PNG's ICC profile is read (`-flags2 +icc_profiles`), so primaries and transfer are tagged as the photo's (Display
   P3 stays P3); RGB → BT.709 YUV in TV range; transparency is premultiplied onto black. The size is kept (made even)
   unless it exceeds H.264/VP9 level 6.2 (8192 × 4352 pixels, 16384 per side) or the preset's maximum height. The
-  image engines' still picture → GIF edges cost 12 (`ImageEncoder.Edge`) and PNG → video 11, so a photo takes the
-  PNG route (21 < 22) while animated GIF/WebP, multi-page TIFF and PDF keep the GIF route (20): a moving video or a
-  slideshow of the pages.
+  image engines' still picture → GIF and → APNG edges cost 12 (`ImageEncoder.Edge`) and PNG → video 11, so a photo
+  takes the PNG route (21 < 22) while animated GIF/WebP/MNG, multi-page TIFF and PDF keep the GIF route (20): a moving
+  video or a slideshow of the pages. APNG → video costs 11, so an APNG goes straight to video and nothing else detours
+  through it.
 - **Images → HEIC** (`Heic/HeicWriter.cs`): ImageMagick has no HEVC encoder and FFmpeg no HEIF muxer, so the work is
   split. ImageMagick reads any image it knows and applies the preset (orientation, resize, metadata; transparency is
   flattened onto the background colour, HEIC alpha needs an auxiliary picture Filee does not write) and writes an

@@ -125,6 +125,15 @@
         </Grid>
         <!-- Two per row, whichever apply to the target: hidden ones leave no gap. -->
         <UniformGrid Columns="2" ColumnSpacing="12" RowSpacing="10">
+          <StackPanel IsVisible="{Binding ShowVideoCodec}">
+            <TextBlock Classes="label" Text="{DynamicResource presets.video_codec}" />
+            <ComboBox ItemsSource="{Binding VideoCodecs}" SelectedItem="{Binding VideoCodecChoice}" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="{DynamicResource presets.video_codec_hint}" />
+          </StackPanel>
+          <StackPanel IsVisible="{Binding ShowAudioCodec}">
+            <TextBlock Classes="label" Text="{DynamicResource presets.audio_codec}" />
+            <ComboBox ItemsSource="{Binding AudioCodecs}" SelectedItem="{Binding AudioCodecChoice}" HorizontalAlignment="Stretch" />
+          </StackPanel>
           <StackPanel IsVisible="{Binding ShowAudioBitrate}">
             <TextBlock Classes="label" Text="{DynamicResource presets.audio_bitrate}" />
             <ComboBox ItemsSource="{Binding AudioBitrates}" SelectedItem="{Binding AudioBitrate}" HorizontalAlignment="Stretch" />

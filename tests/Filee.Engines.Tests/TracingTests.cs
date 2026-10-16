@@ -420,13 +420,16 @@ public class TracingTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [InlineData("mp4")]
     public void Files_that_are_not_raster_images_are_never_traced(string from)
     {
-        // With every optional engine as if installed: a vector route (LibreOffice for EMF, CDR) is fine, tracing a
-        // rendering is not, so PDF and EPS have no SVG target at all.
-        var planner = fx.Catalog.CreatePlanner(fx.Converters.Select(c => c.Id).ToArray());
-        foreach (var to in new[] { "svg", "svgz", "dxf", "dwg" })
-            Assert.DoesNotContain(planner.Plan(from, to)?.Steps ?? [], IsTracing);
-        if (from is "pdf" or "eps" or "ps" or "ai")
-            Assert.Null(planner.Plan(from, "svg"));
+        // With every optional engine as if installed, and with the built-in ones only: a vector route (LibreOffice for
+        // PDF, EMF, CDR) is fine, tracing a rendering is not.
+        var everyEngine = fx.Catalog.CreatePlanner(fx.Converters.Select(c => c.Id).ToArray());
+        var builtIn = new RoutePlanner(fx.Converters.Where(c => c.Id is not ("libreoffice" or "ghostscript" or "pandoc" or "calibre" or "ffmpeg")));
+        foreach (var planner in new[] { everyEngine, builtIn })
+        {
+            foreach (var to in new[] { "svg", "svgz", "dxf", "dwg" })
+                Assert.DoesNotContain(planner.Plan(from, to)?.Steps ?? [], IsTracing);
+        }
+        Assert.Null(builtIn.Plan(from, "svg"));
     }
 
     [Fact]
@@ -546,6 +549,10 @@ public class TracingTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [Fact]
     public async Task Svg_text_becomes_outlines_in_dxf()
     {
+        // Text needs a font with outlines; a CI machine without fonts has none to draw with.
+        using (var font = new SKFont(SKFontManager.Default.MatchFamily("sans-serif") ?? SKTypeface.Default, 40))
+        using (var glyph = font.GetGlyphPath(font.GetGlyphs("H")[0]))
+            Assert.SkipWhen(glyph is null || glyph.IsEmpty, "no font with outlines on this machine");
         var dir = fx.NewFolder();
         var svg = Path.Combine(dir, "label.svg");
         await File.WriteAllTextAsync(svg, """

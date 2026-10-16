@@ -70,6 +70,15 @@ internal static class CsvFormat
         File.WriteAllText(path, sb.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
     }
 
+    /// <summary>Writes rows of text as CSV the same way as <see cref="Write"/> (UTF-8 with BOM, CRLF).</summary>
+    public static void WriteRows(IEnumerable<IEnumerable<string>> rows, string path, char delimiter = ',')
+    {
+        var sb = new StringBuilder();
+        foreach (var row in rows)
+            sb.Append(string.Join(delimiter, row.Select(value => Quote(value, delimiter)))).Append("\r\n");
+        File.WriteAllText(path, sb.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+    }
+
     internal static List<List<string>> Parse(string text, char delimiter)
     {
         var rows = new List<List<string>>();

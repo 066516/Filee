@@ -3,6 +3,7 @@
 using Filee.Core.Conversion;
 using Filee.Engines.Archives;
 using Filee.Engines.Cad;
+using Filee.Engines.Data;
 using Filee.Engines.Ebooks;
 using Filee.Engines.Email;
 using Filee.Engines.Fonts;
@@ -12,8 +13,10 @@ using Filee.Engines.Icns;
 using Filee.Engines.Infrastructure;
 using Filee.Engines.Magick;
 using Filee.Engines.Media;
+using Filee.Engines.Models3D;
 using Filee.Engines.Office;
 using Filee.Engines.Pdf;
+using Filee.Engines.Subtitles;
 using Filee.Engines.Text;
 using Filee.Engines.Vector;
 
@@ -45,8 +48,11 @@ public static class EngineRegistry
         new DocxWriterConverter(),
         new PdfTextConverter(),
         new EmlConverter(),
+        new DataConverter(),
+        new SubtitleConverter(),
         new FfmpegConverter(),
         new CadConverter(),
+        new ModelConverter(),
         new EbookConverter(),
         new PandocConverter(),
         new GhostscriptConverter(),

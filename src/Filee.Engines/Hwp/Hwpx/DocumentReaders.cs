@@ -37,6 +37,7 @@ internal static class DocumentReaders
         ["csv"] = (path, _) => SheetDocument.Build(CsvFormat.Read(path)),
         ["tsv"] = (path, _) => SheetDocument.Build(SpreadsheetConverter.Read(path, "tsv")),
         ["xls"] = (path, _) => SheetDocument.Build(SpreadsheetConverter.Read(path, "xls")),
+        ["xlt"] = (path, _) => SheetDocument.Build(SpreadsheetConverter.Read(path, "xlt")),
         ["ods"] = (path, _) => SheetDocument.Build(SpreadsheetConverter.Read(path, "ods")),
         ["pptx"] = PptxReader.Read,
         ["pptm"] = PptxReader.Read,
@@ -47,6 +48,7 @@ internal static class DocumentReaders
         ["hwpx"] = HwpxReader.Read,
         ["html"] = HtmlReader.Read,
         ["epub"] = EpubReader.Read,
+        ["kepub"] = EpubReader.Read, // a Kobo EPUB: its koboSpan markup is plain spans to the HTML reader
         ["mobi"] = MobiReader.Read,
         ["azw3"] = MobiReader.Read,
         ["azw"] = MobiReader.Read,
@@ -67,6 +69,15 @@ internal static class DocumentReaders
         ["html"] = "html",
         ["rst"] = "rst",
         ["tex"] = "latex",
+        ["org"] = "org",
+        ["adoc"] = "asciidoc",
+        ["typ"] = "typst",
+        ["mediawiki"] = "mediawiki",
+        ["dbk"] = "docbook",
+        ["ipynb"] = "ipynb",
+        ["textile"] = "textile",
+        ["man"] = "man",
+        ["opml"] = "opml",
     };
 
     /// <summary>Formats read without any optional engine.</summary>
