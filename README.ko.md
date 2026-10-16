@@ -12,7 +12,7 @@
   <a href="https://github.com/KnifeLemon/Filee/releases/latest"><b>다운로드</b></a> ·
   <a href="#설치">설치</a> ·
   <a href="#명령줄">명령줄</a> ·
-  <a href="#문서">문서</a>
+  <a href="#개발">개발</a>
 </p>
 
 <p align="center">
@@ -43,65 +43,26 @@
 
 ## 설치
 
-[Releases](https://github.com/KnifeLemon/Filee/releases/latest)에서 받으세요.
+[릴리스](https://github.com/KnifeLemon/Filee/releases/latest)에서 내려받으세요.
 
-### Windows 10/11 (64비트)
+- **Windows 10/11**: `Filee-<version>-win-Setup.exe`를 실행하거나, `win-Portable.zip`을 풀고 `Filee.exe`를 실행해요.
+  설치할 때 탐색기 메뉴, 로그인 시 자동 실행, `filee` 명령, 추가 엔진을 고를 수 있어요.
+- **macOS 14 이상** (미리보기): `osx-arm64` 또는 `osx-x64` 패키지를 풀고 `./install.sh`를 실행해요.
+  아직 공증 전이라, 처음 실행할 때 시스템 설정 → 개인정보 보호 및 보안 → **그래도 열기**로 허용해 주세요.
+- **Linux x64·ARM64** (미리보기): 패키지를 풀고 `./install.sh`를 실행해요(root 불필요, Python 3 필요).
+  드래그 제스처는 X11에서 돼요. Wayland에서는 드롭 영역과 파일 관리자 우클릭 메뉴를 써 주세요.
 
-`Filee-<버전>-win-Setup.exe`를 실행하세요. 관리자 권한을 한 번 요청하고 모든 사용자를 위해 설치해요. 설치하면서
-탐색기 우클릭 메뉴, 로그인 시 시작, `filee` 명령, 추가 엔진(동영상·오디오용 FFmpeg 약 100MB, 드문 형식용 LibreOffice·
-calibre·Ghostscript·Pandoc)을 고를 수 있어요.
-
-설치 없이 쓰려면 `Filee-<버전>-win-Portable.zip`을 풀고 `Filee.exe`를 실행하면 돼요.
-
-새 버전이 나오면 메뉴와 트레이에 표시돼요. **업데이트**를 누르면 설치 파일을 받아 릴리스의 SHA-256 값과 맞춰 본 뒤
-설치하고, 설정과 엔진은 그대로 남아요. 휴대용 버전은 대신 릴리스 페이지가 열려요.
-
-### macOS 14 이상 (미리보기)
-
-1. `Filee-<버전>-osx-arm64.tar.gz`(Apple Silicon)나 `Filee-<버전>-osx-x64.tar.gz`(Intel)를 받아요.
-2. 압축을 푼 폴더에서 터미널을 열고 `./install.sh`를 실행해요. Filee.app을 `~/Applications`에 복사하고 `filee` 명령을
-   `~/.local/bin`에 추가해요.
-3. 아직 공증(notarization)을 받지 않은 빌드라 처음 실행할 때 macOS가 막아요. 시스템 설정 → 개인정보 보호 및 보안에서
-   **그래도 열기**를 눌러 주세요.
-4. Filee가 손쉬운 사용 권한을 요청해요. <kbd>Option</kbd>+드래그에 필요하고, Filee를 켜는 즉시 동작해요.
-
-Finder에서 파일을 우클릭하면 "Filee로 변환"이 나와요. FFmpeg와 Ghostscript는 Homebrew로 설치하면
-(`brew install ffmpeg ghostscript`) Filee가 알아서 찾아요.
-
-### Linux x64·ARM64 (미리보기)
-
-1. `Filee-<버전>-linux-x64.tar.gz`나 `Filee-<버전>-linux-arm64.tar.gz`를 받아요.
-2. 압축을 푼 폴더에서 `./install.sh`를 실행해요. 관리자 권한 없이 내 계정에만 설치하고, 앱 메뉴에 Filee를, `~/.local/bin`에
-   `filee` 명령을 추가해요. Python 3가 필요해요.
-
-드래그 제스처는 X11 세션에서 동작해요(Ubuntu는 로그인 화면에서 "Ubuntu on Xorg"). Wayland는 앱이 전역 입력을 볼 수 없게
-막아서, 그때는 드롭 영역과 Nautilus·Nemo·Thunar·Dolphin의 우클릭 메뉴로 쓰면 돼요. Ubuntu 24.04에서 테스트하고 있고,
-필요한 시스템 라이브러리는 패키지 안의 `INSTALL.txt`에 있어요.
+새 버전이 나오면 메뉴에 표시되고, 설정과 엔진은 그대로 둔 채 업데이트돼요.
 
 ## 기능
 
-- **커서 위치에 뜨는 도넛 툴바.** 수정키(<kbd>Ctrl</kbd>, macOS는 <kbd>Option</kbd>)를 누른 채 파일을 끌면 돼요. 수정키,
-  마우스 버튼, 드래그 거리, 길게 누르기, 선택한 파일용 단축키를 모두 바꿀 수 있고, 제스처가 동작하지 않을 앱은 실행 중인
-  앱 목록에서 고를 수 있어요.
-- **파일 종류별 툴바.** 이미지, PDF, 문서, 스프레드시트, 프레젠테이션, HWP, 텍스트, 전자책, 동영상, 오디오, 벡터 그래픽,
-  압축 파일, CAD, 글꼴, 여러 종류를 섞은 선택. 실제 도넛 위에서 드래그 앤 드롭으로 프리셋을 배치하고, 프로필과 프리셋을
-  검색하고, 확장자는 태그로 추가해요.
-- **프리셋.** 품질, 크기, DPI, 메타데이터, PDF 합치기·나누기·페이지 범위, 동영상 화질·해상도, 오디오 비트레이트·채널·WAV
-  형식, 압축 수준, 저장 위치, 파일 이름, 이름 충돌 처리, 원본 파일 날짜 유지. TIFF 프리셋은 모든 파일을 여러 페이지짜리
-  TIFF 하나로 합칠 수 있어요.
-- **일괄 변환.** 1개든 100개든 동시에 변환하고, 하나가 실패해도 나머지는 계속돼요. "ZIP 하나로"는 어떤 파일이든 압축 파일
-  하나로, "PDF 병합"은 PDF 하나로 묶어요.
-- **여러 단계 변환.** 여러 단계가 필요한 변환도 알아서 찾아요(HWP → HWPX → DOCX, EPUB → HWPX → PDF → PNG). 단계마다 가장
-  잘하는 엔진을 써요.
-- **네 가지 사용 방법.** 드래그 동작, 파일 관리자 우클릭 메뉴(Windows는 보내기도), 선택한 파일 + 단축키, 메인 창 드롭 영역.
-- **자동 변환 폴더.** 정해 둔 폴더에 들어온 파일을 다운로드나 복사가 끝난 뒤 변환해요. 원본은 그대로 두거나 따로 옮겨서
-  폴더를 받은편지함처럼 쓸 수 있어요. 필요하면 일부 파일만 변환하고(`*.heic`, `scan_*`, 정규식을 태그로 입력), 변환된
-  파일에 따로 파일명 규칙을 정하고, 자주 쓰는 규칙이나 직접 만든 정규식으로 이름 일부를 바꿀 수 있어요. 결과는 미리보기로
-  바로 보여요.
-- **보이는 엔진.** 설정 → 변환 엔진에서 엔진마다 버전과 변환 범위를 보여 줘요. PC에 이미 있는 FFmpeg, calibre, Pandoc,
-  Ghostscript, LibreOffice는 찾아서 쓰고 따로 내려받지 않아요.
-- **라이트·다크·시스템 테마**, 강조색, *애니메이션 줄이기*.
-- **한국어, English, 简体中文.** 기본값은 시스템 언어를 따라요.
+- **커서 옆 도넛**: 키를 누른 채 파일을 끌어 형식 위에 놓으면 끝. 파일에 맞는 형식만 나와요.
+- **파일 종류마다 툴바**를 드래그로 배치하고, 품질·크기·DPI·PDF 페이지·동영상·오디오·저장 위치·파일 이름을
+  프리셋으로 정해요.
+- **여러 파일을 한 번에** 병렬로 변환해요. 여러 단계가 필요한 변환(HWP → HWPX → DOCX)도 알아서 찾아요.
+- **자동 변환 폴더**에 들어온 파일을 바로 변환해요.
+- **다른 방법**: 우클릭 메뉴, 키보드 단축키, 드롭 영역, [`filee` 명령](#명령줄)
+- 밝은·어두운 테마, English · 한국어 · 简体中文
 
 ## 스크린샷
 
@@ -113,14 +74,6 @@ Finder에서 파일을 우클릭하면 "Filee로 변환"이 나와요. FFmpeg와
   <tr>
     <td align="center"><sub>파일 종류마다 도넛을 드래그 앤 드롭으로 배치</sub></td>
     <td align="center"><sub>홈: 드롭 영역과 최근 변환 기록</sub></td>
-  </tr>
-  <tr>
-    <td width="50%" align="center"><img src="docs/media/preset-popup-ko.png" alt="품질과 저장 위치를 고르는 프리셋 편집 창" width="70%"></td>
-    <td width="50%" align="center"><img src="docs/media/engine-setup-ko.png" alt="처음 실행할 때 추가 엔진을 고르는 창" width="80%"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>프리셋 편집: 품질, 크기, 저장 위치, 파일 이름</sub></td>
-    <td align="center"><sub>큰 엔진은 처음 실행할 때 골라서 설치</sub></td>
   </tr>
 </table>
 
@@ -143,80 +96,38 @@ Finder에서 파일을 우클릭하면 "Filee로 변환"이 나와요. FFmpeg와
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **글꼴**: TTF, OTF, WOFF, WOFF2, EOT | 서로 변환 |
 
-표시가 없는 형식은 설치하자마자 변환돼요. MS 오피스·한컴오피스·LibreOffice가 없어도 되고, 설치되어 있어도 MS 오피스와
-한컴오피스는 쓰지 않아요. 표시가 있는 형식은 추가 엔진이 필요하고, 컴퓨터에 없을 때만 내려받아요: ¹ Ghostscript,
-² LibreOffice, ³ Pandoc, ⁴ calibre, ⁵ FFmpeg. 엔진마다 무엇을 유지하고 무엇을 빼는지는 [docs/ENGINES.md](docs/ENGINES.md)에 있어요.
+표시가 없는 형식은 오피스·한컴오피스·LibreOffice 없이 바로 변환돼요.
+표시가 있는 형식은 추가 엔진이 필요하고, 필요할 때만 내려받아요: ¹ Ghostscript, ² LibreOffice, ³ Pandoc,
+⁴ calibre, ⁵ FFmpeg ([자세히](docs/ENGINES.md)).
 
 ## 명령줄
 
-`filee` 명령으로 앱을 열지 않고도 파일을 변환하고 폴더를 감시할 수 있어요. 앱과 같은 엔진과 프리셋을 써요.
-Windows는 설치할 때 **"filee" 명령어를 PATH에 추가**를 체크하고, macOS와 Linux는 `install.sh`가 추가해요.
+`filee` 명령은 앱과 같은 엔진과 프리셋을 써요(설치 프로그램이나 `install.sh`가 추가해요).
 
 ```
 filee convert photo.heic --to jpg
 filee convert *.png --to webp --quality 80 -o converted
-filee convert D:\Scans --recursive --preset to-pdf --json
 filee watch D:\Inbox --to pdf --move-originals
-filee formats heic
-filee presets
 ```
 
-| 명령 | 하는 일 |
-|---|---|
-| `filee convert` | 파일, 와일드카드(`*.heic`), 폴더를 `--to <형식>`이나 `--preset <프리셋>`으로 변환 |
-| `filee watch` | <kbd>Ctrl</kbd>+<kbd>C</kbd>를 누를 때까지 폴더에 들어오는 파일을 변환 |
-| `filee formats` | 모든 형식, 또는 한 형식이 무엇으로 바뀔 수 있는지 보기 |
-| `filee presets` | 앱에 저장된 프리셋 목록 |
+모든 명령과 옵션은 [filee.sh/ko/cli](https://filee.sh/ko/cli/)나 `filee help`에서 볼 수 있어요.
 
-`--json`을 붙이면 스크립트나 다른 프로그램이 읽기 좋은 JSON으로 결과를 출력해요. 종료 코드: `0` 모두 변환,
-`1` 일부 실패, `2` 잘못된 인자나 없는 파일, `3` 변환할 파일 없음. 모든 옵션은 [명령줄 가이드](https://filee.sh/ko/cli/)와
-`filee help`에 있어요.
+## 개발
 
-## 문서
-
-| 하고 싶은 일 | 여기서 시작 |
-|---|---|
-| 명령줄로 변환하기 | [filee.sh/ko/cli](https://filee.sh/ko/cli/) |
-| 앱 구조 이해하기 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| 어떤 엔진이 무엇을 변환하는지, 라이선스 | [docs/ENGINES.md](docs/ENGINES.md) |
-| 새 변환 추가하기 | [docs/ADDING-A-CONVERTER.md](docs/ADDING-A-CONVERTER.md) |
-| 새 언어로 번역하기 | [docs/ADDING-A-LANGUAGE.md](docs/ADDING-A-LANGUAGE.md) |
-| PR 보내기 | [CONTRIBUTING.md](CONTRIBUTING.md) |
-
-## 소스에서 빌드
-
-필요: .NET 10 SDK, 그리고 Windows 10/11, macOS 14 이상 또는 Linux.
+Windows, macOS, Linux에서 .NET 10 SDK로 빌드해요.
 
 ```bash
 git clone https://github.com/KnifeLemon/Filee.git
 cd Filee
-pwsh build/fetch-fonts.ps1                       # 선택: Noto Sans 글꼴
-pwsh build/fetch-engines.ps1 -Only rhwp,pandoc   # 선택: 개발용 엔진 (전체는 -Only 생략, 약 475MB)
+pwsh build/fetch-engines.ps1 -Only rhwp,pandoc   # optional engines
 dotnet run --project src/Filee.App
 dotnet test
 ```
 
-설정은 `%APPDATA%\Filee`(Windows), `~/Library/Application Support/Filee`(macOS), `~/.config/Filee`(Linux)에 저장돼요.
-소스에서 빌드한 Filee는 우클릭 메뉴나 자동 시작을 건드리지 않아요. `pwsh build/build-installer.ps1`은 Windows 설치 파일을
-`Releases/`에 만들고, Mac이나 Linux에서 `pwsh build/build-portable.ps1`을 실행하면 그 시스템용 패키지를 만들어요. 자세한 내용은
-[CONTRIBUTING.md](CONTRIBUTING.md#linux-and-macos-development)에 있어요.
+[구조](docs/ARCHITECTURE.md) · [엔진](docs/ENGINES.md) · [변환기 추가](docs/ADDING-A-CONVERTER.md) ·
+[언어 추가](docs/ADDING-A-LANGUAGE.md) · [기여 안내](CONTRIBUTING.md)
 
-| 프로젝트 | 설명 |
-|---|---|
-| `src/Filee.Core` | 형식, 프리셋, 툴바 프로필, 설정, 경로 계획, 작업 큐. UI·OS API 없음. |
-| `src/Filee.Engines` | 변환 엔진마다 클래스 하나(`IConverter`). HWPX 작성기 포함. |
-| `src/Filee.Platform.Windows` | 탐색기 연동, 우클릭 메뉴, 자동 시작. |
-| `src/Filee.Platform.MacOS`, `src/Filee.Platform.Linux` | macOS·Linux의 Finder 서비스, 파일 관리자 메뉴, 제스처, 자동 시작. |
-| `src/Filee.App` | Avalonia UI: 도넛 툴바, 설정 창, 트레이, 알림. |
-| `src/Filee.Cli` | `filee` 명령줄(convert, watch, formats, presets). 앱과 같은 엔진과 프리셋을 써요. |
-| `tests/*` | xUnit v3 테스트(헤드리스 UI 렌더링 포함). |
-
-## 기여
-
-PR 환영해요. 시작하기 좋은 작업은 [변환기 추가](docs/ADDING-A-CONVERTER.md)와 [언어 추가](docs/ADDING-A-LANGUAGE.md)예요.
-Filee가 쓸만하다면 ⭐ 하나가 다른 사람들이 Filee를 찾는 데 도움이 돼요.
-
-Filee는 앞으로도 무료예요. 개발을 응원하고 싶다면 [후원하기](#후원하기)를 봐 주세요.
+PR 환영해요. Filee가 쓸만하다면 ⭐ 하나가 다른 사람들이 Filee를 찾는 데 도움이 돼요.
 
 ## 코드 서명 정책
 
@@ -230,11 +141,10 @@ Filee는 파일을 업로드하지 않고, 사용 기록도 보내지 않아요.
 ## 후원하기
 
 Filee는 앞으로도 무료예요. 개발을 응원하고 싶다면 편한 방법으로 후원해 주세요.
-국내 카드·간편결제는 [Fairy](https://fairy.hada.io/@filee)에서 할 수 있어요. 감사합니다!
+국내 카드·간편결제는 [Fairy](https://fairy.hada.io/@filee)에서 할 수 있어요.
 
-**여기에 이름이나 로고를 올려 보세요.** Patreon, GitHub Sponsors, Ko-fi로 매월 후원하시면 이곳에 이름을, 로고 티어는
-이곳과 Filee 정보 페이지에 로고를 올려 드려요(다음 릴리즈부터, 후원하시는 동안). 한 번 후원하신 분도 원하시면
-이름을 올려 드려요.
+**여기에 이름이나 로고를 올려 보세요.** 매월 후원하시면 이곳에 이름을, 로고 티어는 이곳과 Filee 정보 페이지에
+로고를 올려 드려요. 한 번 후원하신 분도 원하시면 이름을 올려 드려요.
 
 <!-- sponsors: src/Filee.App/Assets/Sponsors/sponsors.json -->
 
