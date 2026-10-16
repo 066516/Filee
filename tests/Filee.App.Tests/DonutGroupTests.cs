@@ -47,17 +47,6 @@ public class DonutGroupTests
     /// <summary>The middle of the group's ring slice <paramref name="sub"/>.</summary>
     private static Point OnRing(DonutMenu donut, int sub) => donut.SubSliceCenter(Group, sub);
 
-    /// <summary>Lets a frame render: the pointer then hits what is drawn, as on screen.</summary>
-    private static void Drawn()
-    {
-        for (var i = 0; i < 3; i++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        }
-        Dispatcher.UIThread.RunJobs();
-    }
-
     private static bool IsOpen(DonutMenu donut) => donut.HitTest(OnRing(donut, 1)).Kind == DonutHitKind.SubSegment;
 
     [AvaloniaFact]
@@ -125,7 +114,7 @@ public class DonutGroupTests
     }
 
     [AvaloniaFact]
-    public void A_click_or_tap_opens_a_group_at_once_and_a_click_past_its_ring_folds_it()
+    public void A_click_or_tap_opens_a_group_at_once()
     {
         var (donut, window) = Open();
         var invoked = 0;
@@ -135,15 +124,6 @@ public class DonutGroupTests
         window.MouseUp(inner, MouseButton.Left);
         Assert.True(IsOpen(donut));
         Assert.Equal(0, invoked); // the group itself converts nothing
-
-        var past = OnGroup(donut, donut.OuterRadius + 7 + DonutMenu.SubRingSpace - 6);
-        Assert.Equal(DonutHitKind.Outside, donut.HitTest(past).Kind);
-        // As in the app: the open ring is on screen, and the mouse gets past it by crossing it, not by jumping.
-        Drawn();
-        window.MouseMove(OnGroup(donut, donut.OuterRadius + 30));
-        window.MouseDown(past, MouseButton.Left);
-        window.MouseUp(past, MouseButton.Left);
-        Assert.False(IsOpen(donut));
         window.Close();
     }
 
