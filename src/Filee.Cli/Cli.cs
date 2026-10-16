@@ -224,8 +224,12 @@ internal static class Cli
         else
         {
             var wanted = options.Preset!;
-            var found = host.Store.Presets.FirstOrDefault(p => string.Equals(p.Id, wanted, StringComparison.OrdinalIgnoreCase))
-                        ?? host.Store.Presets.FirstOrDefault(p => string.Equals(host.Texts.DisplayName(p), wanted, StringComparison.OrdinalIgnoreCase));
+            Preset? Find(IEnumerable<Preset> presets) =>
+                presets.FirstOrDefault(p => string.Equals(p.Id, wanted, StringComparison.OrdinalIgnoreCase))
+                ?? presets.FirstOrDefault(p => string.Equals(host.Texts.DisplayName(p), wanted, StringComparison.OrdinalIgnoreCase));
+            // Conversions first: a group of the same name (say a "Rotate" group next to your own "Rotate" preset)
+            // must not hide one. A group is only found to say what it holds.
+            var found = Find(host.Store.Presets.Where(p => !p.IsGroup)) ?? Find(host.Store.Presets);
             if (found is null)
             {
                 errors.WriteLine($"filee: no preset '{wanted}'. Run 'filee presets' for the list.");
@@ -234,8 +238,10 @@ internal static class Cli
             if (found.IsGroup)
             {
                 // A donut group converts nothing; name what it holds so the right one is easy to pick.
-                var members = found.SubPresetIds.Select(host.Store.FindPreset).OfType<Preset>().Select(p => p.Id);
-                errors.WriteLine($"filee: '{wanted}' is a group on the donut, not a conversion. Use one of: {string.Join(", ", members)}");
+                var members = found.SubPresetIds.Select(host.Store.FindConversion).OfType<Preset>().Select(p => p.Id).ToList();
+                errors.WriteLine(members.Count > 0
+                    ? $"filee: '{wanted}' is a group on the donut, not a conversion. Use one of: {string.Join(", ", members)}"
+                    : $"filee: '{wanted}' is a group on the donut, not a conversion, and has no presets left. Run 'filee presets' for the list.");
                 return null;
             }
             preset = found.Clone();

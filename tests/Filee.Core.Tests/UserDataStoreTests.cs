@@ -35,6 +35,19 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Only_a_conversion_is_found_to_run()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Presets.Add(new Preset { Id = "web", Name = "Web", Kind = PresetKind.Group, SubPresetIds = ["to-png"] });
+
+        Assert.NotNull(store.FindPreset("web")); // to edit it
+        Assert.Null(store.FindConversion("web")); // never to run it (a watch folder pointing at it converts nothing)
+        Assert.Equal("to-png", store.FindConversion("to-png")!.Id);
+    }
+
+    [Fact]
     public void A_kind_from_a_newer_Filee_reads_as_a_group_and_the_other_presets_still_load()
     {
         using var dir = new TempDir();

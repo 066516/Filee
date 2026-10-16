@@ -75,7 +75,7 @@ public sealed class WatchFolderService(UserDataStore store, ConversionService co
 
     private async Task<Core.Conversion.ConversionJob?> ConvertAsync(WatchRule rule, IReadOnlyList<string> files)
     {
-        var preset = store.Presets.FirstOrDefault(p => p.Id == rule.PresetId && !p.IsGroup);
+        var preset = store.FindConversion(rule.PresetId);
         if (preset is null)
         {
             log.LogWarning("Watch folder {Folder}: preset {Preset} no longer exists", rule.Folder, rule.PresetId);
