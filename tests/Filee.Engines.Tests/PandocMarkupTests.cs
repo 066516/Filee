@@ -86,8 +86,9 @@ public class PandocMarkupTests(EngineFixture fx) : IClassFixture<EngineFixture>
         // Markdown keeps its built-in routes.
         Assert.Equal("markdown", Assert.Single(planner.Plan("md", "html")!.Steps).Converter.Id);
         Assert.Equal("docx-writer", Assert.Single(planner.Plan("md", "docx")!.Steps).Converter.Id);
-        // Extensions that could mean something else are not claimed.
-        Assert.Null(FormatRegistry.FindByExtension("xml"));
+        // Extensions that could mean something else are not claimed by markup formats: a plain .xml is data (the data
+        // engine), not DocBook.
+        Assert.Equal("xml", FormatRegistry.FindByExtension("xml")!.Id);
         Assert.Null(FormatRegistry.FindByExtension("1"));
         Assert.Equal("mediawiki", FormatRegistry.FindByExtension("wiki")!.Id);
         Assert.Equal("adoc", FormatRegistry.FindByExtension("asciidoc")!.Id);

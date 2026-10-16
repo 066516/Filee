@@ -256,6 +256,16 @@ internal static class SettingsMigrations
         if (settings.SchemaVersion < 12)
             InsertBefore(settings.EnginePriority, "subtitle", "ffmpeg");
 
+        // v14: built-in "data" engine (JSON, YAML, TOML, XML, CSV, vCard), next to the e-mail engine.
+        if (settings.SchemaVersion < 14 && !settings.EnginePriority.Contains("data"))
+        {
+            var email = settings.EnginePriority.IndexOf("email");
+            if (email >= 0)
+                settings.EnginePriority.Insert(email + 1, "data");
+            else
+                InsertBefore(settings.EnginePriority, "data", "pandoc");
+        }
+
         if (settings.Triggers.Count == 0)
             settings.Triggers = TriggerGesture.Defaults();
 
@@ -388,6 +398,41 @@ internal static class SettingsMigrations
         //      their extensions unless another donut already has them.
         if (from < 13)
             changed |= LearnExtensions(profiles, out _);
+
+        // v14: structured data (JSON, YAML, TOML, XML, vCard) gets its own donut after "fonts", Outlook MSG joins
+        //      the documents donut next to EML, and the spreadsheets donut gets JSON after CSV.
+        if (from < 14)
+            changed |= AddData(presets, profiles);
+        return changed;
+    }
+
+    private static bool AddData(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        foreach (var preset in BuiltInData.DataPresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+        {
+            presets.Add(preset);
+            changed = true;
+        }
+        changed |= LearnExtensions(profiles, out var claimed);
+
+        if (profiles.All(p => p.Id != "data"))
+        {
+            var data = BuiltInData.DataProfile();
+            // Only the extensions no donut of the user takes yet.
+            data.Extensions = data.Extensions.Where(claimed.Add).ToList();
+            if (data.Extensions.Count > 0)
+            {
+                var presetIds = presets.Select(p => p.Id).ToHashSet();
+                data.PresetIds = data.PresetIds.Where(presetIds.Contains).ToList();
+                var fonts = profiles.FindIndex(p => p.Id == "fonts");
+                var insertAt = fonts >= 0 ? fonts + 1 : profiles.FindIndex(p => p.IsFallback);
+                profiles.Insert(insertAt < 0 ? profiles.Count : insertAt, data);
+                changed = true;
+            }
+        }
+
+        changed |= Offer(presets, profiles, "spreadsheets", "to-json", "to-csv");
         return changed;
     }
 

@@ -18,7 +18,8 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | **HWPX writer** | built in | **DOCX (+ DOCM/DOTX/DOTM), XLSX (+ XLSM/XLTX), XLS, ODS, CSV, TSV, PPTX (+ PPTM/POTX/PPSX), PDF, HTML, EPUB, MOBI/AZW3, FB2, HWPX, TXT, Markdown → HWPX** (and with rhwp → PDF and images); ODT, RTF, reStructuredText, LaTeX → HWPX with Pandoc |
 | **DOCX writer** | built in | **HWPX (and HWP through rhwp), PDF, HTML, EPUB, MOBI/AZW3, FB2, Markdown, TXT, XLSX, XLS, ODS, CSV, PPTX (+ variants) → DOCX** |
 | PDF text | built in (PdfPig) | **PDF → TXT** (reading order, also two columns; no OCR) |
-| E-mail | built in (MimeKit) | **EML → HTML** (headers + body, inline pictures), **TXT**, **ZIP** (the attachments) |
+| E-mail | built in (MimeKit, MsgReader) | **EML, Outlook MSG → HTML** (headers + body, inline pictures), **TXT**, **ZIP** (the attachments); **MSG → EML** |
+| Data | built in (System.Text.Json, YamlDotNet, Tomlyn, System.Xml) | **JSON, JSON Lines, YAML, TOML, XML, CSV ↔ each other** (CSV for tables); **vCard ↔ CSV**; spreadsheets and contacts reach JSON / YAML / TOML / XML through CSV |
 | **E-books** | built in | **EPUB, MOBI/AZW/AZW3/PRC, FB2, HTMLZ, TXTZ → EPUB, HWPX (→ PDF), TXT, HTML, Markdown, FB2, HTMLZ, TXTZ**; HTML, Markdown, TXT, DOCX → EPUB/FB2/HTMLZ/TXTZ; HTML → TXT; comics CBZ/CBR/CB7/CBT/CBC → PDF, EPUB, CBZ; PDF → CBZ; AZW4 → PDF; **EPUB ↔ KEPUB** (Kobo) |
 | CAD (ACadSharp + built-in renderer) | built in (library) | **DWG ↔ DXF**; DWG/DXF → **PDF** (vector), **SVG**, PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF |
 | **Subtitles** | built in | **SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD, SCC → SRT, ASS, WebVTT, SAMI, LRC, TTML, MicroDVD**, always UTF-8 (Korean CP949 / EUC-KR files read correctly) |
@@ -324,10 +325,51 @@ XLSM → CSV, PPSX → DOCX ...).
 headers (RFC 2047 / 2231) and charsets including EUC-KR / CP949 and ISO-2022-KR; raw 8-bit header text that is not
 UTF-8 is read as CP949, as older Korean mail programs wrote it.
 
+Outlook .msg files are read with MsgReader (MIT, `Email/OutlookMessage.cs`) and rebuilt as a MIME message with
+MimeKit: sender, To / Cc / Bcc, subject, sent date, Message-ID, the text and HTML bodies (MsgReader takes the HTML out
+of RTF-only messages), attachments, pictures the HTML shows (`cid:`, kept with the body) and attached Outlook items
+(as attached .eml messages). That message then goes the EML way below, so MSG → HTML / TXT / ZIP are direct edges
+(cost 10; through EML would be 20 and parse twice) and **MSG → EML** writes the rebuilt message. Attachments that only
+link to a file elsewhere (`ATTACH_BY_REFERENCE`) are not followed. MsgReader brings OpenMcdf (MPL-2.0, the compound
+file reader), RtfPipe (MIT) and UTF.Unknown (MPL-1.1, charset detection for old ANSI messages).
+
 - **EML → HTML**: a standalone page with From / To / Cc / Date / Subject / Attachments and the HTML body (its style
   sheets kept, scripts removed) or the text body; pictures sent inline (`cid:`) become data URIs.
 - **EML → TXT**: the same headers and the text body (or the HTML body as text).
 - **EML → ZIP**: the attachments (attached messages as .eml) with safe, unique file names.
+
+## Data (JSON, YAML, TOML, XML, CSV, vCard)
+
+`Data/DataConverter.cs` (engine id `data`) reads every format into one tree (`Data/DataTree.cs`: objects with their
+keys in file order, arrays, text, true / false, integers of any size, floats, TOML dates and null) and writes it
+again, so structure and types carry over as far as the target can hold them. Output is UTF-8 without BOM with LF
+line ends, indented by two spaces (CSV: like the spreadsheet engine, UTF-8 with BOM and CRLF for Excel). There are no
+options: the output is always pretty-printed.
+
+| Format | Library | Read | Written / lost |
+|---|---|---|---|
+| JSON (`.json`) | System.Text.Json | comments and trailing commas allowed (JSONC) | non-ASCII text as it is; NaN / infinities as text ("NaN") |
+| JSON Lines (`.jsonl`, `.ndjson`) | System.Text.Json | one value per line, blank lines skipped, read as an array | one compact line per record (the array, or the array inside wrappers, see CSV) |
+| YAML (`.yaml`, `.yml`) | YamlDotNet (MIT) | YAML 1.2 core schema: unquoted `true`, `null` / `~`, numbers (`0x`, `0o`, `.inf`, `.nan`) are typed, the rest and anything quoted is text (`yes` / `no` stay text); explicit `!!str` / `!!int` … tags; anchors and aliases resolved (copied), merge keys (`<<`) applied; several documents (`---`) become an array; comments dropped; alias "bombs" (more than 5 million values) and nesting deeper than 256 refused | block style; text that would read back as another type (`"true"`, `"007"`, `""`, YAML 1.1's `yes` / `on`, dates) is quoted; multi-line text as a literal block (`\|`) |
+| TOML (`.toml`) | Tomlyn (BSD-2-Clause, TOML 1.1) | dates and times keep their TOML spelling (text in JSON / YAML) | written by Filee: plain keys, then `[tables]` and `[[arrays of tables]]`; **null values are left out** (TOML has none); a root that is not an object goes under `items` (`[[items]]`); integers beyond 64 bits as text |
+| XML (`.xml`) | System.Xml | root element = an object with one key; attributes as `@name`, text next to attributes or children as `#text`, repeated elements as an array (**one child is no array**), `<a/>` → null, `<a></a>` → empty text, CDATA as text; all values are text (XML has no types); comments, processing instructions and the DTD dropped, external entities never loaded; the encoding from the declaration (EUC-KR …) | a root that is not one object with one key goes into `<root>`, items of nested arrays into `<item>`; names that are not XML names are escaped (`first name` → `first_x0020_name`, unescaped when read back); `x:name` keeps its namespace when `@xmlns:x` declares it; control characters XML 1.0 can't hold are removed |
+| CSV (`.csv`) | Filee (`Office/Sheets/CsvFormat.cs`) | first row = keys, one object per row; plain numbers (not `007`) and `true` / `false` typed, the rest text; delimiter and encoding detected as for spreadsheets | only tables: an array of objects (columns = every key, first seen first; an object inside a row becomes `parent.child` columns, one level only), an object of arrays (columns), an array of arrays (rows) or one flat object (one row); objects that only wrap the array (`{"users": […]}`, `<rows><row/>…</rows>`) are looked through. Anything else stops with a message saying what is not a table |
+
+**`.csv` and `.xml` ownership.** CSV stays a spreadsheet format: the spreadsheets donut, XLSX / ODS routes and
+"Merge into PDF" are unchanged, and the data engine only adds edges `csv ↔ json / jsonl / yaml / toml / xml`. Routes
+combine: XLSX → CSV → JSON, YAML → CSV → XLSX, vCard → CSV → JSON. The spreadsheets donut gets "JSON". `.xml` had no
+owner before; XML-based formats Filee converts have their own extensions (`.svg`, `.fb2`, `.dbk`, `.opml` …), so a
+plain `.xml` file is treated as data and opens the data donut.
+
+**vCard** (`Data/VCard.cs`, own parser): vCard 2.1, 3.0 and 4.0 → CSV with the columns Full name, Given name, Family
+name, Organization, Title, Email, Phone, Address, Birthday, Note (one row per contact; several values joined with
+`; `, each with its kind in brackets: `010-1234-5678 (mobile); 02-123-4567 (work)`). Folded lines, quoted-printable
+with soft line breaks, `CHARSET` parameters, escapes, groups (`item1.EMAIL`), 2.1's bare types (`TEL;CELL`) and 4.0's
+quoted type lists and `tel:` URIs are read; a value without `CHARSET` is UTF-8 when valid, else CP949 (address books
+of older Korean phones); UTF-16 files with a BOM are read too. Pictures and nested cards (2.1 `AGENT`) are skipped,
+a missing full name is made from the name parts (홍길동, "Ada Lovelace"). CSV → vCard reads those columns (also
+`Name`, `Company`, `Mobile`, `E-mail` … and Korean / Chinese headers such as 이름, 전화번호, 이메일, 姓名, 电话) and writes
+vCard 3.0 in UTF-8, lines folded at 75 bytes; an address goes into the street field.
 
 ## CAD drawings (DWG, DXF)
 

@@ -20,6 +20,7 @@ public enum FormatCategory
     Cad,
     Font,
     Subtitle,
+    Data,
 }
 
 /// <summary>

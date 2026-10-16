@@ -30,6 +30,10 @@ public class ProfileSelectorTests
     [InlineData("ebooks", "novel.kepub.epub", "novel.epub")]
     [InlineData("office", "letter.fodt", "memo.602")]
     [InlineData("spreadsheets", "budget.xlt", "flat.fods")]
+    [InlineData("data", "a.json", "b.YML", "c.toml", "d.xml")]
+    [InlineData("data", "contacts.vcf")]
+    [InlineData("spreadsheets", "table.csv")]
+    [InlineData("office", "mail.msg", "mail.eml")]
     public void Built_in_profiles_take_their_files(string expected, params string[] files) =>
         Assert.Equal(expected, Pick(_builtIn, files));
 
