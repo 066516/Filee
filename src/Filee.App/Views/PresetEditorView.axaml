@@ -162,6 +162,35 @@
       </StackPanel>
     </Border>
 
+    <!-- Tracing options (raster image → SVG, and DXF / DWG through SVG) -->
+    <Border x:Name="TraceCard" Classes="card" IsVisible="{Binding ShowTrace}" Padding="14">
+      <StackPanel Spacing="10">
+        <TextBlock Classes="h2" Text="{DynamicResource presets.group.trace}" />
+        <TextBlock Classes="caption" Text="{DynamicResource presets.trace_note}" TextWrapping="Wrap" />
+        <Grid ColumnDefinitions="*,12,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="{DynamicResource presets.trace_mode}" />
+            <ComboBox ItemsSource="{Binding TraceModes}" SelectedItem="{Binding TraceMode}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" IsVisible="{Binding ShowTraceColors}">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="{Binding TraceColors}" FontWeight="SemiBold" />
+              <TextBlock Classes="label" Text="{DynamicResource presets.trace_colors}" />
+            </DockPanel>
+            <Slider Minimum="2" Maximum="64" Value="{Binding TraceColors}" TickFrequency="1" IsSnapToTickEnabled="True" />
+          </StackPanel>
+        </Grid>
+        <StackPanel>
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="{Binding TraceDetail}" FontWeight="SemiBold" />
+            <TextBlock Classes="label" Text="{DynamicResource presets.trace_detail}" />
+          </DockPanel>
+          <Slider Minimum="0" Maximum="100" Value="{Binding TraceDetail}" TickFrequency="1" IsSnapToTickEnabled="True"
+                  ToolTip.Tip="{DynamicResource presets.trace_detail_hint}" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
     <!-- PDF options (render settings also apply when a PDF is converted to images) -->
     <Border Classes="card" Padding="14" IsVisible="{Binding ShowPdf}">
       <StackPanel Spacing="10">

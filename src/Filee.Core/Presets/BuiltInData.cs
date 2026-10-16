@@ -74,6 +74,18 @@ public static class BuiltInData
         new() { Id = "to-html", Name = "HTML", TargetFormat = "html" },
         .. SpreadsheetPresets(),
         .. CatalogPresets(),
+        .. TracePresets(),
+    ];
+
+    /// <summary>Raster → SVG tracing, in colour and as black line art (added in settings schema 11).</summary>
+    public static List<Preset> TracePresets() =>
+    [
+        new() { Id = "trace-svg", NameKey = "preset.trace_svg", TargetFormat = "svg" },
+        new()
+        {
+            Id = "trace-line-art", NameKey = "preset.trace_line_art", TargetFormat = "svg",
+            Trace = { Mode = TracingMode.BlackAndWhite },
+        },
     ];
 
     /// <summary>HWP as a target, through HWPX (added in settings schema 7, see SettingsMigrations).</summary>
@@ -172,7 +184,7 @@ public static class BuiltInData
         {
             Id = "images", NameKey = "profile.images",
             Extensions = ExtensionsOf(FormatCategory.Image),
-            PresetIds = ["to-png", "to-jpg", "to-webp", "to-pdf", "to-tiff", "to-bmp", "to-ico", "half-size"],
+            PresetIds = ["to-png", "to-jpg", "to-webp", "to-pdf", "trace-svg", "trace-line-art", "to-tiff", "to-bmp", "to-ico", "half-size"],
         },
         new()
         {

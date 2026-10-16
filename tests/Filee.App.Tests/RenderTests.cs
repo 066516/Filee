@@ -355,7 +355,7 @@ public class RenderTests
         window.DonutControl.SetExternalHighlight(1);
         Pump();
 
-        Assert.Equal(8, vm.Items.Count);
+        Assert.Equal(10, vm.Items.Count); // with "Trace to SVG" and "Line art to SVG"
         Assert.Equal("JPG 3개", vm.CenterTitle);
         Save(window, "donut-images-ko.png");
         window.Close();
@@ -755,6 +755,50 @@ public class RenderTests
             if (dark)
                 theme.Apply(new ThemeSettings(), language);
         }
+    }
+
+    /// <summary>The preset popup of "Trace to SVG": mode, colours and detail; colours only in colour mode.</summary>
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    [InlineData("zh-CN")]
+    public void Preset_editor_shows_tracing_options(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var store = AppHost.Get<UserDataStore>();
+        var vm = new PresetEditorViewModel(store.FindPreset("trace-svg")!.Clone(), AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowTrace && vm.ShowTraceColors);
+        Assert.False(vm.ShowImage || vm.ShowMedia || vm.ShowArchive);
+
+        var window = new PresetEditorWindow { DataContext = vm, Height = 760 };
+        window.Show();
+        Pump();
+        Assert.True(window.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "TraceCard").IsVisible);
+        Save(window, $"preset-trace-{language}.png");
+        window.Close();
+
+        vm.TraceMode = vm.TraceModes.Single(m => m.Value == Filee.Core.Presets.TracingMode.BlackAndWhite);
+        Assert.False(vm.ShowTraceColors);
+        vm.Target = vm.Targets.Single(t => t.Value == "dxf");
+        Assert.True(vm.ShowTrace);
+        vm.Target = vm.Targets.Single(t => t.Value == "png");
+        Assert.False(vm.ShowTrace);
+    }
+
+    [AvaloniaFact]
+    public void Preset_editor_saves_tracing_options()
+    {
+        TestServices.EnsureInitialized("en");
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "svg", Name = "Logo" };
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.Equal(["Colour", "Black and white (line art)"], vm.TraceModes.Select(m => m.Label));
+
+        vm.TraceMode = vm.TraceModes.Single(m => m.Value == Filee.Core.Presets.TracingMode.BlackAndWhite);
+        vm.TraceColors = 200;
+        vm.TraceDetail = 80;
+        Assert.True(vm.Apply());
+
+        Assert.Equal((Filee.Core.Presets.TracingMode.BlackAndWhite, 64, 80), (preset.Trace.Mode, preset.Trace.Colors, preset.Trace.Detail));
     }
 
     [AvaloniaFact]

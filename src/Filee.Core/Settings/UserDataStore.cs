@@ -360,6 +360,19 @@ internal static class SettingsMigrations
             presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == "remove-background"));
             changed = true;
         }
+
+        // v11: raster → SVG tracing ("Trace to SVG" in colour, "Line art to SVG" in black), on the images donut after
+        //      PDF.
+        if (from < 11)
+        {
+            foreach (var preset in BuiltInData.TracePresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+            {
+                presets.Add(preset);
+                changed = true;
+            }
+            changed |= Offer(presets, profiles, "images", "trace-svg", "to-pdf");
+            changed |= Offer(presets, profiles, "images", "trace-line-art", "trace-svg");
+        }
         return changed;
     }
 

@@ -211,6 +211,43 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_10_libraries_get_the_tracing_presets_on_the_images_donut_after_pdf()
+    {
+        // As written before tracing: no trace presets, and the images donut without them.
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id is "trace-svg" or "trace-line-art");
+        var profiles = BuiltInData.CreateProfiles();
+        var images = profiles.Single(p => p.Id == "images");
+        images.PresetIds.RemoveAll(id => id is "trace-svg" or "trace-line-art");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(10, presets, profiles));
+
+        Assert.Equal(TracingMode.Color, presets.Single(p => p.Id == "trace-svg").Trace.Mode);
+        Assert.Equal(TracingMode.BlackAndWhite, presets.Single(p => p.Id == "trace-line-art").Trace.Mode);
+        Assert.All(presets.Where(p => p.Id.StartsWith("trace-", StringComparison.Ordinal)), p => Assert.Equal("svg", p.TargetFormat));
+        Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "images").PresetIds, images.PresetIds);
+        Assert.False(SettingsMigrations.ApplyToLibrary(10, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Trace_options_survive_a_save_and_load()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        var preset = store.Presets.Single(p => p.Id == "trace-svg");
+        preset.Trace.Colors = 6;
+        preset.Trace.Detail = 80;
+        store.SaveLibrary();
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        var trace = reloaded.Presets.Single(p => p.Id == "trace-svg").Trace;
+        Assert.Equal((TracingMode.Color, 6, 80), (trace.Mode, trace.Colors, trace.Detail));
+        Assert.Equal(TracingMode.BlackAndWhite, reloaded.Presets.Single(p => p.Id == "trace-line-art").Trace.Mode);
+    }
+
+    [Fact]
     public void Catalog_migration_ignores_extensions_checked_on_mixed_profiles()
     {
         // Schema-5 data where the user already limited a mixed-files donut to MP3 and JPG: those checks must not

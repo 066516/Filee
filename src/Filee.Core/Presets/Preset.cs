@@ -38,6 +38,9 @@ public sealed class Preset
     /// <summary>Options used for archives (ZIP, 7Z, TAR ...).</summary>
     public ArchiveOptions Archive { get; set; } = new();
 
+    /// <summary>Options used when a raster image is traced into vector shapes (PNG → SVG, DXF ...).</summary>
+    public TracingOptions Trace { get; set; } = new();
+
     /// <summary>Where and how output files are written.</summary>
     public OutputRule Output { get; set; } = new();
 
@@ -56,6 +59,7 @@ public sealed class Preset
         Document = Document.Clone(),
         Media = Media.Clone(),
         Archive = Archive.Clone(),
+        Trace = Trace.Clone(),
         Output = Output.Clone(),
     };
 }
@@ -275,4 +279,33 @@ public sealed class ArchiveOptions
     public ArchiveLevel Level { get; set; } = ArchiveLevel.Normal;
 
     public ArchiveOptions Clone() => (ArchiveOptions)MemberwiseClone();
+}
+
+/// <summary>How a raster image is traced.</summary>
+public enum TracingMode
+{
+    /// <summary>The image is reduced to <see cref="TracingOptions.Colors"/> colours, each traced as stacked shapes.</summary>
+    Color,
+    /// <summary>Dark pixels become black shapes on a transparent background (logos, signatures, scans).</summary>
+    BlackAndWhite,
+}
+
+/// <summary>Raster → vector tracing options.</summary>
+public sealed class TracingOptions
+{
+    /// <summary>Smallest and largest <see cref="Colors"/>.</summary>
+    public const int MinColors = 2, MaxColors = 64;
+
+    public TracingMode Mode { get; set; } = TracingMode.Color;
+
+    /// <summary>Number of colours in <see cref="TracingMode.Color"/> mode (2–64).</summary>
+    public int Colors { get; set; } = 16;
+
+    /// <summary>
+    /// 0–100: low values smooth the outlines and drop specks, high values follow the pixels more closely and keep
+    /// small details.
+    /// </summary>
+    public int Detail { get; set; } = 50;
+
+    public TracingOptions Clone() => (TracingOptions)MemberwiseClone();
 }
