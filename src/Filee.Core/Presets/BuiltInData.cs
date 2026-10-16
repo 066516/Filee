@@ -189,9 +189,16 @@ public static class BuiltInData
         },
     ];
 
+    /// <summary>
+    /// A rotate / flip preset. A JPG (or WEBP, AVIF) is encoded again when it turns: at 95 rather than the usual 90, so
+    /// turning a good photo doesn't visibly cost it quality.
+    /// </summary>
     private static Preset Tool(string id, string nameKey, string pattern, Action<ImageOptions> set)
     {
-        var preset = new Preset { Id = id, NameKey = nameKey, TargetFormat = SameAsSource, Output = { FileNamePattern = pattern } };
+        var preset = new Preset
+        {
+            Id = id, NameKey = nameKey, TargetFormat = SameAsSource, Image = { Quality = 95 }, Output = { FileNamePattern = pattern },
+        };
         set(preset.Image);
         return preset;
     }

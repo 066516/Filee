@@ -126,6 +126,23 @@ public class ImageToolTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public async Task A_good_JPG_keeps_its_quality_when_it_turns()
+    {
+        var dir = fx.NewFolder();
+        var source = Path.Combine(dir, "photo.jpg");
+        using (var image = Marked())
+        {
+            image.Quality = 95;
+            image.Write(source, MagickFormat.Jpeg);
+        }
+
+        var job = await fx.ConvertAsync([source], Tool("flip-horizontal"));
+
+        using var result = new MagickImage(job.Outputs.Single());
+        Assert.True(result.Quality >= 95, $"quality {result.Quality}"); // not 90, the default for converting to JPG
+    }
+
+    [Fact]
     public async Task Every_frame_of_an_animation_turns()
     {
         var dir = fx.NewFolder();
