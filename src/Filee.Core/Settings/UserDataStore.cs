@@ -252,6 +252,16 @@ internal static class SettingsMigrations
                 InsertBefore(settings.EnginePriority, id, "libreoffice");
         }
 
+        // v11: built-in "data" engine (JSON, YAML, TOML, XML, CSV, vCard), next to the e-mail engine.
+        if (settings.SchemaVersion < 11 && !settings.EnginePriority.Contains("data"))
+        {
+            var email = settings.EnginePriority.IndexOf("email");
+            if (email >= 0)
+                settings.EnginePriority.Insert(email + 1, "data");
+            else
+                InsertBefore(settings.EnginePriority, "data", "pandoc");
+        }
+
         if (settings.Triggers.Count == 0)
             settings.Triggers = TriggerGesture.Defaults();
 
@@ -360,6 +370,62 @@ internal static class SettingsMigrations
             presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == "remove-background"));
             changed = true;
         }
+
+        // v11: structured data (JSON, YAML, TOML, XML, vCard) gets its own donut after "fonts", Outlook MSG joins
+        //      the documents donut next to EML, and the spreadsheets donut gets JSON after CSV.
+        if (from < 11)
+            changed |= AddData(presets, profiles);
+        return changed;
+    }
+
+    private static bool AddData(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        foreach (var preset in BuiltInData.DataPresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+        {
+            presets.Add(preset);
+            changed = true;
+        }
+        changed |= LearnExtensions(profiles, out var claimed);
+
+        if (profiles.All(p => p.Id != "data"))
+        {
+            var data = BuiltInData.DataProfile();
+            // Only the extensions no donut of the user takes yet.
+            data.Extensions = data.Extensions.Where(claimed.Add).ToList();
+            if (data.Extensions.Count > 0)
+            {
+                var presetIds = presets.Select(p => p.Id).ToHashSet();
+                data.PresetIds = data.PresetIds.Where(presetIds.Contains).ToList();
+                var fonts = profiles.FindIndex(p => p.Id == "fonts");
+                var insertAt = fonts >= 0 ? fonts + 1 : profiles.FindIndex(p => p.IsFallback);
+                profiles.Insert(insertAt < 0 ? profiles.Count : insertAt, data);
+                changed = true;
+            }
+        }
+
+        changed |= Offer(presets, profiles, "spreadsheets", "to-json", "to-csv");
+        return changed;
+    }
+
+    /// <summary>
+    /// Adds the default extensions of the built-in donuts that no donut of the user takes yet.
+    /// </summary>
+    /// <param name="claimed">Every extension a donut takes afterwards.</param>
+    private static bool LearnExtensions(List<ToolbarProfile> profiles, out HashSet<string> claimed)
+    {
+        var changed = false;
+        // Extensions checked on a mixed-selection profile only limit that profile; they don't claim files.
+        claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var defaults = BuiltInData.CreateProfiles().ToDictionary(p => p.Id);
+        foreach (var profile in profiles.Where(p => !p.IsFallback && defaults.ContainsKey(p.Id)))
+        {
+            foreach (var extension in defaults[profile.Id].Extensions.Where(claimed.Add))
+            {
+                profile.Extensions.Add(extension);
+                changed = true;
+            }
+        }
         return changed;
     }
 
@@ -372,18 +438,7 @@ internal static class SettingsMigrations
             changed = true;
         }
         var presetIds = presets.Select(p => p.Id).ToHashSet();
-
-        // Extensions checked on a mixed-selection profile only limit that profile; they don't claim files.
-        var claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var defaults = BuiltInData.CreateProfiles().ToDictionary(p => p.Id);
-        foreach (var profile in profiles.Where(p => !p.IsFallback && defaults.ContainsKey(p.Id)))
-        {
-            foreach (var extension in defaults[profile.Id].Extensions.Where(claimed.Add))
-            {
-                profile.Extensions.Add(extension);
-                changed = true;
-            }
-        }
+        changed |= LearnExtensions(profiles, out var claimed);
 
         var text = profiles.FindIndex(p => p.Id == "text");
         var insertAt = text >= 0 ? text + 1 : profiles.FindIndex(p => p.IsFallback);

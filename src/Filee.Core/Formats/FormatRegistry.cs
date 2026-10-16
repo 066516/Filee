@@ -66,7 +66,8 @@ public static class FormatRegistry
         new("pages", "Pages", FormatCategory.Document, ["pages"], Writable: false),
         new("sdw", "SDW", FormatCategory.Document, ["sdw"], Writable: false),
         new("pub", "PUB", FormatCategory.Document, ["pub"], Writable: false),
-        new("eml", "EML", FormatCategory.Document, ["eml"], Writable: false),
+        new("eml", "EML", FormatCategory.Document, ["eml"]),
+        new("msg", "MSG", FormatCategory.Document, ["msg"], Writable: false),
 
         // Korean word processor (Hancom)
         new("hwpx", "HWPX", FormatCategory.Hwp, ["hwpx"]),
@@ -101,6 +102,16 @@ public static class FormatRegistry
         new("html", "HTML", FormatCategory.Text, ["html", "htm", "xhtml"]),
         new("rst", "reStructuredText", FormatCategory.Text, ["rst"]),
         new("tex", "LaTeX", FormatCategory.Text, ["tex", "latex"]),
+
+        // Structured data. CSV stays a spreadsheet (its donut and routes); the data engine adds CSV ↔ JSON / YAML /
+        // TOML / XML edges. ".xml" means a data document here: XML-based formats Filee converts have their own
+        // extensions (.svg, .fb2, .dbk, ...).
+        new("json", "JSON", FormatCategory.Data, ["json"]),
+        new("jsonl", "JSON Lines", FormatCategory.Data, ["jsonl", "ndjson"]),
+        new("yaml", "YAML", FormatCategory.Data, ["yaml", "yml"]),
+        new("toml", "TOML", FormatCategory.Data, ["toml"]),
+        new("xml", "XML", FormatCategory.Data, ["xml"]),
+        new("vcf", "vCard", FormatCategory.Data, ["vcf", "vcard"]),
 
         // E-books
         new("epub", "EPUB", FormatCategory.Ebook, ["epub"]),

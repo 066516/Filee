@@ -74,6 +74,7 @@ public static class BuiltInData
         new() { Id = "to-html", Name = "HTML", TargetFormat = "html" },
         .. SpreadsheetPresets(),
         .. CatalogPresets(),
+        .. DataPresets(),
     ];
 
     /// <summary>HWP as a target, through HWPX (added in settings schema 7, see SettingsMigrations).</summary>
@@ -165,6 +166,20 @@ public static class BuiltInData
         new() { Id = "to-eot", Name = "EOT", TargetFormat = "eot" },
     ];
 
+    /// <summary>
+    /// Structured data and contacts targets (added in settings schema 11, see SettingsMigrations). EML is for Outlook
+    /// MSG files, vCard for contact lists in CSV; neither is on a donut.
+    /// </summary>
+    public static List<Preset> DataPresets() =>
+    [
+        new() { Id = "to-json", Name = "JSON", TargetFormat = "json" },
+        new() { Id = "to-yaml", Name = "YAML", TargetFormat = "yaml" },
+        new() { Id = "to-toml", Name = "TOML", TargetFormat = "toml" },
+        new() { Id = "to-xml", Name = "XML", TargetFormat = "xml" },
+        new() { Id = "to-eml", Name = "EML", TargetFormat = "eml" },
+        new() { Id = "to-vcf", Name = "vCard", TargetFormat = "vcf" },
+    ];
+
     /// <summary>Creates the default toolbar profiles.</summary>
     public static List<ToolbarProfile> CreateProfiles() =>
     [
@@ -196,6 +211,7 @@ public static class BuiltInData
         },
         TextProfile(),
         .. CatalogProfiles(),
+        DataProfile(),
         new()
         {
             Id = "mixed", NameKey = "profile.mixed", IsFallback = true,
@@ -209,7 +225,7 @@ public static class BuiltInData
         Id = "spreadsheets",
         NameKey = "profile.spreadsheets",
         Extensions = ExtensionsOf(FormatCategory.Spreadsheet),
-        PresetIds = ["to-pdf", "to-xlsx", "to-csv", "to-ods", "to-hwpx", "to-hwp", "to-html", "merge-pdf"],
+        PresetIds = ["to-pdf", "to-xlsx", "to-csv", "to-json", "to-ods", "to-hwpx", "to-hwp", "to-html", "merge-pdf"],
     };
 
     /// <summary>PowerPoint and OpenDocument slides (split from "office" in settings schema 5).</summary>
@@ -276,6 +292,15 @@ public static class BuiltInData
             PresetIds = ["to-woff2", "to-woff", "to-ttf", "to-otf", "to-eot"],
         },
     ];
+
+    /// <summary>JSON, YAML, TOML, XML and vCard files (added in settings schema 11, after "fonts").</summary>
+    public static ToolbarProfile DataProfile() => new()
+    {
+        Id = "data",
+        NameKey = "profile.data",
+        Extensions = ExtensionsOf(FormatCategory.Data),
+        PresetIds = ["to-json", "to-yaml", "to-toml", "to-xml", "to-csv", "to-xlsx"],
+    };
 
     /// <summary>Every file extension of the formats in <paramref name="category"/>.</summary>
     public static List<string> ExtensionsOf(FormatCategory category) =>

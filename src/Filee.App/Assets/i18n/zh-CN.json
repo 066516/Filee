@@ -71,7 +71,8 @@
   "engine.hwpx-writer.description": "把 Word、Excel、PowerPoint、PDF、HTML、电子书和 Markdown 写成 HWPX。\n这是不用 Office 把文档转为 PDF 的第一步。",
   "engine.docx-writer.description": "用 PDF、HWP/HWPX、Markdown、HTML、表格、幻灯片和电子书生成 Word 文档（DOCX）。",
   "engine.pdf-text.description": "按阅读顺序提取 PDF 中的文字，双栏页面也能正确排序（不对扫描件做文字识别）。",
-  "engine.email.description": "将电子邮件（EML）连同发件人、收件人、日期和图片转为 HTML 和文本，附件打包为 ZIP。",
+  "engine.email.description": "将电子邮件（EML、Outlook MSG）连同发件人、收件人、日期和图片转为 HTML 和文本，附件打包为 ZIP。\nMSG 也可转为 EML。",
+  "engine.data.description": "JSON、JSON Lines、YAML、TOML、XML、CSV 互相转换。\nvCard 联系人与 CSV 互转。\n注释不保留。CSV 仅支持表格数据。",
   "engine.vector.description": "将 SVG、SVGZ 转为矢量 PDF 和图片；也支持包含 PDF 内容的 Illustrator 文件。",
   "engine.icns.description": "macOS 应用图标（ICNS）与图片互转。",
   "engine.font.description": "字体：TTF、OTF、WOFF、WOFF2 和 EOT 互相转换。",
@@ -98,6 +99,7 @@
   "profile.archives": "压缩文件",
   "profile.cad": "CAD 图纸",
   "profile.fonts": "字体",
+  "profile.data": "数据",
   "profile.mixed": "混合文件",
 
   "preset.half_size": "缩小 50%",
@@ -124,6 +126,7 @@
   "format.category.Vector": "矢量图",
   "format.category.Cad": "CAD",
   "format.category.Font": "字体",
+  "format.category.Data": "数据",
 
   "general.title": "常规",
   "general.language": "语言",

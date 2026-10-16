@@ -3,6 +3,7 @@
 using Filee.Core.Conversion;
 using Filee.Engines.Archives;
 using Filee.Engines.Cad;
+using Filee.Engines.Data;
 using Filee.Engines.Ebooks;
 using Filee.Engines.Email;
 using Filee.Engines.Fonts;
@@ -45,6 +46,7 @@ public static class EngineRegistry
         new DocxWriterConverter(),
         new PdfTextConverter(),
         new EmlConverter(),
+        new DataConverter(),
         new FfmpegConverter(),
         new CadConverter(),
         new EbookConverter(),

@@ -84,8 +84,8 @@
 | **이미지**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC; GIMP XCF, 카메라 RAW(CR2, CR3, NEF, ARW, DNG 등)는 읽기 | 위 형식끼리(HEIC⁵), PDF, 크기 조정, 흑백 |
 | **벡터**: SVG, SVGZ, EMF, WMF, AI · EPS, PS¹ · CDR, VSD, CGM, ODG² | PDF(벡터), PNG 등 이미지, SVG ↔ SVGZ, PDF → EPS/PS¹ |
 | **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ; 합치기, 나누기, 페이지 범위 |
-| **문서**: DOCX, DOCM, DOTX, EML · DOC, ODT, RTF, WPS, WPD, Pages 등² | PDF, DOCX, HWPX, EPUB, TXT, HTML |
-| **스프레드시트**: XLSX, XLSM, XLS, ODS, CSV, TSV · Numbers, ET² | PDF, XLSX, ODS, CSV, TSV, HWPX, HTML |
+| **문서**: DOCX, DOCM, DOTX, EML, Outlook MSG · DOC, ODT, RTF, WPS, WPD, Pages 등² | PDF, DOCX, HWPX, EPUB, TXT, HTML; MSG → EML |
+| **스프레드시트**: XLSX, XLSM, XLS, ODS, CSV, TSV · Numbers, ET² | PDF, XLSX, ODS, CSV, TSV, JSON, HWPX, HTML |
 | **프레젠테이션**: PPTX, PPTM, POTX, PPSX · PPT, ODP, Keynote² | PDF, PNG, JPG, DOCX, HWPX |
 | **한글**: HWP, HWPX | PDF, PNG, DOCX, HWPX ↔ HWP, TXT, 마크다운, HTML |
 | **텍스트**: TXT, 마크다운, HTML · reStructuredText, LaTeX³ | PDF, DOCX, HWPX, EPUB |
@@ -95,6 +95,7 @@
 | **압축 파일**: ZIP, 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG 등 | 압축 풀기, ZIP, 7Z, TAR, TAR.GZ; 여러 파일 → ZIP 하나 |
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **글꼴**: TTF, OTF, WOFF, WOFF2, EOT | 서로 변환 |
+| **데이터**: JSON, JSON Lines, YAML, TOML, XML · vCard | 서로 변환, CSV·XLSX(표 모양 데이터); vCard ↔ CSV |
 
 표시가 없는 형식은 오피스·한컴오피스·LibreOffice 없이 바로 변환돼요.
 표시가 있는 형식은 추가 엔진이 필요하고, 필요할 때만 내려받아요: ¹ Ghostscript, ² LibreOffice, ³ Pandoc,

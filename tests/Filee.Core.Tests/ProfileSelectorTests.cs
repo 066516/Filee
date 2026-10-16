@@ -26,6 +26,10 @@ public class ProfileSelectorTests
     [InlineData("archives", "a.tar.gz", "b.zip")]
     [InlineData("video", @"C:\clips\a.MP4", @"C:\clips\b.mkv")]
     [InlineData("text", "notes.md", "readme.txt")]
+    [InlineData("data", "a.json", "b.YML", "c.toml", "d.xml")]
+    [InlineData("data", "contacts.vcf")]
+    [InlineData("spreadsheets", "table.csv")]
+    [InlineData("office", "mail.msg", "mail.eml")]
     public void Built_in_profiles_take_their_files(string expected, params string[] files) =>
         Assert.Equal(expected, Pick(_builtIn, files));
 

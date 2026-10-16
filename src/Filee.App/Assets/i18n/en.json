@@ -71,7 +71,8 @@
   "engine.hwpx-writer.description": "Writes HWPX from Word, Excel, PowerPoint, PDF, HTML, e-books and Markdown.\nThe first step of turning documents into PDF without Office.",
   "engine.docx-writer.description": "Writes Word documents (DOCX) from PDF, HWP/HWPX, Markdown, HTML, spreadsheets, slides and e-books.",
   "engine.pdf-text.description": "Extracts the text of PDFs in reading order, also from two-column pages (no OCR for scans).",
-  "engine.email.description": "E-mails (EML) to HTML and text with sender, recipients and date, pictures included; attachments into a ZIP.",
+  "engine.email.description": "E-mails (EML, Outlook MSG) to HTML and text with sender, recipients and date, pictures included; attachments into a ZIP.\nMSG to EML.",
+  "engine.data.description": "JSON, JSON Lines, YAML, TOML, XML and CSV into each other.\nvCard contacts to CSV and back.\nComments are dropped. CSV holds tables only.",
   "engine.vector.description": "SVG and SVGZ to vector PDF and to images; Illustrator files saved with PDF content.",
   "engine.icns.description": "macOS app icons (ICNS) from and to images.",
   "engine.font.description": "Fonts: TTF, OTF, WOFF, WOFF2 and EOT into each other.",
@@ -98,6 +99,7 @@
   "profile.archives": "Archives",
   "profile.cad": "CAD drawings",
   "profile.fonts": "Fonts",
+  "profile.data": "Data",
   "profile.mixed": "Mixed files",
 
   "preset.half_size": "Half size",
@@ -124,6 +126,7 @@
   "format.category.Vector": "Vector",
   "format.category.Cad": "CAD",
   "format.category.Font": "Font",
+  "format.category.Data": "Data",
 
   "general.title": "General",
   "general.language": "Language",

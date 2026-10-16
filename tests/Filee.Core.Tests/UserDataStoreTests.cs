@@ -60,7 +60,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "email", "vector", "icns", "font", "cad", "archive", "ebook", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "email", "data", "vector", "icns", "font", "cad", "archive", "ebook", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
         Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
     }
 
@@ -112,7 +112,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "email", "vector", "icns", "font", "cad", "archive", "ebook", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "email", "data", "vector", "icns", "font", "cad", "archive", "ebook", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
         var ids = store.Profiles.Select(p => p.Id).ToList();
         Assert.Equal(ids.IndexOf("office") + 1, ids.IndexOf("spreadsheets"));
         Assert.Equal(ids.IndexOf("office") + 2, ids.IndexOf("presentations"));
@@ -139,7 +139,7 @@ public class UserDataStoreTests
 
         var ids = profiles.Select(p => p.Id).ToList();
         Assert.Equal(ids.IndexOf("text") + 1, ids.IndexOf("ebooks"));
-        Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("fonts"));
+        Assert.Equal(ids.IndexOf("mixed") - 2, ids.IndexOf("fonts")); // then "data" (schema 11)
         Assert.Contains("cr2", profiles.Single(p => p.Id == "images").Extensions);
         Assert.DoesNotContain("mp3", profiles.Single(p => p.Id == "audio").Extensions);
         Assert.Contains("flac", profiles.Single(p => p.Id == "audio").Extensions);
@@ -208,6 +208,52 @@ public class UserDataStoreTests
         Assert.Equal("png", preset.TargetFormat);
         Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("remove-background"));
         Assert.False(SettingsMigrations.ApplyToLibrary(9, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Version_10_libraries_get_the_data_donut_msg_files_and_json_for_spreadsheets()
+    {
+        // As written by 1.10.x: no data presets or donut, no MSG on the documents donut, no JSON on the spreadsheets
+        // donut; and a donut of the user that already takes YAML.
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => BuiltInData.DataPresets().Any(d => d.Id == p.Id));
+        var profiles = BuiltInData.CreateProfiles();
+        profiles.RemoveAll(p => p.Id == "data");
+        profiles.Single(p => p.Id == "office").Extensions.Remove("msg");
+        profiles.Single(p => p.Id == "spreadsheets").PresetIds.Remove("to-json");
+        profiles.Insert(0, new ToolbarProfile { Id = "mine", Name = "Mine", Extensions = ["yml"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(10, presets, profiles));
+
+        Assert.All(BuiltInData.DataPresets(), d => Assert.Contains(presets, p => p.Id == d.Id));
+        var ids = profiles.Select(p => p.Id).ToList();
+        Assert.Equal(ids.IndexOf("fonts") + 1, ids.IndexOf("data"));
+        var data = profiles.Single(p => p.Id == "data");
+        Assert.Contains("json", data.Extensions);
+        Assert.Contains("yaml", data.Extensions);
+        Assert.DoesNotContain("yml", data.Extensions); // the user's donut keeps it
+        Assert.Equal(["to-json", "to-yaml", "to-toml", "to-xml", "to-csv", "to-xlsx"], data.PresetIds);
+        Assert.Contains("msg", profiles.Single(p => p.Id == "office").Extensions);
+        var sheets = profiles.Single(p => p.Id == "spreadsheets").PresetIds;
+        Assert.Equal(sheets.IndexOf("to-csv") + 1, sheets.IndexOf("to-json"));
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("to-eml") || p.PresetIds.Contains("to-vcf"));
+        Assert.False(SettingsMigrations.ApplyToLibrary(10, presets, profiles)); // once only
+
+        var all = profiles.SelectMany(p => p.Extensions).ToList();
+        Assert.Equal(all.Count, all.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
+    public void Version_10_settings_get_the_data_engine_after_email()
+    {
+        using var dir = new TempDir();
+        File.WriteAllText(Path.Combine(dir.Path, "settings.json"),
+            """{ "schemaVersion": 10, "enginePriority": ["magick", "email", "vector", "pandoc", "libreoffice"] }""");
+
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        Assert.Equal(["magick", "email", "data", "vector", "pandoc", "libreoffice"], store.Settings.EnginePriority);
     }
 
     [Fact]

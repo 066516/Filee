@@ -83,8 +83,8 @@
 | **图片**：JPG、PNG、WEBP、AVIF、TIFF、BMP、GIF、ICO、ICNS、JPEG XL、JPEG 2000、PSD/PSB、TGA、PPM、HEIC；GIMP XCF、相机 RAW（CR2、CR3、NEF、ARW、DNG 等）仅读取 | 上述格式互转（HEIC⁵）、PDF、缩放、灰度 |
 | **矢量图**：SVG、SVGZ、EMF、WMF、AI · EPS、PS¹ · CDR、VSD、CGM、ODG² | PDF（矢量）、PNG 等图片、SVG ↔ SVGZ、PDF → EPS/PS¹ |
 | **PDF** | DOCX、HWPX、TXT、PNG、JPG、TIFF、CBZ；合并、拆分、页码范围 |
-| **文档**：DOCX、DOCM、DOTX、EML · DOC、ODT、RTF、WPS、WPD、Pages 等² | PDF、DOCX、HWPX、EPUB、TXT、HTML |
-| **表格**：XLSX、XLSM、XLS、ODS、CSV、TSV · Numbers、ET² | PDF、XLSX、ODS、CSV、TSV、HWPX、HTML |
+| **文档**：DOCX、DOCM、DOTX、EML、Outlook MSG · DOC、ODT、RTF、WPS、WPD、Pages 等² | PDF、DOCX、HWPX、EPUB、TXT、HTML、MSG → EML |
+| **表格**：XLSX、XLSM、XLS、ODS、CSV、TSV · Numbers、ET² | PDF、XLSX、ODS、CSV、TSV、JSON、HWPX、HTML |
 | **演示文稿**：PPTX、PPTM、POTX、PPSX · PPT、ODP、Keynote² | PDF、PNG、JPG、DOCX、HWPX |
 | **HWP**：HWP、HWPX | PDF、PNG、DOCX、HWPX ↔ HWP、TXT、Markdown、HTML |
 | **文本**：TXT、Markdown、HTML · reStructuredText、LaTeX³ | PDF、DOCX、HWPX、EPUB |
@@ -94,6 +94,7 @@
 | **压缩包**：ZIP、7Z、RAR、TAR、TAR.GZ、TAR.BZ2、TAR.XZ、GZ、ISO、CAB、DMG、ALZ、EGG 等 | 解压、ZIP、7Z、TAR、TAR.GZ；多个文件 → 一个 ZIP |
 | **CAD**：DWG、DXF | PDF、SVG、PNG、DWG ↔ DXF |
 | **字体**：TTF、OTF、WOFF、WOFF2、EOT | 互相转换 |
+| **数据**：JSON、JSON Lines、YAML、TOML、XML · vCard | 互相转换、CSV 和 XLSX（表格数据）、vCard ↔ CSV |
 
 未标注的格式装好即用，无需 Office、韩文办公软件或 LibreOffice。
 标注的格式需要可选引擎，只在需要时下载，分别是 ¹ Ghostscript、² LibreOffice、³ Pandoc、⁴ calibre、⁵ FFmpeg
