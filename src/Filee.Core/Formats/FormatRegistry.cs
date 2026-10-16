@@ -171,6 +171,17 @@ public static class FormatRegistry
         new("mp2", "MP2", FormatCategory.Audio, ["mp2", "mpa"]),
         new("dss", "DSS", FormatCategory.Audio, ["dss"], Writable: false),
         new("voc", "VOC", FormatCategory.Audio, ["voc"]),
+        new("wv", "WavPack", FormatCategory.Audio, ["wv"]),
+        new("tta", "TTA", FormatCategory.Audio, ["tta"]),
+        new("w64", "W64", FormatCategory.Audio, ["w64"]),
+        new("eac3", "E-AC3", FormatCategory.Audio, ["eac3", "ec3"]),
+        new("ape", "APE", FormatCategory.Audio, ["ape"], Writable: false),
+        new("mpc", "Musepack", FormatCategory.Audio, ["mpc", "mpp", "mp+"], Writable: false),
+        new("tak", "TAK", FormatCategory.Audio, ["tak"], Writable: false),
+        new("dsf", "DSF", FormatCategory.Audio, ["dsf"], Writable: false),
+        new("dff", "DFF", FormatCategory.Audio, ["dff"], Writable: false),
+        new("dts", "DTS", FormatCategory.Audio, ["dts"], Writable: false),
+        new("spx", "Speex", FormatCategory.Audio, ["spx"], Writable: false),
 
         // Archives
         new("zip", "ZIP", FormatCategory.Archive, ["zip"]),
@@ -213,6 +224,17 @@ public static class FormatRegistry
         new("woff", "WOFF", FormatCategory.Font, ["woff"]),
         new("woff2", "WOFF2", FormatCategory.Font, ["woff2"]),
         new("eot", "EOT", FormatCategory.Font, ["eot"]),
+
+        // Subtitles (text)
+        new("srt", "SRT", FormatCategory.Subtitle, ["srt"]),
+        new("ass", "ASS", FormatCategory.Subtitle, ["ass"]),
+        new("ssa", "SSA", FormatCategory.Subtitle, ["ssa"], Writable: false),
+        new("vtt", "WebVTT", FormatCategory.Subtitle, ["vtt"]),
+        new("smi", "SAMI", FormatCategory.Subtitle, ["smi", "sami"]),
+        new("lrc", "LRC", FormatCategory.Subtitle, ["lrc"]),
+        new("ttml", "TTML", FormatCategory.Subtitle, ["ttml", "dfxp"]),
+        new("sub", "MicroDVD", FormatCategory.Subtitle, ["sub"]),
+        new("scc", "SCC", FormatCategory.Subtitle, ["scc"], Writable: false),
     ];
 
     private static readonly Dictionary<string, FileFormat> ById =

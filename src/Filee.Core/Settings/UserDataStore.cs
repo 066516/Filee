@@ -252,6 +252,10 @@ internal static class SettingsMigrations
                 InsertBefore(settings.EnginePriority, id, "libreoffice");
         }
 
+        // v11: built-in "subtitle" engine (SRT, ASS, WebVTT, SAMI, LRC, TTML, ...), before FFmpeg.
+        if (settings.SchemaVersion < 11)
+            InsertBefore(settings.EnginePriority, "subtitle", "ffmpeg");
+
         if (settings.Triggers.Count == 0)
             settings.Triggers = TriggerGesture.Defaults();
 
@@ -360,6 +364,62 @@ internal static class SettingsMigrations
             presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == "remove-background"));
             changed = true;
         }
+
+        // v11: HEVC / AV1 video, ALAC and the new audio formats (WavPack, TTA, APE, DSD, ...), and a subtitles donut
+        //      after the audio donut. The video donut offers "MP4 HEVC" and "Extract subtitles".
+        if (from < 11)
+            changed |= AddCodecsAndSubtitles(presets, profiles);
+        return changed;
+    }
+
+    private static bool AddCodecsAndSubtitles(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        foreach (var preset in BuiltInData.CodecAndSubtitlePresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+        {
+            presets.Add(preset);
+            changed = true;
+        }
+        changed |= AddNewDefaultExtensions(profiles);
+
+        if (profiles.All(p => p.Id != "subtitles"))
+        {
+            var claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var subtitles = BuiltInData.SubtitleProfile();
+            subtitles.Extensions = subtitles.Extensions.Where(claimed.Add).ToList();
+            if (subtitles.Extensions.Count > 0)
+            {
+                var ids = presets.Select(p => p.Id).ToHashSet();
+                subtitles.PresetIds = subtitles.PresetIds.Where(ids.Contains).ToList();
+                var audio = profiles.FindIndex(p => p.Id == "audio");
+                var insertAt = audio >= 0 ? audio + 1 : profiles.FindIndex(p => p.IsFallback);
+                profiles.Insert(insertAt < 0 ? profiles.Count : insertAt, subtitles);
+                changed = true;
+            }
+        }
+
+        changed |= Offer(presets, profiles, "video", "mp4-hevc", "mp4-720");
+        changed |= Offer(presets, profiles, "video", "extract-subtitles", "to-mp3");
+        return changed;
+    }
+
+    /// <summary>
+    /// Built-in donuts learn the extensions their defaults gained (new formats of their category), unless another
+    /// donut of the user already takes them. Extensions checked on a mixed-selection profile don't count as taken.
+    /// </summary>
+    private static bool AddNewDefaultExtensions(List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        var claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var defaults = BuiltInData.CreateProfiles().ToDictionary(p => p.Id);
+        foreach (var profile in profiles.Where(p => !p.IsFallback && defaults.ContainsKey(p.Id)))
+        {
+            foreach (var extension in defaults[profile.Id].Extensions.Where(claimed.Add))
+            {
+                profile.Extensions.Add(extension);
+                changed = true;
+            }
+        }
         return changed;
     }
 
@@ -373,17 +433,9 @@ internal static class SettingsMigrations
         }
         var presetIds = presets.Select(p => p.Id).ToHashSet();
 
+        changed |= AddNewDefaultExtensions(profiles);
         // Extensions checked on a mixed-selection profile only limit that profile; they don't claim files.
         var claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var defaults = BuiltInData.CreateProfiles().ToDictionary(p => p.Id);
-        foreach (var profile in profiles.Where(p => !p.IsFallback && defaults.ContainsKey(p.Id)))
-        {
-            foreach (var extension in defaults[profile.Id].Extensions.Where(claimed.Add))
-            {
-                profile.Extensions.Add(extension);
-                changed = true;
-            }
-        }
 
         var text = profiles.FindIndex(p => p.Id == "text");
         var insertAt = text >= 0 ? text + 1 : profiles.FindIndex(p => p.IsFallback);
