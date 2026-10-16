@@ -120,6 +120,9 @@ current.
   the file's range when there is no window, to 8 bits. Compressed pixel data (JPEG, JPEG-LS, JPEG 2000, RLE) is left to
   ImageMagick, which manages only 8-bit images; others fail with a message asking for an uncompressed export.
 - **Fujifilm HEIF** (`.hif`) is read as HEIC.
+- **Rotate and flip** happen after the EXIF orientation is applied, in the one step of a route that turns images
+  (`IImageTransformer`). There is no lossless JPEG rotation: a turned JPEG is re-encoded, at its own estimated quality
+  when that is lower than the preset's, so a phone photo saved at 75 doesn't come back bigger at 95.
 - **Layered files.** PSD/PSB convert from Photoshop's composite (ImageMagick merges the layers when a file was saved
   without "maximize compatibility"). GIMP XCF layers are composited at their offsets with their blend modes; hidden
   layers are left out. ImageMagick reads 8-bit XCF without zlib tile compression (GIMP 2.10+ "better but slower

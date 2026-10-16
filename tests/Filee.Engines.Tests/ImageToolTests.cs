@@ -189,6 +189,26 @@ public class ImageToolTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public async Task A_turned_jpeg_keeps_its_own_quality_instead_of_the_presets_higher_one()
+    {
+        var dir = fx.NewFolder();
+        var source = Path.Combine(dir, "phone.jpg");
+        using (var photo = new MagickImage(MagickColors.SkyBlue, 320, 240))
+        {
+            photo.Draw(new Drawables().FillColor(MagickColors.OrangeRed).Ellipse(160, 120, 90, 60, 0, 360));
+            photo.Quality = 75;
+            photo.Write(source, MagickFormat.Jpeg);
+        }
+
+        var job = await fx.ConvertAsync([source], Tool("rotate-left")); // the preset says quality 95
+
+        Assert.Equal(JobState.Completed, job.State);
+        using var turned = new MagickImage(job.Outputs.Single());
+        Assert.Equal((240u, 320u), (turned.Width, turned.Height));
+        Assert.InRange(turned.Quality, 70u, 75u);
+    }
+
+    [Fact]
     public async Task A_long_image_of_turned_pages_still_runs_top_to_bottom()
     {
         var dir = fx.NewFolder();
