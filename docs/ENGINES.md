@@ -21,12 +21,13 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | E-mail | built in (MimeKit) | **EML → HTML** (headers + body, inline pictures), **TXT**, **ZIP** (the attachments) |
 | **E-books** | built in | **EPUB, MOBI/AZW/AZW3/PRC, FB2, HTMLZ, TXTZ → EPUB, HWPX (→ PDF), TXT, HTML, Markdown, FB2, HTMLZ, TXTZ**; HTML, Markdown, TXT, DOCX → EPUB/FB2/HTMLZ/TXTZ; HTML → TXT; comics CBZ/CBR/CB7/CBT/CBC → PDF, EPUB, CBZ; PDF → CBZ; AZW4 → PDF; **EPUB ↔ KEPUB** (Kobo) |
 | CAD (ACadSharp + built-in renderer) | built in (library) | **DWG ↔ DXF**; DWG/DXF → **PDF** (vector), **SVG**, PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF |
+| **Subtitles** | built in | **SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD, SCC → SRT, ASS, WebVTT, SAMI, LRC, TTML, MicroDVD**, always UTF-8 (Korean CP949 / EUC-KR files read correctly) |
 | rhwp | bundled with the installer (`engines/rhwp`) | HWP/HWPX → PDF, **HWP → HWPX, HWPX → HWP** |
 | Archives (7-Zip) | bundled with the installer (`engines/7zip`, ~2.5 MB) + built-in readers | ZIP, 7Z, RAR, TAR (+ GZ/BZ2/XZ/Z/7Z/LZ), CAB, ISO, DMG, … **→ folder, ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ**; ALZ, EGG, lzip read in-process; "Compress into one archive" for any files |
 | LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats; FODT, OpenDocument templates (OTT, OTS, OTP) and XLT out; SVG → EMF/WMF/ODG, a PDF page → SVG |
 | Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, markup languages (reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML) ↔ Markdown/HTML/DOCX/ODT and each other (and → RTF, EPUB, TXT), Markdown and markup → PPTX slides |
 | Ghostscript | **optional download** (~20 MB, 31 MB on disk) | EPS/PS → PDF, PDF → EPS/PS, PostScript-based AI → PDF (images through PDF and PDFium) |
-| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video, video → animated GIF or a still frame, audio extraction, audio ↔ audio, GIF and photos → MP4/WEBM/MOV, images → HEIC |
+| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF or a still frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF and photos → MP4/WEBM/MOV, images → HEIC |
 | Calibre | **optional download** (~216 MB, 660 MB on disk) | rare e-book formats: LIT, LRF, CHM, PDB, PML, RB, SNB, TCR, OEB → EPUB; EPUB → MOBI, AZW3, LIT, LRF, PDB, PML, RB, SNB, TCR |
 
 DOCX, XLSX, XLS, ODS and PPTX → PDF need neither Microsoft Office nor LibreOffice: they are read in-process, written as HWPX
@@ -516,6 +517,32 @@ DocBook (`.dbk`, `.docbook`; written as DocBook 5), Jupyter notebooks (`.ipynb`)
 - DocBook, man pages, OPML, Typst, HTML and LaTeX are written with `--standalone` (a root element, a `.TH` header,
   a preamble), the text formats extract pictures into `<name>_files` next to the result.
 
+## Subtitles
+
+`Subtitles/SubtitleConverter.cs` (engine id `subtitle`) converts text subtitles in managed code, no FFmpeg needed.
+Every reader produces one cue model (`SubtitleModel.cs`: start, end and text with line breaks and SRT's own tags
+`<i>`, `<b>`, `<u>`, `<font color>`), every writer takes it, so any format converts to any other and to itself (an
+SRT or SAMI file in CP949 comes out as UTF-8).
+
+| Format | Read | Written |
+|---|---|---|
+| SRT | numbers optional, blank lines inside cues and missing between them, `,` or `.` before the milliseconds, `{\an8}` codes dropped | UTF-8 with BOM, CRLF, tags kept |
+| ASS / SSA | `Dialogue:` lines in the order of the `Format:` line; `\i \b \u \c`, bold/italic/underline styles, `\N`; drawings (`\p1`) and comments left out, shadow layers merged | ASS v4.00+ for 1920 × 1080, one "Default" style, override codes (SSA is read only) |
+| WebVTT | NOTE / STYLE / REGION blocks skipped, cue settings ignored, `<i> <b> <u>`, the colour classes (`<c.yellow>`), entities; voices and timestamps dropped | UTF-8, the basic colour classes, text escaped |
+| SAMI (SMI) | hand-made HTML: unquoted attributes, unclosed `<SYNC>` / `<P>`, `&nbsp` with or without `;`; of several languages (KRCC, ENCC, …) the one with the most lines | one class from the text's language (KRCC for Korean), `&nbsp;` where the screen goes blank, UTF-8 with BOM |
+| LRC | `[mm:ss.xx]` (several per line), `[ti:]`, `[offset:]`, enhanced word times dropped; a line lasts until the next one | plain text, lines joined, an empty time line where the screen goes blank |
+| TTML / DFXP | TTML 1 and the 2006 DFXP namespace; times relative to their parents; clock, frames (`ttp:frameRate`), ticks and offset times; spans and referenced styles | TTML 1 with a bottom region and tts: spans |
+| MicroDVD (.sub) | `{frame}{frame}text` with the rate of a `{1}{1}25` first line (else 23.976), `\|` between lines, `{y:i}` / `{c:$BBGGRR}`; VobSub `.sub` (pictures) and SubViewer fail with a clear message | 23.976 fps, first line states it, plain text, `{Y:i}` for all-italic cues |
+| SCC | CEA-608 caption channel 1: pop-on, paint-on and roll-up captions, row preambles, italics, special and extended characters, doubled control codes, drop-frame time codes | — |
+
+- **Encodings**: a byte order mark (UTF-8, UTF-16) or valid UTF-8 decide first, then a `charset=` / `encoding=` the
+  file declares. Otherwise CP949 when the bytes are CP949 pairs, most of them Hangul syllables of KS X 1001 and hardly
+  any with a lead byte above C8 (Chinese GBK text uses those for many common characters), then the PC's code page on
+  Chinese or Japanese Windows, else the Western one (Windows-1252 on Korean Windows). Everything is written as UTF-8.
+- Cues without an end (LRC, the last SAMI line, an unterminated SCC caption) last 4 seconds; empty cues are dropped.
+- Not kept: positions and alignment, fonts and sizes, karaoke timing, ASS animations, WebVTT regions and voices.
+- Tests (`SubtitleTests.cs`) write every input in code, CP949 and GBK bytes included.
+
 ## DjVu
 
 Not supported: DjVuLibre (GPL) has no pinned, redistributable Windows build in an archive the installer can unpack.
@@ -526,9 +553,9 @@ Filee (with the GPL source offer), then an `engines.json` component and an optio
 
 ## FFmpeg
 
-`Media/FfmpegConverter.cs` converts every video format to every video format, to animated GIF, to a still PNG frame
-and to every audio format (the sound track); every audio format to every audio format; and GIF and PNG to MP4, WEBM
-and MOV.
+`Media/FfmpegConverter.cs` converts every video format to every video format, to animated GIF, to a still PNG frame,
+to every audio format (the sound track) and to SRT, ASS and WebVTT (the subtitles); every audio format to every audio
+format; and GIF and PNG to MP4, WEBM and MOV.
 Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on MP3 files.
 
 - The download is the gyan.dev **9.0.2 "full_build-shared"** Windows build (GPL-3.0, run as a separate program).
@@ -549,8 +576,14 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   | DV | DV25 with the same NTSC/PAL frames as VOB, 48 kHz stereo PCM |
   | MXF | OP1a with long-GOP MPEG-2 + 48 kHz PCM |
   | GIF | two passes: palettegen over the whole clip, then paletteuse; 15/12/10 fps and at most 640/480/320 px wide (High/Balanced/Small) |
-  | MP3 · M4A/M4B · AAC · OGG · OPUS · WEBA · MKA · WMA · MP2 · AC3 · AMR | LAME VBR (V0/V2/V5) or CBR · AAC · AAC (ADTS) · Vorbis · Opus · Opus · Opus · WMA 2 · MP2 · AC-3 · AMR-NB 12.2k (8 kHz mono) |
-  | WAV · AIFF · AU · CAF · VOC · FLAC | 16-bit PCM (WAV: 8/16/24/32-bit or 32-bit float; RF64 over 4 GB) · FLAC |
+  | MP4, M4V, MKV with *Video codec* HEVC · MOV with HEVC | x265 (preset medium, `hvc1` tag in MP4/M4V/MOV) + AAC |
+  | MP4, M4V, MKV, WEBM with *Video codec* AV1 | SVT-AV1 (preset 8), or libaom-av1 (cpu-used 6, row multithreading) with an FFmpeg that lacks SVT-AV1 |
+  | MP3 · M4A/M4B · AAC · OGG · OPUS · WEBA · MKA · WMA · MP2 · AC3 · E-AC3 · AMR | LAME VBR (V0/V2/V5) or CBR · AAC, or ALAC with *Audio codec* ALAC · AAC (ADTS) · Vorbis · Opus · Opus · Opus · WMA 2 · MP2 · AC-3 · E-AC-3 · AMR-NB 12.2k (8 kHz mono) |
+  | WAV · W64 · AIFF · AU · CAF · VOC · FLAC · WV · TTA | 16-bit PCM (WAV and W64: 8/16/24/32-bit or 32-bit float; WAV switches to RF64 over 4 GB, Sony Wave64 has no limit) · FLAC · WavPack (lossless) · TTA |
+  | SRT · ASS · VTT (from video) | the video's first text subtitle track, copied when it already is that format, else converted by FFmpeg |
+
+  Read only (FFmpeg's decoders): APE (Monkey's Audio), Musepack (MPC), TAK, DSF and DFF (DSD), DTS, Speex (SPX) and the
+  formats above. No encoder for them is in the build, or (DTS) only an experimental one.
 
 - **Rewrapping instead of re-encoding.** When the target container takes the source's codecs as they are
   (`MediaEncoding.Remuxable`: H.264/HEVC + AAC, ALAC, AC-3, E-AC-3 or MP3 for MP4/M4V/MOV, also ProRes and PCM for
@@ -561,12 +594,26 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   is needed; audio only when no bitrate or other channel count is set. Quality *Small* always re-encodes (the user
   asked for a smaller file); *High* and *Balanced* only set how a stream that has to be encoded is encoded. A
   stream that can't be copied is encoded as below, the other one is still copied.
-- Preset options (`MediaOptions`): *Quality* picks CRF 18/23/28 (x264), 24/32/38 (VP9), quantizer 2/4/7 (MPEG-4,
-  WMV, MPEG-2), Theora 8/6/4 and the audio bitrates (e.g. AAC 256/192/128 kbit/s per stereo pair); *MaxHeight*
-  scales down only, keeps the aspect ratio and even sizes; *AudioBitrateKbps* overrides the audio bitrate (snapped to
-  the MP3/MP2/AC-3 bitrate tables; the editor offers 32 to 320 kbit/s); *RemoveAudio* drops the sound;
-  *AudioChannels* (0 source, 1 mono, 2 stereo) applies to every audio target but AMR; *AudioSampleRate* (8 to
-  48 kHz) and *WavFormat* (bit depth) apply to WAV.
+- Preset options (`MediaOptions`): *Quality* picks CRF 18/23/28 (x264), 22/26/30 (x265), 26/32/40 (SVT-AV1 and
+  libaom), 24/32/38 (VP9), quantizer 2/4/7 (MPEG-4, WMV, MPEG-2), Theora 8/6/4 and the audio bitrates (e.g. AAC and
+  E-AC-3 256/192/128 kbit/s per stereo pair); *MaxHeight* scales down only, keeps the aspect ratio and even sizes;
+  *AudioBitrateKbps* overrides the audio bitrate (snapped to the MP3/MP2/AC-3 bitrate tables; the editor offers 32 to
+  320 kbit/s); *RemoveAudio* drops the sound; *AudioChannels* (0 source, 1 mono, 2 stereo) applies to every audio
+  target but AMR; *AudioSampleRate* (8 to 48 kHz) and *WavFormat* (bit depth) apply to WAV and W64.
+- *VideoCodec* (Default, HEVC, AV1) and *AudioCodec* (Default, ALAC) pick another codec where the target takes it
+  (`MediaCodecs` in Filee.Core: HEVC for MP4/M4V/MKV/MOV, AV1 for MP4/M4V/MKV/WEBM, ALAC for M4A/M4B); for any other
+  target the usual codec is written. The presets "MP4 HEVC" (on the video donut), "MP4 AV1" and "ALAC" use them. A
+  video already in the chosen codec is copied (the rules above, with AV1 also into MP4); HEVC and AV1 keep 10 bits
+  (`yuv420p10le`, Main 10) for 10-bit and HDR sources and write their colour tags (BT.2020, PQ or HLG), 8-bit 4:2:0
+  for the rest. The encoders are looked up with `ffmpeg -encoders` once per FFmpeg, so a copy the user picked without
+  x265 or AV1 fails with a clear message instead of an FFmpeg error. x265 and SVT-AV1 log only errors
+  (`-x265-params log-level=error`, `SVT_LOG=1`).
+- DSD (DSF, DFF) decodes at 2.8 MHz or more: lossless and PCM targets get 88.2 kHz, Vorbis and WMA 44.1 kHz, the
+  other lossy encoders their nearest supported rate.
+- Subtitle extraction takes the first text subtitle track (SubRip, ASS/SSA, WebVTT, MP4 timed text, CEA-608, …).
+  A video without subtitles fails with "The video has no subtitle track."; one with only picture subtitles (Blu-ray
+  PGS, DVD, DVB) says they can't be turned into text without OCR. Video → SAMI, LRC, TTML, … goes through SRT and the
+  subtitle engine (ASS and WebVTT extraction cost 11 so SRT is the hub).
 - The first video stream (cover pictures excluded) and the first audio stream are converted; files without sound
   still convert to video. Title, artist and other tags and chapters are kept, album art too for MP3, M4A, M4B and
   FLAC. Portrait phone videos are turned upright. Odd sizes are evened out, frame rates that MPEG-2/MXF/MPEG-4 part 2

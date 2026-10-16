@@ -15,9 +15,24 @@ namespace Filee.Engines.Media;
 /// <param name="FrameRate">Average frames per second, 0 when unknown.</param>
 /// <param name="Codec">FFmpeg's codec name (<c>h264</c>, <c>hevc</c>, …), null when unknown.</param>
 /// <param name="PixelFormat">FFmpeg's pixel format (<c>yuv420p</c>, <c>yuv420p10le</c>, …), null when unknown.</param>
+/// <param name="Color">Colour primaries, transfer and matrix as FFmpeg names them (<c>bt2020</c>, <c>smpte2084</c>, …).</param>
 internal sealed record VideoStreamInfo(int Width, int Height, double SampleAspect, int Rotation, double FrameRate,
-    string? Codec = null, string? PixelFormat = null)
+    string? Codec = null, string? PixelFormat = null, VideoColor? Color = null)
 {
+    /// <summary>
+    /// True for more than 8 bits per sample (yuv420p10le, p010le, yuv422p12le, …): phones' HDR video, ProRes, 10-bit
+    /// HEVC and AV1. HEVC and AV1 targets keep 10 bits for these.
+    /// </summary>
+    public bool IsHighBitDepth => PixelFormat is { } format
+        && (HighBitDepthSuffixes.Any(s => format.Contains(s, StringComparison.Ordinal))
+            || HighBitDepthPrefixes.Any(p => format.StartsWith(p, StringComparison.Ordinal)));
+
+    private static readonly string[] HighBitDepthSuffixes = ["p10", "p12", "p14", "p16"];
+    private static readonly string[] HighBitDepthPrefixes = ["p010", "p012", "p016", "p210", "p216", "p410", "p416", "y210", "y212", "v210"];
+
+    /// <summary>True for HDR video: PQ (HDR10, Dolby Vision) or HLG transfer.</summary>
+    public bool IsHdr => Color?.Transfer is "smpte2084" or "arib-std-b67";
+
     /// <summary>True when the picture is shown turned by 90° (FFmpeg rotates it upright while decoding).</summary>
     public bool IsRotated => Math.Abs(Rotation % 180) == 90;
 
@@ -37,6 +52,15 @@ internal sealed record VideoStreamInfo(int Width, int Height, double SampleAspec
     }
 }
 
+/// <summary>Colour description of a video stream, in FFmpeg's names; null parts are unknown.</summary>
+internal sealed record VideoColor(string? Primaries, string? Transfer, string? Matrix, string? Range);
+
+/// <summary>A subtitle stream of a file.</summary>
+/// <param name="Index">The stream's index in the file (for <c>-map 0:index</c>).</param>
+/// <param name="Codec">FFmpeg's codec name (<c>subrip</c>, <c>ass</c>, <c>mov_text</c>, <c>hdmv_pgs_subtitle</c>, …).</param>
+/// <param name="Language">The language tag (<c>kor</c>, <c>eng</c>, …), null when the file doesn't say.</param>
+internal sealed record SubtitleStreamInfo(int Index, string? Codec, string? Language);
+
 /// <summary>The first audio stream of a file.</summary>
 /// <param name="Codec">FFmpeg's codec name (<c>aac</c>, <c>opus</c>, …), null when unknown.</param>
 internal sealed record AudioStreamInfo(int Channels, int SampleRate, string? Codec = null);
@@ -46,8 +70,13 @@ internal sealed record AudioStreamInfo(int Channels, int SampleRate, string? Cod
 /// <param name="Video">First video stream that is not a cover picture, if any.</param>
 /// <param name="Audio">First audio stream, if any.</param>
 /// <param name="CoverStreamIndex">Index of an embedded cover picture (JPEG or PNG) such as album art, if any.</param>
-internal sealed record MediaInfo(TimeSpan? Duration, VideoStreamInfo? Video, AudioStreamInfo? Audio, int? CoverStreamIndex)
+/// <param name="SubtitleStreams">Every subtitle stream in file order, null when there is none.</param>
+internal sealed record MediaInfo(TimeSpan? Duration, VideoStreamInfo? Video, AudioStreamInfo? Audio, int? CoverStreamIndex,
+    IReadOnlyList<SubtitleStreamInfo>? SubtitleStreams = null)
 {
+    /// <summary>Every subtitle stream, in file order.</summary>
+    public IReadOnlyList<SubtitleStreamInfo> Subtitles => SubtitleStreams ?? [];
+
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromMinutes(1);
 
     /// <summary>Runs ffprobe on <paramref name="input"/>; throws with FFmpeg's message when the file cannot be read.</summary>
@@ -73,6 +102,7 @@ internal sealed record MediaInfo(TimeSpan? Duration, VideoStreamInfo? Video, Aud
         VideoStreamInfo? video = null;
         AudioStreamInfo? audio = null;
         int? cover = null;
+        List<SubtitleStreamInfo> subtitles = [];
         double longestStream = 0;
         if (root.TryGetProperty("streams", out var streams) && streams.ValueKind == JsonValueKind.Array)
         {
@@ -94,11 +124,16 @@ internal sealed record MediaInfo(TimeSpan? Duration, VideoStreamInfo? Video, Aud
                             RotationOf(stream),
                             FrameRateOf(stream),
                             Text(stream, "codec_name"),
-                            Text(stream, "pix_fmt"));
+                            Text(stream, "pix_fmt"),
+                            ColorOf(stream));
                         break;
                     case "audio" when audio is null:
                         audio = new AudioStreamInfo((int)Number(stream, "channels"), (int)Number(stream, "sample_rate"),
                             Text(stream, "codec_name"));
+                        break;
+                    case "subtitle":
+                        subtitles.Add(new SubtitleStreamInfo((int)Number(stream, "index"), Text(stream, "codec_name"),
+                            stream.TryGetProperty("tags", out var tags) ? Text(tags, "language") : null));
                         break;
                 }
             }
@@ -107,7 +142,16 @@ internal sealed record MediaInfo(TimeSpan? Duration, VideoStreamInfo? Video, Aud
         var seconds = root.TryGetProperty("format", out var format) ? Number(format, "duration") : 0;
         if (seconds <= 0)
             seconds = longestStream;
-        return new MediaInfo(seconds > 0 ? TimeSpan.FromSeconds(seconds) : null, video, audio, cover);
+        return new MediaInfo(seconds > 0 ? TimeSpan.FromSeconds(seconds) : null, video, audio, cover,
+            subtitles.Count > 0 ? subtitles : null);
+    }
+
+    /// <summary>The colour tags of a video stream; null when it has none ("unknown" counts as none).</summary>
+    private static VideoColor? ColorOf(JsonElement stream)
+    {
+        string? Known(string name) => Text(stream, name) is { } value && value != "unknown" ? value : null;
+        var color = new VideoColor(Known("color_primaries"), Known("color_transfer"), Known("color_space"), Known("color_range"));
+        return color is { Primaries: null, Transfer: null, Matrix: null, Range: null } ? null : color;
     }
 
     private static bool IsAttachedPicture(JsonElement stream) =>

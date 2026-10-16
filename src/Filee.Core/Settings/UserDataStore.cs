@@ -252,6 +252,10 @@ internal static class SettingsMigrations
                 InsertBefore(settings.EnginePriority, id, "libreoffice");
         }
 
+        // v12: built-in "subtitle" engine (SRT, ASS, WebVTT, SAMI, LRC, TTML, ...), before FFmpeg.
+        if (settings.SchemaVersion < 12)
+            InsertBefore(settings.EnginePriority, "subtitle", "ffmpeg");
+
         if (settings.Triggers.Count == 0)
             settings.Triggers = TriggerGesture.Defaults();
 
@@ -374,6 +378,41 @@ internal static class SettingsMigrations
             }
             changed |= LearnExtensions(profiles, out _);
         }
+
+        // v12: HEVC / AV1 video, ALAC and the new audio formats (WavPack, TTA, APE, DSD, ...), and a subtitles donut
+        //      after the audio donut. The video donut offers "MP4 HEVC" and "Extract subtitles".
+        if (from < 12)
+            changed |= AddCodecsAndSubtitles(presets, profiles);
+        return changed;
+    }
+
+    private static bool AddCodecsAndSubtitles(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        foreach (var preset in BuiltInData.CodecAndSubtitlePresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+        {
+            presets.Add(preset);
+            changed = true;
+        }
+        changed |= LearnExtensions(profiles, out var claimed);
+
+        if (profiles.All(p => p.Id != "subtitles"))
+        {
+            var subtitles = BuiltInData.SubtitleProfile();
+            subtitles.Extensions = subtitles.Extensions.Where(claimed.Add).ToList();
+            if (subtitles.Extensions.Count > 0)
+            {
+                var ids = presets.Select(p => p.Id).ToHashSet();
+                subtitles.PresetIds = subtitles.PresetIds.Where(ids.Contains).ToList();
+                var audio = profiles.FindIndex(p => p.Id == "audio");
+                var insertAt = audio >= 0 ? audio + 1 : profiles.FindIndex(p => p.IsFallback);
+                profiles.Insert(insertAt < 0 ? profiles.Count : insertAt, subtitles);
+                changed = true;
+            }
+        }
+
+        changed |= Offer(presets, profiles, "video", "mp4-hevc", "mp4-720");
+        changed |= Offer(presets, profiles, "video", "extract-subtitles", "to-mp3");
         return changed;
     }
 
