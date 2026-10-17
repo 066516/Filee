@@ -89,7 +89,8 @@ public sealed class TriggerService : IDisposable
         Error = null;
         try
         {
-            _hook = new EventLoopGlobalHook();
+            // Background threads: a hook that fails to stop can never keep Filee running after it quits.
+            _hook = new EventLoopGlobalHook(useBackgroundThreadForEventLoop: true);
             _hook.HookEnabled += (_, _) => { _log.LogInformation("Global input hook started"); NotifyStatus(); };
             _hook.HookDisabled += (_, _) => { _log.LogInformation("Global input hook stopped"); NotifyStatus(); };
             _hook.MousePressed += (_, e) =>
@@ -102,7 +103,7 @@ public sealed class TriggerService : IDisposable
             _hook.MouseDragged += (_, e) => OnMove(e);
             _hook.MouseMoved += (_, e) => OnMove(e);
             _hook.KeyPressed += (_, e) => _detector.KeyDown(KeyName(e.Data.KeyCode), Map(e.RawEvent.Mask));
-            _ = _hook.RunAsync().ContinueWith(t =>
+            _ = _hook.RunAsync(useBackgroundThread: true).ContinueWith(t =>
             {
                 // e.g. macOS without Accessibility permission. Drop zone and context menu keep working.
                 if (t.Exception is not null)
@@ -204,7 +205,15 @@ public sealed class TriggerService : IDisposable
     {
         _permissionWatch?.Dispose();
         _permissionWatch = null;
-        _hook?.Dispose();
+        try
+        {
+            _hook?.Dispose();
+        }
+        catch (HookException ex)
+        {
+            // Quitting goes on: the hook runs on background threads, which end with the process.
+            _log.LogWarning(ex, "Could not stop the global input hook");
+        }
         _hook = null;
     }
 }
