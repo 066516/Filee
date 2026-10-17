@@ -336,6 +336,53 @@ public class RenderTests
     }
 
     /// <summary>
+    /// The built-in "Rotate" and "Flip" groups put on a full image donut (as a user would; they are on no donut by
+    /// default): their presets' names fit their ring slices, in every language.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData("ko")]
+    [InlineData("en")]
+    [InlineData("zh-CN")]
+    public void The_rotate_and_flip_groups_fan_out_names_that_fit(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var store = AppHost.Get<UserDataStore>();
+        var images = store.Profiles.Single(p => p.Id == "images");
+        var before = images.PresetIds.ToList();
+        try
+        {
+            images.PresetIds.AddRange(["rotate", "flip"]);
+            var vm = AppHost.Get<RadialViewModel>();
+            vm.Load([@"C:\photos\a.jpg"], clickMode: true);
+            vm.FitToThisDonut();
+            var rotate = vm.Items.Count - 2;
+            Assert.Equal(3, vm.Items[rotate].Children!.Count);
+            Assert.All(vm.Items[rotate].Children!, item => Assert.True(item.IsEnabled, item.Label));
+            // Short names on the ring ("Rotate" → "Left"), the full one ("Rotate left") everywhere else.
+            var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+            var left = store.FindPreset("rotate-left")!;
+            Assert.Equal(loc["preset.rotate_left.short"], vm.Items[rotate].Children![0].Label);
+            Assert.NotEqual(loc.DisplayName(left), vm.Items[rotate].Children![0].Label);
+
+            var window = new RadialWindow { DataContext = vm };
+            window.Show();
+            var donut = window.DonutControl;
+            donut.SetExternalHit(new DonutHit(DonutHitKind.Segment, rotate));
+            donut.ExpandPendingGroup();
+            donut.SetExternalHit(new DonutHit(DonutHitKind.SubSegment, rotate, 1));
+            vm.ShowHint(rotate, donut.ActiveSubIndex, centerHot: false);
+            Pump();
+            Save(window, $"donut-rotate-{language}.png");
+            window.Close();
+        }
+        finally
+        {
+            images.PresetIds.Clear();
+            images.PresetIds.AddRange(before);
+        }
+    }
+
+    /// <summary>
     /// A group of three formats on the image donut: hovering it fans PNG / JPG / WEBP out outside it, and the slice
     /// under the pointer there is what a drop or click converts with.
     /// </summary>
@@ -562,6 +609,56 @@ public class RenderTests
 
         Save(window, "preset-popup-ko.png");
         window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Preset_editor_shows_and_saves_rotation_and_flip()
+    {
+        TestServices.EnsureInitialized("ko");
+        var preset = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "rotate-left");
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<Filee.Core.Localization.ILocalizer>());
+        Assert.Equal(Filee.Core.Presets.ImageRotation.Left90, vm.Rotation.Value); // not a hidden option any more
+        Assert.Equal(Filee.Core.Presets.ImageFlip.None, vm.Flip.Value);
+        var window = new PresetEditorWindow { DataContext = vm, Height = 900 };
+        window.Show();
+        Pump();
+        Save(window, "preset-rotate-ko.png");
+        window.Close();
+
+        // Rotate and convert in one: turn left, mirror, and make it a JPG.
+        vm.Flip = vm.Flips.Single(f => f.Value == Filee.Core.Presets.ImageFlip.Horizontal);
+        vm.Target = vm.Targets.Single(t => t.Value == "jpg");
+        Assert.True(vm.Apply());
+
+        Assert.Equal(Filee.Core.Presets.ImageRotation.Left90, preset.Image.Rotation);
+        Assert.Equal(Filee.Core.Presets.ImageFlip.Horizontal, preset.Image.Flip);
+        Assert.Equal("jpg", preset.TargetFormat);
+    }
+
+    [AvaloniaFact]
+    public void Preset_editor_keeps_rotation_visible_for_pdf_and_drops_it_for_targets_that_cannot_turn()
+    {
+        TestServices.EnsureInitialized("en");
+        var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+
+        // Photos → PDF are turned on the pages: the PDF card shows the rotation, and it is kept.
+        var toPdf = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "rotate-left");
+        var vm = new PresetEditorViewModel(toPdf, loc);
+        vm.Target = vm.Targets.Single(t => t.Value == "pdf");
+        Assert.False(vm.ShowImage);
+        Assert.True(vm.ShowTurnForPdf);
+        Assert.True(vm.Apply());
+        Assert.Equal(Filee.Core.Presets.ImageRotation.Left90, toPdf.Image.Rotation);
+
+        // A video can't be turned: a rotation left from the image target would fail every file with nothing on screen.
+        var toVideo = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "rotate-left");
+        vm = new PresetEditorViewModel(toVideo, loc);
+        vm.Flip = vm.Flips.Single(f => f.Value == Filee.Core.Presets.ImageFlip.Vertical);
+        vm.Target = vm.Targets.Single(t => t.Value == "mp4");
+        Assert.False(vm.ShowTurnForPdf);
+        Assert.True(vm.Apply());
+        Assert.Equal(Filee.Core.Presets.ImageRotation.None, toVideo.Image.Rotation);
+        Assert.Equal(Filee.Core.Presets.ImageFlip.None, toVideo.Image.Flip);
     }
 
     [AvaloniaFact]

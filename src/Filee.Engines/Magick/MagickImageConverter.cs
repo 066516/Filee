@@ -11,11 +11,13 @@ namespace Filee.Engines.Magick;
 /// DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster and MIFF, and reads HEIC, XCF, camera RAW, DICOM,
 /// Photo CD, OpenEXR, Radiance HDR and (on Windows) EMF/WMF.
 /// </summary>
-public sealed class MagickImageConverter : IConverter, ITiffMerger
+public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransformer
 {
     public string Id => "magick";
     public string DisplayName => "ImageMagick";
     public int MaxParallelism => 0;
+
+    public bool Transforms(string from, string to) => true;
 
     public IReadOnlyList<ConversionEdge> Edges { get; } =
         (from source in ImageEncoder.Sources

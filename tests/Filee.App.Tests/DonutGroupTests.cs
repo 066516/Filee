@@ -411,6 +411,23 @@ public class DonutGroupTests
     }
 
     [AvaloniaFact]
+    public void Rotate_is_offered_for_images_and_says_why_not_for_a_PDF()
+    {
+        TestServices.EnsureInitialized("en");
+        var availability = AppHost.Get<PresetAvailability>();
+        var rotate = BuiltInData.CreatePresets().Single(p => p.Id == "rotate-left");
+
+        Assert.Null(availability.Check(rotate, [Filee.Core.Formats.FormatRegistry.Get("png")]));
+        // PDF → PDF exists (split, extract), but it copies pages unturned: not "no engine", and no download offered.
+        Assert.Equal("Rotate and flip work on images only", availability.Check(rotate, [Filee.Core.Formats.FormatRegistry.Get("pdf")]));
+        // Merging PDFs takes them as they are: turning them is not on offer either.
+        var mergeTurned = rotate.Clone();
+        mergeTurned.TargetFormat = "pdf";
+        mergeTurned.Pdf.MergeIntoSingle = true;
+        Assert.Equal("Rotate and flip work on images only", availability.Check(mergeTurned, [Filee.Core.Formats.FormatRegistry.Get("pdf")]));
+    }
+
+    [AvaloniaFact]
     public void A_group_left_without_presets_says_why_on_the_donut()
     {
         TestServices.EnsureInitialized("en");

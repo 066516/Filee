@@ -197,10 +197,43 @@ internal static class ImageEncoder
         _ => 1,
     };
 
+    /// <summary>Turns and mirrors an image as <paramref name="options"/> say (part of <see cref="ApplyOptions"/>).</summary>
+    public static void Turn(IMagickImage<byte> image, ImageOptions options)
+    {
+        switch (options.Rotation)
+        {
+            case ImageRotation.Right90:
+                image.Rotate(90);
+                break;
+            case ImageRotation.Left90:
+                image.Rotate(-90);
+                break;
+            case ImageRotation.Rotate180:
+                image.Rotate(180);
+                break;
+        }
+        // ImageMagick's Flop mirrors left ↔ right, Flip top ↔ bottom.
+        if (options.Flip == ImageFlip.Horizontal)
+            image.Flop();
+        else if (options.Flip == ImageFlip.Vertical)
+            image.Flip();
+    }
+
     /// <summary>Applies resize / colour / metadata options to one frame.</summary>
     public static void ApplyOptions(IMagickImage<byte> image, ImageOptions options, string targetFormat)
     {
+        var turned = options.TurnsOrMirrors || image.Orientation is not (OrientationType.TopLeft or OrientationType.Undefined);
         image.AutoOrient();
+
+        // After AutoOrient, so a phone photo turns the way it looks, not the way its pixels are stored.
+        Turn(image, options);
+        // The small preview kept in the EXIF data still shows the picture as it was: Explorer and photo apps that
+        // use it would show it unturned. As HeicWriter does, drop it once the pixels turned.
+        if (turned && image.GetExifProfile() is { } exif && exif.ThumbnailLength > 0)
+        {
+            exif.RemoveThumbnail();
+            image.SetProfile(exif);
+        }
 
         switch (options.Resize)
         {
@@ -242,6 +275,10 @@ internal static class ImageEncoder
         }
 
         var quality = (uint)Math.Clamp(options.Quality, 1, 100);
+        // Turning a JPEG has to re-encode it: at the photo's own quality (Magick's estimate when it read the file), not
+        // above it, or a phone photo saved at 75 comes back at 95, bigger and no better.
+        if (options.TurnsOrMirrors && targetFormat == "jpg" && image.Format == MagickFormat.Jpeg && image.Quality is > 0 and <= 100)
+            quality = Math.Min(quality, image.Quality);
         switch (targetFormat)
         {
             case "jpg":

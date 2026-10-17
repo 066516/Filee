@@ -523,6 +523,23 @@ public class ModelTests(EngineFixture fx) : IClassFixture<EngineFixture>
     // ───────────────────────── Pictures ─────────────────────────
 
     [Fact]
+    public async Task A_rotate_preset_turns_the_rendered_picture_once()
+    {
+        var folder = fx.NewFolder();
+        var source = ModelBuilders.Save(ModelBuilders.Fan(), folder, "fan", "stl");
+        var plain = (await RunAsync(source, "png")).Outputs.Single();
+        var job = await fx.ConvertAsync([source], new Preset { TargetFormat = "png", Image = { Rotation = ImageRotation.Left90 } });
+        Assert.True(job.State == JobState.Completed, string.Join("; ", job.Files.Select(f => $"{f.ErrorKey} {f.ErrorDetail}")));
+
+        using var expected = new MagickImage(plain);
+        expected.Rotate(-90);
+        using var turned = new MagickImage(job.Outputs.Single());
+        using var unturned = new MagickImage(plain);
+        Assert.True(unturned.Compare(expected, ErrorMetric.RootMeanSquared) > 0.01); // the fan looks different turned
+        Assert.True(turned.Compare(expected, ErrorMetric.RootMeanSquared) < 0.01);
+    }
+
+    [Fact]
     public async Task A_model_renders_to_a_shaded_picture_with_a_transparent_background()
     {
         var folder = fx.NewFolder();

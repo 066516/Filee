@@ -53,6 +53,20 @@ public class BuiltInDataTests
             Assert.All(profile.PresetIds, id => Assert.Contains(id, ids));
     }
 
+    [Theory]
+    [InlineData("\"left90\"", ImageRotation.Left90)]
+    [InlineData("\"Rotate180\"", ImageRotation.Rotate180)]
+    [InlineData("3", ImageRotation.Rotate180)]
+    [InlineData("\"Left90, Rotate180\"", ImageRotation.None)] // flags OR'd into another value
+    [InlineData("\"2\"", ImageRotation.None)] // a number in a string isn't a name
+    [InlineData("\"Sideways\"", ImageRotation.None)]
+    [InlineData("null", ImageRotation.None)]
+    public void Saved_enum_values_are_read_by_name_and_anything_else_is_the_default(string json, ImageRotation expected)
+    {
+        var options = new System.Text.Json.JsonSerializerOptions { Converters = { new LenientEnumJsonConverter<ImageRotation>() } };
+        Assert.Equal(expected, System.Text.Json.JsonSerializer.Deserialize<ImageRotation>(json, options));
+    }
+
     [Fact]
     public void A_group_clone_keeps_its_kind_and_members()
     {
@@ -63,6 +77,20 @@ public class BuiltInDataTests
         clone.SubPresetIds.Add("to-webp");
         Assert.Equal(2, group.SubPresetIds.Count); // a copy, not the same list
         Assert.False(new Preset { SubPresetIds = ["to-png"] }.IsGroup); // members alone don't make a group
+    }
+
+    [Fact]
+    public void Built_in_groups_fan_out_existing_conversions_on_no_default_donut()
+    {
+        var presets = BuiltInData.CreatePresets().ToDictionary(p => p.Id);
+        var groups = presets.Values.Where(p => p.IsGroup).ToList();
+        Assert.NotEmpty(groups);
+        foreach (var group in groups)
+        {
+            Assert.InRange(group.SubPresetIds.Count, 1, Preset.MaxSubPresets);
+            Assert.All(group.SubPresetIds, id => Assert.False(presets[id].IsGroup, id));
+        }
+        Assert.DoesNotContain(BuiltInData.CreateProfiles(), p => p.PresetIds.Any(id => presets[id].IsGroup));
     }
 
     [Fact]
@@ -80,6 +108,11 @@ public class BuiltInDataTests
     public void Preset_targets_are_known_formats()
     {
         foreach (var preset in BuiltInData.CreatePresets())
-            Assert.True(preset.TargetFormat == BuiltInData.SameAsSource || FormatRegistry.FindById(preset.TargetFormat) is not null, preset.Id);
+        {
+            if (preset.IsGroup)
+                Assert.Equal(Preset.GroupTarget, preset.TargetFormat); // none an older Filee could run it with
+            else
+                Assert.True(preset.TargetFormat == BuiltInData.SameAsSource || FormatRegistry.FindById(preset.TargetFormat) is not null, preset.Id);
+        }
     }
 }

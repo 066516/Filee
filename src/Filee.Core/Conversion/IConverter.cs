@@ -94,6 +94,18 @@ public interface IConverter
     Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// An engine that turns and mirrors images (<see cref="ImageOptions.Rotation"/>, <see cref="ImageOptions.Flip"/>) in
+/// some of its conversions. A route through none of those can't rotate or flip: <see cref="JobQueue"/> refuses it
+/// rather than write the file unturned (a PDF or a video copied "as rotated"), and it turns the image in the first
+/// step that can, not again in a later one.
+/// </summary>
+public interface IImageTransformer
+{
+    /// <summary>True if converting <paramref name="from"/> → <paramref name="to"/> applies the rotation and flip.</summary>
+    bool Transforms(string from, string to);
+}
+
 /// <summary>Merges several PDF files into one. Implemented by the PDF engine.</summary>
 public interface IPdfMerger
 {

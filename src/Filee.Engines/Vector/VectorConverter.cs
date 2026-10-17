@@ -13,7 +13,7 @@ using Filee.Engines.Vector.Tracing;
 namespace Filee.Engines.Vector;
 
 /// <summary>SVG, SVGZ and AI conversions and raster image tracing that need no external program.</summary>
-public sealed class VectorConverter : IConverter
+public sealed class VectorConverter : IConverter, IImageTransformer
 {
     /// <summary>
     /// Cost of tracing a raster image into SVG. Tracing redraws the picture, so it must never be a step on the way to
@@ -26,6 +26,9 @@ public sealed class VectorConverter : IConverter
     public string Id => "vector";
     public string DisplayName => "Vector graphics (built-in)";
     public int MaxParallelism => 0;
+
+    /// <summary>Only when rendering to an image (not to PDF or between SVG and SVGZ).</summary>
+    public bool Transforms(string from, string to) => ImageEncoder.Writable.Contains(to);
 
     public IReadOnlyList<ConversionEdge> Edges { get; } =
     [

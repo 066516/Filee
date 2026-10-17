@@ -60,6 +60,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
                     FormatLabels.Category(loc, f.Category))),
         ];
         ResizeModes = Enum.GetValues<ResizeMode>().Select(v => new Choice<ResizeMode>(v, loc[$"presets.resize.{v}"])).ToList();
+        Rotations = Enum.GetValues<ImageRotation>().Select(v => new Choice<ImageRotation>(v, loc[$"presets.rotation.{v}"])).ToList();
+        Flips = Enum.GetValues<ImageFlip>().Select(v => new Choice<ImageFlip>(v, loc[$"presets.flip.{v}"])).ToList();
         PageSizes = Enum.GetValues<PdfPageSize>().Select(v => new Choice<PdfPageSize>(v, loc[$"presets.page_size.{v}"])).ToList();
         Locations = Enum.GetValues<OutputLocation>().Select(v => new Choice<OutputLocation>(v, loc[$"presets.location.{v}"])).ToList();
         Conflicts = Enum.GetValues<ConflictPolicy>().Select(v => new Choice<ConflictPolicy>(v, loc[$"presets.conflict.{v}"])).ToList();
@@ -77,6 +79,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _name = string.IsNullOrWhiteSpace(_edit.Name) ? loc.DisplayName(_edit) : _edit.Name;
         _target = Targets.FirstOrDefault(t => t.Value == _edit.TargetFormat) ?? Targets[1];
         _resize = ResizeModes.First(r => r.Value == _edit.Image.Resize);
+        _rotation = Rotations.FirstOrDefault(r => r.Value == _edit.Image.Rotation) ?? Rotations[0];
+        _flip = Flips.FirstOrDefault(f => f.Value == _edit.Image.Flip) ?? Flips[0];
         _pageSize = PageSizes.First(p => p.Value == _edit.Pdf.PageSize);
         _location = Locations.First(l => l.Value == _edit.Output.Location);
         _conflict = Conflicts.First(c => c.Value == _edit.Output.Conflict);
@@ -130,6 +134,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     public IReadOnlyList<Choice<string>> Targets { get; }
     public IReadOnlyList<Choice<ResizeMode>> ResizeModes { get; }
+
+    /// <summary>Turning and mirroring: what the built-in rotate / flip presets do, for any image preset.</summary>
+    public IReadOnlyList<Choice<ImageRotation>> Rotations { get; }
+    public IReadOnlyList<Choice<ImageFlip>> Flips { get; }
     public IReadOnlyList<Choice<PdfPageSize>> PageSizes { get; }
     public IReadOnlyList<Choice<OutputLocation>> Locations { get; }
     public IReadOnlyList<Choice<ConflictPolicy>> Conflicts { get; }
@@ -147,7 +155,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     private string _name;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowImage), nameof(ShowQuality), nameof(ShowTiff), nameof(ShowMultiPageTiff), nameof(ShowWebp), nameof(ShowIco),
+    [NotifyPropertyChangedFor(nameof(ShowImage), nameof(ShowTurnForPdf), nameof(ShowQuality), nameof(ShowTiff), nameof(ShowMultiPageTiff), nameof(ShowWebp), nameof(ShowIco),
         nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
         nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec),
@@ -203,6 +211,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowPercent), nameof(ShowLongEdge), nameof(ShowWidth))]
     private Choice<ResizeMode> _resize;
+
+    [ObservableProperty] private Choice<ImageRotation> _rotation;
+    [ObservableProperty] private Choice<ImageFlip> _flip;
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowMargin))]
     private Choice<PdfPageSize> _pageSize;
@@ -288,6 +299,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         || (TargetIsAudio && !LosslessAudioTargets.Contains(TargetId) && MediaCodecs.Effective(TargetId, _audioCodecValue) != AudioCodec.Alac);
 
     public bool ShowImage => TargetIsImage;
+    /// <summary>Images and PDFs (pictures placed on pages) can be turned and flipped.</summary>
+    private bool CanTurn => TargetIsImage || TargetId == "pdf";
+    /// <summary>Rotate and flip for a PDF target, which has no image card to show them in.</summary>
+    public bool ShowTurnForPdf => TargetId == "pdf";
     public bool ShowQuality => TargetId == BuiltInData.SameAsSource || LossyTargets.Contains(TargetId);
     public bool ShowTiff => TargetId is "tiff" or BuiltInData.SameAsSource;
     public bool ShowWebp => TargetId is "webp" or BuiltInData.SameAsSource;
@@ -350,6 +365,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         var image = _original.Image;
         image.Quality = Math.Clamp(Quality, 1, 100);
         image.Resize = Resize.Value;
+        // Only images and PDFs are turned; for any other target a rotation left over from an earlier target would make
+        // every file fail ("can only turn images") with nothing on screen to turn it off.
+        image.Rotation = CanTurn ? Rotation.Value : ImageRotation.None;
+        image.Flip = CanTurn ? Flip.Value : ImageFlip.None;
         image.ResizePercent = Math.Clamp(ResizePercent, 1, 1000);
         image.LongEdge = Math.Clamp(LongEdge, 16, 20000);
         image.Width = Math.Clamp(Width, 16, 20000);

@@ -43,6 +43,7 @@ public static class BuiltInData
             Id = "remove-background", NameKey = "preset.remove_background", TargetFormat = "png",
             Image = { RemoveBackground = true }, Output = { FileNamePattern = "{name}_transparent" },
         },
+        .. ImageToolPresets(),
         new()
         {
             Id = "tiff-300", Name = "TIFF 300dpi", TargetFormat = "tiff",
@@ -219,6 +220,47 @@ public static class BuiltInData
         new() { Id = "to-woff2", Name = "WOFF2", TargetFormat = "woff2" },
         new() { Id = "to-eot", Name = "EOT", TargetFormat = "eot" },
     ];
+
+    /// <summary>
+    /// Rotate and flip presets, and the two groups that fan them out on the donut (added in settings schema 17). On no
+    /// default donut: users add "Rotate" / "Flip" (or single presets) in Settings → Toolbar.
+    /// </summary>
+    public static List<Preset> ImageToolPresets() =>
+    [
+        Tool("rotate-left", "preset.rotate_left", "{name}_left", i => i.Rotation = ImageRotation.Left90),
+        Tool("rotate-right", "preset.rotate_right", "{name}_right", i => i.Rotation = ImageRotation.Right90),
+        Tool("rotate-180", "preset.rotate_180", "{name}_180", i => i.Rotation = ImageRotation.Rotate180),
+        Tool("flip-horizontal", "preset.flip_horizontal", "{name}_mirrored", i => i.Flip = ImageFlip.Horizontal),
+        Tool("flip-vertical", "preset.flip_vertical", "{name}_flipped", i => i.Flip = ImageFlip.Vertical),
+        new()
+        {
+            Id = "rotate", NameKey = "preset.group_rotate", TargetFormat = Preset.GroupTarget, Kind = PresetKind.Group,
+            SubPresetIds = ["rotate-left", "rotate-right", "rotate-180"],
+        },
+        new()
+        {
+            Id = "flip", NameKey = "preset.group_flip", TargetFormat = Preset.GroupTarget, Kind = PresetKind.Group,
+            SubPresetIds = ["flip-horizontal", "flip-vertical"],
+        },
+    ];
+
+    /// <summary>
+    /// A rotate / flip preset. A JPG (or WEBP, AVIF) is encoded again when it turns: at 95 rather than the usual 90, so
+    /// turning a good photo doesn't visibly cost it quality.
+    /// </summary>
+    private static Preset Tool(string id, string nameKey, string pattern, Action<ImageOptions> set)
+    {
+        var preset = new Preset
+        {
+            Id = id,
+            NameKey = nameKey,
+            TargetFormat = SameAsSource,
+            Image = { Quality = 95 },
+            Output = { FileNamePattern = pattern },
+        };
+        set(preset.Image);
+        return preset;
+    }
 
     /// <summary>
     /// Structured data and contacts targets (added in settings schema 14, see SettingsMigrations). EML is for Outlook

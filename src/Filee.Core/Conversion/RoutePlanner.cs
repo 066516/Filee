@@ -12,7 +12,19 @@ namespace Filee.Core.Conversion;
 public sealed record RouteStep(IConverter Converter, string From, string To);
 
 /// <summary>A planned conversion from one format to another.</summary>
-public sealed record Route(IReadOnlyList<RouteStep> Steps, int Cost);
+public sealed record Route(IReadOnlyList<RouteStep> Steps, int Cost)
+{
+    /// <summary>Index of the first step that turns and mirrors images (<see cref="IImageTransformer"/>), or -1.</summary>
+    public int FirstTransformStep()
+    {
+        for (var i = 0; i < Steps.Count; i++)
+        {
+            if (Steps[i].Converter is IImageTransformer transformer && transformer.Transforms(Steps[i].From, Steps[i].To))
+                return i;
+        }
+        return -1;
+    }
+}
 
 /// <summary>Plans conversion routes over the available converters.</summary>
 public sealed class RoutePlanner

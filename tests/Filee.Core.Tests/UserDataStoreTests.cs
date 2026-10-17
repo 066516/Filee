@@ -505,6 +505,72 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_16_libraries_get_rotate_and_flip_presets_and_groups_on_no_donut()
+    {
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id is "rotate-left" or "rotate-right" or "rotate-180" or "flip-horizontal" or "flip-vertical" or "rotate" or "flip");
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(16, presets, profiles));
+
+        var rotate = presets.Single(p => p.Id == "rotate");
+        Assert.True(rotate.IsGroup);
+        Assert.Equal(["rotate-left", "rotate-right", "rotate-180"], rotate.SubPresetIds);
+        Assert.Equal(ImageRotation.Left90, presets.Single(p => p.Id == "rotate-left").Image.Rotation);
+        Assert.Equal(ImageFlip.Horizontal, presets.Single(p => p.Id == "flip-horizontal").Image.Flip);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Any(id => id.StartsWith("rotate") || id.StartsWith("flip")));
+        Assert.False(SettingsMigrations.ApplyToLibrary(16, presets, profiles)); // once only
+        // Where a new library has them: after "Remove background".
+        var background = presets.FindIndex(p => p.Id == "remove-background");
+        Assert.Equal("rotate-left", presets[background + 1].Id);
+    }
+
+    [Fact]
+    public void A_rotation_from_a_newer_Filee_reads_as_none_and_the_other_presets_still_load()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.SaveLibrary();
+        var path = Path.Combine(dir.Path, "presets.json");
+        var json = File.ReadAllText(path);
+        Assert.Contains("\"rotation\": \"Left90\"", json);
+        File.WriteAllText(path, json.Replace("\"rotation\": \"Left90\"", "\"rotation\": \"Transpose\"")
+            .Replace("\"flip\": \"Vertical\"", "\"flip\": 7"));
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        Assert.Equal(ImageRotation.None, reloaded.FindPreset("rotate-left")!.Image.Rotation);
+        Assert.Equal(ImageFlip.None, reloaded.FindPreset("flip-vertical")!.Image.Flip);
+        Assert.Equal(ImageRotation.Right90, reloaded.FindPreset("rotate-right")!.Image.Rotation); // the rest as saved
+        Assert.False(File.Exists(path + ".broken"));
+    }
+
+    [Fact]
+    public void Back_from_an_older_Filee_rotate_and_flip_work_again_and_keep_the_users_changes()
+    {
+        // What a Filee before 17 leaves after saving: kind, members and rotation dropped, the rest as it was.
+        var presets = BuiltInData.CreatePresets();
+        var left = presets.Single(p => p.Id == "rotate-left");
+        left.Image.Rotation = ImageRotation.None;
+        left.Name = "Turn left";
+        var rotate = presets.Single(p => p.Id == "rotate");
+        rotate.Kind = PresetKind.Convert;
+        rotate.SubPresetIds = [];
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(16, presets, profiles));
+
+        Assert.Equal(ImageRotation.Left90, left.Image.Rotation);
+        Assert.Equal("Turn left", left.Name);
+        Assert.True(rotate.IsGroup);
+        Assert.Equal(["rotate-left", "rotate-right", "rotate-180"], rotate.SubPresetIds);
+        Assert.Equal(Preset.GroupTarget, rotate.TargetFormat);
+        Assert.Single(presets, p => p.Id == "rotate-left"); // repaired, not added twice
+    }
+
+    [Fact]
     public void Catalog_migration_ignores_extensions_checked_on_mixed_profiles()
     {
         // Schema-5 data where the user already limited a mixed-files donut to MP3 and JPG: those checks must not
