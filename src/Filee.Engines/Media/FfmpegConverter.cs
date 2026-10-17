@@ -256,7 +256,7 @@ public sealed partial class FfmpegConverter : IConverter
 
         Directory.CreateDirectory(framesSubfolder);
 
-        var outputPattern = Path.Combine(framesSubfolder, $"frame_%04d.{imageExt}");
+        var outputPattern = Path.Combine(framesSubfolder, $"frame_%06d.{imageExt}");
         var args = MediaEncoding.FrameSequence(
             input,
             outputPattern,

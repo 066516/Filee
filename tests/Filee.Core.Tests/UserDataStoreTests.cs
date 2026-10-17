@@ -194,6 +194,28 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_9_libraries_get_the_extract_frames_presets()
+    {
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id is "extract-frames-png" or "extract-frames-jpg");
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(9, presets, profiles));
+
+        var pngPreset = presets.Single(p => p.Id == "extract-frames-png");
+        Assert.True(pngPreset.Media.SaveEveryFrame);
+        Assert.Equal("png", pngPreset.TargetFormat);
+
+        var jpgPreset = presets.Single(p => p.Id == "extract-frames-jpg");
+        Assert.True(jpgPreset.Media.SaveEveryFrame);
+        Assert.Equal("jpg", jpgPreset.TargetFormat);
+
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("extract-frames-png"));
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("extract-frames-jpg"));
+        Assert.False(SettingsMigrations.ApplyToLibrary(9, presets, profiles)); // once only
+    }
+
+    [Fact]
     public void Catalog_migration_ignores_extensions_checked_on_mixed_profiles()
     {
         // Schema-5 data where the user already limited a mixed-files donut to MP3 and JPG: those checks must not

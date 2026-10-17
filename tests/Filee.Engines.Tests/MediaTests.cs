@@ -608,7 +608,9 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         var pngFolder1 = await ConvertAsync(source, "png", options);
         Assert.True(Directory.Exists(pngFolder1));
         Assert.Equal(Path.Combine(folder, "seq_frames"), pngFolder1);
-        Assert.NotEmpty(Directory.GetFiles(pngFolder1, "frame_*.png"));
+        var png1Files = Directory.GetFiles(pngFolder1, "frame_*.png");
+        Assert.NotEmpty(png1Files);
+        Assert.Contains(png1Files, f => Path.GetFileName(f) == "frame_000001.png");
 
         // A second run creates a unique folder seq_frames (2) instead of writing into an existing one.
         var pngFolder2 = await ConvertAsync(source, "png", options);
@@ -622,6 +624,7 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal(Path.Combine(folder, "seq_frames (3)"), jpgFolder);
         var jpgFiles = Directory.GetFiles(jpgFolder, "frame_*.jpg");
         Assert.NotEmpty(jpgFiles);
+        Assert.Contains(jpgFiles, f => Path.GetFileName(f) == "frame_000001.jpg");
         using var image = new ImageMagick.MagickImage(jpgFiles.First());
         Assert.True(image.Width > 0 && image.Height > 0);
     }
@@ -630,7 +633,7 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     public void Video_frame_sequence_arguments_use_proper_flags()
     {
         var video = new VideoStreamInfo(720, 480, 8.0 / 9.0, 0, 30);
-        var jpg = MediaEncoding.FrameSequence("in.mp4", "out_frames/frame_%04d.jpg", "jpg", video, quality: 100, frameInterval: 5);
+        var jpg = MediaEncoding.FrameSequence("in.mp4", "out_frames/frame_%06d.jpg", "jpg", video, quality: 100, frameInterval: 5);
         Assert.Contains("-q:v", jpg);
         Assert.Equal("2", After(jpg, "-q:v"));
         Assert.Contains("-vf", jpg);
@@ -639,12 +642,12 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Contains("select='not(mod(n\\,5))'", vf);
         Assert.Contains("-fps_mode", jpg);
         Assert.Equal("vfr", After(jpg, "-fps_mode"));
-        Assert.Equal("out_frames/frame_%04d.jpg", jpg[^1]);
+        Assert.Equal("out_frames/frame_%06d.jpg", jpg[^1]);
 
-        var png = MediaEncoding.FrameSequence("in.mp4", "out_frames/frame_%04d.png", "png", fps: 10);
+        var png = MediaEncoding.FrameSequence("in.mp4", "out_frames/frame_%06d.png", "png", fps: 10);
         Assert.DoesNotContain("-q:v", png);
         Assert.Contains("fps=10", After(png, "-vf"));
-        Assert.Equal("out_frames/frame_%04d.png", png[^1]);
+        Assert.Equal("out_frames/frame_%06d.png", png[^1]);
     }
 
     [Fact]

@@ -352,6 +352,18 @@ internal static class SettingsMigrations
             }
             changed |= Offer(presets, profiles, "pdf", "pdf-long-image", "to-jpg");
         }
+
+        // v10: Video frame sequence extraction presets (PNG and JPG), on no donut to avoid accidental clicks.
+        if (from < 10)
+        {
+            foreach (var id in new[] { "extract-frames-png", "extract-frames-jpg" })
+            {
+                if (presets.Any(p => p.Id == id))
+                    continue;
+                presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == id));
+                changed = true;
+            }
+        }
         return changed;
     }
 
