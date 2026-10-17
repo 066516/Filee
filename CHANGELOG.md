@@ -13,6 +13,79 @@ one-line summaries in the user's language (`ko`, `en`, `zh`; a line per change, 
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 1.11.0
+
+<!-- update
+level: recommended
+ko: 지원 형식이 244가지로 늘었어요: 자막, JSON·YAML 같은 데이터, 3D 모델 등
+ko: 그림을 SVG로 바꾸는 "벡터화"와 회전·반전 프리셋이 생겼어요
+ko: 도넛 한 칸에 여러 프리셋을 묶어 두고 펼쳐서 고를 수 있어요
+ko: HEVC·AV1 동영상, 무손실 오디오, 동영상 자막 추출을 지원해요
+ko: 바탕화면 아이콘이 가끔 클릭되지 않던 문제를 고쳤어요
+ko: HWP를 PDF로 바꿀 때 표 안의 표가 아래로 밀리던 문제를 고쳤어요
+en: 244 formats now, including subtitles, data files (JSON, YAML…) and 3D models
+en: "Trace to SVG" turns pictures into vectors, and new presets rotate and flip images
+en: A donut slice can hold a group of presets that fans out
+en: HEVC and AV1 video, lossless audio formats and subtitle extraction
+en: Fixed desktop icons that sometimes stopped reacting to clicks
+en: Fixed tables inside a table cell drawn too low in HWP → PDF
+zh: 支持的格式增至 244 种，新增字幕、数据文件（JSON、YAML 等）和 3D 模型
+zh: 新增"描摹为 SVG"可将图片转为矢量图，并新增旋转和翻转预设
+zh: 圆环工具栏的一格可以放一组预设，展开后选择
+zh: 支持 HEVC 和 AV1 视频、无损音频格式以及从视频提取字幕
+zh: 修复了桌面图标有时点击无反应的问题
+zh: 修复了 HWP 转 PDF 时表格内的表格位置偏下的问题
+-->
+
+### New
+
+- **Subtitles.** A new category with its own donut: SRT, ASS, WebVTT, SAMI (SMI), LRC, TTML and MicroDVD convert into
+  each other without any engine, and SSA and SCC are read. Korean SMI and SRT files saved in CP949 are detected and
+  written as UTF-8. "Extract subtitles" on the video donut takes the first text subtitle track of an MKV, MP4, MOV or
+  WebM out as SRT (needs FFmpeg).
+- **Data files.** A new category for JSON, JSON Lines, YAML, TOML and XML, converting into each other and, when the data
+  is a table, to and from CSV and Excel. Outlook `.msg` e-mails convert to EML, HTML, text or a ZIP of their
+  attachments, and vCard contacts (also CP949 ones from old phones) to and from CSV.
+- **3D models.** A new category for GLB, glTF, STL, OBJ, 3MF and PLY, converting into each other with colours,
+  textures and materials where the format keeps them, and to a shaded PNG or JPG picture. Nothing to install.
+- **Trace to SVG.** Two new image presets turn a picture into vector shapes: "Trace to SVG" in up to 64 colours and
+  "Line art to SVG" in black for logos, signatures and scans. SVG drawings also convert to DXF and DWG for CAD.
+- **Rotate and flip** (issue #71, by @SeoJCalive). Images can be turned left, right or 180° and mirrored, after the
+  photo's own orientation, as a preset option and as ready-made presets.
+- **Donut groups** (issue #74, by @SeoJCalive). A donut slice can hold up to six presets that fan out in an outer ring
+  when you rest on it, drag outward or click it; the keyboard works too. Create one with "New group" in Settings →
+  Toolbar. The ready-made "Rotate" and "Flip" groups are on the Presets page.
+- **Video and audio.** Video presets can encode HEVC (H.265) or AV1 (MP4 HEVC is on the video donut), keeping 10-bit
+  and HDR video. New audio targets WavPack, TTA, W64, E-AC3 and ALAC (in M4A), and APE, Musepack, TAK, DSD (DSF/DFF),
+  DTS and Speex are read.
+- **More formats.**
+  - Images: APNG (animated PNG, without FFmpeg), QOI, DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster, MIFF
+    and MNG; DICOM medical images, OpenEXR, Radiance HDR and Photo CD are read; Fujifilm `.hif` is read as HEIC.
+  - Documents and text (with Pandoc): Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter notebooks, Textile, man pages
+    and OPML, and Markdown → PowerPoint slides.
+  - With LibreOffice: ClarisWorks, MacWrite, T602, Pocket Word and flat OpenDocument files are read, OTT, OTS, OTP,
+    FODT and XLT written, SVG → EMF/WMF and one PDF page → SVG.
+  - E-books: KEPUB for Kobo readers, built in.
+- **Sponsor.** "Sponsor" in the sidebar and the About page opens the ways to support Filee (GitHub Sponsors, Patreon,
+  Ko-fi, PayPal, Fairy), and sponsors are thanked on the About page.
+
+### Changed
+
+- **Engines page.** LibreOffice's switches moved into a Settings window on its card, and engines are put in order by
+  dragging their cards.
+- **Shorter texts.** Long hints in the app are shorter and break after each sentence.
+
+### Fixed
+
+- **Desktop icons that stopped reacting to clicks.** After a conversion through the donut, a Ctrl+drag that brought no
+  files (selecting icons on the desktop, dragging a folder) could leave Filee's invisible drag window over the desktop,
+  catching clicks until Filee quit. A donut opened from Explorer's menu on Windows 10 also closes with Esc and clicks
+  elsewhere again.
+- **Tables inside a table cell in HWP → PDF** (issue #49). A table placed in a table cell was drawn too low, over the
+  paragraph below it, when the file was HWP (HWPX was fine).
+- **Korean e-mails after an Outlook message.** Converting an Outlook `.msg` first left later Korean (EUC-KR) e-mails of
+  the same session garbled.
+
 ## 1.10.4
 
 <!-- update
