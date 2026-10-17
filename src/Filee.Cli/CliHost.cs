@@ -31,6 +31,8 @@ internal sealed class CliHost : IAsyncDisposable
         EngineEnvironment.OwnCopies = new Dictionary<string, string>(store.Settings.EngineOwnCopies);
         EngineEnvironment.LibreOfficeForSlides = store.Settings.LibreOfficeForSlides;
         EngineEnvironment.LibreOfficeForHwp = store.Settings.LibreOfficeForHwp;
+        EngineEnvironment.LibreOfficeForDocuments = store.Settings.LibreOfficeForDocuments;
+        EngineEnvironment.LibreOfficeForSheets = store.Settings.LibreOfficeForSheets;
         var converters = EngineRegistry.CreateAll(new EngineEnvironment(store.Directory));
         var catalog = new ConverterCatalog(converters) { Priority = store.Settings.EnginePriority };
         var queue = new JobQueue(catalog, EngineRegistry.FindPdfMerger(converters), combiner: EngineRegistry.FindFileCombiner(converters),

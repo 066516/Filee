@@ -335,6 +335,119 @@ public class RenderTests
         window.Close();
     }
 
+    /// <summary>
+    /// The built-in "Rotate" and "Flip" groups put on a full image donut (as a user would; they are on no donut by
+    /// default): their presets' names fit their ring slices, in every language.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData("ko")]
+    [InlineData("en")]
+    [InlineData("zh-CN")]
+    public void The_rotate_and_flip_groups_fan_out_names_that_fit(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var store = AppHost.Get<UserDataStore>();
+        var images = store.Profiles.Single(p => p.Id == "images");
+        var before = images.PresetIds.ToList();
+        try
+        {
+            images.PresetIds.AddRange(["rotate", "flip"]);
+            var vm = AppHost.Get<RadialViewModel>();
+            vm.Load([@"C:\photos\a.jpg"], clickMode: true);
+            vm.FitToThisDonut();
+            var rotate = vm.Items.Count - 2;
+            Assert.Equal(3, vm.Items[rotate].Children!.Count);
+            Assert.All(vm.Items[rotate].Children!, item => Assert.True(item.IsEnabled, item.Label));
+            // Short names on the ring ("Rotate" → "Left"), the full one ("Rotate left") everywhere else.
+            var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+            var left = store.FindPreset("rotate-left")!;
+            Assert.Equal(loc["preset.rotate_left.short"], vm.Items[rotate].Children![0].Label);
+            Assert.NotEqual(loc.DisplayName(left), vm.Items[rotate].Children![0].Label);
+
+            var window = new RadialWindow { DataContext = vm };
+            window.Show();
+            var donut = window.DonutControl;
+            donut.SetExternalHit(new DonutHit(DonutHitKind.Segment, rotate));
+            donut.ExpandPendingGroup();
+            donut.SetExternalHit(new DonutHit(DonutHitKind.SubSegment, rotate, 1));
+            vm.ShowHint(rotate, donut.ActiveSubIndex, centerHot: false);
+            Pump();
+            Save(window, $"donut-rotate-{language}.png");
+            window.Close();
+        }
+        finally
+        {
+            images.PresetIds.Clear();
+            images.PresetIds.AddRange(before);
+        }
+    }
+
+    /// <summary>
+    /// A group of three formats on the image donut: hovering it fans PNG / JPG / WEBP out outside it, and the slice
+    /// under the pointer there is what a drop or click converts with.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData("ko")]
+    [InlineData("en")]
+    public void A_group_slice_fans_out_its_presets(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var store = AppHost.Get<UserDataStore>();
+        var images = store.Profiles.Single(p => p.Id == "images");
+        var before = images.PresetIds.ToList();
+        var group = new Filee.Core.Presets.Preset
+        {
+            Id = "render-group",
+            Name = language == "ko" ? "형식" : "Formats",
+            Kind = Filee.Core.Presets.PresetKind.Group,
+            SubPresetIds = ["to-png", "to-jpg", "to-webp"],
+        };
+        try
+        {
+            store.Presets.Add(group);
+            images.PresetIds.Add(group.Id);
+            var vm = AppHost.Get<RadialViewModel>();
+            vm.Load([@"C:\photos\a.jpg"], clickMode: true);
+            vm.FitToThisDonut();
+            Assert.True(vm.ReserveSubRing);
+            var index = vm.Items.Count - 1;
+            Assert.Equal(3, vm.Items[index].Children!.Count);
+            Assert.Null(vm.PresetAt(index, -1)); // the group itself converts nothing
+            Assert.Equal("to-jpg", vm.PresetAt(index, 1)!.Id);
+
+            var window = new RadialWindow { DataContext = vm };
+            window.Show();
+            var donut = window.DonutControl;
+            donut.SetExternalHit(new DonutHit(DonutHitKind.Segment, index));
+            donut.ExpandPendingGroup(); // as after resting on it
+            donut.SetExternalHit(new DonutHit(DonutHitKind.SubSegment, index, 1));
+            vm.ShowHint(index, donut.ActiveSubIndex, centerHot: false);
+            Pump();
+
+            var n = vm.Items.Count;
+            var center = new Avalonia.Point(donut.Bounds.Width / 2, donut.Bounds.Height / 2);
+            var onRing = donut.SubSliceCenter(index, 1);
+            Assert.Equal(new DonutHit(DonutHitKind.SubSegment, index, 1), donut.HitTest(onRing));
+            // The gap before the ring keeps the group; a neighbour's slice, outer half or inner, is that neighbour (a click
+            // or drop there converts with it; DonutGroupTests checks the ring stays open over its outer half).
+            var neighbour = DonutGeometry.MidAngle(index, n) - DonutGeometry.Span(n) * 0.6;
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, index),
+                donut.HitTest(DonutGeometry.PointAt(center, vm.OuterRadius + 10, DonutGeometry.MidAngle(index, n))));
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, index - 1), donut.HitTest(DonutGeometry.PointAt(center, vm.OuterRadius - 8, neighbour)));
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, index - 1),
+                donut.HitTest(DonutGeometry.PointAt(center, vm.OuterRadius * vm.HoleRatio + 6, neighbour)));
+            Assert.Contains("JPG", vm.CenterSubtitle);
+            Save(window, $"donut-group-{language}.png");
+            window.Close();
+        }
+        finally
+        {
+            images.PresetIds.Clear();
+            images.PresetIds.AddRange(before);
+            store.Presets.Remove(group);
+        }
+    }
+
     /// <summary>The middle of slot <paramref name="slot"/> of a donut with <paramref name="slots"/> slices.</summary>
     private static Avalonia.Point DonutPoint(DonutMenu donut, int slot, int slots)
     {
@@ -355,10 +468,76 @@ public class RenderTests
         window.DonutControl.SetExternalHighlight(1);
         Pump();
 
-        Assert.Equal(8, vm.Items.Count);
+        Assert.Equal(10, vm.Items.Count); // with "Trace to SVG" and "Line art to SVG"
         Assert.Equal("JPG 3개", vm.CenterTitle);
         Save(window, "donut-images-ko.png");
         window.Close();
+    }
+
+    [AvaloniaFact]
+    public void LibreOffice_options_window_renders()
+    {
+        TestServices.EnsureInitialized("ko");
+        using var vm = new Filee.App.ViewModels.Pages.EnginesPageViewModel(AppHost.Get<Filee.Core.Settings.UserDataStore>(),
+            AppHost.Get<Filee.Core.Conversion.ConverterCatalog>(), AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<EngineDownloadService>());
+        var window = new Filee.App.Views.LibreOfficeOptionsWindow { DataContext = vm };
+        window.Show();
+        Pump();
+        Save(window, "window-libreoffice-options-ko.png");
+        window.Close();
+    }
+
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    public void Sponsor_window_renders(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var window = Filee.App.Views.SponsorWindow.Create(AppHost.Get<Filee.Core.Localization.ILocalizer>());
+        window.Show();
+        Pump();
+        Save(window, $"window-sponsor-{language}.png");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Sponsor_window_with_supporters_renders()
+    {
+        TestServices.EnsureInitialized("en");
+        var window = Filee.App.Views.SponsorWindow.Create(AppHost.Get<Filee.Core.Localization.ILocalizer>());
+        var view = window.Supporters;
+        view.Show(new SupporterList(
+            [new Supporter("Acme", "https://acme.example", "acme.png"), new Supporter("Globex", "https://globex.example")],
+            [new("Kim"), new("Lee"), new("Park")]), _ => Logo());
+        window.Show();
+        Pump();
+        Save(window, "window-sponsor-supporters-en.png");
+        window.Close();
+
+        var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+        vm.Navigate("about");
+        var main = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+        main.Show();
+        Pump();
+        var about = main.GetVisualDescendants().OfType<Filee.App.Views.Pages.AboutPage>().Single();
+        about.Supporters.Show(new SupporterList(
+            [new Supporter("Acme", "https://acme.example", "acme.png"), new Supporter("Globex", "https://globex.example")],
+            [new("Kim"), new("Lee"), new("Park")]), _ => Logo());
+        Pump();
+        Save(main, "page-about-supporters-en.png");
+        main.Close();
+
+        // A stand-in logo: a wide coloured mark like a company's.
+        static Avalonia.Media.Imaging.Bitmap Logo()
+        {
+            var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new Avalonia.PixelSize(120, 32));
+            using (var context = bitmap.CreateDrawingContext())
+            {
+                context.DrawRectangle(new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#3B6FD8")), null, new Avalonia.Rect(0, 4, 24, 24), 6, 6);
+                context.DrawRectangle(new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#7A8699")), null, new Avalonia.Rect(32, 10, 84, 12), 3, 3);
+            }
+            return bitmap;
+        }
     }
 
     [AvaloniaTheory]
@@ -432,6 +611,79 @@ public class RenderTests
         window.Close();
     }
 
+    [AvaloniaFact]
+    public void Preset_editor_shows_and_saves_rotation_and_flip()
+    {
+        TestServices.EnsureInitialized("ko");
+        var preset = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "rotate-left");
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<Filee.Core.Localization.ILocalizer>());
+        Assert.Equal(Filee.Core.Presets.ImageRotation.Left90, vm.Rotation.Value); // not a hidden option any more
+        Assert.Equal(Filee.Core.Presets.ImageFlip.None, vm.Flip.Value);
+        var window = new PresetEditorWindow { DataContext = vm, Height = 900 };
+        window.Show();
+        Pump();
+        Save(window, "preset-rotate-ko.png");
+        window.Close();
+
+        // Rotate and convert in one: turn left, mirror, and make it a JPG.
+        vm.Flip = vm.Flips.Single(f => f.Value == Filee.Core.Presets.ImageFlip.Horizontal);
+        vm.Target = vm.Targets.Single(t => t.Value == "jpg");
+        Assert.True(vm.Apply());
+
+        Assert.Equal(Filee.Core.Presets.ImageRotation.Left90, preset.Image.Rotation);
+        Assert.Equal(Filee.Core.Presets.ImageFlip.Horizontal, preset.Image.Flip);
+        Assert.Equal("jpg", preset.TargetFormat);
+    }
+
+    [AvaloniaFact]
+    public void Preset_editor_keeps_rotation_visible_for_pdf_and_drops_it_for_targets_that_cannot_turn()
+    {
+        TestServices.EnsureInitialized("en");
+        var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+
+        // Photos → PDF are turned on the pages: the PDF card shows the rotation, and it is kept.
+        var toPdf = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "rotate-left");
+        var vm = new PresetEditorViewModel(toPdf, loc);
+        vm.Target = vm.Targets.Single(t => t.Value == "pdf");
+        Assert.False(vm.ShowImage);
+        Assert.True(vm.ShowTurnForPdf);
+        Assert.True(vm.Apply());
+        Assert.Equal(Filee.Core.Presets.ImageRotation.Left90, toPdf.Image.Rotation);
+
+        // A video can't be turned: a rotation left from the image target would fail every file with nothing on screen.
+        var toVideo = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "rotate-left");
+        vm = new PresetEditorViewModel(toVideo, loc);
+        vm.Flip = vm.Flips.Single(f => f.Value == Filee.Core.Presets.ImageFlip.Vertical);
+        vm.Target = vm.Targets.Single(t => t.Value == "mp4");
+        Assert.False(vm.ShowTurnForPdf);
+        Assert.True(vm.Apply());
+        Assert.Equal(Filee.Core.Presets.ImageRotation.None, toVideo.Image.Rotation);
+        Assert.Equal(Filee.Core.Presets.ImageFlip.None, toVideo.Image.Flip);
+    }
+
+    [AvaloniaFact]
+    public void Preset_editor_shows_and_saves_background_removal()
+    {
+        TestServices.EnsureInitialized("ko");
+        var preset = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "remove-background");
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<Filee.Core.Localization.ILocalizer>());
+        Assert.True(vm.RemoveBackground);
+        Assert.Equal(25, vm.BackgroundTolerance);
+        var window = new PresetEditorWindow { DataContext = vm, Height = 900 };
+        window.Show();
+        Pump();
+        Save(window, "preset-remove-background-ko.png");
+        window.Close();
+
+        vm.BackgroundTolerance = 140; // out of range: clamped
+        vm.KeepEnclosedBackground = true;
+        Assert.True(vm.Apply());
+
+        Assert.True(preset.Image.RemoveBackground);
+        Assert.Equal(100, preset.Image.BackgroundTolerance);
+        Assert.True(preset.Image.KeepEnclosedBackground);
+    }
+
     [AvaloniaTheory]
     [InlineData("en")]
     [InlineData("ko")]
@@ -450,6 +702,17 @@ public class RenderTests
 
         try
         {
+            updates.Notes = [ReleaseNotes.Parse("9.9.9", """
+                <!-- update
+                level: recommended
+                ko: 엑셀에서 정한 페이지 나누기가 PDF에 반영돼요
+                ko: 한글 문서의 보기 상자와 수식이 PDF에서 제대로 나와요
+                en: Excel page breaks carry over to PDF
+                en: Boxes and equations of 한글 documents come out right in PDFs
+                zh: Excel 中设置的分页符会保留到 PDF 中
+                zh: 韩文 Hangul 文档中的框和公式在 PDF 中正确显示
+                -->
+                """)];
             updates.LatestVersion = "9.9.9";
             Pump();
             Assert.True(button.IsVisible);
@@ -461,6 +724,22 @@ public class RenderTests
             notice.Show();
             Pump();
             Save(notice, $"update-notice-{language}.png");
+
+            // A required update: red pill on the card and in the sidebar; an optional one: plain button, grey pill.
+            updates.Notes = [ReleaseNotes.Parse("9.9.9", """
+                <!-- update
+                level: required
+                ko: 변환 결과가 잘못 나오던 문제를 고쳤어요
+                en: Fixes wrong conversion results
+                zh: 修复了转换结果错误的问题
+                -->
+                """)];
+            Pump();
+            Save(notice, $"update-notice-required-{language}.png");
+            Save(window, $"sidebar-update-required-{language}.png");
+            updates.Notes = [ReleaseNotes.Parse("9.9.9", "<!-- update\nlevel: optional\nko: 새 기능\nen: A new feature\n-->")];
+            Pump();
+            Save(window, $"sidebar-update-optional-{language}.png");
 
             // While the installer downloads, the card, the sidebar button and the tray show the progress.
             updates.Step = UpdateStep.Downloading;
@@ -482,6 +761,7 @@ public class RenderTests
         {
             updates.Step = UpdateStep.Idle;
             updates.LatestVersion = null;
+            updates.Notes = [];
             window.Close();
         }
     }
@@ -605,6 +885,16 @@ public class RenderTests
             box.IsDropDownOpen = false;
             window.Close();
 
+            // HEVC preset: the codec choice next to the other video options.
+            var hevc = new PresetEditorViewModel(store.FindPreset("mp4-hevc")!, loc);
+            Assert.True(hevc.ShowVideoCodec && !hevc.ShowAudioCodec);
+            Assert.Equal(Filee.Core.Presets.VideoCodec.Hevc, hevc.VideoCodecChoice.Value);
+            window = new PresetEditorWindow { DataContext = hevc, Height = 900 };
+            window.Show();
+            Pump();
+            Save(window, $"preset-codec-{suffix}.png");
+            window.Close();
+
             var archive = new PresetEditorViewModel(store.FindPreset("zip-all")!, loc);
             Assert.True(archive.ShowArchive && archive.ShowArchiveOptions && archive.CombineIntoOne);
             Assert.False(archive.ShowMedia || archive.ShowPdf);
@@ -638,6 +928,50 @@ public class RenderTests
             if (dark)
                 theme.Apply(new ThemeSettings(), language);
         }
+    }
+
+    /// <summary>The preset popup of "Trace to SVG": mode, colours and detail; colours only in colour mode.</summary>
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    [InlineData("zh-CN")]
+    public void Preset_editor_shows_tracing_options(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var store = AppHost.Get<UserDataStore>();
+        var vm = new PresetEditorViewModel(store.FindPreset("trace-svg")!.Clone(), AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowTrace && vm.ShowTraceColors);
+        Assert.False(vm.ShowImage || vm.ShowMedia || vm.ShowArchive);
+
+        var window = new PresetEditorWindow { DataContext = vm, Height = 760 };
+        window.Show();
+        Pump();
+        Assert.True(window.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "TraceCard").IsVisible);
+        Save(window, $"preset-trace-{language}.png");
+        window.Close();
+
+        vm.TraceMode = vm.TraceModes.Single(m => m.Value == Filee.Core.Presets.TracingMode.BlackAndWhite);
+        Assert.False(vm.ShowTraceColors);
+        vm.Target = vm.Targets.Single(t => t.Value == "dxf");
+        Assert.True(vm.ShowTrace);
+        vm.Target = vm.Targets.Single(t => t.Value == "png");
+        Assert.False(vm.ShowTrace);
+    }
+
+    [AvaloniaFact]
+    public void Preset_editor_saves_tracing_options()
+    {
+        TestServices.EnsureInitialized("en");
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "svg", Name = "Logo" };
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.Equal(["Colour", "Black and white (line art)"], vm.TraceModes.Select(m => m.Label));
+
+        vm.TraceMode = vm.TraceModes.Single(m => m.Value == Filee.Core.Presets.TracingMode.BlackAndWhite);
+        vm.TraceColors = 200;
+        vm.TraceDetail = 80;
+        Assert.True(vm.Apply());
+
+        Assert.Equal((Filee.Core.Presets.TracingMode.BlackAndWhite, 64, 80), (preset.Trace.Mode, preset.Trace.Colors, preset.Trace.Detail));
     }
 
     [AvaloniaFact]
@@ -675,6 +1009,46 @@ public class RenderTests
         // A value set outside the editor is offered instead of being lost.
         preset.Media.MaxHeight = 600;
         Assert.Equal("600p", new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>()).MaxHeight.Label);
+    }
+
+    [AvaloniaFact]
+    public void Preset_editor_offers_the_codecs_each_target_can_hold()
+    {
+        TestServices.EnsureInitialized("en");
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "mp4", Name = "Codec" };
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowVideoCodec && !vm.ShowAudioCodec);
+        Assert.Equal([Filee.Core.Presets.VideoCodec.Default, Filee.Core.Presets.VideoCodec.Hevc, Filee.Core.Presets.VideoCodec.Av1],
+            vm.VideoCodecs.Select(c => c.Value));
+        Assert.StartsWith("H.264", vm.VideoCodecChoice.Label);
+        vm.VideoCodecChoice = vm.VideoCodecs.Single(c => c.Value == Filee.Core.Presets.VideoCodec.Hevc);
+
+        // WebM has no HEVC: its list is VP9 / AV1 and the choice shows as VP9; MKV takes HEVC again.
+        vm.Target = vm.Targets.Single(t => t.Value == "webm");
+        Assert.Equal(["VP9", "AV1 (smallest, slow)"], vm.VideoCodecs.Select(c => c.Label));
+        Assert.Equal(Filee.Core.Presets.VideoCodec.Default, vm.VideoCodecChoice.Value);
+        vm.Target = vm.Targets.Single(t => t.Value == "mkv");
+        Assert.Equal(Filee.Core.Presets.VideoCodec.Hevc, vm.VideoCodecChoice.Value);
+        vm.Target = vm.Targets.Single(t => t.Value == "avi");
+        Assert.False(vm.ShowVideoCodec);
+
+        // M4A: AAC or ALAC; ALAC is lossless, so quality and bitrate go away.
+        vm.Target = vm.Targets.Single(t => t.Value == "m4a");
+        Assert.True(vm.ShowAudioCodec && vm.ShowAudioBitrate && vm.ShowMediaQuality && !vm.ShowVideoCodec);
+        vm.AudioCodecChoice = vm.AudioCodecs.Single(c => c.Value == Filee.Core.Presets.AudioCodec.Alac);
+        Assert.False(vm.ShowAudioBitrate || vm.ShowMediaQuality);
+        Assert.True(vm.ShowMedia && vm.ShowAudioChannels);
+        Assert.True(vm.Apply());
+        Assert.Equal((Filee.Core.Presets.VideoCodec.Default, Filee.Core.Presets.AudioCodec.Alac), (preset.Media.VideoCodec, preset.Media.AudioCodec));
+
+        // New lossless targets and W64 (WAV options); subtitles have no media or PDF options.
+        vm.Target = vm.Targets.Single(t => t.Value == "wv");
+        Assert.False(vm.ShowAudioBitrate || vm.ShowAudioCodec);
+        vm.Target = vm.Targets.Single(t => t.Value == "w64");
+        Assert.True(vm.ShowWav);
+        vm.Target = vm.Targets.Single(t => t.Value == "smi");
+        Assert.False(vm.ShowMedia || vm.ShowPdf || vm.ShowImage);
+        Assert.Equal("Subtitle", vm.Target.Detail);
     }
 
     /// <summary>Shows the toolbar page (tall, so the profile card is visible) with temporarily changed profiles.</summary>

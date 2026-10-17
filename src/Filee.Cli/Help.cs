@@ -70,7 +70,7 @@ internal static class Help
           -t, --to <format>      Target format
           -p, --preset <preset>  A preset from the app, by id or name
           -o, --output <folder>  Where converted files go (default: <folder>\converted)
-          -r, --recursive        Also watch sub folders
+          -r, --recursive        Also watch sub folders (their files keep the sub folder in the output)
               --move-originals   Move converted sources to <folder>\originals; files already waiting are
                                  converted at start
               --settle <seconds> How long a file must stay unchanged (default 2)

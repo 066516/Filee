@@ -93,6 +93,7 @@ internal static class Cli
             Originals = options.MoveOriginals ? AfterConversion.MoveToOriginals : AfterConversion.Keep,
         };
         UseFolder(preset, rule.ResolvedOutputFolder);
+        preset.Output.KeepFoldersFrom = rule.Folder; // as the app's watch folders: subfolders stay subfolders
 
         var settle = options.SettleSeconds is { } seconds ? TimeSpan.FromSeconds(seconds) : (TimeSpan?)null;
         await using var watcher = new FolderWatcher(rule,
@@ -223,11 +224,24 @@ internal static class Cli
         else
         {
             var wanted = options.Preset!;
-            var found = host.Store.Presets.FirstOrDefault(p => string.Equals(p.Id, wanted, StringComparison.OrdinalIgnoreCase))
-                        ?? host.Store.Presets.FirstOrDefault(p => string.Equals(host.Texts.DisplayName(p), wanted, StringComparison.OrdinalIgnoreCase));
+            Preset? Find(IEnumerable<Preset> presets) =>
+                presets.FirstOrDefault(p => string.Equals(p.Id, wanted, StringComparison.OrdinalIgnoreCase))
+                ?? presets.FirstOrDefault(p => string.Equals(host.Texts.DisplayName(p), wanted, StringComparison.OrdinalIgnoreCase));
+            // Conversions first: a group of the same name (say a "Rotate" group next to your own "Rotate" preset)
+            // must not hide one. A group is only found to say what it holds.
+            var found = Find(host.Store.Presets.Where(p => !p.IsGroup)) ?? Find(host.Store.Presets);
             if (found is null)
             {
                 errors.WriteLine($"filee: no preset '{wanted}'. Run 'filee presets' for the list.");
+                return null;
+            }
+            if (found.IsGroup)
+            {
+                // A donut group converts nothing; name what it holds so the right one is easy to pick.
+                var members = found.SubPresetIds.Select(host.Store.FindConversion).OfType<Preset>().Select(p => p.Id).ToList();
+                errors.WriteLine(members.Count > 0
+                    ? $"filee: '{wanted}' is a group on the donut, not a conversion. Use one of: {string.Join(", ", members)}"
+                    : $"filee: '{wanted}' is a group on the donut, not a conversion, and has no presets left. Run 'filee presets' for the list.");
                 return null;
             }
             preset = found.Clone();
@@ -320,7 +334,7 @@ internal static class Cli
     private static int ListPresets(CliHost host, TextWriter output)
     {
         output.WriteLine($"{"ID",-24} {"NAME",-28} TARGET");
-        foreach (var preset in host.Store.Presets)
+        foreach (var preset in host.Store.Presets.Where(p => !p.IsGroup))
             output.WriteLine($"{preset.Id,-24} {host.Texts.DisplayName(preset),-28} {preset.TargetFormat}");
         output.WriteLine();
         output.WriteLine("Use one with: filee convert <files> --preset <id or name>");

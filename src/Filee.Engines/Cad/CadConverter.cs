@@ -19,7 +19,7 @@ namespace Filee.Engines.Cad;
 /// page: PDF on an A3 sheet (A4 / Letter when the preset says so), SVG and images with the drawing's aspect ratio
 /// on a white background. See docs/ENGINES.md for what is and is not drawn.
 /// </remarks>
-public sealed class CadConverter(ILogger? logger = null) : IConverter
+public sealed class CadConverter(ILogger? logger = null) : IConverter, IImageTransformer
 {
     private static readonly string[] Sources = ["dwg", "dxf"];
 
@@ -32,6 +32,9 @@ public sealed class CadConverter(ILogger? logger = null) : IConverter
     /// a few are converted at once.
     /// </summary>
     public int MaxParallelism => Math.Clamp(Environment.ProcessorCount / 2, 1, 4);
+
+    /// <summary>Only when rendering a drawing to an image (not to PDF, SVG or between DWG and DXF).</summary>
+    public bool Transforms(string from, string to) => ImageEncoder.Writable.Contains(to);
 
     public IReadOnlyList<ConversionEdge> Edges { get; } =
     [
@@ -104,7 +107,7 @@ public sealed class CadConverter(ILogger? logger = null) : IConverter
         using var image = new MagickImage(data.ToArray());
         image.Density = new Density(dpi, dpi, DensityUnit.PixelsPerInch);
         ImageEncoder.ApplyOptions(image, step.Preset.Image, step.To);
-        image.Write(output, ImageEncoder.ToMagickFormat(step.To));
+        ImageEncoder.WriteImage(image, output, step.To);
     }
 
     private void Report(string input, CadScene scene)

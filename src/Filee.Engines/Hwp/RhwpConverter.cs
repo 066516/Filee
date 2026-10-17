@@ -35,11 +35,10 @@ public sealed class RhwpConverter : IConverter
     {
         var exe = _exe ?? Locate() ?? throw new InvalidOperationException("rhwp was not found.");
         var temp = Path.Combine(step.WorkDirectory, $"rhwp-{Guid.NewGuid():N}.{step.To}");
-        // Fonts rhwp cannot embed are swapped for installed ones in a copy (a CFF2 variable font left pages blank).
-        var input = step.To == "pdf" && step.From == "hwpx" ? RhwpFonts.Prepare(step.InputPath, step.WorkDirectory) ?? step.InputPath : step.InputPath;
+        var input = step.To == "pdf" ? await PrepareAsync(exe, step, cancellationToken) : step.InputPath;
         string[] arguments = step.To switch
         {
-            "pdf" => ["export-pdf", input, "-o", temp],
+            "pdf" => ["export-pdf", input, "-o", temp, .. RhwpInput.PdfOptions()],
             "hwpx" => ["export-hwpx", step.InputPath, temp],
             "hwp" => ["convert", step.InputPath, temp],
             _ => throw new NotSupportedException(step.To),
@@ -58,6 +57,24 @@ public sealed class RhwpConverter : IConverter
         File.Move(temp, target, overwrite: true);
         progress?.Report(1);
         return [target];
+    }
+
+    /// <summary>
+    /// The document rhwp renders: a copy with the fixes of <see cref="RhwpInput"/> (fonts, shape sizes, equation
+    /// scripts, tables floating in cells) when it needs any, else the original. An HWP is read through an HWPX copy for
+    /// that, and used as it is when nothing needs fixing or the HWPX copy fails.
+    /// </summary>
+    private static async Task<string> PrepareAsync(string exe, ConversionStep step, CancellationToken cancellationToken)
+    {
+        var hwpx = step.InputPath;
+        if (step.From == "hwp")
+        {
+            hwpx = Path.Combine(step.WorkDirectory, $"rhwp-{Guid.NewGuid():N}.hwpx");
+            await ProcessRunner.RunAsync(exe, ["export-hwpx", step.InputPath, hwpx], Timeout, cancellationToken);
+            if (!File.Exists(hwpx) || new FileInfo(hwpx).Length == 0)
+                return step.InputPath;
+        }
+        return RhwpInput.Prepare(hwpx, step.WorkDirectory) ?? step.InputPath;
     }
 
     /// <summary>Filee's own copy (engines/rhwp), never one found elsewhere on the system.</summary>

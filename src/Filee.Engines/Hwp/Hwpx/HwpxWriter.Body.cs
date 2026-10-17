@@ -335,7 +335,7 @@ internal sealed partial class HwpxWriter
 
         var runs = new RunBuilder();
         runs.Control(_base.CharPrId, sb.ToString(), isObject: true);
-        var paragraph = $"<hp:p id=\"0\" paraPrIDRef=\"{_base.ParaPrId}\" styleIDRef=\"{_base.StyleId}\" pageBreak=\"0\" columnBreak=\"0\" merged=\"0\">{leadingRun}{runs.Finish(_base.CharPrId, leadingRun is not null)}</hp:p>";
+        var paragraph = $"<hp:p id=\"0\" paraPrIDRef=\"{_base.ParaPrId}\" styleIDRef=\"{_base.StyleId}\" pageBreak=\"{(table.PageBreakBefore ? 1 : 0)}\" columnBreak=\"0\" merged=\"0\">{leadingRun}{runs.Finish(_base.CharPrId, leadingRun is not null)}</hp:p>";
         return paragraph + string.Concat(table.Caption.Select(b => Block(b)));
     }
 

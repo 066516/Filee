@@ -14,7 +14,16 @@ namespace Filee.Core.Conversion;
 /// Relative cost used by <see cref="RoutePlanner"/>. Use 10 for a normal direct conversion,
 /// higher for lossy or slow paths. Multi-step routes add up their costs.
 /// </param>
-public readonly record struct ConversionEdge(string From, string To, int Cost = 10);
+/// <param name="ImageSourcesOnly">
+/// The edge is used only in routes that start from a raster image (<see cref="Formats.FormatCategory.Image"/>): image
+/// tracing may follow ICNS → PNG, but must never redraw a PDF, a vector drawing or a video frame that became a PNG.
+/// </param>
+/// <param name="NotForImageSources">
+/// The opposite: never used in routes that start from a raster image. PDF → SVG through LibreOffice keeps a PDF's
+/// vectors, but a photo that became a PDF would only come back as a picture inside an SVG, so images are traced.
+/// </param>
+public readonly record struct ConversionEdge(
+    string From, string To, int Cost = 10, bool ImageSourcesOnly = false, bool NotForImageSources = false);
 
 /// <summary>Whether an engine can currently be used.</summary>
 /// <param name="IsAvailable">True if conversions can run.</param>
@@ -83,6 +92,18 @@ public interface IConverter
 
     /// <summary>Performs one conversion step and returns the files that were written.</summary>
     Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// An engine that turns and mirrors images (<see cref="ImageOptions.Rotation"/>, <see cref="ImageOptions.Flip"/>) in
+/// some of its conversions. A route through none of those can't rotate or flip: <see cref="JobQueue"/> refuses it
+/// rather than write the file unturned (a PDF or a video copied "as rotated"), and it turns the image in the first
+/// step that can, not again in a later one.
+/// </summary>
+public interface IImageTransformer
+{
+    /// <summary>True if converting <paramref name="from"/> → <paramref name="to"/> applies the rotation and flip.</summary>
+    bool Transforms(string from, string to);
 }
 
 /// <summary>Merges several PDF files into one. Implemented by the PDF engine.</summary>

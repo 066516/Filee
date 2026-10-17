@@ -29,6 +29,52 @@ public class JobQueueTests
     }
 
     [Fact]
+    public async Task Rotate_needs_an_engine_that_turns_images_and_turns_once_on_a_longer_route()
+    {
+        using var dir = new TempDir();
+        var pdf = dir.File("doc.pdf");
+        var eps = dir.File("art.eps");
+        var turner = new FakeTurner("magick", new ConversionEdge("png", "jpg"));
+        var renderer = new FakeTurner("ghostscript", new ConversionEdge("eps", "png"));
+        await using var queue = new JobQueue(new ConverterCatalog(
+            [new FakeConverter("pdfsharp", new ConversionEdge("pdf", "pdf")), turner, renderer]));
+
+        // PDF → PDF only copies pages: not "rotated" without turning anything.
+        var copied = await Run(queue, [pdf], new Preset { TargetFormat = BuiltInData.SameAsSource, Image = { Rotation = ImageRotation.Left90 } });
+        Assert.Equal(JobState.Failed, copied.State);
+        Assert.Equal("error.cannot_turn", copied.Files.Single().ErrorKey);
+        Assert.False(File.Exists(Path.Combine(dir.Path, "doc (1).pdf")));
+
+        // EPS → PNG → JPG: both engines turn images, only the first one is asked to (not 90° twice = 180°).
+        var turned = await Run(queue, [eps], new Preset { TargetFormat = "jpg", Image = { Rotation = ImageRotation.Left90 } });
+        Assert.Equal(JobState.Completed, turned.State);
+        Assert.Equal([("png", ImageRotation.Left90)], renderer.Asked);
+        Assert.Equal([("jpg", ImageRotation.None)], turner.Asked);
+
+        // Without rotation nothing changes.
+        var plain = await Run(queue, [pdf], new Preset { TargetFormat = BuiltInData.SameAsSource });
+        Assert.Equal(JobState.Completed, plain.State);
+    }
+
+    [Fact]
+    public async Task A_step_before_the_turning_one_gets_the_preset_without_rotation()
+    {
+        // STL → PNG (an engine that renders with the image options but doesn't say it turns) → HEIC (one that turns):
+        // only the HEIC step turns, or the picture would be turned twice.
+        using var dir = new TempDir();
+        var model = dir.File("part.stl");
+        var renderer = new FakeRecorder("model3d", new ConversionEdge("stl", "png"));
+        var heic = new FakeTurner("ffmpeg", new ConversionEdge("png", "heic"));
+        await using var queue = new JobQueue(new ConverterCatalog([renderer, heic]));
+
+        var job = await Run(queue, [model], new Preset { TargetFormat = "heic", Image = { Rotation = ImageRotation.Left90 } });
+
+        Assert.Equal(JobState.Completed, job.State);
+        Assert.Equal([("png", ImageRotation.None)], renderer.Asked);
+        Assert.Equal([("heic", ImageRotation.Left90)], heic.Asked);
+    }
+
+    [Fact]
     public async Task Keep_dates_gives_outputs_the_dates_of_their_source()
     {
         using var dir = new TempDir();
@@ -167,6 +213,29 @@ public class JobQueueTests
         // Both PDF pages, then the photo, then the TIFF as it is.
         Assert.Equal(["scan_p1.tiff", "scan_p2.tiff", "photo.tiff", "fax.tiff"], merger.Inputs.Select(Path.GetFileName));
         Assert.Equal(fax, merger.Inputs[^1]);
+    }
+
+    [Fact]
+    public async Task Merging_or_joining_pages_with_a_rotation_never_passes_a_file_through_unturned()
+    {
+        using var dir = new TempDir();
+        var photo = dir.File("photo.jpg");
+        var doc = dir.File("doc.pdf");
+        var fax = dir.File("fax.tiff");
+        var turner = new FakeTurner("magick", new ConversionEdge("jpg", "pdf"), new ConversionEdge("jpg", "tiff"), new ConversionEdge("tiff", "tiff"));
+        var pdfMerger = new FakeMerger();
+        var tiffMerger = new FakeTiffMerger();
+        await using var queue = new JobQueue(new ConverterCatalog([turner]), pdfMerger, tiffMerger: tiffMerger);
+
+        // A PDF can't be turned: merged unturned it would say "done"; it fails, the photo is still merged.
+        var merged = await Run(queue, [photo, doc], new Preset { TargetFormat = "pdf", Pdf = { MergeIntoSingle = true }, Image = { Rotation = ImageRotation.Right90 } });
+        Assert.Equal("error.cannot_turn", merged.Files[1].ErrorKey);
+        Assert.Equal(["photo.pdf"], pdfMerger.Inputs.Select(Path.GetFileName));
+
+        // A TIFF is turned like the photo before the pages are joined, not added as it is.
+        await Run(queue, [photo, fax], new Preset { TargetFormat = "tiff", Image = { MultiPageTiff = true, Rotation = ImageRotation.Right90 } });
+        Assert.DoesNotContain(fax, tiffMerger.Inputs);
+        Assert.Contains(("tiff", ImageRotation.Right90), turner.Asked);
     }
 
     [Fact]

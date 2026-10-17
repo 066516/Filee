@@ -36,43 +36,68 @@ internal sealed class OutlinedTextPlayback(SkiaModel model) : IDisposable
 
     private void Draw(CanvasCommand command, SKCanvas canvas)
     {
-        var handled = command switch
+        if (command is DrawPictureCanvasCommand { Picture: { } nested })
         {
-            DrawPictureCanvasCommand { Picture: { } nested } => DrawNested(nested, canvas),
-            DrawTextCanvasCommand text => DrawText(text, canvas),
-            DrawTextBlobCanvasCommand blob => DrawTextBlob(blob, canvas),
-            DrawPositionedTextRunCanvasCommand run => DrawPositionedRun(run, canvas),
-            _ => false,
-        };
+            Draw(nested, canvas);
+            return;
+        }
         // Everything else, and text that can't be shaped (text on a path, fonts without outlines), is drawn by
         // Svg.Skia itself.
-        if (!handled)
+        using var outline = TextOutline(command, out var shimPaint);
+        if (outline is null)
+        {
             model.Draw(command, canvas);
+            return;
+        }
+        // The outlines with the text's paint (fill or stroke, colour, gradient, opacity).
+        using var paint = shimPaint is null ? null : model.ToSKPaint(shimPaint);
+        if (paint is not null && !outline.IsEmpty)
+            canvas.DrawPath(outline, paint);
     }
 
-    private bool DrawNested(ShimSkiaSharp.SKPicture picture, SKCanvas canvas)
+    /// <summary>
+    /// The glyph outlines of a text command, in the command's coordinates, with the text's paint; <c>null</c> when the
+    /// command is no text or its text can't be shaped. Empty text gives an empty path.
+    /// </summary>
+    public SKPath? TextOutline(CanvasCommand command, out SKPaint? paint)
     {
-        Draw(picture, canvas);
-        return true;
+        paint = command switch
+        {
+            DrawTextCanvasCommand text => text.Paint,
+            DrawTextBlobCanvasCommand blob => blob.Paint,
+            DrawPositionedTextRunCanvasCommand run => run.Paint,
+            _ => null,
+        };
+        if (paint is null)
+            return null;
+        var path = new SKPath();
+        var shaped = command switch
+        {
+            DrawTextCanvasCommand text => OutlineText(text, path),
+            DrawTextBlobCanvasCommand blob => OutlineTextBlob(blob, path),
+            DrawPositionedTextRunCanvasCommand run => OutlinePositionedRun(run, path),
+            _ => false,
+        };
+        if (shaped)
+            return path;
+        path.Dispose();
+        return null;
     }
 
-    private bool DrawText(DrawTextCanvasCommand command, SKCanvas canvas)
+    private bool OutlineText(DrawTextCanvasCommand command, SKPath path)
     {
-        if (command.Paint is null || string.IsNullOrEmpty(command.Text))
-            return command.Paint is not null;
-        using var font = command.Font is { } shimFont ? model.ToSKFont(shimFont) : model.ToSKFont(command.Paint);
-        var align = model.ToSKTextAlign(command.TextAlign ?? command.Paint.TextAlign);
-        using var path = new SKPath();
-        if (font?.Typeface is null || !AppendShaped(path, command.Text, font, command.X, command.Y, align))
-            return false;
-        return Fill(canvas, path, command.Paint);
+        if (string.IsNullOrEmpty(command.Text))
+            return true;
+        using var font = command.Font is { } shimFont ? model.ToSKFont(shimFont) : model.ToSKFont(command.Paint!);
+        var align = model.ToSKTextAlign(command.TextAlign ?? command.Paint!.TextAlign);
+        return font?.Typeface is not null && AppendShaped(path, command.Text, font, command.X, command.Y, align);
     }
 
-    private bool DrawTextBlob(DrawTextBlobCanvasCommand command, SKCanvas canvas)
+    private bool OutlineTextBlob(DrawTextBlobCanvasCommand command, SKPath path)
     {
-        if (command.Paint is null || command.TextBlob?.Points is not { } points)
-            return command.Paint is not null;
-        using var font = command.TextBlob.Font is { } shimFont ? model.ToSKFont(shimFont) : model.ToSKFont(command.Paint);
+        if (command.TextBlob?.Points is not { } points)
+            return true;
+        using var font = command.TextBlob.Font is { } shimFont ? model.ToSKFont(shimFont) : model.ToSKFont(command.Paint!);
         if (font is null)
             return false;
         var glyphs = command.TextBlob.Glyphs is { Length: > 0 } ids ? ids
@@ -80,21 +105,19 @@ internal sealed class OutlinedTextPlayback(SkiaModel model) : IDisposable
             : [];
         if (glyphs.Length != points.Length)
             return false;
-        using var path = new SKPath();
         for (var i = 0; i < glyphs.Length; i++)
             AppendGlyph(path, font, glyphs[i], command.X + points[i].X, command.Y + points[i].Y);
-        return Fill(canvas, path, command.Paint);
+        return true;
     }
 
-    private bool DrawPositionedRun(DrawPositionedTextRunCanvasCommand command, SKCanvas canvas)
+    private bool OutlinePositionedRun(DrawPositionedTextRunCanvasCommand command, SKPath path)
     {
-        if (command.Paint is null || command.Fragments is not { Count: > 0 })
-            return command.Paint is not null;
-        using var font = command.Font is { } shimFont ? model.ToSKFont(shimFont) : model.ToSKFont(command.Paint);
+        if (command.Fragments is not { Count: > 0 })
+            return true;
+        using var font = command.Font is { } shimFont ? model.ToSKFont(shimFont) : model.ToSKFont(command.Paint!);
         if (font?.Typeface is null)
             return false;
-        var align = model.ToSKTextAlign(command.TextAlign ?? command.Paint.TextAlign);
-        using var path = new SKPath();
+        var align = model.ToSKTextAlign(command.TextAlign ?? command.Paint!.TextAlign);
         foreach (var fragment in command.Fragments)
         {
             using var part = new SKPath();
@@ -109,15 +132,6 @@ internal sealed class OutlinedTextPlayback(SkiaModel model) : IDisposable
             part.Transform(transform);
             path.AddPath(part);
         }
-        return Fill(canvas, path, command.Paint);
-    }
-
-    /// <summary>Draws the outlines with the text's paint (fill or stroke, colour, gradient, opacity).</summary>
-    private bool Fill(SKCanvas canvas, SKPath path, SKPaint shimPaint)
-    {
-        using var paint = model.ToSKPaint(shimPaint);
-        if (paint is not null && !path.IsEmpty)
-            canvas.DrawPath(path, paint);
         return true;
     }
 

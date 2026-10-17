@@ -66,10 +66,45 @@ internal static class SheetDocument
             section.Blocks.Add(title);
         }
 
+        // Page breaks set in Excel start a new table on a new page; frozen header rows repeat at its top.
+        var headerRows = sheet.FrozenRows is > 0 and <= 5 ? sheet.FrozenRows : 0;
+        var header = rows.Where(r => r < headerRows).ToList();
+        var body = rows.Where(r => r >= headerRows).ToList();
+        var pages = new List<List<int>> { new(header) };
+        var previous = -1;
+        foreach (var r in body)
+        {
+            // A break above a hidden row still counts: the next visible row starts the page.
+            if (pages[^1].Count > header.Count && sheet.RowBreaks.GetViewBetween(previous + 1, r).Count > 0)
+                pages.Add(new List<int>(header));
+            pages[^1].Add(r);
+            previous = r;
+        }
+        for (var i = 0; i < pages.Count; i++)
+        {
+            var table = Table(sheet, pages[i], columns, headerRows, fontScale, widths.Select(w => Math.Max(300, (int)(w * scale))).ToArray());
+            table.PageBreakBefore = i > 0;
+            section.Blocks.Add(table);
+        }
+
+        if (cutRows || cutColumns)
+        {
+            var note = new HParagraph();
+            note.Inlines.Add(new HText(
+                $"… {sheet.Name}: {(cutRows ? $"first {MaxRows} rows" : "")}{(cutRows && cutColumns ? ", " : "")}{(cutColumns ? $"first {MaxColumns} columns" : "")} shown",
+                new HCharFormat(Italic: true, Size: 900, Color: "#808080")));
+            section.Blocks.Add(note);
+        }
+        return section;
+    }
+
+    /// <summary>One table of the given rows (one printed page or more), merged areas cut at its first and last row.</summary>
+    private static HTable Table(Worksheet sheet, List<int> rows, List<int> columns, int headerRows, double fontScale, int[] widths)
+    {
         var table = new HTable
         {
             ColumnCount = columns.Count,
-            ColumnWidths = widths.Select(w => Math.Max(300, (int)(w * scale))).ToArray(),
+            ColumnWidths = widths,
             CellMargin = new HInsets(141, 141, 57, 57),
             Borders = new HBorders(GridLine, GridLine, GridLine, GridLine),
         };
@@ -91,7 +126,6 @@ internal static class SheetDocument
                         covered.Add((r, c));
         }
 
-        var headerRows = sheet.FrozenRows is > 0 and <= 5 ? sheet.FrozenRows : 0;
         foreach (var r in rows)
         {
             var row = new HRow
@@ -108,17 +142,7 @@ internal static class SheetDocument
             }
             table.Rows.Add(row);
         }
-        section.Blocks.Add(table);
-
-        if (cutRows || cutColumns)
-        {
-            var note = new HParagraph();
-            note.Inlines.Add(new HText(
-                $"… {sheet.Name}: {(cutRows ? $"first {MaxRows} rows" : "")}{(cutRows && cutColumns ? ", " : "")}{(cutColumns ? $"first {MaxColumns} columns" : "")} shown",
-                new HCharFormat(Italic: true, Size: 900, Color: "#808080")));
-            section.Blocks.Add(note);
-        }
-        return section;
+        return table;
     }
 
     private static HCell Cell(Worksheet sheet, int r, int c, int rowSpan, int colSpan, int column, double fontScale)

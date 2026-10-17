@@ -50,7 +50,7 @@ public sealed class DonutSettings
 public sealed class AppSettings
 {
     /// <summary>Current schema version. Increase when the format changes and add a migration.</summary>
-    public const int CurrentSchemaVersion = 10;
+    public const int CurrentSchemaVersion = 18;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -89,8 +89,8 @@ public sealed class AppSettings
     public List<string> EnginePriority { get; set; } =
     [
         "magick", "pdfium", "pdfsharp", "rhwp", "unhwp", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer",
-        "pdf-text", "email", "vector", "icns", "font", "cad", "archive", "ebook", "ffmpeg", "pandoc", "ghostscript", "calibre",
-        "libreoffice",
+        "pdf-text", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "ffmpeg",
+        "pandoc", "ghostscript", "calibre", "libreoffice",
     ];
 
     /// <summary>Set once the first-run welcome has been shown.</summary>
@@ -125,6 +125,18 @@ public sealed class AppSettings
     /// document rhwp lays out wrong (each engine gets different documents right).
     /// </summary>
     public bool LibreOfficeForHwp { get; set; }
+
+    /// <summary>
+    /// With LibreOffice installed, Word documents (DOCX, DOC, ODT, RTF) → PDF go through it instead of the built-in
+    /// route: Chinese punctuation and line-start rules, fonts the built-in route lacks.
+    /// </summary>
+    public bool LibreOfficeForDocuments { get; set; }
+
+    /// <summary>
+    /// With LibreOffice installed, spreadsheets (XLSX, XLS, ODS, CSV) → PDF go through it: print areas, page setup and
+    /// page breaks as Excel prints them.
+    /// </summary>
+    public bool LibreOfficeForSheets { get; set; }
 
     /// <summary>Every conversion keeps the created and modified dates of the original, whatever the preset says.</summary>
     public bool KeepFileDates { get; set; }

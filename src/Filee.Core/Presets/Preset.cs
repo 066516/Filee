@@ -1,6 +1,58 @@
 // A preset is one slice of the donut toolbar: "convert to <TargetFormat> with these options".
 
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace Filee.Core.Presets;
+
+/// <summary>What a preset is: a conversion, or a group of conversions fanned out on the donut.</summary>
+public enum PresetKind
+{
+    /// <summary>Converts files.</summary>
+    Convert,
+
+    /// <summary>
+    /// Converts nothing itself: its donut slice fans out <see cref="Preset.SubPresetIds"/>. Never offered where a
+    /// conversion is picked (preset list, watch folders, <c>filee --preset</c>).
+    /// </summary>
+    Group,
+}
+
+/// <summary>
+/// Reads an enum by name. A value this version doesn't know (a newer Filee's, or a number outside the enum) becomes
+/// <see cref="Unknown"/>, the first value unless a subclass says otherwise: the preset still loads, instead of the
+/// whole preset file failing to read (which resets every preset to the defaults).
+/// </summary>
+public class LenientEnumJsonConverter<TEnum> : JsonConverter<TEnum> where TEnum : struct, Enum
+{
+    protected virtual TEnum Unknown => default;
+
+    public override TEnum Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.String)
+        {
+            // A name, matched whole: Enum.TryParse would also take "Left90, Rotate180" (the flags OR'd into another
+            // value) or "2".
+            var text = reader.GetString();
+            return Enum.GetNames<TEnum>().FirstOrDefault(n => string.Equals(n, text, StringComparison.OrdinalIgnoreCase)) is { } name
+                ? Enum.Parse<TEnum>(name)
+                : Unknown;
+        }
+        return reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var number) &&
+            Enum.IsDefined((TEnum)Enum.ToObject(typeof(TEnum), number))
+                ? (TEnum)Enum.ToObject(typeof(TEnum), number)
+                : Unknown;
+    }
+
+    public override void Write(Utf8JsonWriter writer, TEnum value, JsonSerializerOptions options) =>
+        writer.WriteStringValue(value.ToString());
+}
+
+/// <summary>An unknown kind is read as a group: never run as a conversion.</summary>
+public sealed class PresetKindJsonConverter : LenientEnumJsonConverter<PresetKind>
+{
+    protected override PresetKind Unknown => PresetKind.Group;
+}
 
 /// <summary>
 /// A named conversion recipe. The donut toolbar shows presets; dropping files on one runs it.
@@ -38,8 +90,35 @@ public sealed class Preset
     /// <summary>Options used for archives (ZIP, 7Z, TAR ...).</summary>
     public ArchiveOptions Archive { get; set; } = new();
 
+    /// <summary>Options used when a raster image is traced into vector shapes (PNG → SVG, DXF ...).</summary>
+    public TracingOptions Trace { get; set; } = new();
+
     /// <summary>Where and how output files are written.</summary>
     public OutputRule Output { get; set; } = new();
+
+    /// <summary>A conversion or a group. A kind this version doesn't know (from a newer Filee) is read as a group.</summary>
+    [JsonConverter(typeof(PresetKindJsonConverter))]
+    public PresetKind Kind { get; set; } = PresetKind.Convert;
+
+    /// <summary>Most presets one group fans out: more slices would get too narrow to hit.</summary>
+    public const int MaxSubPresets = 6;
+
+    /// <summary>
+    /// <see cref="TargetFormat"/> of a group: no format at all. A Filee from before groups reads a group as a
+    /// conversion; with this it finds no route and greys the slice out instead of re-encoding files "as the same format".
+    /// </summary>
+    public const string GroupTarget = "group";
+
+    /// <summary>
+    /// <see cref="PresetKind.Group"/>: the presets (by <see cref="Id"/>) its donut slice fans out in a small ring
+    /// outside it, e.g. "Rotate" → left 90° / right 90° / 180°. At most <see cref="MaxSubPresets"/>, never groups.
+    /// Ignored for a conversion.
+    /// </summary>
+    public List<string> SubPresetIds { get; set; } = [];
+
+    /// <summary>True for a <see cref="PresetKind.Group"/>.</summary>
+    [JsonIgnore]
+    public bool IsGroup => Kind == PresetKind.Group;
 
     /// <summary>Creates a new random preset id.</summary>
     public static string NewId() => Guid.NewGuid().ToString("N")[..12];
@@ -56,7 +135,10 @@ public sealed class Preset
         Document = Document.Clone(),
         Media = Media.Clone(),
         Archive = Archive.Clone(),
+        Trace = Trace.Clone(),
         Output = Output.Clone(),
+        Kind = Kind,
+        SubPresetIds = [.. SubPresetIds],
     };
 }
 
@@ -71,6 +153,27 @@ public enum ResizeMode
     LongEdge,
     /// <summary>Scale to <see cref="ImageOptions.Width"/> pixels wide, height in proportion (never upscales).</summary>
     Width,
+}
+
+/// <summary>How an image is turned, after its EXIF orientation is applied.</summary>
+public enum ImageRotation
+{
+    None,
+    /// <summary>90° clockwise.</summary>
+    Right90,
+    /// <summary>90° counter-clockwise.</summary>
+    Left90,
+    Rotate180,
+}
+
+/// <summary>How an image is mirrored, after it is turned.</summary>
+public enum ImageFlip
+{
+    None,
+    /// <summary>Left ↔ right.</summary>
+    Horizontal,
+    /// <summary>Top ↔ bottom.</summary>
+    Vertical,
 }
 
 /// <summary>TIFF compression schemes.</summary>
@@ -88,6 +191,18 @@ public sealed class ImageOptions
     public int Quality { get; set; } = 90;
 
     public ResizeMode Resize { get; set; } = ResizeMode.None;
+
+    /// <summary>Turns the image (after its EXIF orientation is applied).</summary>
+    [JsonConverter(typeof(LenientEnumJsonConverter<ImageRotation>))]
+    public ImageRotation Rotation { get; set; }
+
+    /// <summary>Mirrors the image (after <see cref="Rotation"/>).</summary>
+    [JsonConverter(typeof(LenientEnumJsonConverter<ImageFlip>))]
+    public ImageFlip Flip { get; set; }
+
+    /// <summary>Turns or mirrors the image: only engines that do (<see cref="Conversion.IImageTransformer"/>) can run it.</summary>
+    [JsonIgnore]
+    public bool TurnsOrMirrors => Rotation != ImageRotation.None || Flip != ImageFlip.None;
 
     /// <summary>Scale in percent when <see cref="Resize"/> is <see cref="ResizeMode.Percent"/>.</summary>
     public int ResizePercent { get; set; } = 50;
@@ -112,6 +227,21 @@ public sealed class ImageOptions
 
     /// <summary>Convert to grayscale.</summary>
     public bool Grayscale { get; set; }
+
+    /// <summary>
+    /// Make a plain background (paper behind a signature or stamp, the backdrop of a logo) transparent. Targets without
+    /// an alpha channel get <see cref="Background"/> instead, so this also replaces the backdrop colour.
+    /// </summary>
+    public bool RemoveBackground { get; set; }
+
+    /// <summary>0-100: how different from the backdrop a pixel may be and still be removed (<see cref="RemoveBackground"/>).</summary>
+    public int BackgroundTolerance { get; set; } = 25;
+
+    /// <summary>
+    /// With <see cref="RemoveBackground"/>: only remove the backdrop connected to the image edge, keeping enclosed
+    /// areas such as the white inside a logo. Off by default: it also keeps the paper inside handwritten loops.
+    /// </summary>
+    public bool KeepEnclosedBackground { get; set; }
 
     /// <summary>Fill colour for transparent pixels when the target has no alpha channel (e.g. JPG).</summary>
     public string Background { get; set; } = "#FFFFFF";
@@ -225,8 +355,17 @@ public sealed class MediaOptions
     /// <summary>Sample rate in Hz of a WAV file (8000 … 48000); 0 keeps the source's.</summary>
     public int AudioSampleRate { get; set; }
 
-    /// <summary>How a WAV file stores its samples.</summary>
+    /// <summary>How a WAV (or W64) file stores its samples.</summary>
     public WavSampleFormat WavFormat { get; set; } = WavSampleFormat.Pcm16;
+
+    /// <summary>
+    /// Video codec for targets that can hold several (<see cref="MediaCodecs.VideoCodecsFor"/>); targets that can't
+    /// hold the chosen one use their usual codec.
+    /// </summary>
+    public VideoCodec VideoCodec { get; set; } = VideoCodec.Default;
+
+    /// <summary>Audio codec for targets that can hold several (<see cref="MediaCodecs.AudioCodecsFor"/>).</summary>
+    public AudioCodec AudioCodec { get; set; } = AudioCodec.Default;
 
     /// <summary>Video → image: save every frame as an individual image instead of a single still frame.</summary>
     public bool SaveEveryFrame { get; set; }
@@ -238,6 +377,54 @@ public sealed class MediaOptions
     public double FramesPerSecond { get; set; }
 
     public MediaOptions Clone() => (MediaOptions)MemberwiseClone();
+}
+
+/// <summary>Video codec of a video target. <see cref="Default"/> is the target's usual codec (H.264, VP9 for WebM, ...).</summary>
+public enum VideoCodec
+{
+    Default,
+    /// <summary>H.265 / HEVC (x265): about half the size of H.264 at the same quality.</summary>
+    Hevc,
+    /// <summary>AV1 (SVT-AV1, or libaom): smaller still, slower to encode.</summary>
+    Av1,
+}
+
+/// <summary>Audio codec of an audio target. <see cref="Default"/> is the target's usual codec (AAC for M4A, ...).</summary>
+public enum AudioCodec
+{
+    Default,
+    /// <summary>Apple Lossless in M4A / M4B.</summary>
+    Alac,
+}
+
+/// <summary>Which targets take which codecs besides their default one.</summary>
+public static class MediaCodecs
+{
+    /// <summary>The video codecs <paramref name="target"/> can be written with; only Default for most targets.</summary>
+    public static IReadOnlyList<VideoCodec> VideoCodecsFor(string target) => target switch
+    {
+        // AV1 in MP4 plays in browsers, Android and Windows; QuickTime (MOV) has no AV1 mapping.
+        "mp4" or "m4v" or "mkv" => [VideoCodec.Default, VideoCodec.Hevc, VideoCodec.Av1],
+        "mov" => [VideoCodec.Default, VideoCodec.Hevc],
+        // The WebM specification allows VP8, VP9 and AV1.
+        "webm" => [VideoCodec.Default, VideoCodec.Av1],
+        _ => [VideoCodec.Default],
+    };
+
+    /// <summary>The audio codecs <paramref name="target"/> can be written with; only Default for most targets.</summary>
+    public static IReadOnlyList<AudioCodec> AudioCodecsFor(string target) => target switch
+    {
+        "m4a" or "m4b" => [AudioCodec.Default, AudioCodec.Alac],
+        _ => [AudioCodec.Default],
+    };
+
+    /// <summary>The codec <paramref name="target"/> is written with: the chosen one if the target takes it, else Default.</summary>
+    public static VideoCodec Effective(string target, VideoCodec codec) =>
+        VideoCodecsFor(target).Contains(codec) ? codec : VideoCodec.Default;
+
+    /// <summary>The codec <paramref name="target"/> is written with: the chosen one if the target takes it, else Default.</summary>
+    public static AudioCodec Effective(string target, AudioCodec codec) =>
+        AudioCodecsFor(target).Contains(codec) ? codec : AudioCodec.Default;
 }
 
 /// <summary>Sample format of a WAV file. 16-bit PCM is what every player reads (and was the only one before 1.6).</summary>
@@ -269,4 +456,33 @@ public sealed class ArchiveOptions
     public ArchiveLevel Level { get; set; } = ArchiveLevel.Normal;
 
     public ArchiveOptions Clone() => (ArchiveOptions)MemberwiseClone();
+}
+
+/// <summary>How a raster image is traced.</summary>
+public enum TracingMode
+{
+    /// <summary>The image is reduced to <see cref="TracingOptions.Colors"/> colours, each traced as stacked shapes.</summary>
+    Color,
+    /// <summary>Dark pixels become black shapes on a transparent background (logos, signatures, scans).</summary>
+    BlackAndWhite,
+}
+
+/// <summary>Raster → vector tracing options.</summary>
+public sealed class TracingOptions
+{
+    /// <summary>Smallest and largest <see cref="Colors"/>.</summary>
+    public const int MinColors = 2, MaxColors = 64;
+
+    public TracingMode Mode { get; set; } = TracingMode.Color;
+
+    /// <summary>Number of colours in <see cref="TracingMode.Color"/> mode (2–64).</summary>
+    public int Colors { get; set; } = 16;
+
+    /// <summary>
+    /// 0–100: low values smooth the outlines and drop specks, high values follow the pixels more closely and keep
+    /// small details.
+    /// </summary>
+    public int Detail { get; set; } = 50;
+
+    public TracingOptions Clone() => (TracingOptions)MemberwiseClone();
 }

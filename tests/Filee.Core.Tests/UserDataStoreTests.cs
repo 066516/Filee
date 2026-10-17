@@ -7,6 +7,94 @@ namespace Filee.Core.Tests;
 public class UserDataStoreTests
 {
     [Fact]
+    public void Groups_keep_only_conversions_once_and_at_most_six()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Presets.Add(new Preset { Id = "other", Name = "Other", Kind = PresetKind.Group, SubPresetIds = ["to-pdf"] });
+        store.Presets.Add(new Preset
+        {
+            Id = "mine",
+            Name = "Mine",
+            Kind = PresetKind.Group,
+            SubPresetIds = ["to-png", "gone", "to-png", "other", "to-jpg", "to-webp", "to-bmp", "to-gif", "to-ico", "to-tiff"],
+        });
+        store.SaveLibrary();
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        // A deleted preset and a group in the group are dropped, a repeat counts once, the rest is cut at six.
+        var group = reloaded.FindPreset("mine")!;
+        Assert.True(group.IsGroup);
+        Assert.Equal(["to-png", "to-jpg", "to-webp", "to-bmp", "to-gif", "to-ico"], group.SubPresetIds);
+        // No target format a Filee from before groups (which reads it as a conversion) could run it with.
+        Assert.Equal(Preset.GroupTarget, group.TargetFormat);
+        Assert.Null(Filee.Core.Formats.FormatRegistry.FindById(Preset.GroupTarget));
+    }
+
+    [Fact]
+    public void Only_a_conversion_is_found_to_run()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Presets.Add(new Preset { Id = "web", Name = "Web", Kind = PresetKind.Group, SubPresetIds = ["to-png"] });
+
+        Assert.NotNull(store.FindPreset("web")); // to edit it
+        Assert.Null(store.FindConversion("web")); // never to run it (a watch folder pointing at it converts nothing)
+        Assert.Equal("to-png", store.FindConversion("to-png")!.Id);
+    }
+
+    [Fact]
+    public void A_kind_from_a_newer_Filee_reads_as_a_group_and_the_other_presets_still_load()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Presets.Add(new Preset { Id = "future", Name = "Future", Kind = PresetKind.Group, SubPresetIds = ["to-png"] });
+        store.SaveLibrary();
+        var path = Path.Combine(dir.Path, "presets.json");
+        var json = File.ReadAllText(path);
+        Assert.Contains("\"kind\": \"Group\"", json);
+        File.WriteAllText(path, json.Replace("\"kind\": \"Group\"", "\"kind\": \"Chain\""));
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        Assert.True(reloaded.FindPreset("future")!.IsGroup); // never run as a conversion
+        Assert.NotNull(reloaded.FindPreset("to-png")); // and not every preset reset to the defaults
+        Assert.False(File.Exists(path + ".broken"));
+    }
+
+    [Fact]
+    public void A_group_saved_by_a_Filee_from_before_groups_is_still_a_group()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Presets.Add(new Preset { Id = "old-group", Name = "Rotate", Kind = PresetKind.Group, SubPresetIds = ["to-png"] });
+        store.SaveLibrary();
+
+        // An older Filee knows neither "kind" nor "subPresetIds" and leaves them out when it saves.
+        var path = Path.Combine(dir.Path, "presets.json");
+        var presets = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsArray();
+        var saved = presets.Single(p => (string?)p!["id"] == "old-group")!.AsObject();
+        Assert.True(saved.Remove("kind"));
+        Assert.True(saved.Remove("subPresetIds"));
+        File.WriteAllText(path, presets.ToJsonString());
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        var group = reloaded.FindPreset("old-group")!;
+        Assert.True(group.IsGroup); // not a conversion to "group" in the preset list, watch folders and the CLI
+        Assert.Empty(group.SubPresetIds);
+        Assert.Null(reloaded.FindConversion("old-group"));
+    }
+
+    [Fact]
     public void Round_trips_settings_presets_and_profiles()
     {
         using var dir = new TempDir();
@@ -60,7 +148,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "email", "vector", "icns", "font", "cad", "archive", "ebook", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
         Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
     }
 
@@ -112,7 +200,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "email", "vector", "icns", "font", "cad", "archive", "ebook", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
         var ids = store.Profiles.Select(p => p.Id).ToList();
         Assert.Equal(ids.IndexOf("office") + 1, ids.IndexOf("spreadsheets"));
         Assert.Equal(ids.IndexOf("office") + 2, ids.IndexOf("presentations"));
@@ -126,8 +214,9 @@ public class UserDataStoreTests
     public void Version_5_libraries_get_the_format_catalog()
     {
         // As written by 1.0.x with schema 5: no catalog presets, donuts or extensions.
-        var presets = BuiltInData.CreatePresets().Where(p => BuiltInData.CatalogPresets().All(c => c.Id != p.Id)).ToList();
-        var catalogIds = BuiltInData.CatalogProfiles().Select(p => p.Id).ToHashSet();
+        var presets = BuiltInData.CreatePresets()
+            .Where(p => BuiltInData.CatalogPresets().Concat(BuiltInData.CodecAndSubtitlePresets()).Concat(BuiltInData.ModelPresets()).All(c => c.Id != p.Id)).ToList();
+        var catalogIds = BuiltInData.CatalogProfiles().Select(p => p.Id).Append("subtitles").Append("models").ToHashSet();
         var profiles = BuiltInData.CreateProfiles().Where(p => !catalogIds.Contains(p.Id)).ToList();
         profiles.Single(p => p.Id == "images").Extensions = ["png", "jpg"];
         profiles.Single(p => p.Id == "pdf").PresetIds.Remove("to-docx");
@@ -139,7 +228,10 @@ public class UserDataStoreTests
 
         var ids = profiles.Select(p => p.Id).ToList();
         Assert.Equal(ids.IndexOf("text") + 1, ids.IndexOf("ebooks"));
-        Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("fonts"));
+        Assert.Equal(ids.IndexOf("fonts") + 1, ids.IndexOf("data")); // schema 14
+        Assert.Equal(ids.IndexOf("data") + 1, ids.IndexOf("models")); // schema 15
+        Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("models"));
+        Assert.Equal(ids.IndexOf("audio") + 1, ids.IndexOf("subtitles"));
         Assert.Contains("cr2", profiles.Single(p => p.Id == "images").Extensions);
         Assert.DoesNotContain("mp3", profiles.Single(p => p.Id == "audio").Extensions);
         Assert.Contains("flac", profiles.Single(p => p.Id == "audio").Extensions);
@@ -194,13 +286,30 @@ public class UserDataStoreTests
     }
 
     [Fact]
-    public void Version_9_libraries_get_the_extract_frames_presets()
+    public void Version_9_libraries_get_the_remove_background_preset_on_no_donut()
+    {
+        // As written by 1.10.x: no "Remove background" preset.
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "remove-background");
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(9, presets, profiles));
+
+        var preset = presets.Single(p => p.Id == "remove-background");
+        Assert.True(preset.Image.RemoveBackground);
+        Assert.Equal("png", preset.TargetFormat);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("remove-background"));
+        Assert.False(SettingsMigrations.ApplyToLibrary(9, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Version_17_libraries_get_the_extract_frames_presets()
     {
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id is "extract-frames-png" or "extract-frames-jpg");
         var profiles = BuiltInData.CreateProfiles();
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(9, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(17, presets, profiles));
 
         var pngPreset = presets.Single(p => p.Id == "extract-frames-png");
         Assert.True(pngPreset.Media.SaveEveryFrame);
@@ -212,7 +321,275 @@ public class UserDataStoreTests
 
         Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("extract-frames-png"));
         Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("extract-frames-jpg"));
-        Assert.False(SettingsMigrations.ApplyToLibrary(9, presets, profiles)); // once only
+        Assert.False(SettingsMigrations.ApplyToLibrary(17, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Version_13_libraries_get_the_data_donut_msg_files_and_json_for_spreadsheets()
+    {
+        // As written with schema 13: no data presets or donut, no MSG on the documents donut, no JSON on the spreadsheets
+        // donut; and a donut of the user that already takes YAML.
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => BuiltInData.DataPresets().Any(d => d.Id == p.Id));
+        var profiles = BuiltInData.CreateProfiles();
+        profiles.RemoveAll(p => p.Id == "data");
+        profiles.Single(p => p.Id == "office").Extensions.Remove("msg");
+        profiles.Single(p => p.Id == "spreadsheets").PresetIds.Remove("to-json");
+        profiles.Insert(0, new ToolbarProfile { Id = "mine", Name = "Mine", Extensions = ["yml"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(13, presets, profiles));
+
+        Assert.All(BuiltInData.DataPresets(), d => Assert.Contains(presets, p => p.Id == d.Id));
+        var ids = profiles.Select(p => p.Id).ToList();
+        Assert.Equal(ids.IndexOf("fonts") + 1, ids.IndexOf("data"));
+        var data = profiles.Single(p => p.Id == "data");
+        Assert.Contains("json", data.Extensions);
+        Assert.Contains("yaml", data.Extensions);
+        Assert.DoesNotContain("yml", data.Extensions); // the user's donut keeps it
+        Assert.Equal(["to-json", "to-yaml", "to-toml", "to-xml", "to-csv", "to-xlsx"], data.PresetIds);
+        Assert.Contains("msg", profiles.Single(p => p.Id == "office").Extensions);
+        var sheets = profiles.Single(p => p.Id == "spreadsheets").PresetIds;
+        Assert.Equal(sheets.IndexOf("to-csv") + 1, sheets.IndexOf("to-json"));
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("to-eml") || p.PresetIds.Contains("to-vcf"));
+        Assert.False(SettingsMigrations.ApplyToLibrary(13, presets, profiles)); // once only
+
+        var all = profiles.SelectMany(p => p.Extensions).ToList();
+        Assert.Equal(all.Count, all.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
+    public void Version_13_settings_get_the_data_engine_after_email()
+    {
+        using var dir = new TempDir();
+        File.WriteAllText(Path.Combine(dir.Path, "settings.json"),
+            """{ "schemaVersion": 13, "enginePriority": ["magick", "email", "vector", "pandoc", "libreoffice"] }""");
+
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        // ... and, from schema 15, the 3D model engine before Pandoc (no CAD or archive engine in this list).
+        Assert.Equal(["magick", "email", "data", "vector", "model3d", "pandoc", "libreoffice"], store.Settings.EnginePriority);
+    }
+
+    [Fact]
+    public void Version_12_libraries_open_the_new_image_formats_on_the_images_donut()
+    {
+        // As written with schema 12: the images donut knows no APNG, QOI, DICOM or .hif; a donut of the user takes DDS.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var images = profiles.Single(p => p.Id == "images");
+        images.Extensions.RemoveAll(e => e is "apng" or "qoi" or "dcm" or "hif" or "dds");
+        profiles.Insert(0, new ToolbarProfile { Id = "game", Name = "Game textures", Extensions = ["dds"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(12, presets, profiles));
+
+        Assert.Contains("apng", images.Extensions);
+        Assert.Contains("qoi", images.Extensions);
+        Assert.Contains("dcm", images.Extensions);
+        Assert.Contains("hif", images.Extensions);
+        Assert.DoesNotContain("dds", images.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(12, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Version_11_libraries_get_codecs_new_audio_formats_and_a_subtitles_donut()
+    {
+        // As written with schema 11: no HEVC / AV1 / ALAC / subtitle presets, no subtitles donut, the video donut and
+        // the audio extensions of that time, and a donut of the user that already takes .ape.
+        var added = BuiltInData.CodecAndSubtitlePresets().Select(p => p.Id).ToHashSet();
+        var presets = BuiltInData.CreatePresets().Where(p => !added.Contains(p.Id)).ToList();
+        var profiles = BuiltInData.CreateProfiles().Where(p => p.Id != "subtitles").ToList();
+        foreach (var profile in profiles)
+            profile.PresetIds.RemoveAll(added.Contains);
+        var audio = profiles.Single(p => p.Id == "audio");
+        audio.Extensions.RemoveAll(e => e is "wv" or "tta" or "w64" or "eac3" or "ec3" or "ape" or "mpc" or "mpp" or "mp+" or "tak"
+            or "dsf" or "dff" or "dts" or "spx");
+        profiles.Insert(0, new ToolbarProfile { Id = "mine", Name = "Mine", Extensions = ["ape"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(11, presets, profiles));
+
+        Assert.Contains("wv", audio.Extensions);
+        Assert.Contains("dsf", audio.Extensions);
+        Assert.DoesNotContain("ape", audio.Extensions); // the user's donut keeps it
+        var ids = profiles.Select(p => p.Id).ToList();
+        Assert.Equal(ids.IndexOf("audio") + 1, ids.IndexOf("subtitles"));
+        Assert.Equal(BuiltInData.SubtitleProfile().PresetIds, profiles.Single(p => p.Id == "subtitles").PresetIds);
+        Assert.Contains("smi", profiles.Single(p => p.Id == "subtitles").Extensions);
+        Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "video").PresetIds, profiles.Single(p => p.Id == "video").PresetIds);
+        Assert.Equal(VideoCodec.Hevc, presets.Single(p => p.Id == "mp4-hevc").Media.VideoCodec);
+        Assert.Equal(AudioCodec.Alac, presets.Single(p => p.Id == "to-alac").Media.AudioCodec);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("to-alac") || p.PresetIds.Contains("mp4-av1"));
+        var all = profiles.SelectMany(p => p.Extensions).ToList();
+        Assert.Equal(all.Count, all.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.False(SettingsMigrations.ApplyToLibrary(11, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Version_10_libraries_get_kepub_and_the_new_document_extensions()
+    {
+        // As written by 1.11.x: no KEPUB preset, and the donuts without the formats added in schema 11.
+        string[] added = ["org", "adoc", "typ", "mediawiki", "wiki", "dbk", "ipynb", "fodt", "ott", "cwk", "602", "ots", "fods", "otp", "fodp", "fodg", "kepub.epub"];
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "to-kepub");
+        var profiles = BuiltInData.CreateProfiles();
+        foreach (var profile in profiles)
+        {
+            profile.PresetIds.Remove("to-kepub");
+            profile.Extensions.RemoveAll(added.Contains);
+        }
+        // A donut of the user already handles Org files.
+        profiles.Insert(0, new ToolbarProfile { Id = "mine", Name = "Mine", Extensions = ["org"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(10, presets, profiles));
+
+        Assert.Equal("kepub", presets.Single(p => p.Id == "to-kepub").TargetFormat);
+        var ebooks = profiles.Single(p => p.Id == "ebooks");
+        Assert.Equal(ebooks.PresetIds.IndexOf("to-mobi") + 1, ebooks.PresetIds.IndexOf("to-kepub"));
+        Assert.Contains("kepub.epub", ebooks.Extensions);
+        Assert.Contains("typ", profiles.Single(p => p.Id == "text").Extensions);
+        Assert.DoesNotContain("org", profiles.Single(p => p.Id == "text").Extensions);
+        Assert.Contains("fodt", profiles.Single(p => p.Id == "office").Extensions);
+        Assert.Contains("fods", profiles.Single(p => p.Id == "spreadsheets").Extensions);
+        Assert.Contains("otp", profiles.Single(p => p.Id == "presentations").Extensions);
+        Assert.Contains("fodg", profiles.Single(p => p.Id == "vector").Extensions);
+        foreach (var expected in BuiltInData.CreateProfiles())
+            Assert.Equal(expected.PresetIds, profiles.Single(p => p.Id == expected.Id).PresetIds);
+        Assert.False(SettingsMigrations.ApplyToLibrary(10, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Version_14_libraries_get_3d_model_presets_and_their_donut_after_data()
+    {
+        // As written with schema 14: no 3D formats.
+        var modelIds = BuiltInData.ModelPresets().Select(p => p.Id).ToHashSet();
+        var presets = BuiltInData.CreatePresets().Where(p => !modelIds.Contains(p.Id)).ToList();
+        var profiles = BuiltInData.CreateProfiles().Where(p => p.Id != "models").ToList();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(14, presets, profiles));
+
+        Assert.Equal(["to-glb", "to-stl", "to-obj", "to-3mf", "to-ply", "to-gltf"], presets.Where(p => modelIds.Contains(p.Id)).Select(p => p.Id));
+        var ids = profiles.Select(p => p.Id).ToList();
+        Assert.Equal(ids.IndexOf("data") + 1, ids.IndexOf("models"));
+        Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("models"));
+        var models = profiles.Single(p => p.Id == "models");
+        Assert.Equal(["glb", "gltf", "stl", "obj", "3mf", "ply"], models.Extensions);
+        Assert.Equal(BuiltInData.ModelProfile().PresetIds, models.PresetIds);
+        Assert.False(SettingsMigrations.ApplyToLibrary(14, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void The_3d_donut_leaves_out_extensions_a_profile_of_the_user_takes()
+    {
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles().Where(p => p.Id != "models").ToList();
+        profiles.Insert(0, new ToolbarProfile { Id = "printing", Name = "Printing", Extensions = ["stl", "3mf"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(14, presets, profiles));
+
+        Assert.Equal(["glb", "gltf", "obj", "ply"], profiles.Single(p => p.Id == "models").Extensions);
+    }
+
+    [Fact]
+    public void Version_15_libraries_get_the_tracing_presets_on_the_images_donut_after_pdf()
+    {
+        // As written before tracing: no trace presets, and the images donut without them.
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id is "trace-svg" or "trace-line-art");
+        var profiles = BuiltInData.CreateProfiles();
+        var images = profiles.Single(p => p.Id == "images");
+        images.PresetIds.RemoveAll(id => id is "trace-svg" or "trace-line-art");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(15, presets, profiles));
+
+        Assert.Equal(TracingMode.Color, presets.Single(p => p.Id == "trace-svg").Trace.Mode);
+        Assert.Equal(TracingMode.BlackAndWhite, presets.Single(p => p.Id == "trace-line-art").Trace.Mode);
+        Assert.All(presets.Where(p => p.Id.StartsWith("trace-", StringComparison.Ordinal)), p => Assert.Equal("svg", p.TargetFormat));
+        Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "images").PresetIds, images.PresetIds);
+        Assert.False(SettingsMigrations.ApplyToLibrary(15, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Trace_options_survive_a_save_and_load()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        var preset = store.Presets.Single(p => p.Id == "trace-svg");
+        preset.Trace.Colors = 6;
+        preset.Trace.Detail = 80;
+        store.SaveLibrary();
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        var trace = reloaded.Presets.Single(p => p.Id == "trace-svg").Trace;
+        Assert.Equal((TracingMode.Color, 6, 80), (trace.Mode, trace.Colors, trace.Detail));
+        Assert.Equal(TracingMode.BlackAndWhite, reloaded.Presets.Single(p => p.Id == "trace-line-art").Trace.Mode);
+    }
+
+    [Fact]
+    public void Version_16_libraries_get_rotate_and_flip_presets_and_groups_on_no_donut()
+    {
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id is "rotate-left" or "rotate-right" or "rotate-180" or "flip-horizontal" or "flip-vertical" or "rotate" or "flip");
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(16, presets, profiles));
+
+        var rotate = presets.Single(p => p.Id == "rotate");
+        Assert.True(rotate.IsGroup);
+        Assert.Equal(["rotate-left", "rotate-right", "rotate-180"], rotate.SubPresetIds);
+        Assert.Equal(ImageRotation.Left90, presets.Single(p => p.Id == "rotate-left").Image.Rotation);
+        Assert.Equal(ImageFlip.Horizontal, presets.Single(p => p.Id == "flip-horizontal").Image.Flip);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Any(id => id.StartsWith("rotate") || id.StartsWith("flip")));
+        Assert.False(SettingsMigrations.ApplyToLibrary(16, presets, profiles)); // once only
+        // Where a new library has them: after "Remove background".
+        var background = presets.FindIndex(p => p.Id == "remove-background");
+        Assert.Equal("rotate-left", presets[background + 1].Id);
+    }
+
+    [Fact]
+    public void A_rotation_from_a_newer_Filee_reads_as_none_and_the_other_presets_still_load()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.SaveLibrary();
+        var path = Path.Combine(dir.Path, "presets.json");
+        var json = File.ReadAllText(path);
+        Assert.Contains("\"rotation\": \"Left90\"", json);
+        File.WriteAllText(path, json.Replace("\"rotation\": \"Left90\"", "\"rotation\": \"Transpose\"")
+            .Replace("\"flip\": \"Vertical\"", "\"flip\": 7"));
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        Assert.Equal(ImageRotation.None, reloaded.FindPreset("rotate-left")!.Image.Rotation);
+        Assert.Equal(ImageFlip.None, reloaded.FindPreset("flip-vertical")!.Image.Flip);
+        Assert.Equal(ImageRotation.Right90, reloaded.FindPreset("rotate-right")!.Image.Rotation); // the rest as saved
+        Assert.False(File.Exists(path + ".broken"));
+    }
+
+    [Fact]
+    public void Back_from_an_older_Filee_rotate_and_flip_work_again_and_keep_the_users_changes()
+    {
+        // What a Filee before 17 leaves after saving: kind, members and rotation dropped, the rest as it was.
+        var presets = BuiltInData.CreatePresets();
+        var left = presets.Single(p => p.Id == "rotate-left");
+        left.Image.Rotation = ImageRotation.None;
+        left.Name = "Turn left";
+        var rotate = presets.Single(p => p.Id == "rotate");
+        rotate.Kind = PresetKind.Convert;
+        rotate.SubPresetIds = [];
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(16, presets, profiles));
+
+        Assert.Equal(ImageRotation.Left90, left.Image.Rotation);
+        Assert.Equal("Turn left", left.Name);
+        Assert.True(rotate.IsGroup);
+        Assert.Equal(["rotate-left", "rotate-right", "rotate-180"], rotate.SubPresetIds);
+        Assert.Equal(Preset.GroupTarget, rotate.TargetFormat);
+        Assert.Single(presets, p => p.Id == "rotate-left"); // repaired, not added twice
     }
 
     [Fact]
@@ -221,7 +598,7 @@ public class UserDataStoreTests
         // Schema-5 data where the user already limited a mixed-files donut to MP3 and JPG: those checks must not
         // count as "taken" when the catalog donuts and extensions are added.
         var presets = BuiltInData.CreatePresets().Where(p => BuiltInData.CatalogPresets().All(c => c.Id != p.Id)).ToList();
-        var catalogIds = BuiltInData.CatalogProfiles().Select(p => p.Id).ToHashSet();
+        var catalogIds = BuiltInData.CatalogProfiles().Select(p => p.Id).Append("models").ToHashSet();
         var profiles = BuiltInData.CreateProfiles().Where(p => !catalogIds.Contains(p.Id)).ToList();
         profiles.Single(p => p.Id == "images").Extensions = ["png"];
         profiles.Add(new ToolbarProfile { Id = "music-mix", Name = "Music mix", IsFallback = true, Extensions = ["mp3", "jpg"] });

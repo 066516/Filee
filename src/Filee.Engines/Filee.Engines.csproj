@@ -14,6 +14,7 @@
   <ItemGroup>
     <PackageReference Include="Magick.NET-Q8-AnyCPU" />
     <PackageReference Include="PDFsharp" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <PackageReference Include="PDFtoImage" />
     <PackageReference Include="Unhwp" />
     <PackageReference Include="Markdig" />
@@ -27,6 +28,10 @@
     <PackageReference Include="MimeKitLite" />
     <PackageReference Include="ACadSharp" />
     <PackageReference Include="AngleSharp" />
+    <PackageReference Include="YamlDotNet" />
+    <PackageReference Include="Tomlyn" />
+    <PackageReference Include="MsgReader" />
+    <PackageReference Include="SharpGLTF.Core" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 

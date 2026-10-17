@@ -122,6 +122,9 @@ public sealed class UserDataStore
 
     public Preset? FindPreset(string id) => Presets.FirstOrDefault(p => p.Id == id);
 
+    /// <summary>The preset <paramref name="id"/> when it converts (a group doesn't), for every place that runs one.</summary>
+    public Preset? FindConversion(string id) => Presets.FirstOrDefault(p => p.Id == id && !p.IsGroup);
+
     /// <summary>Exports presets and profiles to a shareable JSON file.</summary>
     public void Export(string path) =>
         Write(path, new PresetBundle { Presets = Presets, Profiles = Profiles }, FileeJsonContext.Default.PresetBundle);
@@ -159,6 +162,18 @@ public sealed class UserDataStore
         foreach (var profile in Profiles)
         {
             profile.PresetIds = profile.PresetIds.Where(ids.Contains).Distinct().Take(ToolbarProfile.MaxSlices).ToList();
+        }
+        // A Filee from before groups drops "kind" (and the presets) when it saves a group, which comes back as a
+        // conversion to "group": still a group, now an empty one, rather than a conversion that can never run.
+        foreach (var preset in Presets.Where(p => !p.IsGroup && p.TargetFormat == Preset.GroupTarget))
+            preset.Kind = PresetKind.Group;
+        // A group fans out conversions only (no group in a group), each once, at most MaxSubPresets, and has no
+        // target format an older Filee could run it with.
+        var conversions = Presets.Where(p => !p.IsGroup).Select(p => p.Id).ToHashSet();
+        foreach (var group in Presets.Where(p => p.IsGroup))
+        {
+            group.SubPresetIds = group.SubPresetIds.Where(conversions.Contains).Distinct().Take(Preset.MaxSubPresets).ToList();
+            group.TargetFormat = Preset.GroupTarget;
         }
 
         // Several mixed profiles are fine (each limited to the extensions checked on it); none is not.
@@ -250,6 +265,31 @@ internal static class SettingsMigrations
                 InsertBefore(settings.EnginePriority, id, "pandoc");
             foreach (var id in new[] { "ghostscript", "calibre" })
                 InsertBefore(settings.EnginePriority, id, "libreoffice");
+        }
+
+        // v12: built-in "subtitle" engine (SRT, ASS, WebVTT, SAMI, LRC, TTML, ...), before FFmpeg.
+        if (settings.SchemaVersion < 12)
+            InsertBefore(settings.EnginePriority, "subtitle", "ffmpeg");
+
+        // v14: built-in "data" engine (JSON, YAML, TOML, XML, CSV, vCard), next to the e-mail engine.
+        if (settings.SchemaVersion < 14 && !settings.EnginePriority.Contains("data"))
+        {
+            var email = settings.EnginePriority.IndexOf("email");
+            if (email >= 0)
+                settings.EnginePriority.Insert(email + 1, "data");
+            else
+                InsertBefore(settings.EnginePriority, "data", "pandoc");
+        }
+
+        // v15: built-in "model3d" engine (3D models: GLB, glTF, STL, OBJ, 3MF, PLY), after the CAD engine (else before
+        //      the archive engine, else before Pandoc like the other built-in engines).
+        if (settings.SchemaVersion < 15 && !settings.EnginePriority.Contains("model3d"))
+        {
+            var cad = settings.EnginePriority.IndexOf("cad");
+            if (cad >= 0)
+                settings.EnginePriority.Insert(cad + 1, "model3d");
+            else
+                InsertBefore(settings.EnginePriority, "model3d", settings.EnginePriority.Contains("archive") ? "archive" : "pandoc");
         }
 
         if (settings.Triggers.Count == 0)
@@ -353,8 +393,95 @@ internal static class SettingsMigrations
             changed |= Offer(presets, profiles, "pdf", "pdf-long-image", "to-jpg");
         }
 
-        // v10: Video frame sequence extraction presets (PNG and JPG), on no donut to avoid accidental clicks.
-        if (from < 10)
+        // v10: "Remove background" (signatures, stamps, logos → transparent PNG), on no donut like HEIC: users add it
+        //      in Settings → Toolbar.
+        if (from < 10 && presets.All(p => p.Id != "remove-background"))
+        {
+            presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == "remove-background"));
+            changed = true;
+        }
+
+        // v11: more document formats (Org, AsciiDoc, Typst, ... through Pandoc; flat OpenDocument, templates,
+        //      ClarisWorks, ... through LibreOffice; KEPUB built in). Built-in donuts learn the new extensions unless
+        //      another donut already has them, and the e-books donut gets KEPUB after MOBI.
+        if (from < 11)
+        {
+            if (presets.All(p => p.Id != "to-kepub"))
+            {
+                presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == "to-kepub"));
+                changed = true;
+                changed |= Offer(presets, profiles, "ebooks", "to-kepub", "to-mobi");
+            }
+            changed |= LearnExtensions(profiles, out _);
+        }
+
+        // v12: HEVC / AV1 video, ALAC and the new audio formats (WavPack, TTA, APE, DSD, ...), and a subtitles donut
+        //      after the audio donut. The video donut offers "MP4 HEVC" and "Extract subtitles".
+        if (from < 12)
+            changed |= AddCodecsAndSubtitles(presets, profiles);
+
+        // v13: more image formats (APNG, MNG, QOI, DDS, DICOM, OpenEXR, …, Fujifilm's .hif): the images donut learns
+        //      their extensions unless another donut already has them.
+        if (from < 13)
+            changed |= LearnExtensions(profiles, out _);
+
+        // v14: structured data (JSON, YAML, TOML, XML, vCard) gets its own donut after "fonts", Outlook MSG joins
+        //      the documents donut next to EML, and the spreadsheets donut gets JSON after CSV.
+        if (from < 14)
+            changed |= AddData(presets, profiles);
+
+        // v15: 3D models (GLB, glTF, STL, OBJ, 3MF, PLY) get presets and their own donut after "data" (else after
+        //      "fonts", else before the mixed-files one), with the extensions no donut of the user takes yet.
+        if (from < 15)
+            changed |= AddModels(presets, profiles);
+
+        // v16: raster → SVG tracing ("Trace to SVG" in colour, "Line art to SVG" in black), on the images donut after
+        //      PDF.
+        if (from < 16)
+        {
+            foreach (var preset in BuiltInData.TracePresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+            {
+                presets.Add(preset);
+                changed = true;
+            }
+            changed |= Offer(presets, profiles, "images", "trace-svg", "to-pdf");
+            changed |= Offer(presets, profiles, "images", "trace-line-art", "trace-svg");
+        }
+
+        // v17: rotate / flip presets and the "Rotate" / "Flip" groups that fan them out, on no donut, after "Remove
+        // background" as in a new library. Present already but saved since by a Filee before 17 (it reads and writes
+        // an older schema, so back and forth between versions comes here again): that one dropped what it didn't
+        // know, the rotation and the group, and left a preset that re-encodes unturned. Those parts are put back, the
+        // user's own changes (name, quality, file names) stay.
+        if (from < 17)
+        {
+            var at = presets.FindIndex(p => p.Id == "remove-background");
+            at = at < 0 ? presets.Count : at + 1;
+            foreach (var tool in BuiltInData.ImageToolPresets())
+            {
+                if (presets.FirstOrDefault(p => p.Id == tool.Id) is not { } existing)
+                {
+                    presets.Insert(Math.Min(at++, presets.Count), tool);
+                    changed = true;
+                }
+                else if (tool.IsGroup && !existing.IsGroup)
+                {
+                    existing.Kind = PresetKind.Group;
+                    existing.SubPresetIds = [.. tool.SubPresetIds];
+                    existing.TargetFormat = tool.TargetFormat;
+                    changed = true;
+                }
+                else if (!tool.IsGroup && !existing.Image.TurnsOrMirrors)
+                {
+                    existing.Image.Rotation = tool.Image.Rotation;
+                    existing.Image.Flip = tool.Image.Flip;
+                    changed = true;
+                }
+            }
+        }
+
+        // v18: Video frame sequence extraction presets (PNG and JPG), on no donut to avoid accidental clicks.
+        if (from < 18)
         {
             foreach (var id in new[] { "extract-frames-png", "extract-frames-jpg" })
             {
@@ -367,18 +494,75 @@ internal static class SettingsMigrations
         return changed;
     }
 
-    private static bool AddCatalog(List<Preset> presets, List<ToolbarProfile> profiles)
+    private static bool AddData(List<Preset> presets, List<ToolbarProfile> profiles)
     {
         var changed = false;
-        foreach (var preset in BuiltInData.CatalogPresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+        foreach (var preset in BuiltInData.DataPresets().Where(p => presets.All(existing => existing.Id != p.Id)))
         {
             presets.Add(preset);
             changed = true;
         }
-        var presetIds = presets.Select(p => p.Id).ToHashSet();
+        changed |= LearnExtensions(profiles, out var claimed);
 
+        if (profiles.All(p => p.Id != "data"))
+        {
+            var data = BuiltInData.DataProfile();
+            // Only the extensions no donut of the user takes yet.
+            data.Extensions = data.Extensions.Where(claimed.Add).ToList();
+            if (data.Extensions.Count > 0)
+            {
+                var presetIds = presets.Select(p => p.Id).ToHashSet();
+                data.PresetIds = data.PresetIds.Where(presetIds.Contains).ToList();
+                var fonts = profiles.FindIndex(p => p.Id == "fonts");
+                var insertAt = fonts >= 0 ? fonts + 1 : profiles.FindIndex(p => p.IsFallback);
+                profiles.Insert(insertAt < 0 ? profiles.Count : insertAt, data);
+                changed = true;
+            }
+        }
+
+        changed |= Offer(presets, profiles, "spreadsheets", "to-json", "to-csv");
+        return changed;
+    }
+
+    private static bool AddCodecsAndSubtitles(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        foreach (var preset in BuiltInData.CodecAndSubtitlePresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+        {
+            presets.Add(preset);
+            changed = true;
+        }
+        changed |= LearnExtensions(profiles, out var claimed);
+
+        if (profiles.All(p => p.Id != "subtitles"))
+        {
+            var subtitles = BuiltInData.SubtitleProfile();
+            subtitles.Extensions = subtitles.Extensions.Where(claimed.Add).ToList();
+            if (subtitles.Extensions.Count > 0)
+            {
+                var ids = presets.Select(p => p.Id).ToHashSet();
+                subtitles.PresetIds = subtitles.PresetIds.Where(ids.Contains).ToList();
+                var audio = profiles.FindIndex(p => p.Id == "audio");
+                var insertAt = audio >= 0 ? audio + 1 : profiles.FindIndex(p => p.IsFallback);
+                profiles.Insert(insertAt < 0 ? profiles.Count : insertAt, subtitles);
+                changed = true;
+            }
+        }
+
+        changed |= Offer(presets, profiles, "video", "mp4-hevc", "mp4-720");
+        changed |= Offer(presets, profiles, "video", "extract-subtitles", "to-mp3");
+        return changed;
+    }
+
+    /// <summary>
+    /// Adds the default extensions of the built-in donuts that no donut of the user takes yet.
+    /// </summary>
+    /// <param name="claimed">Every extension a donut takes afterwards.</param>
+    private static bool LearnExtensions(List<ToolbarProfile> profiles, out HashSet<string> claimed)
+    {
+        var changed = false;
         // Extensions checked on a mixed-selection profile only limit that profile; they don't claim files.
-        var claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        claimed = profiles.Where(p => !p.IsFallback).SelectMany(p => p.Extensions).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var defaults = BuiltInData.CreateProfiles().ToDictionary(p => p.Id);
         foreach (var profile in profiles.Where(p => !p.IsFallback && defaults.ContainsKey(p.Id)))
         {
@@ -388,6 +572,46 @@ internal static class SettingsMigrations
                 changed = true;
             }
         }
+        return changed;
+    }
+
+    private static bool AddModels(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        foreach (var preset in BuiltInData.ModelPresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+        {
+            presets.Add(preset);
+            changed = true;
+        }
+        changed |= LearnExtensions(profiles, out var claimed);
+        if (profiles.Any(p => p.Id == "models"))
+            return changed;
+
+        var models = BuiltInData.ModelProfile();
+        // Only the extensions no donut of the user takes yet.
+        models.Extensions = models.Extensions.Where(claimed.Add).ToList();
+        if (models.Extensions.Count == 0)
+            return changed;
+        var ids = presets.Select(p => p.Id).ToHashSet();
+        models.PresetIds = models.PresetIds.Where(ids.Contains).ToList();
+        var after = profiles.FindIndex(p => p.Id == "data");
+        if (after < 0)
+            after = profiles.FindIndex(p => p.Id == "fonts");
+        var insertAt = after >= 0 ? after + 1 : profiles.FindIndex(p => p.IsFallback);
+        profiles.Insert(insertAt < 0 ? profiles.Count : insertAt, models);
+        return true;
+    }
+
+    private static bool AddCatalog(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        foreach (var preset in BuiltInData.CatalogPresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+        {
+            presets.Add(preset);
+            changed = true;
+        }
+        var presetIds = presets.Select(p => p.Id).ToHashSet();
+        changed |= LearnExtensions(profiles, out var claimed);
 
         var text = profiles.FindIndex(p => p.Id == "text");
         var insertAt = text >= 0 ? text + 1 : profiles.FindIndex(p => p.IsFallback);

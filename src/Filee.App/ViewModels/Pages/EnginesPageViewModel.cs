@@ -13,8 +13,11 @@ using Filee.Engines.Infrastructure;
 
 namespace Filee.App.ViewModels.Pages;
 
-public sealed class EngineItemViewModel(IConverter converter, EngineStatus status, ILocalizer loc)
+public sealed partial class EngineItemViewModel(IConverter converter, EngineStatus status, ILocalizer loc) : ObservableObject
 {
+    /// <summary>Being dragged to a new place in the priority order.</summary>
+    [ObservableProperty] private bool _isDragging;
+
     public IConverter Converter { get; } = converter;
     public string Name => Converter.DisplayName;
     public bool IsAvailable { get; } = status.IsAvailable;
@@ -54,6 +57,8 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
         _downloads = downloads;
         _libreOfficeForSlides = store.Settings.LibreOfficeForSlides;
         _libreOfficeForHwp = store.Settings.LibreOfficeForHwp;
+        _libreOfficeForDocuments = store.Settings.LibreOfficeForDocuments;
+        _libreOfficeForSheets = store.Settings.LibreOfficeForSheets;
         _catalog.Changed += OnCatalogChanged;
         Reload();
     }
@@ -64,6 +69,12 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
     /// <summary>HWP / HWPX → PDF through LibreOffice and H2Orestart instead of rhwp.</summary>
     [ObservableProperty] private bool _libreOfficeForHwp;
 
+    /// <summary>Word documents → PDF through LibreOffice instead of the built-in route.</summary>
+    [ObservableProperty] private bool _libreOfficeForDocuments;
+
+    /// <summary>Spreadsheets → PDF through LibreOffice instead of the built-in route.</summary>
+    [ObservableProperty] private bool _libreOfficeForSheets;
+
     partial void OnLibreOfficeForSlidesChanged(bool value)
     {
         _store.Settings.LibreOfficeForSlides = value;
@@ -73,6 +84,18 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
     partial void OnLibreOfficeForHwpChanged(bool value)
     {
         _store.Settings.LibreOfficeForHwp = value;
+        _store.SaveSettings();
+    }
+
+    partial void OnLibreOfficeForDocumentsChanged(bool value)
+    {
+        _store.Settings.LibreOfficeForDocuments = value;
+        _store.SaveSettings();
+    }
+
+    partial void OnLibreOfficeForSheetsChanged(bool value)
+    {
+        _store.Settings.LibreOfficeForSheets = value;
         _store.SaveSettings();
     }
 
@@ -138,11 +161,23 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
 
     private void Move(EngineItemViewModel item, int delta)
     {
-        var index = Engines.IndexOf(item);
-        var target = index + delta;
-        if (index < 0 || target < 0 || target >= Engines.Count)
-            return;
-        Engines.Move(index, target);
+        if (MoveTo(item, Engines.IndexOf(item) + delta))
+            SavePriority();
+    }
+
+    /// <summary>Moves <paramref name="item"/> to <paramref name="index"/> in the list (while dragging); false when it stays.</summary>
+    public bool MoveTo(EngineItemViewModel item, int index)
+    {
+        var from = Engines.IndexOf(item);
+        if (from < 0 || index < 0 || index >= Engines.Count || index == from)
+            return false;
+        Engines.Move(from, index);
+        return true;
+    }
+
+    /// <summary>Saves the order of the list as the engine priority.</summary>
+    public void SavePriority()
+    {
         _store.Settings.EnginePriority = Engines.Select(e => e.Converter.Id).ToList();
         _store.SaveSettings();
     }

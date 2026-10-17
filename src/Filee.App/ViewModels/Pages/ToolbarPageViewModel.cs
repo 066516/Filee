@@ -250,6 +250,27 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
             Commit();
     }
 
+    /// <summary>
+    /// A new group (a slice that fans out presets). It joins the available presets only: no donut gets it until the
+    /// user drags it there. Groups head that list, and the search is cleared, so it is right there to drag.
+    /// </summary>
+    [RelayCommand]
+    private async Task NewGroup()
+    {
+        var group = new Preset { Name = _loc["toolbar.new_group"], Kind = PresetKind.Group, TargetFormat = Preset.GroupTarget };
+        if (!await _windows.EditGroupAsync(group, _windows.Main, isNew: true))
+            return;
+        AddGroup(group);
+    }
+
+    /// <summary>Adds a group made in the editor to the available presets.</summary>
+    internal void AddGroup(Preset group)
+    {
+        _store.Presets.Add(group);
+        PaletteSearch = "";
+        Commit();
+    }
+
     [RelayCommand]
     private async Task NewPreset()
     {
@@ -292,7 +313,9 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
     private void Commit()
     {
         _store.SaveLibrary();
-        SelectedProfile?.Refresh(_loc);
+        // Every profile: deleting a group (or a preset) takes it off every donut, not just this one.
+        foreach (var item in Profiles)
+            item.Refresh(_loc);
         Rebuild();
     }
 
@@ -308,7 +331,8 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
             .ToList();
 
         Palette.Clear();
-        foreach (var preset in _store.Presets.Where(p => !used.Contains(p.Id)))
+        // Groups first: few, and otherwise at the very end, below every conversion.
+        foreach (var preset in _store.Presets.Where(p => !used.Contains(p.Id)).OrderBy(p => !p.IsGroup))
         {
             var label = _loc.DisplayName(preset);
             var caption = Caption(preset);
@@ -323,5 +347,6 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
     }
 
     private string? Caption(Preset p) =>
-        p.TargetFormat == BuiltInData.SameAsSource ? _loc["donut.same_format"] : FormatLabels.NameOf(_loc, p.TargetFormat);
+        p.IsGroup ? _loc.Format("donut.group_caption", p.SubPresetIds.Count)
+        : p.TargetFormat == BuiltInData.SameAsSource ? _loc["donut.same_format"] : FormatLabels.NameOf(_loc, p.TargetFormat);
 }

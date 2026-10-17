@@ -216,6 +216,11 @@ internal sealed class XlsxReader
         foreach (var merge in xml.Element(S + "mergeCells")?.Elements(S + "mergeCell") ?? [])
             if (CellRange.Parse((string?)merge.Attribute("ref")) is { } range && (range.Bottom > range.Top || range.Right > range.Left))
                 sheet.Merges.Add(range);
+
+        // <brk id="20"/>: the break is above 0-based row 20, which starts the next page.
+        foreach (var brk in xml.Element(S + "rowBreaks")?.Elements(S + "brk") ?? [])
+            if (int.TryParse((string?)brk.Attribute("id"), out var breakRow) && breakRow > 0)
+                sheet.RowBreaks.Add(breakRow);
         return sheet;
     }
 

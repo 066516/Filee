@@ -295,6 +295,36 @@ public class HwpxReaderTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public void Excel_page_breaks_start_a_new_page_with_the_header_rows_again()
+    {
+        // Issue #67: page breaks set in Excel were ignored by XLSX → PDF.
+        var xlsx = new XlsxBuilder();
+        xlsx.Sheet("목록",
+            XlsxBuilder.Row(1, xlsx.Text("A1", "번호", XlsxBuilder.Header)) +
+            string.Concat(Enumerable.Range(2, 8).Select(r => r == 7
+                ? "<row r=\"7\" hidden=\"1\"><c r=\"A7\"><v>6</v></c></row>"
+                : XlsxBuilder.Row(r, XlsxBuilder.Number($"A{r}", r - 1)))),
+            before: "<sheetViews><sheetView workbookViewId=\"0\"><pane ySplit=\"1\" topLeftCell=\"A2\" activePane=\"bottomLeft\" state=\"frozen\"/></sheetView></sheetViews>",
+            after: "<rowBreaks count=\"2\" manualBreakCount=\"2\"><brk id=\"4\" max=\"16383\" man=\"1\"/><brk id=\"6\" max=\"16383\" man=\"1\"/></rowBreaks>");
+        var book = XlsxReader.Read(xlsx.Save(Path.Combine(fx.NewFolder(), "목록.xlsx")));
+        Assert.Equal([4, 6], book.Sheets[0].RowBreaks);
+
+        var source = SheetDocument.Build(book);
+
+        // Rows 2-4 | 5-6 | 8-9: the break above the hidden row 7 starts the page at row 8.
+        var tables = source.Sections[0].Blocks.OfType<HTable>().ToList();
+        Assert.Equal([false, true, true], tables.Select(t => t.PageBreakBefore));
+        Assert.Equal([4, 3, 3], tables.Select(t => t.Rows.Count));
+        Assert.All(tables, t => Assert.True(t.Rows[0].Header));
+        var dir = fx.NewFolder();
+        var hwpx = Path.Combine(dir, "목록.hwpx");
+        HwpxWriter.Write(source, hwpx);
+        using var zip = System.IO.Compression.ZipFile.OpenRead(hwpx);
+        using var reader = new StreamReader(zip.GetEntry("Contents/section0.xml")!.Open());
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Count(reader.ReadToEnd(), "pageBreak=\"1\""));
+    }
+
+    [Fact]
     public void Presentations_survive_the_way_through_hwpx()
     {
         var pptx = new PptxBuilder();

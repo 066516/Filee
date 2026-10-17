@@ -34,9 +34,6 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>The repository, for the GitHub button above the version.</summary>
     public string RepositoryUrl => UpdateService.RepositoryUrl;
 
-    /// <summary>Where the Sponsor button above the version leads in the current language.</summary>
-    public string SponsorUrl => AboutPageViewModel.SponsorUrlFor(_loc.Language);
-
     public MainWindowViewModel(IServiceProvider services, ILocalizer loc, UpdateService updates)
     {
         _services = services;
@@ -100,7 +97,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         VersionText = _loc.Format("about.version", UpdateService.CurrentVersion);
         UpdateText = UpdateTexts.Short(Updates, _loc);
-        UpdateTip = UpdateTexts.Status(Updates, _loc) ?? _loc[UpdateTexts.HowKey];
+        var changes = UpdateTexts.Changes(Updates, _loc);
+        UpdateTip = UpdateTexts.Status(Updates, _loc)
+                    ?? $"{_loc[$"update.level.{Updates.Level}"]}{Environment.NewLine}{(changes.Length > 0 ? changes + Environment.NewLine : "")}{_loc[UpdateTexts.HowKey]}";
     }
 
     public void Navigate(string key)

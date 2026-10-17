@@ -45,8 +45,17 @@ public sealed class RadialController(
     private JobViewModel? _progressJob;   // job currently shown by the ring (null once finished / handed off)
     private JobViewModel? _lastRingJob;   // for "click the ✓ to open the folder"
     private IDisposable? _handOffTimer;
+    private int _dragGeneration;
+
+    /// <summary>
+    /// How long a drag that never brought files may keep the invisible window up, in case the button release is
+    /// missed (the system dropped the input hook, a UAC prompt took the desktop): the window catches clicks.
+    /// </summary>
+    private static readonly TimeSpan EmptyDragLimit = TimeSpan.FromSeconds(10);
 
     public bool IsVisible => _visible;
+
+    internal RadialWindow? Window => _window;
 
     /// <summary>
     /// Drag gesture started at the given physical screen point. The window is placed under the cursor but stays
@@ -57,10 +66,19 @@ public sealed class RadialController(
     {
         ReleaseProgressToToast();
         var window = EnsureWindow();
+        // A ring from an earlier conversion (finished or handed to the toast) must not keep this gesture's window up.
+        window.DonutControl.LeaveProgressMode();
         _dropped = false;
         viewModel.ResetForDrag();
         window.DonutControl.AllowContextEdit = false;
         PlaceAndShow(window, x, y, activate: false);
+
+        var generation = ++_dragGeneration;
+        DispatcherTimer.RunOnce(() =>
+        {
+            if (generation == _dragGeneration && _visible && !viewModel.HasFiles && !viewModel.IsClickMode)
+                Close(animate: false);
+        }, EmptyDragLimit);
     }
 
     /// <summary>Opens the donut for known files (click mode).</summary>
@@ -72,6 +90,7 @@ public sealed class RadialController(
         var window = EnsureWindow();
         _dropped = false;
         viewModel.Load(files, clickMode: true);
+        viewModel.FitToThisDonut();
         window.DonutControl.AllowContextEdit = true;
         PlaceAndShow(window, x, y, activate: true);
         window.DonutControl.PlayOpenAnimation();
@@ -82,6 +101,12 @@ public sealed class RadialController(
     {
         if (!_visible || viewModel.IsClickMode)
             return;
+        // Nothing was brought to the donut: the window is invisible but catches clicks, so go right away.
+        if (!viewModel.HasFiles && !_window!.DonutControl.IsInProgressMode)
+        {
+            Close(animate: false);
+            return;
+        }
         // A drop on the donut arrives around the same time as the button release; give it a moment.
         DispatcherTimer.RunOnce(() =>
         {
@@ -98,11 +123,19 @@ public sealed class RadialController(
         {
             // Esc / click elsewhere while the ring is showing: let the toast carry on (a finishing ✓ just fades).
             if (_progressJob is not null)
+            {
                 HandOffToToast();
-            return;
+                return;
+            }
+            if (_window.DonutControl.IsFinishingProgress)
+                return;
+            // A ring left over after it finished: nothing is showing any more, so close like any donut.
+            _window.DonutControl.LeaveProgressMode();
         }
         _visible = false;
         var window = _window;
+        // A group about to open (its dwell timer running) must not open on a closing donut.
+        window.DonutControl.CollapseGroup();
         if (animate)
             window.DonutControl.PlayCloseAnimation(() =>
             {
@@ -131,8 +164,8 @@ public sealed class RadialController(
         window.Dropped += (hit, files) =>
         {
             _dropped = true;
-            if (hit.Kind == DonutHitKind.Segment)
-                Convert(hit.Index, files.Count > 0 ? files : viewModel.Files);
+            if (hit.Kind is DonutHitKind.Segment or DonutHitKind.SubSegment)
+                Convert(hit.Index, hit.Sub, files.Count > 0 ? files : viewModel.Files);
             else
                 Close();
         };
@@ -148,10 +181,12 @@ public sealed class RadialController(
                 Close();
         };
 
-        donut.ActiveIndexChanged += (_, index) => viewModel.ShowHint(index, donut.IsCenterHot);
-        donut.SegmentInvoked += (_, index) => Convert(index, viewModel.Files);
+        donut.ActiveIndexChanged += (_, index) => viewModel.ShowHint(index, donut.ActiveSubIndex, donut.IsCenterHot);
+        donut.SegmentInvoked += (_, index) => Convert(index, -1, viewModel.Files);
+        donut.SubSegmentInvoked += (_, hit) => Convert(hit.Group, hit.Sub, viewModel.Files);
         donut.CenterInvoked += (_, _) => Close();
         donut.SegmentContextRequested += async (_, index) => await EditPresetAsync(index);
+        donut.SubSegmentContextRequested += async (_, hit) => await EditPresetAsync(hit.Group, hit.Sub);
         donut.ProgressCancelRequested += (_, _) => _progressJob?.CancelCommand.Execute(null);
         donut.ProgressClicked += (_, _) =>
         {
@@ -163,15 +198,15 @@ public sealed class RadialController(
         return window;
     }
 
-    private void Convert(int index, IReadOnlyList<string> files)
+    /// <summary>Converts with slice <paramref name="index"/>, or with slice <paramref name="sub"/> of that group's ring.</summary>
+    private void Convert(int index, int sub, IReadOnlyList<string> files)
     {
-        if (index < 0 || index >= viewModel.Presets.Count || !viewModel.Items[index].IsEnabled || files.Count == 0)
+        if (viewModel.PresetAt(index, sub) is not { } preset || files.Count == 0)
         {
             Close();
             return;
         }
 
-        var preset = viewModel.Presets[index];
         log.LogInformation("Converting {Count} file(s) with preset {Preset}", files.Count, preset.Id);
         var job = conversions.Start(files, preset, showInToast: false);
         if (job is null || _window is null)
@@ -251,17 +286,19 @@ public sealed class RadialController(
     private void HideWindow()
     {
         _visible = false;
+        _window?.DonutControl.CollapseGroup();
         _window?.Hide();
     }
 
-    private async Task EditPresetAsync(int index)
+    /// <summary>Edits the preset of slice <paramref name="index"/>, or of slice <paramref name="sub"/> of its group's ring.</summary>
+    private async Task EditPresetAsync(int index, int sub = -1)
     {
-        if (_window is null || index < 0 || index >= viewModel.Presets.Count)
+        if (_window is null || viewModel.PresetShownAt(index, sub) is not { } preset)
             return;
         _editing = true;
         try
         {
-            if (await windows.EditPresetAsync(viewModel.Presets[index], _window))
+            if (await windows.EditPresetAsync(preset, _window))
             {
                 store.SaveLibrary();
                 viewModel.Load(viewModel.Files, viewModel.IsClickMode);
@@ -275,6 +312,21 @@ public sealed class RadialController(
             _window.Activate();
     }
 
+    /// <summary>
+    /// Top-left corner of a <paramref name="sidePx"/> square window centred on <paramref name="cursor"/>, moved into
+    /// <paramref name="area"/> when that would cross its edge. With group slices the window holds the ring they fan out
+    /// (<see cref="DonutMenu.SideFor"/>), so near a screen edge the donut moves in far enough for every ring to fit.
+    /// </summary>
+    internal static PixelPoint WindowPosition(PixelPoint cursor, PixelRect? area, int sidePx)
+    {
+        var position = new PixelPoint(cursor.X - sidePx / 2, cursor.Y - sidePx / 2);
+        if (area is not { } a)
+            return position;
+        return new PixelPoint(
+            Math.Clamp(position.X, a.X, Math.Max(a.X, a.Right - sidePx)),
+            Math.Clamp(position.Y, a.Y, Math.Max(a.Y, a.Bottom - sidePx)));
+    }
+
     private void PlaceAndShow(RadialWindow window, int x, int y, bool activate)
     {
         var cursor = new PixelPoint(x, y);
@@ -282,16 +334,9 @@ public sealed class RadialController(
         var scaling = OperatingSystem.IsMacOS() ? 1 : screen?.Scaling ?? 1;
 
         // Window size follows the donut size (SizeToContent); compute it up front to centre on the cursor.
-        var side = 2 * (viewModel.OuterRadius + 7 + 14);
+        var side = DonutMenu.SideFor(viewModel.OuterRadius, viewModel.ReserveSubRing);
         var sidePx = (int)Math.Ceiling(side * scaling);
-        var position = new PixelPoint(x - sidePx / 2, y - sidePx / 2);
-        if (screen is not null)
-        {
-            var area = screen.WorkingArea;
-            position = new PixelPoint(
-                Math.Clamp(position.X, area.X, Math.Max(area.X, area.Right - sidePx)),
-                Math.Clamp(position.Y, area.Y, Math.Max(area.Y, area.Bottom - sidePx)));
-        }
+        var position = WindowPosition(cursor, screen?.WorkingArea, sidePx);
 
         Motion.Refresh();
         window.Position = position;

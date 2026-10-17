@@ -228,6 +228,47 @@ public class ToolbarPageTests
     }
 
     [AvaloniaFact]
+    public void A_new_group_heads_the_available_presets_and_every_profile_count_stays_right()
+    {
+        TestServices.EnsureInitialized("en");
+        var store = AppHost.Get<UserDataStore>();
+        var presets = store.Presets.ToList();
+        var profiles = store.Profiles.Select(p => p.Clone()).ToList();
+        try
+        {
+            var vm = new ToolbarPageViewModel(store, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<WindowService>());
+            vm.SelectedProfile = vm.Profiles.Single(p => p.Profile.Id == "images");
+            vm.PaletteSearch = "png"; // a search that would hide it
+            var pdf = vm.Profiles.Single(p => p.Profile.Id == "pdf");
+            pdf.Profile.PresetIds.RemoveAt(0); // changed elsewhere, as when a deleted group leaves every donut
+
+            vm.AddGroup(new Filee.Core.Presets.Preset
+            {
+                Id = "test-new-group",
+                Name = "Web",
+                Kind = Filee.Core.Presets.PresetKind.Group,
+                SubPresetIds = ["to-png"],
+            });
+
+            Assert.Equal("", vm.PaletteSearch);
+            // Up with the groups at the top, above every conversion: not below ~80 presets.
+            var chips = vm.VisiblePalette.Select(c => store.FindPreset(c.PresetId)!).ToList();
+            var at = chips.FindIndex(p => p.Id == "test-new-group");
+            Assert.True(at >= 0 && chips.Take(at).All(p => p.IsGroup), $"at {at}");
+            Assert.Equal($"{pdf.Profile.PresetIds.Count}", pdf.Count);
+            Assert.DoesNotContain("test-new-group", vm.SelectedProfile!.Profile.PresetIds); // on no donut until dragged there
+        }
+        finally
+        {
+            store.Presets.Clear();
+            store.Presets.AddRange(presets);
+            store.Profiles.Clear();
+            store.Profiles.AddRange(profiles);
+            store.SaveLibrary();
+        }
+    }
+
+    [AvaloniaFact]
     public void The_last_mixed_profile_stays_mixed()
     {
         TestServices.EnsureInitialized("en");

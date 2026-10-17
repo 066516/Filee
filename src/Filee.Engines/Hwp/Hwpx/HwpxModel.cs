@@ -127,6 +127,9 @@ internal sealed class HTable : HBlock
     /// <summary>Borders used where a cell does not define its own; null = thin solid grid.</summary>
     public HBorders? Borders { get; set; }
 
+    /// <summary>The table starts a new page (a page break set in Excel).</summary>
+    public bool PageBreakBefore { get; set; }
+
     public List<HBlock> Caption { get; } = [];
 }
 

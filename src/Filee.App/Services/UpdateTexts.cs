@@ -30,7 +30,21 @@ public static class UpdateTexts
         _ => null,
     };
 
+    /// <summary>
+    /// What the update changes in the app's language, one "• " line per change, newest version first (at most
+    /// <paramref name="max"/> lines); empty when the releases say nothing.
+    /// </summary>
+    public static string Changes(UpdateService updates, ILocalizer loc, int max = 6)
+    {
+        var lines = updates.Notes.SelectMany(n => n.In(loc.Language)).Distinct().ToList();
+        var shown = lines.Take(max).Select(l => "• " + l).ToList();
+        if (lines.Count > max)
+            shown.Add(loc.Format("update.more_changes", lines.Count - max));
+        return string.Join(Environment.NewLine, shown);
+    }
+
     /// <summary>True for property changes that alter the texts above.</summary>
     public static bool Affects(string? propertyName) =>
-        propertyName is nameof(UpdateService.LatestVersion) or nameof(UpdateService.Step) or nameof(UpdateService.DownloadPercent);
+        propertyName is nameof(UpdateService.LatestVersion) or nameof(UpdateService.Step) or nameof(UpdateService.DownloadPercent)
+            or nameof(UpdateService.Notes);
 }

@@ -16,9 +16,9 @@ using SkiaSharp;
 namespace Filee.Engines.Pdf;
 
 /// <summary>PDF → every raster format ImageMagick writes (PNG, JPG, WEBP, TIFF, …, PSD, TGA, PPM).</summary>
-public sealed class PdfiumConverter : IConverter
+public sealed class PdfiumConverter : IConverter, IImageTransformer
 {
-    private static readonly HashSet<string> MultiPageTargets = ["tiff", "gif"];
+    private static readonly HashSet<string> MultiPageTargets = ["tiff", "gif", "apng", "mng"];
 
     /// <summary>A tall image beyond this many pixels is scaled down (a 300-page PDF at 300 dpi would need gigabytes).</summary>
     internal const long MaxStackedPixels = 200_000_000;
@@ -28,6 +28,9 @@ public sealed class PdfiumConverter : IConverter
 
     /// <summary>PDFium is not thread-safe.</summary>
     public int MaxParallelism => 1;
+
+    /// <summary>Renders pages to images, then applies the image options to them.</summary>
+    public bool Transforms(string from, string to) => true;
 
     public IReadOnlyList<ConversionEdge> Edges { get; } =
         ImageEncoder.Writable.Select(target => new ConversionEdge("pdf", target)).ToList();
@@ -59,6 +62,8 @@ public sealed class PdfiumConverter : IConverter
                     var frame = ToMagick(bitmap, dpi);
                     if (stack)
                     {
+                        // Each page turns, then they stack: a turned long image would lie on its side instead.
+                        ImageEncoder.Turn(frame, step.Preset.Image);
                         if (step.Preset.Pdf.TrimPageMargins)
                             TrimVertically(frame, dpi);
                         collected.Add(frame); // stacked after the loop; the image options apply to the tall image
@@ -88,11 +93,14 @@ public sealed class PdfiumConverter : IConverter
 
                 if (stack)
                 {
-                    var parts = step.Preset.Pdf.SplitTallImage ? Split(collected, step.To, step.Preset.Image) : [collected];
+                    var unturned = step.Preset.Image.Clone(); // the pages are turned already
+                    unturned.Rotation = ImageRotation.None;
+                    unturned.Flip = ImageFlip.None;
+                    var parts = step.Preset.Pdf.SplitTallImage ? Split(collected, step.To, unturned) : [collected];
                     for (var part = 0; part < parts.Count; part++)
                     {
                         using var tall = Stack(parts[part]);
-                        ImageEncoder.ApplyOptions(tall, step.Preset.Image, step.To); // also scales it to fit the format
+                        ImageEncoder.ApplyOptions(tall, unturned, step.To); // also scales it to fit the format
                         if (step.Output.Allocate(extension, parts.Count > 1 ? $"_{part + 1}" : null) is { } path)
                         {
                             tall.Write(path, format);

@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Filee.App.ViewModels.Pages"
              xmlns:c="using:Filee.App.Controls"
+             xmlns:v="using:Filee.App.Views"
              x:Class="Filee.App.Views.Pages.AboutPage"
              x:DataType="vm:AboutPageViewModel">
   <StackPanel Spacing="18">
@@ -20,6 +21,13 @@
             </StackPanel>
           </Button>
         </StackPanel>
+      </StackPanel>
+    </Border>
+    <!-- The sponsors right below Filee itself, while there are any -->
+    <Border Classes="card" IsVisible="{Binding #Supporters.IsVisible}">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="h2" Text="{DynamicResource sponsor.thanks}" />
+        <v:SupportersView x:Name="Supporters" ShowTitle="False" LogoHeight="40" />
       </StackPanel>
     </Border>
     <Border Classes="card">

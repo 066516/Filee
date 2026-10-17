@@ -28,6 +28,9 @@
   <ItemGroup Label="Conversion engines">
     <PackageVersion Include="Magick.NET-Q8-AnyCPU" Version="14.17.2" />
     <PackageVersion Include="PDFsharp" Version="6.2.4" />
+    <!-- PDFsharp asks for 8.0.1, which has two denial-of-service advisories (GHSA-846f-f764-76mx,
+         GHSA-2fmv-rv2c-59x7); 10.0.13 is fixed. Drop when PDFsharp depends on a fixed version itself. -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <!-- 5.3+ requires SkiaSharp 4, which conflicts with Avalonia 12.1 (SkiaSharp 3.119). -->
     <PackageVersion Include="PDFtoImage" Version="5.2.1" />
     <PackageVersion Include="Unhwp" Version="0.13.0" />
@@ -44,6 +47,12 @@
     <PackageVersion Include="MimeKitLite" Version="4.18.1" />
     <PackageVersion Include="ACadSharp" Version="3.8.0" />
     <PackageVersion Include="AngleSharp" Version="1.8.2" />
+    <PackageVersion Include="YamlDotNet" Version="18.1.0" />
+    <PackageVersion Include="Tomlyn" Version="2.10.1" />
+    <!-- 6.2 no longer reads files an attachment only links to (ATTACH_BY_REFERENCE) and caps nested messages and
+         stream sizes of untrusted .msg files; brings OpenMcdf (MPL-2.0), RtfPipe and UTF.Unknown (MPL-1.1). -->
+    <PackageVersion Include="MsgReader" Version="6.2.0" />
+    <PackageVersion Include="SharpGLTF.Core" Version="1.0.7" />
   </ItemGroup>
 
   <ItemGroup Label="Tests">

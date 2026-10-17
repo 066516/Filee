@@ -1,5 +1,6 @@
 // Built-in vector graphics: SVG/SVGZ → PDF (vector) and → raster images with Svg.Skia and SkiaSharp, SVG ↔ SVGZ,
-// and Illustrator files → PDF. Other vector formats reach PNG, JPG, … through PDF and PDFium.
+// SVG → DXF (ACadSharp), raster images → SVG (tracing) and Illustrator files → PDF. Other vector formats reach PNG,
+// JPG, … through PDF and PDFium.
 
 using System.IO.Compression;
 using System.Text;
@@ -7,15 +8,27 @@ using Filee.Core.Conversion;
 using Filee.Core.Formats;
 using Filee.Engines.Infrastructure;
 using Filee.Engines.Magick;
+using Filee.Engines.Vector.Tracing;
 
 namespace Filee.Engines.Vector;
 
-/// <summary>SVG, SVGZ and AI conversions that need no external program.</summary>
-public sealed class VectorConverter : IConverter
+/// <summary>SVG, SVGZ and AI conversions and raster image tracing that need no external program.</summary>
+public sealed class VectorConverter : IConverter, IImageTransformer
 {
+    /// <summary>
+    /// Cost of tracing a raster image into SVG. Tracing redraws the picture, so it must never be a step on the way to
+    /// another format (PNG → SVG → PDF instead of PNG → PDF): its cost is higher than any route from an image to a
+    /// format SVG leads to, and the planner only takes it when SVG (or DXF, DWG through SVG) is the target. Its edges
+    /// are for raster sources only: a PDF, EPS or other vector file that can be rendered to PNG is never traced.
+    /// </summary>
+    public const int TraceCost = 40;
+
     public string Id => "vector";
     public string DisplayName => "Vector graphics (built-in)";
     public int MaxParallelism => 0;
+
+    /// <summary>Only when rendering to an image (not to PDF or between SVG and SVGZ).</summary>
+    public bool Transforms(string from, string to) => ImageEncoder.Writable.Contains(to);
 
     public IReadOnlyList<ConversionEdge> Edges { get; } =
     [
@@ -24,8 +37,12 @@ public sealed class VectorConverter : IConverter
         new("svg", "svgz"),
         new("svgz", "svg"),
         .. ImageEncoder.Writable.SelectMany(target => new[] { ImageEncoder.Edge("svg", target), ImageEncoder.Edge("svgz", target) }),
+        new("svg", "dxf"),
+        new("svgz", "dxf"),
         // Illustrator files are PDF inside (or PostScript, see ConvertIllustratorAsync).
         new("ai", "pdf"),
+        // Raster images are traced (other raster formats through PNG, e.g. ICNS; never vector files or documents).
+        .. ImageEncoder.Readable.Select(source => new ConversionEdge(source, "svg", TraceCost, ImageSourcesOnly: true)),
     ];
 
     public EngineStatus GetStatus() => EngineStatus.Available(version: $"{EngineVersions.BuiltIn} · {EngineVersions.Library("Svg.Skia", typeof(Svg.Skia.SKSvg))}");
@@ -37,6 +54,8 @@ public sealed class VectorConverter : IConverter
             ("ai", "pdf") => await ConvertIllustratorAsync(step, progress, cancellationToken),
             ("svg", "svgz") => await Task.Run(() => Compress(step), cancellationToken),
             ("svgz", "svg") => await Task.Run(() => Decompress(step), cancellationToken),
+            (_, "svg") => await Task.Run(() => RasterTracing.Run(step, progress, cancellationToken), cancellationToken),
+            (_, "dxf") => await Task.Run(() => ToDxf(step, cancellationToken), cancellationToken),
             (_, "pdf") => await Task.Run(() => ToPdf(step, cancellationToken), cancellationToken),
             _ => await Task.Run(() => ToRaster(step, progress, cancellationToken), cancellationToken),
         };
@@ -52,6 +71,17 @@ public sealed class VectorConverter : IConverter
         if (output is null)
             return [];
         SvgRenderer.WritePdf(drawing, output, FormatRegistry.NameWithoutExtension(step.InputPath), step.Preset.Document.PdfA);
+        return [output];
+    }
+
+    private static IReadOnlyList<string> ToDxf(ConversionStep step, CancellationToken ct)
+    {
+        using var drawing = SvgRenderer.Load(step.InputPath);
+        ct.ThrowIfCancellationRequested();
+        var output = step.Output.Allocate("dxf");
+        if (output is null)
+            return [];
+        SvgDxfWriter.Write(drawing, output, ct);
         return [output];
     }
 

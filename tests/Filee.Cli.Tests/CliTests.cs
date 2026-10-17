@@ -105,6 +105,7 @@ public sealed class CliTests : IDisposable
     [InlineData(new[] { "convert", "a.png", "--to", "jpg", "--preset", "x" }, "--to")]
     [InlineData(new[] { "convert", "a.png", "--to", "nosuchformat" }, "unknown format")]
     [InlineData(new[] { "convert", "a.png", "--preset", "nosuchpreset" }, "no preset")]
+    [InlineData(new[] { "convert", "a.png", "--preset", "rotate" }, "rotate-left, rotate-right, rotate-180")]
     [InlineData(new[] { "convert", "--to", "jpg" }, "at least one file")]
     [InlineData(new[] { "convert", "a.png", "--to", "jpg", "--quality", "300" }, "--quality")]
     [InlineData(new[] { "frobnicate" }, "Unknown command")]
@@ -166,6 +167,59 @@ public sealed class CliTests : IDisposable
         (code, output, _) = await Run("presets");
         Assert.Equal(Cli.Success, code);
         Assert.Contains("to-png", output);
+    }
+
+    /// <summary>Adds presets to the settings folder the CLI runs with.</summary>
+    private void AddPresets(params Preset[] presets)
+    {
+        var store = new Filee.Core.Settings.UserDataStore(_settings);
+        store.Load();
+        store.Presets.AddRange(presets);
+        store.SaveLibrary();
+    }
+
+    [Fact]
+    public async Task A_group_is_never_run_listed_or_in_the_way_of_a_conversion_of_the_same_name()
+    {
+        AddPresets(
+            new Preset { Id = "web-group", Name = "Web", Kind = PresetKind.Group, SubPresetIds = ["to-png", "to-webp"] },
+            new Preset { Id = "empty-group", Name = "Empty", Kind = PresetKind.Group },
+            new Preset { Id = "my-web", Name = "Web", TargetFormat = "jpg" });
+        var png = Png("a.png");
+
+        // "Web" is both a group and a conversion: the conversion runs.
+        var (code, _, errors) = await Run("convert", png, "--preset", "Web");
+        Assert.Equal(Cli.Success, code);
+        Assert.True(File.Exists(Path.Combine(_folder, "a.jpg")), errors);
+
+        // A group by its id says what it holds; one with nothing left says so instead of "Use one of: ".
+        (code, _, errors) = await Run("convert", png, "--preset", "web-group");
+        Assert.Equal(Cli.UsageError, code);
+        Assert.Contains("Use one of: to-png, to-webp", errors);
+        (code, _, errors) = await Run("convert", png, "--preset", "Empty");
+        Assert.Equal(Cli.UsageError, code);
+        Assert.Contains("no presets left", errors);
+
+        var (_, list, _) = await Run("presets");
+        Assert.Contains("my-web", list);
+        Assert.DoesNotContain("web-group", list);
+    }
+
+    [Fact]
+    public async Task Data_files_convert_to_each_other()
+    {
+        var json = Path.Combine(_folder, "config.json");
+        await File.WriteAllTextAsync(json, """{"name": "Filee", "ports": [80, 443]}""", TestContext.Current.CancellationToken);
+
+        var (code, output, errors) = await Run("convert", json, "--to", "yaml");
+
+        Assert.Equal(Cli.Success, code);
+        Assert.Equal("", errors);
+        Assert.Equal("name: Filee\nports:\n  - 80\n  - 443\n", await File.ReadAllTextAsync(Path.Combine(_folder, "config.yaml"), TestContext.Current.CancellationToken));
+
+        (code, output, _) = await Run("formats", "json");
+        Assert.Equal(Cli.Success, code);
+        Assert.Contains("yaml, toml, xml", output);
     }
 
     [Fact]

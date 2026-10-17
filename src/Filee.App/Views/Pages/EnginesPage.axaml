@@ -4,6 +4,21 @@
              xmlns:svc="using:Filee.App.Services"
              x:Class="Filee.App.Views.Pages.EnginesPage"
              x:DataType="vm:EnginesPageViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.card.engine">
+      <Setter Property="Transitions">
+        <Transitions>
+          <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.15" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <!-- The card being dragged: lifted, with the accent outline -->
+    <Style Selector="Border.card.engine.dragging">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="BoxShadow" Value="0 8 24 0 #33000000" />
+      <Setter Property="ZIndex" Value="1" />
+    </Style>
+  </UserControl.Styles>
   <StackPanel Spacing="18">
     <DockPanel>
       <Button DockPanel.Dock="Right" Command="{Binding RecheckCommand}">
@@ -35,6 +50,12 @@
             <Border Classes="card" Padding="16,12">
               <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="12,0,0,0">
+                  <Button IsVisible="{Binding HasSettings}" Click="OnPackageSettings" ToolTip.Tip="{DynamicResource engines.lo_title}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <PathIcon Width="13" Height="13" Data="{StaticResource Icon.Settings}" />
+                      <TextBlock Text="{DynamicResource engines.settings}" />
+                    </StackPanel>
+                  </Button>
                   <Button Classes="accent" Content="{DynamicResource engines.install}" IsVisible="{Binding CanInstall}"
                           Command="{Binding $parent[ItemsControl].((vm:EnginesPageViewModel)DataContext).InstallCommand}" CommandParameter="{Binding}" />
                   <Button Classes="accent" Content="{DynamicResource engines.update}" IsVisible="{Binding CanUpdate}"
@@ -68,25 +89,14 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
-      <!-- What LibreOffice converts when it is installed, besides the formats only it reads -->
-      <Border Classes="card">
-        <StackPanel Spacing="10">
-          <TextBlock Classes="h2" Text="{DynamicResource engines.lo_title}" />
-          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource engines.lo_description}" />
-          <StackPanel Spacing="2">
-            <ToggleSwitch IsChecked="{Binding LibreOfficeForSlides}" OnContent="{DynamicResource engines.lo_slides}" OffContent="{DynamicResource engines.lo_slides}" />
-            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,0,0,4" Text="{DynamicResource engines.lo_slides_hint}" />
-          </StackPanel>
-          <StackPanel Spacing="2">
-            <ToggleSwitch IsChecked="{Binding LibreOfficeForHwp}" OnContent="{DynamicResource engines.lo_hwp}" OffContent="{DynamicResource engines.lo_hwp}" />
-            <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource engines.lo_hwp_hint}" />
-          </StackPanel>
-        </StackPanel>
-      </Border>
-      <TextBlock Classes="h2" Margin="0,8,0,0" Text="{DynamicResource engines.all_title}" />
+      <StackPanel Spacing="2" Margin="0,8,0,0">
+        <TextBlock Classes="h2" Text="{DynamicResource engines.all_title}" />
+        <TextBlock Classes="muted" TextWrapping="Wrap" Text="{DynamicResource engines.all_description}" />
+      </StackPanel>
     </StackPanel>
 
-    <ItemsControl ItemsSource="{Binding Engines}">
+    <!-- Every engine in priority order: drag a card (or use the arrows) to change it -->
+    <ItemsControl x:Name="EngineList" ItemsSource="{Binding Engines}">
       <ItemsControl.ItemsPanel>
         <ItemsPanelTemplate>
           <StackPanel Spacing="10" />
@@ -94,7 +104,8 @@
       </ItemsControl.ItemsPanel>
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="vm:EngineItemViewModel">
-          <Border Classes="card" Padding="16,12">
+          <Border Classes="card engine" Classes.dragging="{Binding IsDragging}" Padding="16,12" Cursor="SizeNorthSouth"
+                  PointerPressed="OnEnginePressed">
             <StackPanel Spacing="10">
               <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
@@ -107,6 +118,8 @@
                     <PathIcon Width="14" Height="14" Data="{StaticResource Icon.ArrowDown}" />
                   </Button>
                 </StackPanel>
+                <PathIcon DockPanel.Dock="Left" Width="16" Height="16" Margin="0,0,8,0" Opacity="0.4" VerticalAlignment="Center"
+                          Data="{StaticResource Icon.DragVertical}" />
                 <Border DockPanel.Dock="Left" Width="10" Height="10" CornerRadius="999" Margin="2,0,12,0" VerticalAlignment="Center"
                         Background="{DynamicResource SuccessBrush}" IsVisible="{Binding IsAvailable}" />
                 <Border DockPanel.Dock="Left" Width="10" Height="10" CornerRadius="999" Margin="2,0,12,0" VerticalAlignment="Center"

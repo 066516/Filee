@@ -1,6 +1,7 @@
 // Video and audio conversion with FFmpeg (GPL-3.0 build, an optional download run as a separate program in
-// engines/ffmpeg): video ↔ video, video → animated GIF or a still frame, audio extraction, audio ↔ audio and
-// GIF or a still picture → video, and images → HEIC (FFmpeg's HEVC encoder, Filee's own container writer).
+// engines/ffmpeg): video ↔ video (H.264, HEVC, AV1, …), video → animated GIF / APNG or a still frame, audio
+// extraction, subtitle extraction (the first text track as SRT / ASS / WebVTT), audio ↔ audio and GIF, APNG or a still
+// picture → video, and images → HEIC (FFmpeg's HEVC encoder, Filee's own container writer).
 // Container and codec choices live in MediaEncoding, the process handling in FfmpegRunner.
 
 using System.Collections.Concurrent;
@@ -15,7 +16,7 @@ using Filee.Engines.Magick;
 namespace Filee.Engines.Media;
 
 /// <summary>Converts video and audio files with Filee's own copy of FFmpeg.</summary>
-public sealed partial class FfmpegConverter : IConverter
+public sealed partial class FfmpegConverter : IConverter, IImageTransformer
 {
     private static readonly ConcurrentDictionary<string, string> Versions = new();
 
@@ -27,20 +28,24 @@ public sealed partial class FfmpegConverter : IConverter
     /// <summary>FFmpeg's encoders use every core themselves; two runs keep the CPU busy between files.</summary>
     public int MaxParallelism => 2;
 
+    /// <summary>Only HEIC, which ImageMagick reads and turns before x265 encodes it (Heic/HeicWriter); never video.</summary>
+    public bool Transforms(string from, string to) => to == "heic";
+
     public IReadOnlyList<ConversionEdge> Edges { get; } = BuildEdges();
 
     /// <summary>
-    /// Every video format (read by FFmpeg's demuxers) → every video target, animated GIF, a still PNG frame and every
-    /// audio target; every audio format → every audio target (including itself: re-encode with another bitrate);
-    /// GIF and PNG → MP4, WEBM, MOV; every image ImageMagick reads → HEIC. Only formats the pinned build can write
-    /// are targets (see MediaEncoding).
+    /// Every video format (read by FFmpeg's demuxers) → every video target, animated GIF or APNG, a still PNG frame,
+    /// every audio target and SRT / ASS / WebVTT (its subtitles); every audio format → every audio target (including
+    /// itself: re-encode with another bitrate); GIF, APNG and PNG → MP4, WEBM, MOV; every image ImageMagick reads →
+    /// HEIC. Only formats the pinned build can write are targets (see MediaEncoding).
     /// </summary>
     /// <remarks>
-    /// The GIF edge costs more (slow, 256 colours), so video → JPG / PDF / TIFF … goes through the still frame
-    /// (video → PNG → image engines) and never renders an animated GIF of a whole film just to take one frame of it.
-    /// The other way, a photo (HEIC, JPG, …) reaches video as a full-colour PNG: the image engines' still → GIF edges
-    /// cost 12 (<see cref="Magick.ImageEncoder.Edge"/>), so 10 + 11 beats 12 + 10. Animated GIF/WebP and PDF or TIFF
-    /// pages keep the GIF route (10 + 10), which keeps their frames.
+    /// The GIF and APNG edges cost more (slow, large), so video → JPG / PDF / TIFF … goes through the still frame
+    /// (video → PNG → image engines) and never renders an animation of a whole film just to take one frame of it.
+    /// The other way, a photo (HEIC, JPG, …) reaches video as a full-colour PNG: the image engines' still → GIF and
+    /// still → APNG edges cost 12 (<see cref="Magick.ImageEncoder.Edge"/>), so 10 + 11 beats 12 + 10 and 12 + 11.
+    /// Animated GIF/WebP and PDF or TIFF pages keep the GIF route (10 + 10, APNG costs 10 + 11), which keeps their
+    /// frames; an APNG goes straight to video.
     /// </remarks>
     private static List<ConversionEdge> BuildEdges()
     {
@@ -51,9 +56,15 @@ public sealed partial class FfmpegConverter : IConverter
         [
             .. from source in videos from target in videoTargets select new ConversionEdge(source, target),
             .. from source in videos from target in new[] { "jpg", "jpeg" } select new ConversionEdge(source, target, 11),
+            // Subtitles out of a video. SRT is the hub to the other subtitle formats (the subtitle engine takes it on),
+            // so ASS and WebVTT cost a little more and are only taken when they are the target.
+            .. from source in videos from target in MediaEncoding.SubtitleTargets.Keys
+               select new ConversionEdge(source, target, target == "srt" ? 10 : 11),
             .. videos.Select(source => new ConversionEdge(source, "gif", 15)),
+            .. videos.Select(source => new ConversionEdge(source, "apng", 15)),
             .. from source in audios from target in MediaEncoding.AudioTargets.Keys select new ConversionEdge(source, target),
             .. MediaEncoding.PictureToVideoTargets.Select(target => new ConversionEdge("gif", target)),
+            .. MediaEncoding.PictureToVideoTargets.Select(target => new ConversionEdge("apng", target, 11)),
             .. MediaEncoding.PictureToVideoTargets.Select(target => new ConversionEdge("png", target, 11)),
             // HEIC: ImageMagick reads, x265 encodes, Filee writes the container (see Heic/HeicWriter).
             .. ImageEncoder.Sources.Select(source => new ConversionEdge(source, "heic")),
@@ -96,14 +107,14 @@ public sealed partial class FfmpegConverter : IConverter
         var still = step.From == "png";
 
         // Album art for targets FFmpeg can't put a picture stream into (Ogg, Matroska): prepared on the side.
-        var cover = !still && info.CoverStreamIndex is { } coverStream
+        var cover = !still && info.CoverStreamIndex is { } coverStream && MediaEncoding.AudioTargets.ContainsKey(step.To)
             ? await CoverArt.PrepareAsync(ffmpeg, input, coverStream, step.To, step.WorkDirectory, cancellationToken)
             : null;
 
         // Throws for a missing stream before anything is written (an existing file of that name stays untouched).
         var passes = still
             ? MediaEncoding.PlanStill(input, output, step.To, step.Preset.Media, info)
-            : MediaEncoding.Plan(input, output, step.To, step.Preset.Media, info, step.WorkDirectory, cover, step.Preset.Image.Quality);
+            : MediaEncoding.Plan(input, output, step.To, step.Preset.Media, info, step.WorkDirectory, cover, EncodersOf(ffmpeg), step.Preset.Image.Quality);
         var duration = still ? MediaEncoding.StillDuration : info.Duration;
         try
         {
@@ -184,6 +195,44 @@ public sealed partial class FfmpegConverter : IConverter
 
     [GeneratedRegex(@"version\s+n?(\d+(?:\.\d+)+|\S+)")]
     private static partial Regex VersionPattern();
+
+    private static readonly ConcurrentDictionary<string, IReadOnlySet<string>?> Encoders = new();
+
+    /// <summary>
+    /// The encoders of <paramref name="ffmpeg"/> (<c>ffmpeg -encoders</c>), cached per executable: a copy the user
+    /// picked may lack x265 or SVT-AV1. Null (assume Filee's build) when the list can't be read.
+    /// </summary>
+    private static IReadOnlySet<string>? EncodersOf(string ffmpeg) =>
+        Encoders.GetOrAdd($"{ffmpeg}|{File.GetLastWriteTimeUtc(ffmpeg).Ticks}", _ =>
+        {
+            try
+            {
+                using var process = Process.Start(new ProcessStartInfo(ffmpeg, "-hide_banner -encoders")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                });
+                if (process is null)
+                    return null;
+                process.ErrorDataReceived += (_, _) => { };
+                process.BeginErrorReadLine();
+                var list = process.StandardOutput.ReadToEnd();
+                if (!process.WaitForExit(10_000) || process.ExitCode != 0)
+                    return null;
+                // " V....D libx265              libx265 H.265 / HEVC (codec hevc)"
+                return list.Split('\n')
+                    .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                    .Where(parts => parts.Length >= 2 && parts[0].Length == 6 && parts[0][0] is 'V' or 'A' or 'S')
+                    .Select(parts => parts[1])
+                    .ToHashSet(StringComparer.Ordinal);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or IOException)
+            {
+                return null;
+            }
+        });
 
     private static readonly HashSet<string> VideoExtensions = new(StringComparer.OrdinalIgnoreCase)
     {

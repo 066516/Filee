@@ -66,6 +66,16 @@
             <NumericUpDown Value="{Binding Width}" Minimum="16" Maximum="20000" Increment="100" FormatString="0" />
           </StackPanel>
         </Grid>
+        <Grid ColumnDefinitions="*,12,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="{DynamicResource presets.rotation}" />
+            <ComboBox ItemsSource="{Binding Rotations}" SelectedItem="{Binding Rotation}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="{DynamicResource presets.flip}" />
+            <ComboBox ItemsSource="{Binding Flips}" SelectedItem="{Binding Flip}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+        </Grid>
         <Grid ColumnDefinitions="Auto,12,*">
           <CheckBox Content="{DynamicResource presets.dpi}" IsChecked="{Binding SetDpi}" />
           <NumericUpDown Grid.Column="2" Value="{Binding Dpi}" Minimum="36" Maximum="2400" Increment="50" FormatString="0" IsEnabled="{Binding SetDpi}" />
@@ -77,6 +87,18 @@
           <CheckBox Content="{DynamicResource presets.grayscale}" IsChecked="{Binding Grayscale}" Margin="0,0,18,0" />
           <CheckBox Content="{DynamicResource presets.webp_lossless}" IsChecked="{Binding WebpLossless}" IsVisible="{Binding ShowWebp}" />
         </WrapPanel>
+        <CheckBox Content="{DynamicResource presets.remove_background}" IsChecked="{Binding RemoveBackground}"
+                  ToolTip.Tip="{DynamicResource presets.remove_background_hint}" />
+        <StackPanel Spacing="6" IsVisible="{Binding RemoveBackground}">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="{Binding BackgroundTolerance}" FontWeight="SemiBold" />
+            <TextBlock Classes="label" Text="{DynamicResource presets.background_tolerance}" />
+          </DockPanel>
+          <Slider Minimum="0" Maximum="100" Value="{Binding BackgroundTolerance}" TickFrequency="1" IsSnapToTickEnabled="True"
+                  ToolTip.Tip="{DynamicResource presets.background_tolerance_hint}" />
+          <CheckBox Content="{DynamicResource presets.keep_enclosed_background}" IsChecked="{Binding KeepEnclosedBackground}"
+                    ToolTip.Tip="{DynamicResource presets.keep_enclosed_background_hint}" />
+        </StackPanel>
         <Grid ColumnDefinitions="*,12,*">
           <StackPanel>
             <TextBlock Classes="label" Text="{DynamicResource presets.background}" />
@@ -121,6 +143,15 @@
         </Grid>
         <!-- Two per row, whichever apply to the target: hidden ones leave no gap. -->
         <UniformGrid Columns="2" ColumnSpacing="12" RowSpacing="10">
+          <StackPanel IsVisible="{Binding ShowVideoCodec}">
+            <TextBlock Classes="label" Text="{DynamicResource presets.video_codec}" />
+            <ComboBox ItemsSource="{Binding VideoCodecs}" SelectedItem="{Binding VideoCodecChoice}" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="{DynamicResource presets.video_codec_hint}" />
+          </StackPanel>
+          <StackPanel IsVisible="{Binding ShowAudioCodec}">
+            <TextBlock Classes="label" Text="{DynamicResource presets.audio_codec}" />
+            <ComboBox ItemsSource="{Binding AudioCodecs}" SelectedItem="{Binding AudioCodecChoice}" HorizontalAlignment="Stretch" />
+          </StackPanel>
           <StackPanel IsVisible="{Binding ShowAudioBitrate}">
             <TextBlock Classes="label" Text="{DynamicResource presets.audio_bitrate}" />
             <ComboBox ItemsSource="{Binding AudioBitrates}" SelectedItem="{Binding AudioBitrate}" HorizontalAlignment="Stretch" />
@@ -158,6 +189,35 @@
       </StackPanel>
     </Border>
 
+    <!-- Tracing options (raster image → SVG, and DXF / DWG through SVG) -->
+    <Border x:Name="TraceCard" Classes="card" IsVisible="{Binding ShowTrace}" Padding="14">
+      <StackPanel Spacing="10">
+        <TextBlock Classes="h2" Text="{DynamicResource presets.group.trace}" />
+        <TextBlock Classes="caption" Text="{DynamicResource presets.trace_note}" TextWrapping="Wrap" />
+        <Grid ColumnDefinitions="*,12,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="{DynamicResource presets.trace_mode}" />
+            <ComboBox ItemsSource="{Binding TraceModes}" SelectedItem="{Binding TraceMode}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" IsVisible="{Binding ShowTraceColors}">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="{Binding TraceColors}" FontWeight="SemiBold" />
+              <TextBlock Classes="label" Text="{DynamicResource presets.trace_colors}" />
+            </DockPanel>
+            <Slider Minimum="2" Maximum="64" Value="{Binding TraceColors}" TickFrequency="1" IsSnapToTickEnabled="True" />
+          </StackPanel>
+        </Grid>
+        <StackPanel>
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="{Binding TraceDetail}" FontWeight="SemiBold" />
+            <TextBlock Classes="label" Text="{DynamicResource presets.trace_detail}" />
+          </DockPanel>
+          <Slider Minimum="0" Maximum="100" Value="{Binding TraceDetail}" TickFrequency="1" IsSnapToTickEnabled="True"
+                  ToolTip.Tip="{DynamicResource presets.trace_detail_hint}" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
     <!-- PDF options (render settings also apply when a PDF is converted to images) -->
     <Border Classes="card" Padding="14" IsVisible="{Binding ShowPdf}">
       <StackPanel Spacing="10">
@@ -181,6 +241,17 @@
           <StackPanel Grid.Column="2" IsVisible="{Binding ShowMargin}">
             <TextBlock Classes="label" Text="{DynamicResource presets.margin}" />
             <NumericUpDown Value="{Binding MarginMm}" Minimum="0" Maximum="100" Increment="1" FormatString="0" />
+          </StackPanel>
+        </Grid>
+        <!-- Pictures placed on the pages are turned too; a PDF target has no image card to show this in -->
+        <Grid ColumnDefinitions="*,12,*" IsVisible="{Binding ShowTurnForPdf}">
+          <StackPanel>
+            <TextBlock Classes="label" Text="{DynamicResource presets.rotation}" />
+            <ComboBox ItemsSource="{Binding Rotations}" SelectedItem="{Binding Rotation}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="{DynamicResource presets.flip}" />
+            <ComboBox ItemsSource="{Binding Flips}" SelectedItem="{Binding Flip}" HorizontalAlignment="Stretch" />
           </StackPanel>
         </Grid>
         <Grid ColumnDefinitions="*,12,*">

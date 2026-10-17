@@ -123,7 +123,11 @@ public sealed class JobQueue : IAsyncDisposable
                 var file = job.Files[i];
                 if (FormatRegistry.Detect(file.SourcePath)?.Id == "pdf")
                 {
-                    parts[i] = file.SourcePath; // already a PDF, merge as-is
+                    // Already a PDF, merged as it is: its pages can't be turned (only images going into it can).
+                    if (job.Preset.Image.TurnsOrMirrors)
+                        FailUnturned(job, file, "pdf → pdf");
+                    else
+                        parts[i] = file.SourcePath;
                     return;
                 }
                 var produced = await RunFileAsync(job, file, i + 1, planner, workDir, finalOutput: false);
@@ -165,7 +169,8 @@ public sealed class JobQueue : IAsyncDisposable
             async (i, _) =>
             {
                 var file = job.Files[i];
-                parts[i] = FormatRegistry.Detect(file.SourcePath)?.Id == "tiff"
+                // A TIFF joins as it is, unless it is to be turned: then it goes through the engine like the rest.
+                parts[i] = FormatRegistry.Detect(file.SourcePath)?.Id == "tiff" && !job.Preset.Image.TurnsOrMirrors
                     ? [file.SourcePath]
                     : await RunFileAsync(job, file, i + 1, planner, workDir, finalOutput: false, intermediate: "tiff");
             });
@@ -189,6 +194,16 @@ public sealed class JobQueue : IAsyncDisposable
             f.State = FileState.Done;
             f.Progress = 1;
         }
+        Notify(job);
+    }
+
+    /// <summary>A file that would be used as it is although the preset turns or mirrors it.</summary>
+    private void FailUnturned(ConversionJob job, FileResult file, string detail)
+    {
+        file.State = FileState.Failed;
+        file.ErrorKey = "error.cannot_turn";
+        file.ErrorDetail = detail;
+        file.Progress = 1;
         Notify(job);
     }
 
@@ -320,6 +335,13 @@ public sealed class JobQueue : IAsyncDisposable
         if (route is null)
             return Fail(file, "error.no_route", $"{source.Id} → {target}");
 
+        // Rotate / flip: only an engine that turns images does it. Without one the file would come out unturned
+        // (a PDF or a video re-encoded "as rotated"); with two in the route (EPS → PNG → JPG) it would turn twice.
+        var turnAt = job.Preset.Image.TurnsOrMirrors ? route.FirstTransformStep() : -1;
+        if (job.Preset.Image.TurnsOrMirrors && turnAt < 0)
+            return Fail(file, "error.cannot_turn", $"{source.Id} → {target}");
+        var unturned = turnAt < 0 ? job.Preset : Unturned(job.Preset);
+
         file.State = FileState.Running;
         Notify(job);
 
@@ -353,7 +375,10 @@ public sealed class JobQueue : IAsyncDisposable
                     await gate.WaitAsync(ct);
                     try
                     {
-                        var stepInfo = new ConversionStep(input, step.From, step.To, job.Preset, allocator, workDir);
+                        // Turned once, in step turnAt: every other step gets the preset without rotation and flip,
+                        // also one before it whose engine applies image options but doesn't say it turns.
+                        var preset = s == turnAt ? job.Preset : unturned;
+                        var stepInfo = new ConversionStep(input, step.From, step.To, preset, allocator, workDir);
                         outputs.AddRange(await step.Converter.ConvertAsync(stepInfo, progress, ct));
                     }
                     finally
@@ -385,6 +410,14 @@ public sealed class JobQueue : IAsyncDisposable
         {
             _log.LogWarning(ex, "Converting {File} failed", file.SourcePath);
             return Fail(file, "error.conversion_failed", ex.Message);
+        }
+
+        static Preset Unturned(Preset preset)
+        {
+            var copy = preset.Clone();
+            copy.Image.Rotation = ImageRotation.None;
+            copy.Image.Flip = ImageFlip.None;
+            return copy;
         }
 
         IReadOnlyList<string> Fail(FileResult f, string key, string? detail)
