@@ -150,7 +150,18 @@ jobs:
                       if process.poll() is not None:
                           raise RuntimeError('The desktop app exited after a second start.')
                   quit_code = 'import os, sys; os.setsid(); os.execv(sys.argv[1], [sys.argv[1], "--quit"])'
-                  subprocess.run([sys.executable, '-c', quit_code, app], check=True, timeout=30)
+                  # Reap Filee as soon as it ends while --quit waits for it, as launchd or a shell would: a process
+                  # that has ended but was not reaped by its parent (this script) still counts as running.
+                  quitter = subprocess.Popen([sys.executable, '-c', quit_code, app])
+                  quit_deadline = time.monotonic() + 30
+                  while quitter.poll() is None:
+                      process.poll()
+                      if time.monotonic() > quit_deadline:
+                          quitter.kill()
+                          raise RuntimeError('filee --quit did not finish.')
+                      time.sleep(0.05)
+                  if quitter.returncode != 0:
+                      raise RuntimeError(f'filee --quit exited with {quitter.returncode}.')
                   if process.wait(timeout=15) != 0:
                       raise RuntimeError('The desktop app did not exit cleanly.')
               except BaseException:

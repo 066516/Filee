@@ -90,26 +90,64 @@ internal static class Program
     {
         if (Environment.ProcessPath is not { } exe)
             return true;
-        foreach (var process in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(exe)))
+        if (!OperatingSystem.IsWindows())
+        {
+            // Process.WaitForExit counts a process that has ended but not been reaped by its parent (a zombie) as still
+            // running, so it would wait for the deadline. Such a process no longer has an executable path: look again
+            // until no other process runs this exe.
+            while (true)
+            {
+                var others = OtherProcessesOfThisExe(exe);
+                var running = others.Count > 0;
+                others.ForEach(p => p.Dispose());
+                if (!running)
+                    return true;
+                if (DateTime.UtcNow >= deadline)
+                    return false;
+                Thread.Sleep(100);
+            }
+        }
+        foreach (var process in OtherProcessesOfThisExe(exe))
         {
             using (process)
             {
                 try
                 {
-                    if (process.Id == Environment.ProcessId
-                        || !string.Equals(process.MainModule?.FileName, exe, Filee.Core.Platform.FileSystemPaths.Comparison))
-                        continue;
                     var left = deadline - DateTime.UtcNow;
                     if (left <= TimeSpan.Zero || !process.WaitForExit(left))
                         return false;
                 }
                 catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
                 {
-                    // Exited meanwhile, or another user's process we may not inspect.
+                    // Exited meanwhile.
                 }
             }
         }
         return true;
+    }
+
+    /// <summary>Other running processes started from <paramref name="exe"/> (the caller disposes them).</summary>
+    private static List<Process> OtherProcessesOfThisExe(string exe)
+    {
+        var found = new List<Process>();
+        foreach (var process in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(exe)))
+        {
+            try
+            {
+                if (process.Id != Environment.ProcessId
+                    && string.Equals(process.MainModule?.FileName, exe, Filee.Core.Platform.FileSystemPaths.Comparison))
+                {
+                    found.Add(process);
+                    continue;
+                }
+            }
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+            {
+                // Exited meanwhile, or another user's process we may not inspect.
+            }
+            process.Dispose();
+        }
+        return found;
     }
 
     /// <summary>Also used by the XAML previewer.</summary>
