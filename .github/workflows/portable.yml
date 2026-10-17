@@ -32,7 +32,7 @@ jobs:
           - runner: macos-15-intel
             rid: osx-x64
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 40
+    timeout-minutes: 60
     defaults:
       run:
         shell: pwsh
