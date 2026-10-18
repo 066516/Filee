@@ -25,6 +25,23 @@ public sealed record Choice<T>(T Value, string Label, string? Detail = null) : I
     public override string ToString() => Label;
 }
 
+/// <summary>Selections bound to properties that always hold a value (a choice, the open page).</summary>
+public static class Choices
+{
+    /// <summary>
+    /// For the OnXxxChanged(oldValue, newValue) hook of such a property. A combo box or list box sets null when it
+    /// loses its selection (the selected item toggled off, its items replaced): the previous value is put back through
+    /// <paramref name="restore"/>, which also shows it in the control again. Returns true then, so the hook stops.
+    /// </summary>
+    public static bool Restore<T>(T? oldValue, T? newValue, Action<T> restore) where T : class
+    {
+        if (newValue is not null || oldValue is null)
+            return false;
+        restore(oldValue);
+        return true;
+    }
+}
+
 public sealed partial class PresetEditorViewModel : ObservableObject
 {
     private static readonly HashSet<string> LossyTargets = ["jpg", "webp", "avif", "heic"];
@@ -181,8 +198,14 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         get => VideoCodecs.FirstOrDefault(c => c.Value == _videoCodecValue) ?? VideoCodecs[0];
         set
         {
-            // The combo box clears its selection while its list is replaced.
-            if (value is null || value.Value == _videoCodecValue)
+            // The combo box clears its selection while its list is replaced (or the selected item is toggled off):
+            // announcing the value shows it again.
+            if (value is null)
+            {
+                OnPropertyChanged();
+                return;
+            }
+            if (value.Value == _videoCodecValue)
                 return;
             _videoCodecValue = value.Value;
             OnPropertyChanged();
@@ -199,7 +222,12 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         get => AudioCodecs.FirstOrDefault(c => c.Value == _audioCodecValue) ?? AudioCodecs[0];
         set
         {
-            if (value is null || value.Value == _audioCodecValue)
+            if (value is null)
+            {
+                OnPropertyChanged();
+                return;
+            }
+            if (value.Value == _audioCodecValue)
                 return;
             _audioCodecValue = value.Value;
             OnPropertyChanged();
@@ -289,6 +317,25 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty] private int _traceColors;
     [ObservableProperty] private int _traceDetail;
+
+    // A combo box that loses its selection sets null: every choice keeps its value (see Choices.Restore).
+    partial void OnTargetChanged(Choice<string>? oldValue, Choice<string> newValue) => Choices.Restore(oldValue, newValue, v => Target = v);
+    partial void OnResizeChanged(Choice<ResizeMode>? oldValue, Choice<ResizeMode> newValue) => Choices.Restore(oldValue, newValue, v => Resize = v);
+    partial void OnRotationChanged(Choice<ImageRotation>? oldValue, Choice<ImageRotation> newValue) => Choices.Restore(oldValue, newValue, v => Rotation = v);
+    partial void OnFlipChanged(Choice<ImageFlip>? oldValue, Choice<ImageFlip> newValue) => Choices.Restore(oldValue, newValue, v => Flip = v);
+    partial void OnPageSizeChanged(Choice<PdfPageSize>? oldValue, Choice<PdfPageSize> newValue) => Choices.Restore(oldValue, newValue, v => PageSize = v);
+    partial void OnLocationChanged(Choice<OutputLocation>? oldValue, Choice<OutputLocation> newValue) => Choices.Restore(oldValue, newValue, v => Location = v);
+    partial void OnConflictChanged(Choice<ConflictPolicy>? oldValue, Choice<ConflictPolicy> newValue) => Choices.Restore(oldValue, newValue, v => Conflict = v);
+    partial void OnTiffCompressionChanged(Choice<TiffCompression>? oldValue, Choice<TiffCompression> newValue) =>
+        Choices.Restore(oldValue, newValue, v => TiffCompression = v);
+    partial void OnMediaQualityChanged(Choice<MediaQuality>? oldValue, Choice<MediaQuality> newValue) => Choices.Restore(oldValue, newValue, v => MediaQuality = v);
+    partial void OnMaxHeightChanged(Choice<int>? oldValue, Choice<int> newValue) => Choices.Restore(oldValue, newValue, v => MaxHeight = v);
+    partial void OnAudioBitrateChanged(Choice<int>? oldValue, Choice<int> newValue) => Choices.Restore(oldValue, newValue, v => AudioBitrate = v);
+    partial void OnAudioChannelsChanged(Choice<int>? oldValue, Choice<int> newValue) => Choices.Restore(oldValue, newValue, v => AudioChannels = v);
+    partial void OnSampleRateChanged(Choice<int>? oldValue, Choice<int> newValue) => Choices.Restore(oldValue, newValue, v => SampleRate = v);
+    partial void OnWavFormatChanged(Choice<WavSampleFormat>? oldValue, Choice<WavSampleFormat> newValue) => Choices.Restore(oldValue, newValue, v => WavFormat = v);
+    partial void OnArchiveLevelChanged(Choice<ArchiveLevel>? oldValue, Choice<ArchiveLevel> newValue) => Choices.Restore(oldValue, newValue, v => ArchiveLevel = v);
+    partial void OnTraceModeChanged(Choice<TracingMode>? oldValue, Choice<TracingMode> newValue) => Choices.Restore(oldValue, newValue, v => TraceMode = v);
 
     private string TargetId => Target.Value;
     private FormatCategory? TargetCategory => FormatRegistry.FindById(TargetId)?.Category;
