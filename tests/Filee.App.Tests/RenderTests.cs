@@ -1109,6 +1109,20 @@ public class RenderTests
         }
     }
 
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    [InlineData("zh-CN")]
+    public void Close_dialog_renders(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var dialog = new CloseAskWindow();
+        dialog.Show();
+        Pump();
+        Save(dialog, $"window-close-{language}.png");
+        dialog.Close();
+    }
+
     private static void Pump()
     {
         // Let layout, bindings and a few animation frames run.
