@@ -65,7 +65,11 @@ public sealed partial class GeneralPageViewModel : ObservableObject
     public bool ShowDefaultSubfolder => DefaultLocation.Value == OutputLocation.Subfolder;
     public bool ShowDefaultFolder => DefaultLocation.Value == OutputLocation.CustomFolder;
 
-    partial void OnDefaultLocationChanged(Choice<OutputLocation> value) => Save(s => s.DefaultOutput.Location = value.Value);
+    partial void OnDefaultLocationChanged(Choice<OutputLocation>? oldValue, Choice<OutputLocation> newValue)
+    {
+        if (!Choices.Restore(oldValue, newValue, v => DefaultLocation = v))
+            Save(s => s.DefaultOutput.Location = newValue.Value);
+    }
 
     partial void OnDefaultSubfolderChanged(string value) =>
         Save(s => s.DefaultOutput.SubfolderName = string.IsNullOrWhiteSpace(value) ? "converted" : value.Trim());
@@ -96,7 +100,11 @@ public sealed partial class GeneralPageViewModel : ObservableObject
     public bool CanAddModernMenu => !ModernMenuBusy && ModernMenuState is ModernContextMenuState.Off or ModernContextMenuState.Outdated;
     public bool CanRemoveModernMenu => !ModernMenuBusy && ModernMenuState is ModernContextMenuState.On or ModernContextMenuState.Outdated;
 
-    partial void OnLanguageChanged(Choice<string> value) => Save(s => s.Language = value.Value);
+    partial void OnLanguageChanged(Choice<string>? oldValue, Choice<string> newValue)
+    {
+        if (!Choices.Restore(oldValue, newValue, v => Language = v))
+            Save(s => s.Language = newValue.Value);
+    }
     partial void OnStartWithSystemChanged(bool value) => Save(s => s.StartWithSystem = value);
 
     partial void OnContextMenuChanged(bool value)
