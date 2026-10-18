@@ -41,6 +41,8 @@ internal static class TestServices
         {
             AppHost.Build(DataDirectory);
             AppHost.Get<UserDataStore>().Load();
+            // DIAGNOSTIC (CI crash in RenderTests): no idle memory trim in the shared test host.
+            AppHost.Get<Filee.App.Services.MemoryTrimmer>().Dispose();
             AppHost.Get<LocalizationService>().Attach(app);
             _initializedFor = app;
         }

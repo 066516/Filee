@@ -1121,7 +1121,9 @@ public class RenderTests
 
     private static void Save(TopLevel window, string name)
     {
-        var frame = window.CaptureRenderedFrame();
+        // Disposed at the end, so the frame stays alive while Skia encodes it: a collection in between (the idle memory
+        // trim runs one on another thread) would otherwise finalize its image under the encoder.
+        using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         using var stream = File.Create(Path.Combine(TestServices.ScreenshotDirectory, name));
         frame.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());

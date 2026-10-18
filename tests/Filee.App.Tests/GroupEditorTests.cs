@@ -167,7 +167,7 @@ public class GroupEditorTests
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         }
-        var frame = window.CaptureRenderedFrame();
+        using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         using (var stream = File.Create(Path.Combine(TestServices.ScreenshotDirectory, $"group-editor-{language}.png")))
             frame.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
