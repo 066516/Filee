@@ -691,6 +691,63 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_17_libraries_get_compress_pdf_after_split_pdf_on_no_donut()
+    {
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "compress-pdf");
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(17, presets, profiles));
+
+        var compress = presets.Single(p => p.Id == "compress-pdf");
+        Assert.Equal(("pdf", PdfCompression.Ebook, false), (compress.TargetFormat, compress.Pdf.Compression, compress.Pdf.CompressWithGhostscript));
+        Assert.Equal("pdf-split", presets[presets.IndexOf(compress) - 1].Id); // where a new library has it
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("compress-pdf"));
+        Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "pdf").PresetIds, profiles.Single(p => p.Id == "pdf").PresetIds);
+        Assert.False(SettingsMigrations.ApplyToLibrary(17, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Back_from_an_older_Filee_compress_pdf_compresses_again_and_keeps_the_users_changes()
+    {
+        // What a Filee before 20 leaves after saving: the compression level dropped, the rest as it was.
+        var presets = BuiltInData.CreatePresets();
+        var compress = presets.Single(p => p.Id == "compress-pdf");
+        compress.Pdf.Compression = PdfCompression.None;
+        compress.Name = "Shrink";
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(17, presets, BuiltInData.CreateProfiles()));
+
+        Assert.Equal(PdfCompression.Ebook, compress.Pdf.Compression);
+        Assert.Equal("Shrink", compress.Name);
+        Assert.Single(presets, p => p.Id == "compress-pdf");
+    }
+
+    [Fact]
+    public void Pdf_compression_survives_a_save_and_load_and_a_newer_level_reads_as_none()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        var preset = store.Presets.Single(p => p.Id == "compress-pdf");
+        preset.Pdf.Compression = PdfCompression.Print;
+        preset.Pdf.CompressWithGhostscript = true;
+        store.SaveLibrary();
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        var pdf = reloaded.Presets.Single(p => p.Id == "compress-pdf").Pdf;
+        Assert.Equal((PdfCompression.Print, true), (pdf.Compression, pdf.CompressWithGhostscript));
+
+        var path = Path.Combine(dir.Path, "presets.json");
+        File.WriteAllText(path, File.ReadAllText(path).Replace("\"compression\": \"Print\"", "\"compression\": \"Extreme\""));
+        var newer = new UserDataStore(dir.Path);
+        newer.Load();
+        Assert.Equal(PdfCompression.None, newer.FindPreset("compress-pdf")!.Pdf.Compression);
+        Assert.False(File.Exists(path + ".broken"));
+    }
+
+    [Fact]
     public void Catalog_migration_ignores_extensions_checked_on_mixed_profiles()
     {
         // Schema-5 data where the user already limited a mixed-files donut to MP3 and JPG: those checks must not

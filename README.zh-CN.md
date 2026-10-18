@@ -57,7 +57,7 @@
 ## 功能
 
 - **光标旁的圆环**，按住按键拖动文件，放到格式上即可。只显示适合这些文件的格式。
-- **每种文件类型一个工具栏**，拖放排列。质量、尺寸、DPI、PDF 页面、视频音频、保存位置和文件名都能用预设设置。
+- **每种文件类型一个工具栏**，拖放排列。质量、尺寸、DPI、PDF 页面和压缩、视频音频、保存位置和文件名都能用预设设置。
 - **一次转换多个文件**，并行处理。需要多步的转换（HWP → HWPX → DOCX）会自动找到路线。
 - **监视文件夹**，放入的文件自动转换。
 - **其他方式** 右键菜单、键盘快捷键、拖放区域和 [`filee` 命令](#命令行)。
@@ -82,7 +82,7 @@
 |---|---|
 | **图片**：JPG、PNG、WEBP、AVIF、TIFF、BMP、GIF、APNG、ICO、ICNS、JPEG XL、JPEG 2000、PSD/PSB、TGA、PPM、HEIC、QOI、DDS、PCX、MNG、CUR 等；GIMP XCF、相机 RAW（CR2、CR3、NEF、ARW、DNG 等）、DICOM、OpenEXR、HDR 仅读取 | 上述格式互转（HEIC⁵）、PDF、SVG（描摹）、缩放、灰度 |
 | **矢量图**：SVG、SVGZ、EMF、WMF、AI · EPS、PS¹ · CDR、VSD、CGM、ODG、FODG² | PDF（矢量）、PNG 等图片、SVG ↔ SVGZ、SVG → DXF/DWG、PDF → EPS/PS¹、SVG → EMF、WMF、ODG² |
-| **PDF** | DOCX、HWPX、TXT、PNG、JPG、TIFF、CBZ、PPTX（每页一张图片）、SVG²；合并、拆分、页码范围 |
+| **PDF** | DOCX、HWPX、TXT、PNG、JPG、TIFF、CBZ、PPTX（每页一张图片）、SVG²；合并、拆分、页码范围、压缩（更小的 PDF） |
 | **文档**：DOCX、DOCM、DOTX、EML、Outlook MSG · DOC、ODT、FODT、OTT、RTF、WPS、WPD、Pages、ClarisWorks、MacWrite、T602 等² | PDF、DOCX、HWPX、EPUB、TXT、HTML、MSG → EML · ODT、FODT、OTT² |
 | **表格**：XLSX、XLSM、XLS、XLT、ODS、CSV、TSV · OTS、FODS、Numbers、ET² | PDF、XLSX、ODS、CSV、TSV、JSON、HWPX、HTML · XLT、OTS² |
 | **演示文稿**：PPTX、PPTM、POTX、PPSX · PPT、ODP、OTP、FODP、Keynote² | PDF、PNG、JPG、DOCX、HWPX · OTP² |

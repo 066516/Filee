@@ -86,6 +86,9 @@ public interface IOutputAllocator
 /// <param name="FrameSequence">
 /// The step takes a <see cref="ConversionEdge.FrameSequence"/> edge: every frame of the video becomes a picture of
 /// format <paramref name="To"/> in one output folder.
+/// <param name="Notice">
+/// Records a note on a step that worked, as a localization key (e.g. <c>notice.pdf_not_smaller</c>): shown with the
+/// file's result. Null when nobody listens.
 /// </param>
 public sealed record ConversionStep(
     string InputPath,
@@ -94,7 +97,8 @@ public sealed record ConversionStep(
     Preset Preset,
     IOutputAllocator Output,
     string WorkDirectory,
-    bool FrameSequence = false);
+    bool FrameSequence = false,
+    Action<string>? Notice = null);
 
 /// <summary>
 /// A conversion engine (ImageMagick, LibreOffice, rhwp, ...).

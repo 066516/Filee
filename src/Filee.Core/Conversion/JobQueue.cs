@@ -380,7 +380,8 @@ public sealed class JobQueue : IAsyncDisposable
                         // Turned once, in step turnAt: every other step gets the preset without rotation and flip,
                         // also one before it whose engine applies image options but doesn't say it turns.
                         var preset = s == turnAt ? job.Preset : unturned;
-                        var stepInfo = new ConversionStep(input, step.From, step.To, preset, allocator, workDir, step.FrameSequence);
+                        var stepInfo = new ConversionStep(input, step.From, step.To, preset, allocator, workDir, step.FrameSequence,
+                            key => file.NoticeKey = key);
                         outputs.AddRange(await step.Converter.ConvertAsync(stepInfo, progress, ct));
                     }
                     finally

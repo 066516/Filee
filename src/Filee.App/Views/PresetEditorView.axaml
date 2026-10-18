@@ -231,6 +231,21 @@
         <TextBlock Classes="h2" Text="{DynamicResource presets.group.pdf}" />
         <CheckBox Content="{DynamicResource presets.merge}" IsChecked="{Binding Merge}" IsVisible="{Binding ShowPdfBuild}" />
         <CheckBox Content="{DynamicResource presets.split}" IsChecked="{Binding SplitPages}" IsVisible="{Binding ShowPdfSplit}" />
+        <!-- PDF → PDF: make the file smaller -->
+        <StackPanel Spacing="2" IsVisible="{Binding ShowPdfCompression}">
+          <Grid ColumnDefinitions="*,12,*">
+            <StackPanel>
+              <TextBlock Classes="label" Text="{DynamicResource presets.pdf_compression}" />
+              <ComboBox ItemsSource="{Binding CompressionLevels}" SelectedItem="{Binding CompressionLevel}" HorizontalAlignment="Stretch" />
+            </StackPanel>
+          </Grid>
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource presets.pdf_compression_hint}" />
+          <StackPanel Spacing="2" Margin="0,6,0,0" IsVisible="{Binding ShowPdfCompressionOptions}">
+            <CheckBox Content="{DynamicResource presets.pdf_ghostscript}" IsChecked="{Binding CompressWithGhostscript}" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0" Text="{DynamicResource presets.pdf_ghostscript_hint}" />
+            <CheckBox Content="{DynamicResource presets.pdf_keep_metadata}" IsChecked="{Binding KeepMetadata}" />
+          </StackPanel>
+        </StackPanel>
         <StackPanel Spacing="2" IsVisible="{Binding ShowPdfCombine}">
           <CheckBox Content="{DynamicResource presets.combine_pages}" IsChecked="{Binding CombinePages}" />
           <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0" Text="{DynamicResource presets.combine_pages_hint}" />

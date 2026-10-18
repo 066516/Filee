@@ -37,6 +37,12 @@ public sealed class FileResult
 
     /// <summary>Raw error detail for logs / tooltips.</summary>
     public string? ErrorDetail { get; set; }
+
+    /// <summary>
+    /// Localization key of a note on a file that converted (e.g. <c>notice.pdf_not_smaller</c>: compressing saved
+    /// nothing, so the PDF was copied as it is), if any.
+    /// </summary>
+    public string? NoticeKey { get; set; }
 }
 
 /// <summary>A batch of files converted with one preset.</summary>
