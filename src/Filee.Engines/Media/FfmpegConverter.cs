@@ -2,25 +2,39 @@
 // engines/ffmpeg): video ↔ video (H.264, HEVC, AV1, …), video → animated GIF / APNG or a still frame, audio
 // extraction, subtitle extraction (the first text track as SRT / ASS / WebVTT), audio ↔ audio and GIF, APNG or a still
 // picture → video, and images → HEIC (FFmpeg's HEVC encoder, Filee's own container writer).
-// Container and codec choices live in MediaEncoding, the process handling in FfmpegRunner.
+// Container and codec choices live in MediaEncoding, the process handling in FfmpegRunner, hardware encoders in
+// HardwareVideo (options) and HardwareProbe (which one works here).
 
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Filee.Core.Conversion;
 using Filee.Core.Formats;
 using Filee.Engines.Heic;
 using Filee.Engines.Infrastructure;
 using Filee.Engines.Magick;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Filee.Engines.Media;
 
 /// <summary>Converts video and audio files with Filee's own copy of FFmpeg.</summary>
-public sealed partial class FfmpegConverter : IConverter, IImageTransformer
+/// <param name="logger">Receives which hardware encoders work and why a hardware encode was redone in software.</param>
+public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter, IImageTransformer
 {
     private static readonly ConcurrentDictionary<string, string> Versions = new();
 
+    /// <summary><c>ffmpeg -version</c> and <c>-encoders</c> answer at once; a copy that does not is broken or hangs.</summary>
+    internal static readonly TimeSpan QueryTimeout = TimeSpan.FromSeconds(10);
+
+    private readonly ILogger _logger = logger ?? NullLogger.Instance;
+
     private (string Ffmpeg, string Ffprobe)? _tools;
+
+    /// <summary>
+    /// Picks the hardware encoder for (ffmpeg, codec, 10-bit, encoders) instead of <see cref="HardwareProbe.SelectAsync"/>.
+    /// Tests put an encoder here that FFmpeg does not have, to see the software retry.
+    /// </summary>
+    internal Func<string, string, bool, IReadOnlySet<string>?, CancellationToken, Task<HardwareEncoder?>>? SelectHardware { get; init; }
 
     public string Id => "ffmpeg";
     public string DisplayName => "FFmpeg";
@@ -107,21 +121,28 @@ public sealed partial class FfmpegConverter : IConverter, IImageTransformer
             ? await CoverArt.PrepareAsync(ffmpeg, input, coverStream, step.To, step.WorkDirectory, cancellationToken)
             : null;
 
+        var media = step.Preset.Media;
+        var encoders = still ? null : EncodersOf(ffmpeg);
+        // Hardware encoding (preset option): the first GPU encoder that passes its test encode, if any.
+        HardwareEncoder? hardware = null;
+        if (!still && MediaEncoding.HardwareCodec(step.To, media, info) is { } codec)
+        {
+            var tenBit = HardwareVideo.TenBit(codec, info.Video!);
+            hardware = SelectHardware is { } select
+                ? await select(ffmpeg, codec, tenBit, encoders, cancellationToken)
+                : await HardwareProbe.SelectAsync(ffmpeg, codec, tenBit, encoders, _logger, cancellationToken);
+        }
+
+        IReadOnlyList<FfmpegPass> Plan(HardwareEncoder? encoder) => still
+            ? MediaEncoding.PlanStill(input, output, step.To, media, info)
+            : MediaEncoding.Plan(input, output, step.To, media, info, step.WorkDirectory, cover, encoders, encoder);
         // Throws for a missing stream before anything is written (an existing file of that name stays untouched).
-        var passes = still
-            ? MediaEncoding.PlanStill(input, output, step.To, step.Preset.Media, info)
-            : MediaEncoding.Plan(input, output, step.To, step.Preset.Media, info, step.WorkDirectory, cover, EncodersOf(ffmpeg));
+        var passes = Plan(hardware);
         var duration = still ? MediaEncoding.StillDuration : info.Duration;
         try
         {
-            var done = 0.0;
-            foreach (var pass in passes)
-            {
-                await RunPassAsync(ffmpeg, pass, duration, progress, done, cancellationToken);
-                done += pass.Weight;
-            }
-            if (!File.Exists(output) || new FileInfo(output).Length == 0)
-                throw new InvalidOperationException("FFmpeg did not write any output.");
+            await RunWithFallbackAsync(passes, hardware, Plan,
+                planned => RunPassesAsync(ffmpeg, planned, output, duration, progress, cancellationToken), output, _logger, cancellationToken);
         }
         catch
         {
@@ -132,6 +153,49 @@ public sealed partial class FfmpegConverter : IConverter, IImageTransformer
 
         progress?.Report(1);
         return [output];
+    }
+
+    /// <summary>
+    /// Runs <paramref name="passes"/>, planned with <paramref name="hardware"/>. When a hardware encode fails (a driver
+    /// error, a picture larger than the chip encodes, …) the file is encoded again as <paramref name="plan"/> plans it
+    /// without hardware: an encoder that passed its test encode can still refuse one particular video, and the user
+    /// asked for a converted file, not for the GPU. The failure is logged, not reported. Cancellation is never retried.
+    /// </summary>
+    internal static async Task RunWithFallbackAsync(IReadOnlyList<FfmpegPass> passes, HardwareEncoder? hardware,
+        Func<HardwareEncoder?, IReadOnlyList<FfmpegPass>> plan, Func<IReadOnlyList<FfmpegPass>, Task> run, string output, ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        if (hardware is null)
+        {
+            await run(passes);
+            return;
+        }
+        try
+        {
+            await run(passes);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning("{File}: hardware encoder {Encoder} failed ({Reason}); encoding it again with the software encoder",
+                output, hardware.Name, ex.Message);
+            TryDelete(output);
+            // An FFmpeg without x265 says so here: the hardware encoder was the only way to write HEVC.
+            await run(plan(null));
+        }
+    }
+
+    /// <summary>Runs every pass, then checks that FFmpeg wrote something.</summary>
+    private static async Task RunPassesAsync(string ffmpeg, IReadOnlyList<FfmpegPass> passes, string output, TimeSpan? duration,
+        IProgress<double>? progress, CancellationToken cancellationToken)
+    {
+        var done = 0.0;
+        foreach (var pass in passes)
+        {
+            await RunPassAsync(ffmpeg, pass, duration, progress, done, cancellationToken);
+            done += pass.Weight;
+        }
+        if (!File.Exists(output) || new FileInfo(output).Length == 0)
+            throw new InvalidOperationException("FFmpeg did not write any output.");
     }
 
     /// <summary>Runs one pass and maps FFmpeg's position (seconds) onto this pass' share of the progress.</summary>
@@ -165,26 +229,23 @@ public sealed partial class FfmpegConverter : IConverter, IImageTransformer
     }
 
     /// <summary>"9.0.2" from <c>ffmpeg -version</c>; cached per executable so re-checking the engines stays cheap.</summary>
-    private static string VersionOf(string ffmpeg) =>
+    /// <exception cref="InvalidOperationException">FFmpeg does not start, fails or does not answer within <paramref name="timeout"/>.</exception>
+    internal static string VersionOf(string ffmpeg, TimeSpan? timeout = null) =>
         Versions.GetOrAdd($"{ffmpeg}|{File.GetLastWriteTimeUtc(ffmpeg).Ticks}", _ =>
         {
-            using var process = Process.Start(new ProcessStartInfo(ffmpeg, "-hide_banner -version")
+            ProcessResult result;
+            try
             {
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            }) ?? throw new InvalidOperationException("FFmpeg could not be started.");
-            var firstLine = process.StandardOutput.ReadLine() ?? "";
-            process.StandardOutput.ReadToEnd();
-            if (!process.WaitForExit(10_000))
+                result = FfmpegRunner.RunBriefly(ffmpeg, ["-hide_banner", "-version"], timeout ?? QueryTimeout);
+            }
+            catch (TimeoutException)
             {
-                process.Kill(entireProcessTree: true);
                 throw new InvalidOperationException("FFmpeg did not start in time.");
             }
-            if (process.ExitCode != 0)
-                throw new InvalidOperationException($"FFmpeg does not start (exit code {process.ExitCode}).");
+            if (result.ExitCode != 0)
+                throw new InvalidOperationException($"FFmpeg does not start (exit code {result.ExitCode}).");
             // "ffmpeg version 9.0.2-full_build-www.gyan.dev Copyright …" → "9.0.2"
+            var firstLine = result.StandardOutput.Split('\n', 2)[0];
             var match = VersionPattern().Match(firstLine);
             return match.Success ? match.Groups[1].Value : firstLine.Trim();
         });
@@ -198,37 +259,28 @@ public sealed partial class FfmpegConverter : IConverter, IImageTransformer
     /// The encoders of <paramref name="ffmpeg"/> (<c>ffmpeg -encoders</c>), cached per executable: a copy the user
     /// picked may lack x265 or SVT-AV1. Null (assume Filee's build) when the list can't be read.
     /// </summary>
-    private static IReadOnlySet<string>? EncodersOf(string ffmpeg) =>
+    internal static IReadOnlySet<string>? EncodersOf(string ffmpeg, TimeSpan? timeout = null) =>
         Encoders.GetOrAdd($"{ffmpeg}|{File.GetLastWriteTimeUtc(ffmpeg).Ticks}", _ =>
         {
             try
             {
-                using var process = Process.Start(new ProcessStartInfo(ffmpeg, "-hide_banner -encoders")
-                {
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                });
-                if (process is null)
-                    return null;
-                process.ErrorDataReceived += (_, _) => { };
-                process.BeginErrorReadLine();
-                var list = process.StandardOutput.ReadToEnd();
-                if (!process.WaitForExit(10_000) || process.ExitCode != 0)
-                    return null;
-                // " V....D libx265              libx265 H.265 / HEVC (codec hevc)"
-                return list.Split('\n')
-                    .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries))
-                    .Where(parts => parts.Length >= 2 && parts[0].Length == 6 && parts[0][0] is 'V' or 'A' or 'S')
-                    .Select(parts => parts[1])
-                    .ToHashSet(StringComparer.Ordinal);
+                var result = FfmpegRunner.RunBriefly(ffmpeg, ["-hide_banner", "-encoders"], timeout ?? QueryTimeout);
+                return result.ExitCode == 0 ? ParseEncoders(result.StandardOutput) : null;
             }
-            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or IOException)
+            catch (Exception ex) when (ex is TimeoutException or InvalidOperationException or System.ComponentModel.Win32Exception or IOException)
             {
                 return null;
             }
         });
+
+    /// <summary>The encoder names in <c>ffmpeg -encoders</c> output.</summary>
+    internal static IReadOnlySet<string> ParseEncoders(string list) =>
+        // " V....D libx265              libx265 H.265 / HEVC (codec hevc)"
+        list.Split('\n')
+            .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            .Where(parts => parts.Length >= 2 && parts[0].Length == 6 && parts[0][0] is 'V' or 'A' or 'S')
+            .Select(parts => parts[1])
+            .ToHashSet(StringComparer.Ordinal);
 
     private static void TryDelete(string path)
     {
