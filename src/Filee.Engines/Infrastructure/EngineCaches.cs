@@ -1,9 +1,9 @@
-// Caches engines keep between conversions (typefaces looked up for HWP and CAD text, Skia's glyph and resource
-// caches). The app releases them while no conversion runs, so a Filee waiting in the tray gives the memory back.
+// Caches engines keep between conversions (typefaces looked up for HWP and CAD text). The app releases them while no
+// conversion runs, so a Filee waiting in the tray gives the memory back. Skia's own caches stay: they are shared with
+// the UI's render thread, and purging them while it draws crashed in native code (SKGraphics.PurgeAllCaches).
 
 using Filee.Engines.Cad;
 using Filee.Engines.Hwp;
-using SkiaSharp;
 
 namespace Filee.Engines.Infrastructure;
 
@@ -17,7 +17,5 @@ public static class EngineCaches
     {
         RhwpFonts.ReleaseCache();
         CadFonts.ReleaseCache();
-        // Skia's caches are shared with the UI's renderer and guarded by Skia itself; they refill on demand.
-        SKGraphics.PurgeAllCaches();
     }
 }
