@@ -340,7 +340,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowArchiveOptions => ShowArchive && TargetId != FormatRegistry.Folder;
     /// <summary>"Extract" has nothing to set; a line says what it does instead.</summary>
     public bool ShowExtractNote => TargetId == FormatRegistry.Folder;
-    public bool ShowSaveEveryFrame => TargetId is "jpg" or "jpeg" or "png";
+    /// <summary>"Save every frame" of a video: PNG and JPG (format ids, <see cref="MediaOptions.FrameTargets"/>).</summary>
+    public bool ShowSaveEveryFrame => MediaOptions.FrameTargets.Contains(TargetId);
     /// <summary>
     /// Tracing options: raster images reach SVG (and DXF / DWG through it) only by tracing. For other sources (a
     /// drawing, a CAD file) the options are ignored.
@@ -419,8 +420,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         media.WavFormat = WavFormat.Value;
         media.VideoCodec = MediaCodecs.Effective(TargetId, _videoCodecValue);
         media.AudioCodec = MediaCodecs.Effective(TargetId, _audioCodecValue);
-        media.SaveEveryFrame = SaveEveryFrame;
-        media.FrameInterval = Math.Clamp(FrameInterval, 1, 1000);
+        // Only where the option is shown: a box ticked for PNG and left behind by another target saves nothing.
+        media.SaveEveryFrame = ShowSaveEveryFrame && SaveEveryFrame;
+        media.FrameInterval = media.SaveEveryFrame ? Math.Clamp(FrameInterval, 1, 1000) : 1;
         _original.Archive.Level = ArchiveLevel.Value;
         _original.Archive.CombineIntoOne = CombineIntoOne;
         _original.Trace.Mode = TraceMode.Value;

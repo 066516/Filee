@@ -662,6 +662,31 @@ public class RenderTests
     }
 
     [AvaloniaFact]
+    public void Preset_editor_saves_every_frame_only_for_png_and_jpg()
+    {
+        TestServices.EnsureInitialized("en");
+        var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "jpg" };
+        var vm = new PresetEditorViewModel(preset, loc);
+        Assert.True(vm.ShowSaveEveryFrame);
+        vm.SaveEveryFrame = true;
+        vm.FrameInterval = 5000; // out of range: clamped
+        Assert.True(vm.Apply());
+        Assert.True(preset.Media.SaveEveryFrame);
+        Assert.Equal(1000, preset.Media.FrameInterval);
+
+        // Ticked, then another target: nothing on screen says so any more, so it isn't saved.
+        vm = new PresetEditorViewModel(preset, loc);
+        Assert.True(vm.SaveEveryFrame);
+        vm.Target = vm.Targets.Single(t => t.Value == "webp");
+        Assert.False(vm.ShowSaveEveryFrame);
+        Assert.True(vm.Apply());
+        Assert.False(preset.Media.SaveEveryFrame);
+        Assert.Equal(1, preset.Media.FrameInterval);
+    }
+
+    [AvaloniaFact]
     public void Preset_editor_shows_and_saves_background_removal()
     {
         TestServices.EnsureInitialized("ko");

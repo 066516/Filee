@@ -116,6 +116,19 @@ public class BuiltInDataTests
         }
     }
 
+    [Theory]
+    [InlineData("mp4", "png", true)]
+    [InlineData("mkv", "jpg", true)]
+    [InlineData("mov", "webp", false)] // frames are PNG or JPG only
+    [InlineData("mp4", "jpeg", false)] // a format id, not an extension
+    [InlineData("gif", "png", false)] // a picture, not a video
+    [InlineData("mp3", "png", false)]
+    public void Every_frame_is_saved_for_videos_to_png_or_jpg(string source, string target, bool expected)
+    {
+        Assert.Equal(expected, new Preset { TargetFormat = target, Media = { SaveEveryFrame = true } }.SavesFramesOf(source));
+        Assert.False(new Preset { TargetFormat = target }.SavesFramesOf(source));
+    }
+
     [Fact]
     public void Extract_frames_preset_is_properly_configured()
     {
