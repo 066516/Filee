@@ -54,6 +54,13 @@ public sealed class TriggerService : IDisposable
 
     public bool IsRunning => _hook?.IsRunning == true;
     public string? Error { get; private set; }
+
+    /// <summary>
+    /// Linux: libuiohook could not load its X11 back end (libuiohook-xrecord.so), usually a missing X library
+    /// (libXtst, libXt) or not an X11 session. <see cref="Error"/> keeps the raw message.
+    /// </summary>
+    public bool LinuxBackendMissing { get; private set; }
+
     public event EventHandler? StatusChanged;
 
     private void NotifyStatus() => Post(() => StatusChanged?.Invoke(this, EventArgs.Empty));
@@ -87,6 +94,7 @@ public sealed class TriggerService : IDisposable
             NotifyStatus();
         }
         Error = null;
+        LinuxBackendMissing = false;
         try
         {
             // Background threads: a hook that fails to stop can never keep Filee running after it quits.
@@ -108,8 +116,7 @@ public sealed class TriggerService : IDisposable
                 // e.g. macOS without Accessibility permission. Drop zone and context menu keep working.
                 if (t.Exception is not null)
                 {
-                    Error = t.Exception.GetBaseException().Message;
-                    _log.LogError(t.Exception, "Global input hook failed; gestures are unavailable");
+                    ReportFailure(t.Exception.GetBaseException(), "Global input hook failed; gestures are unavailable");
                     NotifyStatus();
                 }
             }, TaskScheduler.Default);
@@ -117,13 +124,25 @@ public sealed class TriggerService : IDisposable
         catch (Exception ex)
         {
             // e.g. macOS without Accessibility permission. The app keeps working via the drop zone / context menu.
-            _log.LogError(ex, "Could not start the global input hook");
-            Error = ex.Message;
+            ReportFailure(ex, "Could not start the global input hook");
             _hook?.Dispose();
             _hook = null;
             NotifyStatus();
         }
     }
+
+    private void ReportFailure(Exception exception, string message)
+    {
+        // The raw libuiohook result goes to the log either way (the packaged-app smoke test looks for it).
+        var result = (exception as HookException)?.Result.ToString() ?? "none";
+        _log.LogError(exception, "{Message} (libuiohook result: {Result})", message, result);
+        LinuxBackendMissing = OperatingSystem.IsLinux() && IsMissingLinuxBackend(exception);
+        Error = exception.Message;
+    }
+
+    /// <summary>libuiohook's loader could not dlopen its Linux back end (ErrorLinuxLoadBackend).</summary>
+    internal static bool IsMissingLinuxBackend(Exception exception) =>
+        exception is HookException { Result: UioHookResult.ErrorLinuxLoadBackend };
 
     private void OnMove(MouseHookEventArgs e)
     {

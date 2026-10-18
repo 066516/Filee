@@ -75,9 +75,32 @@ they can be installed or removed later in Settings → *Engines*. A conversion t
   (`vcruntime` component) is copied next to `gswin64c.exe`, so it runs on PCs without the VC++ Redistributable.
 
 To bump a version, change `url`, `sha256` and `size` in engines.json together, run
-`pwsh build/fetch-engines.ps1`, test, and update `THIRD-PARTY-NOTICES.md`. When the LibreOffice team retires a
-version from `download.documentfoundation.org/libreoffice/stable/`, its URL stops working: keep the pinned version
-current.
+`pwsh build/fetch-engines.ps1`, test, and update `THIRD-PARTY-NOTICES.md`. For rhwp, also update `RHWP_VERSION`,
+`RHWP_COMMIT` and `RUST_TOOLCHAIN` in `build/build-linux-native.py` (see below); CI fails until they match. When the
+LibreOffice team retires a version from `download.documentfoundation.org/libreoffice/stable/`, its URL stops working:
+keep the pinned version current.
+
+## Linux builds for older glibc
+
+Linux packages run on Ubuntu 22.04 (glibc 2.35). rhwp's Linux release is linked on Ubuntu 24.04 (needs glibc 2.39), and
+SharpHook's `libuiohook-xrecord.so` / `libuiohook-x11.so` are built in C23 mode on Ubuntu 26.04 (`__isoc23_sscanf`,
+glibc 2.38). The `linux-native` job of `.github/workflows/portable.yml` builds both from their pinned, unmodified
+source on Ubuntu 22.04 (x64 and arm64) with `build/build-linux-native.py`:
+
+- `uiohook`: libuiohook at the commit SharpHook's release tag uses as its submodule (the script checks the tag), with
+  the CMake flags of SharpHook's `build.yml`, and its unit tests. Only those two back ends are replaced; the loader
+  `libuiohook.so` and the Wayland back end already run on glibc 2.34.
+- `rhwp`: `cargo build --release --locked --bin rhwp` at the tag's commit with its pinned Rust toolchain, in the
+  layout of rhwp's release archive.
+- `check` (also run on its own): fails when `Directory.Packages.props` uses another SharpHook version or engines.json
+  another rhwp version than the script builds. After bumping SharpHook, look up the new tag's libuiohook submodule
+  commit (`git ls-tree v<version> libuiohook` in SharpHook) and its CMake flags.
+
+The Linux package jobs pass the results to `build/build-portable.ps1 -RhwpOverride <dir> -UiohookOverride <dir>`.
+Local builds without these options use the downloaded rhwp and SharpHook's libraries (fine on the machine that
+builds them). `build/check-elf-glibc.py` then lists the newest GLIBC version every ELF file in the package needs and
+fails above 2.35, and the packages are unpacked and started on Ubuntu 22.04 (`build/smoke-portable.ps1`: CLI, rhwp
+conversions, loading the X11 back end; `build/smoke-launch-app.py`: the app under Xvfb).
 
 ## Images and vector graphics
 

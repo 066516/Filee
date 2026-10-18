@@ -39,6 +39,13 @@ Each component remains under its own license.
 | Microsoft.Extensions.* | MIT | https://github.com/dotnet/runtime |
 | cu2qu (fontTools): the cubic-to-quadratic approach followed by `Filee.Engines/Fonts/Cff/CubicToQuadratic.cs` | Apache-2.0, Copyright 2016 Google Inc. | https://github.com/fonttools/fonttools |
 
+libuiohook (the native input hook inside SharpHook) is the fork https://github.com/TolikPylypchuk/libuiohook, licensed
+under the GNU LGPL-3.0 (`COPYING.LESSER.md` in its repository). Filee loads it dynamically. In the Linux packages,
+`libuiohook-xrecord.so` and `libuiohook-x11.so` are built by Filee's CI from the unmodified source SharpHook 8.0.0 uses
+(commit `a41658fb2bef7503a3bcb305ab8bf849755fe906`) with SharpHook's build flags on Ubuntu 22.04, so they run on older
+Linux systems; the other libuiohook files are SharpHook's. The build steps are in `build/build-linux-native.py`. You
+may replace these libraries with your own build of libuiohook.
+
 Used by the tests only (not redistributed): DocumentFormat.OpenXml (Open XML SDK, MIT, https://github.com/dotnet/Open-XML-SDK) validates the DOCX files Filee writes.
 
 ## Engines
@@ -49,6 +56,11 @@ Bundled with the installer:
 |---|---|---|
 | rhwp | MIT | https://github.com/edwardkim/rhwp |
 | 7-Zip (console: `7z.exe`, `7z.dll`) | GNU LGPL-2.1-or-later; parts of `7z.dll`: LGPL with the unRAR license restriction, BSD-3-Clause, BSD-2-Clause | https://www.7-zip.org |
+
+The Linux packages contain an rhwp built by Filee's CI from the unmodified source of the same release (tag `v0.8.7`,
+commit `1a76570e833917d15817415a53c09ad61ab3203f`, `cargo build --release --locked --bin rhwp` on Ubuntu 22.04), so it
+runs on older Linux systems than rhwp's own Linux build. It is under the same MIT license; its `LICENSE` is next to it
+(`engines/rhwp`). Windows and macOS use rhwp's release builds.
 
 7-Zip is Copyright (C) 1999-2026 Igor Pavlov; its `License.txt` is installed next to it (`engines/7zip`). The RAR
 decompression code in `7z.dll` is under the unRAR license restriction: it may be used to unpack RAR archives, but not

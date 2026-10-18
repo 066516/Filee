@@ -35,8 +35,13 @@ install/uninstall scripts. `Filee-<version>-<rid>-SHA256SUMS.txt` verifies the a
 `com.filee.app` and a development ad-hoc signature by default; public distribution still needs Developer ID signing
 and notarization. `-SigningIdentity` can supply a signing identity, but does not perform notarization.
 
+Linux release packages must run on Ubuntu 22.04 (glibc 2.35). CI builds rhwp and SharpHook's X11 input hook back ends
+from source on Ubuntu 22.04 (`build/build-linux-native.py`) and passes them with `-RhwpOverride` and
+`-UiohookOverride`; a local package without them needs the glibc of the machine that built it. Check a package with
+`python3 build/check-elf-glibc.py --max 2.35 <unpacked package>`. See [docs/ENGINES.md](docs/ENGINES.md#linux-builds-for-older-glibc).
+
 - **Linux:** drag gestures require X11. Install the Avalonia desktop dependencies (fontconfig, FreeType, X11,
-  Xrandr, Xi, Xtst, XkbCommon, ICE and SM) and CJK fonts for document comparisons. File actions are installed for
+  Xrandr, Xi, Xtst, Xt, XkbCommon, ICE and SM) and CJK fonts for document comparisons. File actions are installed for
   Thunar, Nautilus, Nemo and Dolphin. The first enabled keyboard shortcut uses Thunar's native custom action;
   close Thunar before changing or pausing that shortcut and reopen it afterwards. Global selected-file queries
   and hold gestures are not supported. Wayland can use file actions, the drop zone, watch folders and CLI.
@@ -48,7 +53,8 @@ and notarization. `-SigningIdentity` can supply a signing identity, but does not
   The macOS LibreOffice package does not include H2Orestart; native rhwp/Unhwp provide the supported HWP routes.
   Use Settings > Engines to inspect actual availability before comparing formats.
 
-The reusable `portable.yml` workflow builds and tests all four targets. Native platform tests skip on other OSes.
+The reusable `portable.yml` workflow builds and tests all four targets and starts the Linux packages on Ubuntu 22.04.
+Native platform tests skip on other OSes.
 Before calling a port ready, verify the installed package, CLI conversion, Finder/Thunar selection with Unicode
 and spaced paths, drag and keyboard gestures, permissions denied/granted, Retina/scaling, tray, login startup,
 engine downloads, watch folders, and uninstall. CI GUI startup alone does not validate these interactions.
