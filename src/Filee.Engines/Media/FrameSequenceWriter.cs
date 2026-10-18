@@ -50,8 +50,7 @@ internal static class FrameSequenceWriter
             var frames = Directory.CreateDirectory(Path.Combine(staging, "frames")).FullName;
             // FFmpeg reads % in the whole path as part of the number pattern: a literal one is written %%.
             var pattern = Path.Combine(frames.Replace("%", "%%", StringComparison.Ordinal), $"frame_%06d.{extension}");
-            var arguments = MediaEncoding.FrameSequence(input, pattern, extension, video, step.Preset.Image.Quality,
-                interval, step.Preset.Media.FramesPerSecond);
+            var arguments = MediaEncoding.FrameSequence(input, pattern, extension, video, step.Preset.Image.Quality, interval);
 
             await FfmpegConverter.RunPassAsync(ffmpeg, new FfmpegPass(arguments, 1), info.Duration, progress, 0, cancellationToken);
             if (!Directory.EnumerateFiles(frames).Any())

@@ -918,10 +918,9 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal("0:V:0", After(every, "-map"));
         Assert.Equal("png", After(every, "-c:v"));
 
-        var png = MediaEncoding.FrameSequence("in.mp4", "out_frames/frame_%06d.png", "png", fps: 10);
-        Assert.DoesNotContain("-q:v", png);
-        Assert.Contains("fps=10", After(png, "-vf"));
-        Assert.Equal("out_frames/frame_%06d.png", png[^1]);
+        Assert.DoesNotContain("-q:v", every);
+        Assert.EndsWith("setsar=1,null", After(every, "-vf")); // square pixels, no frame left out
+        Assert.Equal("out_frames/frame_%06d.png", every[^1]);
     }
 
     [Fact]
@@ -1150,7 +1149,7 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         var values = recorder.Values.ToList();
         Assert.Equal(1, values[^1]);
         Assert.True(values.Zip(values.Skip(1)).All(p => p.First <= p.Second), string.Join(", ", values));
-        Assert.True(values.Count(v => v is > 0.02 and < 1) >= 2, string.Join(", ", values));
+        Assert.True(values.Count(v => v is > 0.02 and < 1) >= 3, string.Join(", ", values));
     }
 
     [Fact]

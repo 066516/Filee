@@ -185,20 +185,14 @@ internal static class MediaEncoding
         string imageExt,
         VideoStreamInfo? video = null,
         int quality = 90,
-        int frameInterval = 1,
-        double fps = 0)
+        int frameInterval = 1)
     {
-        var select = frameInterval > 1 ? $"select='not(mod(n\\,{frameInterval}))'"
-            : fps > 0 ? $"fps={fps.ToString(CultureInfo.InvariantCulture)}"
-            : "null";
+        var select = frameInterval > 1 ? $"select='not(mod(n\\,{frameInterval}))'" : "null";
         List<string> args =
         [
             .. Common, "-i", input, "-map", "0:V:0", "-vf", (video is null ? "" : SquarePixels(video)) + select,
+            "-fps_mode", frameInterval > 1 ? "vfr" : "passthrough",
         ];
-        if (frameInterval > 1)
-            args.AddRange(["-fps_mode", "vfr"]);
-        else if (fps <= 0)
-            args.AddRange(["-fps_mode", "passthrough"]);
 
         if (imageExt is "jpg" or "jpeg")
             args.AddRange(["-c:v", "mjpeg", "-q:v", QualityToQv(quality).ToString(CultureInfo.InvariantCulture)]);

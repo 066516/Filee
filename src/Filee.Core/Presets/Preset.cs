@@ -395,8 +395,6 @@ public sealed class MediaOptions
     /// </summary>
     public const long MaxFrames = 100_000;
 
-    /// <summary>With <see cref="SaveEveryFrame"/>: target frames per second (0 = keep source rate).</summary>
-    public double FramesPerSecond { get; set; }
 
     public MediaOptions Clone() => (MediaOptions)MemberwiseClone();
 }
