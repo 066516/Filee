@@ -109,8 +109,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
             SelectedItem = item;
     }
 
-    // Pages are recreated on every visit so they always reflect the latest settings.
-    partial void OnSelectedItemChanged(NavItem value) => CurrentPage = CreatePage(value);
+    // Pages are recreated on every visit so they always reflect the latest settings. A navigation list that loses its
+    // selection keeps the open page (Choices.Restore).
+    partial void OnSelectedItemChanged(NavItem? oldValue, NavItem newValue)
+    {
+        if (!Choices.Restore(oldValue, newValue, v => SelectedItem = v))
+            CurrentPage = CreatePage(newValue);
+    }
 
     // Old pages may hold event subscriptions on long-lived services.
     partial void OnCurrentPageChanged(ObservableObject? oldValue, ObservableObject newValue) => (oldValue as IDisposable)?.Dispose();

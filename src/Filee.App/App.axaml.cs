@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using Filee.App.Controls;
 using Filee.App.Services;
 using Filee.App.Services.Triggers;
 using Filee.Core.Conversion;
@@ -22,7 +23,11 @@ public partial class App : Application
     private IDisposable? _convertDebounce;
     private bool _selectionPending;
 
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+        SingleSelectionGuard.Register();
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {

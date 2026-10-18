@@ -85,6 +85,11 @@ public sealed partial class TriggerGestureViewModel : ObservableObject
     public string ThresholdText => DragThreshold == 0 ? SystemLabel : $"{DragThreshold}px";
     public string Summary => GestureText.Describe(_gesture);
 
+    // Runs before OnPropertyChanged below, which reads every choice.
+    partial void OnKindChanged(Choice<TriggerKind>? oldValue, Choice<TriggerKind> newValue) => Choices.Restore(oldValue, newValue, v => Kind = v);
+    partial void OnButtonChanged(Choice<TriggerMouseButton>? oldValue, Choice<TriggerMouseButton> newValue) => Choices.Restore(oldValue, newValue, v => Button = v);
+    partial void OnScopeChanged(Choice<TriggerScope>? oldValue, Choice<TriggerScope> newValue) => Choices.Restore(oldValue, newValue, v => Scope = v);
+
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
