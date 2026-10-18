@@ -29,6 +29,47 @@ public class JobQueueTests
     }
 
     [Fact]
+    public async Task Is_busy_from_enqueueing_until_the_job_has_finished()
+    {
+        // The app frees memory only while the queue is idle: a waiting or running job must count.
+        using var dir = new TempDir();
+        var gate = new TaskCompletionSource();
+        await using var queue = new JobQueue(new ConverterCatalog([new GatedConverter(gate.Task, new ConversionEdge("jpg", "png"))]));
+        var busyWhenFinished = new TaskCompletionSource<bool>();
+        queue.JobFinished += (_, _) => busyWhenFinished.TrySetResult(queue.IsBusy);
+        Assert.False(queue.IsBusy);
+
+        queue.Enqueue([dir.File("a.jpg")], new Preset { TargetFormat = "png" }, "Test");
+        Assert.True(queue.IsBusy);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+        Assert.True(queue.IsBusy);
+
+        gate.SetResult();
+        Assert.True(await busyWhenFinished.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (queue.IsBusy && DateTime.UtcNow < deadline)
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        Assert.False(queue.IsBusy);
+    }
+
+    /// <summary>Converts like <see cref="FakeConverter"/> once the gate opens.</summary>
+    private sealed class GatedConverter(Task gate, params ConversionEdge[] edges) : IConverter
+    {
+        private readonly FakeConverter _inner = new("gated", edges);
+        public string Id => "gated";
+        public string DisplayName => "gated";
+        public IReadOnlyList<ConversionEdge> Edges => edges;
+        public int MaxParallelism => 0;
+        public EngineStatus GetStatus() => EngineStatus.Available();
+
+        public async Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
+        {
+            await gate;
+            return await _inner.ConvertAsync(step, progress, cancellationToken);
+        }
+    }
+
+    [Fact]
     public async Task Rotate_needs_an_engine_that_turns_images_and_turns_once_on_a_longer_route()
     {
         using var dir = new TempDir();

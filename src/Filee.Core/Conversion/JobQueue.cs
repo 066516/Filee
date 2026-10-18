@@ -22,6 +22,7 @@ public sealed class JobQueue : IAsyncDisposable
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _engineGates = new();
     private readonly HashSet<string> _reservedOutputs = new(StringComparer.OrdinalIgnoreCase);
     private readonly Task _worker;
+    private int _busy;
 
     /// <param name="catalog">Converters and their priority.</param>
     /// <param name="pdfMerger">Used by "Merge into one PDF" presets.</param>
@@ -45,10 +46,14 @@ public sealed class JobQueue : IAsyncDisposable
     /// <summary>Raised (on a background thread) once when a job reaches a final state.</summary>
     public event EventHandler<ConversionJob>? JobFinished;
 
+    /// <summary>True while a job waits in the queue or runs (the app frees memory only when this is false).</summary>
+    public bool IsBusy => Volatile.Read(ref _busy) > 0;
+
     /// <summary>Adds a job to the queue and returns it immediately.</summary>
     public ConversionJob Enqueue(IReadOnlyList<string> sources, Preset preset, string presetDisplayName)
     {
         var job = new ConversionJob(sources, preset, presetDisplayName);
+        Interlocked.Increment(ref _busy); // until the worker is done with it
         _channel.Writer.TryWrite(job);
         JobUpdated?.Invoke(this, job);
         return job;
@@ -56,6 +61,19 @@ public sealed class JobQueue : IAsyncDisposable
 
     /// <summary>Runs a job to completion on the calling task. Used by tests and by <see cref="Enqueue"/>'s worker.</summary>
     public async Task RunAsync(ConversionJob job)
+    {
+        Interlocked.Increment(ref _busy);
+        try
+        {
+            await RunJobAsync(job);
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _busy);
+        }
+    }
+
+    private async Task RunJobAsync(ConversionJob job)
     {
         job.State = JobState.Running;
         Notify(job);
@@ -457,14 +475,21 @@ public sealed class JobQueue : IAsyncDisposable
     {
         await foreach (var job in _channel.Reader.ReadAllAsync())
         {
-            if (job.CancellationToken.IsCancellationRequested)
+            try
             {
-                job.State = JobState.Cancelled;
-                Notify(job);
-                JobFinished?.Invoke(this, job);
-                continue;
+                if (job.CancellationToken.IsCancellationRequested)
+                {
+                    job.State = JobState.Cancelled;
+                    Notify(job);
+                    JobFinished?.Invoke(this, job);
+                    continue;
+                }
+                await RunAsync(job);
             }
-            await RunAsync(job);
+            finally
+            {
+                Interlocked.Decrement(ref _busy);
+            }
         }
     }
 

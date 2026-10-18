@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Filee.App.Services;
 using Filee.App.ViewModels;
 using Filee.Core.Localization;
@@ -8,6 +9,9 @@ namespace Filee.App.Views;
 
 public partial class MainWindow : Window
 {
+    private bool _releasePosted;
+    private bool _releasing;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -27,10 +31,31 @@ public partial class MainWindow : Window
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         base.OnClosing(e);
-        if (e.CloseReason is WindowCloseReason.WindowClosing)
+        if (e.CloseReason is WindowCloseReason.WindowClosing && !_releasing)
         {
             e.Cancel = true;
-            Hide();
+            HideToTray();
         }
+    }
+
+    /// <summary>
+    /// Leaves Filee in the tray: hides the window at once, then closes it for real, so its pages, visuals and images
+    /// don't stay in memory until the next time (issue #119). <see cref="WindowService.ShowMain"/> opens a new one.
+    /// </summary>
+    internal void HideToTray()
+    {
+        Hide();
+        if (_releasePosted)
+            return;
+        _releasePosted = true;
+        // Posted: a window can't close inside its own Closing handler.
+        Dispatcher.UIThread.Post(() =>
+        {
+            _releasePosted = false;
+            if (IsVisible)
+                return; // shown again meanwhile
+            _releasing = true;
+            Close();
+        });
     }
 }
