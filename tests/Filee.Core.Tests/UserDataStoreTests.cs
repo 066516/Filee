@@ -119,6 +119,34 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Hardware_encoding_is_saved_and_stays_off_for_presets_from_before_it()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        Assert.All(store.Presets, p => Assert.False(p.Media.HardwareEncoding)); // no built-in preset turns it on
+        store.Presets.Add(new Preset { Id = "fast", Name = "Fast", TargetFormat = "mp4", Media = { HardwareEncoding = true, VideoCodec = VideoCodec.Hevc } });
+        store.Presets.Add(new Preset { Id = "old", Name = "Old", TargetFormat = "mp4" });
+        store.SaveLibrary();
+
+        // A Filee from before the option saved no "hardwareEncoding".
+        var path = Path.Combine(dir.Path, "presets.json");
+        var presets = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsArray();
+        Assert.True((bool)presets.Single(p => (string?)p!["id"] == "fast")!["media"]!["hardwareEncoding"]!);
+        Assert.True(presets.Single(p => (string?)p!["id"] == "old")!["media"]!.AsObject().Remove("hardwareEncoding"));
+        File.WriteAllText(path, presets.ToJsonString());
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        var fast = reloaded.FindPreset("fast")!;
+        Assert.True(fast.Media.HardwareEncoding);
+        Assert.Equal(VideoCodec.Hevc, fast.Media.VideoCodec);
+        Assert.True(fast.Clone().Media.HardwareEncoding);
+        Assert.False(reloaded.FindPreset("old")!.Media.HardwareEncoding);
+    }
+
+    [Fact]
     public void History_is_kept_until_turned_off_and_can_be_cleared()
     {
         using var dir = new TempDir();
@@ -300,6 +328,33 @@ public class UserDataStoreTests
         Assert.Equal("png", preset.TargetFormat);
         Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("remove-background"));
         Assert.False(SettingsMigrations.ApplyToLibrary(9, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Version_18_libraries_get_the_extract_frames_presets_after_the_pdf_presets_on_no_donut()
+    {
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id is "extract-frames-png" or "extract-frames-jpg");
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(18, presets, profiles));
+
+        var pngPreset = presets.Single(p => p.Id == "extract-frames-png");
+        Assert.True(pngPreset.Media.SaveEveryFrame);
+        Assert.Equal("png", pngPreset.TargetFormat);
+
+        var jpgPreset = presets.Single(p => p.Id == "extract-frames-jpg");
+        Assert.True(jpgPreset.Media.SaveEveryFrame);
+        Assert.Equal("jpg", jpgPreset.TargetFormat);
+
+        // Where a new library has them.
+        Assert.Equal(BuiltInData.CreatePresets().Select(p => p.Id), presets.Select(p => p.Id));
+        var slides = presets.FindIndex(p => p.Id == "pdf-slides");
+        Assert.Equal(["extract-frames-png", "extract-frames-jpg"], presets.Skip(slides + 1).Take(2).Select(p => p.Id));
+
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("extract-frames-png"));
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("extract-frames-jpg"));
+        Assert.False(SettingsMigrations.ApplyToLibrary(18, presets, profiles)); // once only
     }
 
     [Fact]
@@ -657,6 +712,63 @@ public class UserDataStoreTests
         Assert.Equal(["rotate-left", "rotate-right", "rotate-180"], rotate.SubPresetIds);
         Assert.Equal(Preset.GroupTarget, rotate.TargetFormat);
         Assert.Single(presets, p => p.Id == "rotate-left"); // repaired, not added twice
+    }
+
+    [Fact]
+    public void Version_17_libraries_get_compress_pdf_after_split_pdf_on_no_donut()
+    {
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "compress-pdf");
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(17, presets, profiles));
+
+        var compress = presets.Single(p => p.Id == "compress-pdf");
+        Assert.Equal(("pdf", PdfCompression.Ebook, false), (compress.TargetFormat, compress.Pdf.Compression, compress.Pdf.CompressWithGhostscript));
+        Assert.Equal("pdf-split", presets[presets.IndexOf(compress) - 1].Id); // where a new library has it
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("compress-pdf"));
+        Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "pdf").PresetIds, profiles.Single(p => p.Id == "pdf").PresetIds);
+        Assert.False(SettingsMigrations.ApplyToLibrary(17, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Back_from_an_older_Filee_compress_pdf_compresses_again_and_keeps_the_users_changes()
+    {
+        // What a Filee before 20 leaves after saving: the compression level dropped, the rest as it was.
+        var presets = BuiltInData.CreatePresets();
+        var compress = presets.Single(p => p.Id == "compress-pdf");
+        compress.Pdf.Compression = PdfCompression.None;
+        compress.Name = "Shrink";
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(17, presets, BuiltInData.CreateProfiles()));
+
+        Assert.Equal(PdfCompression.Ebook, compress.Pdf.Compression);
+        Assert.Equal("Shrink", compress.Name);
+        Assert.Single(presets, p => p.Id == "compress-pdf");
+    }
+
+    [Fact]
+    public void Pdf_compression_survives_a_save_and_load_and_a_newer_level_reads_as_none()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        var preset = store.Presets.Single(p => p.Id == "compress-pdf");
+        preset.Pdf.Compression = PdfCompression.Print;
+        preset.Pdf.CompressWithGhostscript = true;
+        store.SaveLibrary();
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        var pdf = reloaded.Presets.Single(p => p.Id == "compress-pdf").Pdf;
+        Assert.Equal((PdfCompression.Print, true), (pdf.Compression, pdf.CompressWithGhostscript));
+
+        var path = Path.Combine(dir.Path, "presets.json");
+        File.WriteAllText(path, File.ReadAllText(path).Replace("\"compression\": \"Print\"", "\"compression\": \"Extreme\""));
+        var newer = new UserDataStore(dir.Path);
+        newer.Load();
+        Assert.Equal(PdfCompression.None, newer.FindPreset("compress-pdf")!.Pdf.Compression);
+        Assert.False(File.Exists(path + ".broken"));
     }
 
     [Fact]

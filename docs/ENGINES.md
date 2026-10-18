@@ -8,7 +8,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, MNG, QOI, DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster, MIFF ↔ each other, and **APNG** (Filee's own reader and writer); HEIC (written with FFmpeg), XCF, camera RAW (LibRaw), DICOM (uncompressed ones by Filee's own reader), Photo CD, OpenEXR, Radiance HDR and EMF/WMF (Windows) read |
 | Vector graphics | built in (Svg.Skia, SkiaSharp, ACadSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, **SVG → DXF** (→ DWG with the CAD engine), **raster images → SVG (tracing)**, PDF-compatible AI → PDF |
 | ICNS | built in | images → ICNS (16–1024 px), ICNS → images |
-| PDFsharp | built in (library) | images → PDF, merge, split, page ranges |
+| PDFsharp | built in (library) | images → PDF, merge, split, page ranges, **compression** (smaller PDFs, see below) |
 | PDFium | built in (library) | PDF → images (multi-page TIFF/GIF supported) |
 | Unhwp | built in (library) | HWP/HWPX → TXT, Markdown, HTML |
 | Markdown (Markdig) | built in (library) | **Markdown → HTML, TXT** (and → PDF / DOCX through the HWPX writer, rhwp or LibreOffice) |
@@ -29,8 +29,8 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | Archives (7-Zip) | bundled with the installer (`engines/7zip`, ~2.5 MB) + built-in readers | ZIP, 7Z, RAR, TAR (+ GZ/BZ2/XZ/Z/7Z/LZ), CAB, ISO, DMG, … **→ folder, ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ**; ALZ, EGG, lzip read in-process; "Compress into one archive" for any files |
 | LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats; FODT, OpenDocument templates (OTT, OTS, OTP) and XLT out; SVG → EMF/WMF/ODG, a PDF page → SVG |
 | Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, markup languages (reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML) ↔ Markdown/HTML/DOCX/ODT and each other (and → RTF, EPUB, TXT), Markdown and markup → PPTX slides |
-| Ghostscript | **optional download** (~20 MB, 31 MB on disk) | EPS/PS → PDF, PDF → EPS/PS, PostScript-based AI → PDF (images through PDF and PDFium) |
-| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG or a still frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, images → HEIC |
+| Ghostscript | **optional download** (~20 MB, 31 MB on disk) | EPS/PS → PDF, PDF → EPS/PS, PostScript-based AI → PDF (images through PDF and PDFium); smaller PDFs when a preset asks for it |
+| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG, a still frame or every frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, images → HEIC |
 | Calibre | **optional download** (~216 MB, 660 MB on disk) | rare e-book formats: LIT, LRF, CHM, PDB, PML, RB, SNB, TCR, OEB → EPUB; EPUB → MOBI, AZW3, LIT, LRF, PDB, PML, RB, SNB, TCR |
 
 DOCX, XLSX, XLS, ODS and PPTX → PDF need neither Microsoft Office nor LibreOffice: they are read in-process, written as HWPX
@@ -423,6 +423,49 @@ editable**: there are no text boxes to change, the PDF's layout is not rebuilt. 
 
 Password-protected PDFs fail with the same message as PDF → DOCX.
 
+## PDF compression
+
+"Compress PDF" (and any PDF → PDF preset with *Compress* set, also with a page range or one file per page) makes a
+PDF smaller while it stays a PDF, for e-mail attachments and upload limits. `Pdf/PdfCompressor.cs` does it with
+PDFsharp and Magick.NET; nothing has to be installed.
+
+| Level | Pictures scaled down to | JPEG quality |
+|---|---|---|
+| Smallest (`Screen`) | 72 dpi | 55 |
+| Balanced (`Ebook`, the preset's) | 150 dpi | 65 |
+| High quality (`Print`) | 300 dpi | 85 |
+
+- **Pictures**: `Pdf/PdfPictureUses.cs` follows the content streams of the pages, of the forms they draw and of
+  annotation appearances (`q`/`Q`/`cm`/`Do`) to find the largest size each picture is drawn at. A picture drawn at more
+  than 1.5 × the level's resolution is scaled down to it (as Ghostscript does); a picture whose drawing can't be
+  followed is taken as large as the page holds it, so it is never scaled down too far. Photos are saved as JPEG at the
+  level's quality, pictures with up to 256 colours (charts, screenshots, logos) losslessly (Flate with PNG
+  prediction). A JPEG that keeps its size is encoded again only when that saves at least 10 %. A picture is replaced
+  only when the result is smaller.
+- **Which pictures**: 8 bits per component, gray, RGB (also ICC-based and calibrated) and CMYK, stored as JPEG, Flate
+  (with or without PNG prediction), RunLength or uncompressed. CMYK JPEGs, 1-bit pictures and masks, indexed
+  (palette) pictures, spot colours, JPEG 2000, JBIG2, CCITT and pictures with a colour-key mask stay as they are.
+- **Transparency**: a soft mask is scaled with its picture and kept lossless, so transparent parts stay transparent.
+- **Duplicates**: a picture stored more than once with the same data (a logo embedded again on every page) is kept once.
+- **Everything else**: every stream is deflated at the highest level when that's smaller; page thumbnails and other
+  applications' private data (`PieceInfo`, such as Illustrator's editing data) are removed, as are unused objects.
+  When the preset doesn't keep metadata, the XMP metadata of pages and pictures goes too. The document's own XMP is
+  written afresh from its document information by PDFsharp, as for every PDF it saves.
+- **Unchanged**: text, fonts, vector drawings, links, bookmarks and form fields. The whole file is compressed as it
+  is; a page range or single pages are first copied into new PDFs, as without compression (which leaves bookmarks and
+  form fields behind), and so is a PDF locked only against changes.
+- **Never bigger**: when nothing gets smaller (a PDF of text only, one compressed before), the PDF is written as it was
+  and the toast (and `filee convert`) says that it couldn't be made smaller. Password-protected PDFs fail with the same
+  message as the other PDF conversions.
+- **Ghostscript** (optional, *Also try Ghostscript* in the preset): when it is installed, the PDF is also run through
+  `pdfwrite` with `-dPDFSETTINGS=/screen`, `/ebook` or `/printer` (the same 72, 150 and 300 dpi) and
+  `-dCompatibilityLevel=1.6`, and the smallest of the two results is kept; when Ghostscript fails, the built-in result
+  stands. It is off by default: Ghostscript rewrites the whole file (fonts are subset again, structure and form fields
+  may change), so it is the user's choice. It also writes object streams, which PDFsharp can't, and its JPEGs are
+  somewhat smaller at the Balanced level.
+- **Not done**: object streams (PDFsharp writes none), font subsetting or removal of unused glyphs, converting
+  colour to gray, flattening transparency or form fields, recompressing JBIG2/CCITT scans.
+
 ## Office Open XML variants
 
 `Office/OoxmlConverter.cs` converts between the variants of a family (Word, Excel, PowerPoint) by copying the
@@ -801,8 +844,8 @@ Filee (with the GPL source offer), then an `engines.json` component and an optio
 ## FFmpeg
 
 `Media/FfmpegConverter.cs` converts every video format to every video format, to animated GIF or APNG, to a still PNG
-frame, to every audio format (the sound track) and to SRT, ASS and WebVTT (the subtitles); every audio format to every
-audio format; and GIF, APNG and PNG to MP4, WEBM and MOV.
+frame or a folder of every frame, to every audio format (the sound track) and to SRT, ASS and WebVTT (the subtitles);
+every audio format to every audio format; and GIF, APNG and PNG to MP4, WEBM and MOV.
 Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on MP3 files.
 
 - The download is the gyan.dev **9.0.2 "full_build-shared"** Windows build (GPL-3.0, run as a separate program).
@@ -856,6 +899,29 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   for the rest. The encoders are looked up with `ffmpeg -encoders` once per FFmpeg, so a copy the user picked without
   x265 or AV1 fails with a clear message instead of an FFmpeg error. x265 and SVT-AV1 log only errors
   (`-x265-params log-level=error`, `SVT_LOG=1`).
+- **Hardware encoding** (*Hardware acceleration* in the video card, `MediaOptions.HardwareEncoding`; off by default and
+  for older presets, so nobody's results change without asking). H.264 and HEVC encodes (not VP9, AV1 and the
+  MPEG-style codecs, not stream copies, not pictures → video) go to the graphics chip (`Media/HardwareVideo.cs`,
+  `Media/HardwareProbe.cs`):
+
+  | System | Tried in this order |
+  |---|---|
+  | Windows | `*_nvenc` (NVIDIA), `*_qsv` (Intel Quick Sync), `*_amf` (AMD) |
+  | macOS | `*_videotoolbox` with constant quality (Apple Silicon), then with a bitrate (Intel Macs reject `-q:v`) |
+  | Linux | `*_nvenc`, then `*_vaapi` on `/dev/dri/renderD128` (`-vaapi_device`, frames uploaded with `format=nv12,hwupload`) |
+
+  FFmpeg lists encoders the computer can't run (NVENC without an NVIDIA card), so only the ones `ffmpeg -encoders`
+  lists are tried, each first with a test encode with the real options (0.1 s of `testsrc` at 256 × 144 to the null
+  muxer, 15 s limit). The first that succeeds is used; results are kept per FFmpeg executable, encoder, rate control
+  and bit depth until Filee restarts, and written to the log. Quality: *High/Balanced/Small* become quantizer 19/24/29
+  for H.264 and 23/27/31 for HEVC (one above x264's and x265's CRF: hardware encoders spend bits less wisely) as NVENC
+  `-rc vbr -cq N -b:v 0 -preset p5`, Quick Sync `-global_quality N -preset medium` (ICQ), AMF `-rc cqp -qp_p N -qp_i N−2`
+  (`-quality balanced`) and VA-API `-rc_mode CQP -qp N`; VideoToolbox gets `-q:v` 70/60/50, or on Intel Macs
+  `-b:v` from 0.14/0.09/0.05 bits per pixel per frame (× 0.65 for HEVC). 8-bit video is NV12 (H.264 High, HEVC Main);
+  10-bit and HDR sources stay P010 HEVC Main 10 with their colour tags when the encoder passes a 10-bit test encode,
+  otherwise x265 encodes them. HEVC keeps the `hvc1` tag in MP4/M4V/MOV. When a hardware encode fails anyway (a
+  picture too large for the chip, a driver error), the partial output is deleted and the file is encoded again with
+  x264/x265; that is logged, not shown as a failure.
 - DSD (DSF, DFF) decodes at 2.8 MHz or more: lossless and PCM targets get 88.2 kHz, Vorbis and WMA 44.1 kHz, the
   other lossy encoders their nearest supported rate.
 - Subtitle extraction takes the first text subtitle track (SubRip, ASS/SSA, WebVTT, MP4 timed text, CEA-608, …).
@@ -867,12 +933,34 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   FLAC. Portrait phone videos are turned upright. Odd sizes are evened out, frame rates that MPEG-2/MXF/MPEG-4 part 2
   cannot store are converted, and channels WMA or AMR cannot hold are mixed down.
 - Progress comes from `-progress` (position ÷ duration from ffprobe); the GIF palette pass reports per-frame stats of
-  a discarded copy of its frames. Cancelling kills the process tree and deletes the partial output. There is no
-  time limit, but FFmpeg is stopped when it reports nothing for 10 minutes. At most two conversions run at a time
-  (FFmpeg's encoders use every core themselves).
+  a discarded copy of its frames. Cancelling kills the process tree, waits (up to 10 seconds) until it has exited and
+  deletes the partial output. There is no time limit, but FFmpeg is stopped when it reports nothing for 10 minutes.
+  At most two conversions run at a time (FFmpeg's encoders use every core themselves).
 - Video → PNG writes one still frame (a tenth into the video, where the picture has usually faded in); the image
   engines turn it into JPG, WEBP, PDF, …. The GIF edge costs more, so these routes never go through an animated GIF
   of the whole video.
+- **Every frame** (*Save every frame of a video* on a PNG or JPG preset, `MediaOptions.SaveEveryFrame`; the presets
+  "Extract frames (PNG)" and "Extract frames (JPG)", on no donut): `Media/FrameSequenceWriter.cs` writes
+  `frame_000001.png`, `frame_000002.png`, … into one folder, named by the output rule with `_frames` added
+  (`clip_frames`, `clip_frames (2)`; skipped, or filled over like an extracted archive, by the conflict rule).
+  - Routes: the frame edges (`ConversionEdge.FrameSequence`, video → PNG and video → JPG) are taken only when
+    `Preset.SavesFramesOf` the file (the option is set, the target is PNG or JPG and the file is a video), and then as
+    the whole route (`RoutePlanner.Plan(from, to, frames: true)`). Without the option video → JPG stays the still frame
+    above, which the image engines turn, resize and so on; other files and targets ignore the option.
+  - *Every Nth frame* (1–1000) keeps frames 1, N + 1, 2N + 1, … (`select`, `-fps_mode vfr`). Otherwise every decoded
+    frame is written once (`-fps_mode passthrough`): a variable frame rate phone video gives as many pictures as it
+    has frames, not one per 1/30 s with the slow parts repeated. The pictures are numbered, not named by time.
+  - Only the first video stream is read (`-map 0:V:0`). Pixels are made square and portrait videos are turned
+    upright, as for the still frame; nothing else of the image options is applied (no resizing, rotating or
+    metadata). JPG uses the preset's quality (100 → `-q:v 2`, 90 → 5, 1 → 31). HDR video (PQ, HLG) is not
+    tone-mapped, so its frames look flat and grey; 10-bit video becomes 16-bit PNG.
+  - Before anything is written the pictures are estimated (duration × frame rate ÷ interval). More than 100,000
+    (`MediaOptions.MaxFrames`, about an hour at 30 fps), or more than the free space of the output drive (estimated at
+    1.5 bytes a pixel for PNG, 3 for 10-bit video, 0.25 for JPG), fails with a reason in the user's language
+    (`ConversionRefusedException`); a file that doesn't say its length or frame rate is not checked. The editor shows
+    how many pictures a minute of 30 fps video gives at the chosen interval.
+  - The frames go into a hidden folder next to the output and are moved into place when FFmpeg has finished, so a
+    cancelled or failed run leaves no half-filled folder.
 - Pictures → MP4/WEBM/MOV go through a full-size PNG from the image engines (HEIC → PNG → MOV): a 5-second still at
   30 fps, one quality step above the preset (identical frames cost almost nothing; x264 `-tune stillimage`). The
   PNG's ICC profile is read (`-flags2 +icc_profiles`), so primaries and transfer are tagged as the photo's (Display

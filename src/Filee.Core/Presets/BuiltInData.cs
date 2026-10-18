@@ -65,7 +65,9 @@ public static class BuiltInData
             Id = "pdf-split", NameKey = "preset.split_pdf", TargetFormat = "pdf",
             Pdf = { SplitPages = true }, Output = { Location = OutputLocation.Subfolder, SubfolderName = "{name}" },
         },
+        .. PdfCompressionPresets(),
         .. PdfSlidesPresets(),
+        .. FramePresets(),
         new() { Id = "to-docx", Name = "DOCX", TargetFormat = "docx" },
         new() { Id = "to-hwpx", Name = "HWPX", TargetFormat = "hwpx" },
         .. HwpPresets(),
@@ -83,12 +85,35 @@ public static class BuiltInData
     ];
 
     /// <summary>
+    /// "Compress PDF": pictures at 150 dpi, the rest compressed losslessly (added in settings schema 20). On no default
+    /// donut, the PDF donut is full: users add it in Settings → Toolbar.
+    /// </summary>
+    public static List<Preset> PdfCompressionPresets() =>
+    [
+        new()
+        {
+            Id = "compress-pdf", NameKey = "preset.compress_pdf", TargetFormat = "pdf",
+            Pdf = { Compression = PdfCompression.Ebook }, Output = { FileNamePattern = "{name}_compressed" },
+        },
+    ];
+
+    /// <summary>
     /// PDF → PowerPoint with a picture of each page on its own slide (added in settings schema 18). JPEG at 90 like the
     /// JPG preset; the render DPI is the PDF default (150), which the converter never goes below.
     /// </summary>
     public static List<Preset> PdfSlidesPresets() =>
     [
         new() { Id = "pdf-slides", NameKey = "preset.pdf_slides", TargetFormat = "pptx", Image = { Quality = 90 } },
+    ];
+
+    /// <summary>
+    /// Every frame of a video as PNG or JPG pictures in a folder (added in settings schema 19), on no donut: a long
+    /// video gives thousands of files, so users add them in Settings → Toolbar.
+    /// </summary>
+    public static List<Preset> FramePresets() =>
+    [
+        new() { Id = "extract-frames-png", NameKey = "preset.extract_frames_png", TargetFormat = "png", Media = { SaveEveryFrame = true } },
+        new() { Id = "extract-frames-jpg", NameKey = "preset.extract_frames_jpg", TargetFormat = "jpg", Media = { SaveEveryFrame = true } },
     ];
 
     /// <summary>Raster → SVG tracing, in colour and as black line art (added in settings schema 16).</summary>

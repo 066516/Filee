@@ -24,6 +24,9 @@ public partial class RadialWindow : Window
 
     public DonutMenu DonutControl => Donut;
 
+    /// <summary>A drag entered the window, with or without files (for the log: did the drag reach the donut at all).</summary>
+    public event Action? DragEntered;
+
     /// <summary>Files entered the window during a drag.</summary>
     public event Action<IReadOnlyList<string>>? FilesEntered;
 
@@ -44,6 +47,7 @@ public partial class RadialWindow : Window
 
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
+        DragEntered?.Invoke();
         var files = LocalFiles(e);
         if (files.Count == 0)
         {

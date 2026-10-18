@@ -77,6 +77,30 @@ public sealed class CliTests : IDisposable
     }
 
     [Fact]
+    public async Task Compress_pdf_says_when_a_pdf_cant_get_smaller()
+    {
+        var source = Path.Combine(_folder, "scan.pdf");
+        using (var image = new ImageMagick.MagickImage("gradient:#C04020-#2060C0", 1800, 1800))
+        {
+            image.AddNoise(ImageMagick.NoiseType.Gaussian, 0.6);
+            image.Density = new ImageMagick.Density(600);
+            image.Write(source, ImageMagick.MagickFormat.Pdf);
+        }
+
+        var (code, output, errors) = await Run("convert", source, "--preset", "compress-pdf", "--json");
+        Assert.Equal(Cli.Success, code);
+        var compressed = Path.Combine(_folder, "scan_compressed.pdf");
+        Assert.True(new FileInfo(compressed).Length < new FileInfo(source).Length / 2, errors);
+        using (var json = JsonDocument.Parse(output))
+            Assert.False(json.RootElement.GetProperty("files")[0].TryGetProperty("notice", out _));
+
+        // Compressed already: written unchanged, with a note.
+        (code, output, _) = await Run("convert", compressed, "--preset", "compress-pdf");
+        Assert.Equal(Cli.Success, code);
+        Assert.Contains("scan_compressed_compressed.pdf (Couldn't make it smaller", output);
+    }
+
+    [Fact]
     public async Task A_folder_converts_the_files_filee_knows()
     {
         Png("a.png");

@@ -120,6 +120,16 @@ public sealed class Preset
     [JsonIgnore]
     public bool IsGroup => Kind == PresetKind.Group;
 
+    /// <summary>
+    /// True if converting a <paramref name="sourceFormat"/> file saves every frame as a picture
+    /// (<see cref="MediaOptions.SaveEveryFrame"/>): the file is a video and the target one of
+    /// <see cref="MediaOptions.FrameTargets"/>. Other files, and other targets, convert as usual.
+    /// </summary>
+    public bool SavesFramesOf(string sourceFormat) =>
+        Media.SaveEveryFrame
+        && MediaOptions.FrameTargets.Contains(TargetFormat)
+        && Formats.FormatRegistry.FindById(sourceFormat)?.Category == Formats.FormatCategory.Video;
+
     /// <summary>Creates a new random preset id.</summary>
     public static string NewId() => Guid.NewGuid().ToString("N")[..12];
 
@@ -277,6 +287,22 @@ public enum PdfPageSize
     Letter,
 }
 
+/// <summary>
+/// How hard a PDF → PDF conversion shrinks the file: pictures are scaled down to the level's resolution and saved as
+/// JPEG at its quality, the rest is compressed losslessly. Text, fonts and drawings stay as they are.
+/// </summary>
+public enum PdfCompression
+{
+    /// <summary>Pages are copied as they are.</summary>
+    None,
+    /// <summary>Smallest: pictures at 72 dpi (reading on screen).</summary>
+    Screen,
+    /// <summary>Balanced: pictures at 150 dpi (e-mail, uploads).</summary>
+    Ebook,
+    /// <summary>High quality: pictures at 300 dpi (printing).</summary>
+    Print,
+}
+
 /// <summary>PDF related options.</summary>
 public sealed class PdfOptions
 {
@@ -311,6 +337,19 @@ public sealed class PdfOptions
     /// write several images split between pages instead of scaling the stack down.
     /// </summary>
     public bool SplitTallImage { get; set; }
+
+    /// <summary>
+    /// For PDF → PDF: make the file smaller (also with a page range or one file per page). A level from a newer Filee
+    /// reads as <see cref="PdfCompression.None"/>.
+    /// </summary>
+    [JsonConverter(typeof(LenientEnumJsonConverter<PdfCompression>))]
+    public PdfCompression Compression { get; set; }
+
+    /// <summary>
+    /// With <see cref="Compression"/>: also let Ghostscript rewrite the PDF when it is installed, and keep whichever
+    /// result is smaller. Off by default: it rewrites the whole file (fonts, structure), not only the pictures.
+    /// </summary>
+    public bool CompressWithGhostscript { get; set; }
 
     public PdfOptions Clone() => (PdfOptions)MemberwiseClone();
 }
@@ -367,6 +406,33 @@ public sealed class MediaOptions
     /// <summary>Audio codec for targets that can hold several (<see cref="MediaCodecs.AudioCodecsFor"/>).</summary>
     public AudioCodec AudioCodec { get; set; } = AudioCodec.Default;
 
+    /// <summary>
+    /// Encode H.264 and HEVC video with the graphics chip's encoder (NVENC, Quick Sync, AMF, VideoToolbox or VA-API)
+    /// when one works on this computer, else with x264 / x265 as usual. Much faster and lighter on power, a little
+    /// larger at the same quality. Off by default (and for presets saved before it existed), so results never change
+    /// without the user asking for it.
+    /// </summary>
+    public bool HardwareEncoding { get; set; }
+
+    /// <summary>Picture formats a video's frames can be saved as (<see cref="SaveEveryFrame"/>).</summary>
+    public static readonly IReadOnlyList<string> FrameTargets = ["png", "jpg"];
+
+    /// <summary>
+    /// Video → PNG or JPG: save every frame as a picture, in a folder, instead of one still frame. Only for video
+    /// sources and a target in <see cref="FrameTargets"/> (<see cref="Preset.SavesFramesOf"/>).
+    /// </summary>
+    public bool SaveEveryFrame { get; set; }
+
+    /// <summary>With <see cref="SaveEveryFrame"/>: extract every Nth frame (1 = every frame).</summary>
+    public int FrameInterval { get; set; } = 1;
+
+    /// <summary>
+    /// Most pictures one video may become (<see cref="SaveEveryFrame"/>): about an hour at 30 fps, already more than
+    /// anyone looks through. A longer video needs a larger <see cref="FrameInterval"/>.
+    /// </summary>
+    public const long MaxFrames = 100_000;
+
+
     public MediaOptions Clone() => (MediaOptions)MemberwiseClone();
 }
 
@@ -412,6 +478,20 @@ public static class MediaCodecs
     /// <summary>The codec <paramref name="target"/> is written with: the chosen one if the target takes it, else Default.</summary>
     public static VideoCodec Effective(string target, VideoCodec codec) =>
         VideoCodecsFor(target).Contains(codec) ? codec : VideoCodec.Default;
+
+    /// <summary>Video targets whose usual codec is H.264 (the others have their container's own: VP9, MPEG-2, …).</summary>
+    public static IReadOnlySet<string> H264Targets { get; } = new HashSet<string> { "mp4", "m4v", "mov", "mkv", "flv", "ts", "m2ts", "3gp", "3g2" };
+
+    /// <summary>
+    /// True when <paramref name="target"/> with <paramref name="codec"/> is written as H.264 or HEVC, the codecs
+    /// <see cref="MediaOptions.HardwareEncoding"/> applies to.
+    /// </summary>
+    public static bool TakesHardwareEncoding(string target, VideoCodec codec) => Effective(target, codec) switch
+    {
+        VideoCodec.Hevc => true,
+        VideoCodec.Default => H264Targets.Contains(target),
+        _ => false,
+    };
 
     /// <summary>The codec <paramref name="target"/> is written with: the chosen one if the target takes it, else Default.</summary>
     public static AudioCodec Effective(string target, AudioCodec codec) =>
