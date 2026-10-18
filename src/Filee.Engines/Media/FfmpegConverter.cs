@@ -99,7 +99,7 @@ public sealed partial class FfmpegConverter : IConverter, IImageTransformer
         progress?.Report(0.02);
 
         if (step.FrameSequence)
-            return await ExtractFramesAsync(ffmpeg, step, input, info, FormatRegistry.Get(step.To).PrimaryExtension, progress, cancellationToken);
+            return await FrameSequenceWriter.ConvertAsync(ffmpeg, step, input, info, progress, cancellationToken);
 
         var output = step.Output.Allocate(FormatRegistry.Get(step.To).PrimaryExtension);
         if (output is null)
@@ -141,7 +141,7 @@ public sealed partial class FfmpegConverter : IConverter, IImageTransformer
     }
 
     /// <summary>Runs one pass and maps FFmpeg's position (seconds) onto this pass' share of the progress.</summary>
-    private static async Task RunPassAsync(string ffmpeg, FfmpegPass pass, TimeSpan? duration, IProgress<double>? progress, double done, CancellationToken cancellationToken)
+    internal static async Task RunPassAsync(string ffmpeg, FfmpegPass pass, TimeSpan? duration, IProgress<double>? progress, double done, CancellationToken cancellationToken)
     {
         var total = duration?.TotalSeconds ?? 0;
         Action<double>? onPosition = progress is null || total <= 0
@@ -235,70 +235,6 @@ public sealed partial class FfmpegConverter : IConverter, IImageTransformer
                 return null;
             }
         });
-
-    private static async Task<IReadOnlyList<string>> ExtractFramesAsync(
-        string ffmpeg,
-        ConversionStep step,
-        string input,
-        MediaInfo info,
-        string imageExt,
-        IProgress<double>? progress,
-        CancellationToken cancellationToken)
-    {
-        var allocated = step.Output.Allocate(imageExt);
-        if (allocated is null)
-            return [];
-
-        var outputDirectory = Path.GetDirectoryName(allocated)!;
-        var videoFilename = Path.GetFileNameWithoutExtension(allocated);
-        if (string.IsNullOrEmpty(videoFilename))
-            videoFilename = FormatRegistry.NameWithoutExtension(step.InputPath);
-
-        var framesSubfolder = Path.Combine(outputDirectory, $"{videoFilename}_frames");
-        for (var n = 2; Directory.Exists(framesSubfolder); n++)
-            framesSubfolder = Path.Combine(outputDirectory, $"{videoFilename}_frames ({n})");
-
-        Directory.CreateDirectory(framesSubfolder);
-
-        var outputPattern = Path.Combine(framesSubfolder, $"frame_%06d.{imageExt}");
-        var args = MediaEncoding.FrameSequence(
-            input,
-            outputPattern,
-            imageExt,
-            info.Video,
-            step.Preset.Image.Quality,
-            step.Preset.Media.FrameInterval,
-            step.Preset.Media.FramesPerSecond);
-
-        var pass = new FfmpegPass(args, 1);
-
-        try
-        {
-            await RunPassAsync(ffmpeg, pass, info.Duration, progress, done: 0, cancellationToken);
-
-            if (!Directory.Exists(framesSubfolder) || !Directory.EnumerateFiles(framesSubfolder).Any())
-                throw new InvalidOperationException("FFmpeg did not write any frames.");
-        }
-        catch
-        {
-            TryDeleteDirectory(framesSubfolder);
-            throw;
-        }
-
-        progress?.Report(1);
-        return [framesSubfolder];
-    }
-
-    private static void TryDeleteDirectory(string path)
-    {
-        try
-        {
-            if (Directory.Exists(path))
-                Directory.Delete(path, recursive: true);
-        }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
-    }
 
     private static void TryDelete(string path)
     {

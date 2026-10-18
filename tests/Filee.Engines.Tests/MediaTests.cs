@@ -1091,7 +1091,7 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
 
         public string? Allocate(string extension, string? suffix = null)
         {
-            var path = Path.Combine(folder, $"out{suffix}.{extension}");
+            var path = Path.Combine(folder, extension.Length == 0 ? $"out{suffix}" : $"out{suffix}.{extension}");
             Allocated.Add(path);
             return path;
         }
@@ -1176,6 +1176,56 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         while (RunningFfmpeg(Tools!.Value.Ffmpeg) && deadline.Elapsed < TimeSpan.FromSeconds(10))
             await Task.Delay(200, TestContext.Current.CancellationToken);
         Assert.False(RunningFfmpeg(Tools.Value.Ffmpeg));
+    }
+
+    [Fact]
+    public async Task Cancelling_every_frame_leaves_no_pictures_behind()
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        var source = await MakeClipAsync(folder, "cancelframes.mp4", seconds: 60, size: "1280x720", audio: false,
+            extra: ["-c:v", "libx264", "-preset", "ultrafast"]);
+        using var cancellation = new CancellationTokenSource();
+        var recorder = new Recorder(v =>
+        {
+            if (v > 0.05)
+                cancellation.Cancel();
+        });
+        var converter = new FfmpegConverter();
+        converter.GetStatus();
+        var preset = new Preset { TargetFormat = "png", Media = { SaveEveryFrame = true } };
+        var step = new ConversionStep(source, "mp4", "png", preset, new FolderAllocator(folder), folder, FrameSequence: true);
+        cancellation.CancelAfter(TimeSpan.FromSeconds(30)); // in case no progress arrives at all
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => converter.ConvertAsync(step, recorder, cancellation.Token));
+
+        // Neither the output folder nor the hidden one the frames were written into is left, and FFmpeg has ended.
+        Assert.Equal([Path.Combine(folder, "out_frames")], ((FolderAllocator)step.Output).Allocated);
+        Assert.Equal([source], Directory.GetFileSystemEntries(folder));
+        Assert.False(RunningFfmpeg(Tools!.Value.Ffmpeg));
+    }
+
+    [Fact]
+    public async Task Every_frame_goes_into_its_own_folder_named_like_other_outputs()
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        var source = await MakeClipAsync(folder, "100% clip.mkv", seconds: 1, size: "160x120", fps: 10, audio: false);
+        var preset = new Preset { TargetFormat = "jpg", Media = { SaveEveryFrame = true } };
+
+        var first = Assert.Single((await fx.ConvertAsync([source], preset)).Outputs);
+        var second = Assert.Single((await fx.ConvertAsync([source], preset)).Outputs);
+        preset.Output.Conflict = ConflictPolicy.Skip;
+        var skipped = await fx.ConvertAsync([source], preset);
+
+        Assert.Equal(Path.Combine(folder, "100% clip_frames"), first);
+        Assert.Equal(Path.Combine(folder, "100% clip_frames (2)"), second);
+        Assert.Empty(skipped.Outputs);
+        Assert.Equal(FileState.Skipped, skipped.Files.Single().State);
+        Assert.Equal(10, Directory.GetFiles(first, "frame_*.jpg").Length);
+        Assert.False(new DirectoryInfo(first).Attributes.HasFlag(FileAttributes.Hidden));
+        // Nothing else next to the source: no hidden folder left over.
+        Assert.Equal(3, Directory.GetFileSystemEntries(folder).Length);
     }
 
     /// <summary>
