@@ -120,6 +120,16 @@ public sealed class Preset
     [JsonIgnore]
     public bool IsGroup => Kind == PresetKind.Group;
 
+    /// <summary>
+    /// True if converting a <paramref name="sourceFormat"/> file saves every frame as a picture
+    /// (<see cref="MediaOptions.SaveEveryFrame"/>): the file is a video and the target one of
+    /// <see cref="MediaOptions.FrameTargets"/>. Other files, and other targets, convert as usual.
+    /// </summary>
+    public bool SavesFramesOf(string sourceFormat) =>
+        Media.SaveEveryFrame
+        && MediaOptions.FrameTargets.Contains(TargetFormat)
+        && Formats.FormatRegistry.FindById(sourceFormat)?.Category == Formats.FormatCategory.Video;
+
     /// <summary>Creates a new random preset id.</summary>
     public static string NewId() => Guid.NewGuid().ToString("N")[..12];
 
@@ -367,7 +377,13 @@ public sealed class MediaOptions
     /// <summary>Audio codec for targets that can hold several (<see cref="MediaCodecs.AudioCodecsFor"/>).</summary>
     public AudioCodec AudioCodec { get; set; } = AudioCodec.Default;
 
-    /// <summary>Video → image: save every frame as an individual image instead of a single still frame.</summary>
+    /// <summary>Picture formats a video's frames can be saved as (<see cref="SaveEveryFrame"/>).</summary>
+    public static readonly IReadOnlyList<string> FrameTargets = ["png", "jpg"];
+
+    /// <summary>
+    /// Video → PNG or JPG: save every frame as a picture, in a folder, instead of one still frame. Only for video
+    /// sources and a target in <see cref="FrameTargets"/> (<see cref="Preset.SavesFramesOf"/>).
+    /// </summary>
     public bool SaveEveryFrame { get; set; }
 
     /// <summary>With <see cref="SaveEveryFrame"/>: extract every Nth frame (1 = every frame).</summary>

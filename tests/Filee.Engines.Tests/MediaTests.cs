@@ -54,7 +54,6 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [InlineData("mov", "apng")]
     [InlineData("rm", "mp4")]
     [InlineData("dss", "mp3")]
-    [InlineData("mp4", "jpg")]
     [InlineData("mp4", "png")]
     [InlineData("ape", "flac")]
     [InlineData("wv", "mp3")]
@@ -76,6 +75,7 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Theory]
+    [InlineData("mp4", "jpg", "magick")]
     [InlineData("mkv", "webp", "magick")]
     [InlineData("mov", "pdf", "pdfsharp")]
     public void Video_to_images_goes_through_one_still_frame_not_an_animated_gif(string from, string to, string imageEngine)
@@ -83,6 +83,55 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         var route = Planner().Plan(from, to);
         Assert.NotNull(route);
         Assert.Equal([("ffmpeg", from, "png"), (imageEngine, "png", to)], route.Steps.Select(s => (s.Converter.Id, s.From, s.To)));
+        Assert.DoesNotContain(route.Steps, s => s.FrameSequence);
+    }
+
+    [Theory]
+    [InlineData("mp4", "png")]
+    [InlineData("mov", "jpg")]
+    [InlineData("mkv", "jpg")]
+    public void Every_frame_is_one_ffmpeg_step_only_when_asked_for(string from, string to)
+    {
+        var frames = Planner().Plan(from, to, frames: true);
+        Assert.NotNull(frames);
+        var step = Assert.Single(frames.Steps);
+        Assert.Equal(("ffmpeg", from, to, true), (step.Converter.Id, step.From, step.To, step.FrameSequence));
+
+        // Without it the same conversion is the still frame, as before.
+        var still = Planner().Plan(from, to);
+        Assert.NotNull(still);
+        Assert.DoesNotContain(still.Steps, s => s.FrameSequence);
+        Assert.Equal(("ffmpeg", from, "png"), (still.Steps[0].Converter.Id, still.Steps[0].From, still.Steps[0].To));
+    }
+
+    [Theory]
+    [InlineData("mp4", "webp")] // frames are PNG or JPG only, never a step towards another format
+    [InlineData("png", "jpg")] // not a video
+    [InlineData("gif", "png")]
+    public void Every_frame_has_no_route_but_its_own(string from, string to) =>
+        Assert.Null(Planner().Plan(from, to, frames: true));
+
+    [Fact]
+    public void A_video_to_jpg_is_still_turned_by_the_image_engine()
+    {
+        // Rotate and flip presets on a video: the still frame is turned by ImageMagick, as before frames existed.
+        var route = Planner().Plan("mp4", "jpg");
+        Assert.NotNull(route);
+        Assert.Equal(1, route.FirstTransformStep());
+    }
+
+    [Fact]
+    public void Ordinary_routes_never_take_a_frame_step()
+    {
+        var planner = Planner();
+        foreach (var from in FormatRegistry.Known.Where(f => f.Category == FormatCategory.Video).Select(f => f.Id))
+        {
+            foreach (var to in new[] { "jpg", "png", "webp", "pdf", "tiff", "gif", "mp4" })
+            {
+                if (planner.Plan(from, to) is { } route)
+                    Assert.DoesNotContain(route.Steps, s => s.FrameSequence);
+            }
+        }
     }
 
     [Theory]

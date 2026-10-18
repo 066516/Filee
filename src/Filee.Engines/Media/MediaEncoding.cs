@@ -143,16 +143,14 @@ internal static class MediaEncoding
     /// <param name="encoders">The encoders the FFmpeg in use has (<c>ffmpeg -encoders</c>); null assumes the pinned build's.</param>
     /// <exception cref="InvalidOperationException">The file lacks the stream the target needs (e.g. no audio track).</exception>
     public static IReadOnlyList<FfmpegPass> Plan(string input, string output, string target, MediaOptions options, MediaInfo info, string workDirectory,
-        CoverExtras? cover = null, IReadOnlySet<string>? encoders = null, int imageQuality = 90)
+        CoverExtras? cover = null, IReadOnlySet<string>? encoders = null)
     {
         if (target == "gif")
             return AnimatedGif(input, output, options, info, workDirectory);
         if (target == "apng")
             return [new FfmpegPass(AnimatedPng(input, output, options, info), 1)];
-        if (target is "jpg" or "jpeg")
-            return [new FfmpegPass(PosterFrame(input, output, info, "mjpeg", imageQuality), 1)];
         if (target == "png")
-            return [new FfmpegPass(PosterFrame(input, output, info, "png"), 1)];
+            return [new FfmpegPass(PosterFrame(input, output, info), 1)];
         if (VideoTargets.TryGetValue(target, out var video))
             return [new FfmpegPass(Video(input, output, target, video, options, info, encoders), 1)];
         if (AudioTargets.TryGetValue(target, out var audio))
@@ -737,26 +735,20 @@ internal static class MediaEncoding
     // ───────────────────────── Still frame ─────────────────────────
 
     /// <summary>
-    /// One full-size frame from a tenth into the video (the first frames are often black), the start for video →
+    /// One full-size PNG frame from a tenth into the video (the first frames are often black), the start for video →
     /// image conversions (the image engines take it from there). Without this edge the route planner would reach
     /// images through an animated GIF of the whole video.
     /// </summary>
-    private static List<string> PosterFrame(string input, string output, MediaInfo info, string format = "png", int quality = 90)
+    private static List<string> PosterFrame(string input, string output, MediaInfo info)
     {
         var video = info.Video ?? throw new InvalidOperationException("The file has no video stream.");
         var seconds = (info.Duration?.TotalSeconds ?? 0) / 10;
-        List<string> args =
+        return
         [
             .. Common, "-ss", seconds.ToString("0.###", CultureInfo.InvariantCulture), "-i", input, "-map", "0:V:0",
-            "-vf", SquarePixels(video) + "null", "-frames:v", "1", "-update", "1",
+            "-vf", SquarePixels(video) + "null", "-frames:v", "1", "-update", "1", "-c:v", "png", "-f", "image2",
+            "-progress", "pipe:1", output,
         ];
-        if (format is "jpg" or "jpeg" or "mjpeg")
-            args.AddRange(["-c:v", "mjpeg", "-q:v", QualityToQv(quality).ToString(CultureInfo.InvariantCulture), "-f", "image2"]);
-        else
-            args.AddRange(["-c:v", "png", "-f", "image2"]);
-
-        args.AddRange(["-progress", "pipe:1", output]);
-        return args;
     }
 
     // ───────────────────────── Still picture → video ─────────────────────────

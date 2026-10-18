@@ -73,12 +73,18 @@ internal sealed class FakeRecorder(string id, params ConversionEdge[] edges) : I
 
     public List<(string To, Filee.Core.Presets.ImageRotation Rotation)> Asked { get; } = [];
 
+    /// <summary>The steps it was asked for: (from, to, every frame).</summary>
+    public List<(string From, string To, bool FrameSequence)> Steps { get; } = [];
+
     public EngineStatus GetStatus() => EngineStatus.Available();
 
     public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
     {
         lock (Asked)
+        {
             Asked.Add((step.To, step.Preset.Image.Rotation));
+            Steps.Add((step.From, step.To, step.FrameSequence));
+        }
         return _writer.ConvertAsync(step, progress, cancellationToken);
     }
 }

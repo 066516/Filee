@@ -22,8 +22,14 @@ namespace Filee.Core.Conversion;
 /// The opposite: never used in routes that start from a raster image. PDF → SVG through LibreOffice keeps a PDF's
 /// vectors, but a photo that became a PDF would only come back as a picture inside an SVG, so images are traced.
 /// </param>
+/// <param name="FrameSequence">
+/// The edge writes every frame of a video as numbered pictures into a folder (<see cref="Presets.MediaOptions.SaveEveryFrame"/>).
+/// It is never part of an ordinary route (a video → JPG stays one still frame), and with
+/// <see cref="RoutePlanner.Plan(string, string, bool)"/> asking for frames it is the whole route.
+/// </param>
 public readonly record struct ConversionEdge(
-    string From, string To, int Cost = 10, bool ImageSourcesOnly = false, bool NotForImageSources = false);
+    string From, string To, int Cost = 10, bool ImageSourcesOnly = false, bool NotForImageSources = false,
+    bool FrameSequence = false);
 
 /// <summary>Whether an engine can currently be used.</summary>
 /// <param name="IsAvailable">True if conversions can run.</param>
@@ -58,13 +64,18 @@ public interface IOutputAllocator
 /// <param name="Preset">Options chosen by the user.</param>
 /// <param name="Output">Where to write results.</param>
 /// <param name="WorkDirectory">Private scratch directory for this job; deleted afterwards.</param>
+/// <param name="FrameSequence">
+/// The step takes a <see cref="ConversionEdge.FrameSequence"/> edge: every frame of the video becomes a picture of
+/// format <paramref name="To"/> in one output folder.
+/// </param>
 public sealed record ConversionStep(
     string InputPath,
     string From,
     string To,
     Preset Preset,
     IOutputAllocator Output,
-    string WorkDirectory);
+    string WorkDirectory,
+    bool FrameSequence = false);
 
 /// <summary>
 /// A conversion engine (ImageMagick, LibreOffice, rhwp, ...).

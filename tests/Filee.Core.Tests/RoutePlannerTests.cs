@@ -52,6 +52,29 @@ public class RoutePlannerTests
     }
 
     [Fact]
+    public void Frame_sequence_edges_are_a_route_of_their_own_only_when_asked_for()
+    {
+        var ffmpeg = new FakeConverter("ffmpeg", new ConversionEdge("mp4", "png"),
+            new ConversionEdge("mp4", "png", FrameSequence: true), new ConversionEdge("mp4", "jpg", FrameSequence: true));
+        var magick = new FakeConverter("magick", new ConversionEdge("png", "jpg"), new ConversionEdge("png", "webp"));
+        var planner = new RoutePlanner([ffmpeg, magick]);
+
+        // Ordinary routes: one still frame, then the image engine. The frame edge to JPG is never taken.
+        var still = planner.Plan("mp4", "jpg")!;
+        Assert.Equal(["mp4→png", "png→jpg"], still.Steps.Select(s => $"{s.From}→{s.To}"));
+        Assert.DoesNotContain(still.Steps, s => s.FrameSequence);
+        Assert.False(planner.Plan("mp4", "png")!.Steps.Single().FrameSequence);
+
+        // Frames: the frame edge alone, never as a step towards another format.
+        var frames = planner.Plan("mp4", "jpg", frames: true)!;
+        Assert.Equal(("mp4", "jpg", true), (frames.Steps.Single().From, frames.Steps.Single().To, frames.Steps.Single().FrameSequence));
+        Assert.True(planner.Plan("mp4", "png", frames: true)!.Steps.Single().FrameSequence);
+        Assert.Null(planner.Plan("mp4", "webp", frames: true));
+        Assert.Null(planner.Plan("png", "jpg", frames: true));
+        Assert.False(planner.CanConvert("mov", "jpg", frames: true));
+    }
+
+    [Fact]
     public void Cheaper_route_wins()
     {
         var slow = new FakeConverter("slow", new ConversionEdge("docx", "pdf", 30));
