@@ -82,11 +82,12 @@ public sealed class MemoryTrimmer : IDisposable
             var watch = Stopwatch.StartNew();
             var before = PrivateMegabytes();
             EngineCaches.Release();
-            // Not Aggressive and no LOH compaction (5-8 MB more would go): both move the large object heap, which native
-            // code may hold pointers into, e.g. a rendered frame Skia encodes on the UI thread (it crashed on CI).
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+            // Without compacting: a compacting collection moves old objects, and native code (the UI's Skia renderer)
+            // can hold pointers into them; the test run crashed in Skia half a minute after such a trim. Garbage is
+            // freed and empty heap regions are decommitted all the same.
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: false);
             GC.WaitForPendingFinalizers();
-            GC.Collect();
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: false);
             ProcessMemory.TrimWorkingSet();
             log.LogInformation("Trimmed memory: private {Before} MB → {After} MB (managed heap {Heap} MB) in {Elapsed} ms",
                 before, PrivateMegabytes(), GC.GetTotalMemory(false) / (1024 * 1024), watch.ElapsedMilliseconds);
