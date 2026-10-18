@@ -408,6 +408,11 @@ public sealed class JobQueue : IAsyncDisposable
             Notify(job);
             return [];
         }
+        catch (ConversionRefusedException ex)
+        {
+            _log.LogInformation("Converting {File} was refused: {Reason}", file.SourcePath, ex.Message);
+            return Fail(file, ex.ErrorKey, ex.Detail);
+        }
         catch (Exception ex)
         {
             _log.LogWarning(ex, "Converting {File} failed", file.SourcePath);

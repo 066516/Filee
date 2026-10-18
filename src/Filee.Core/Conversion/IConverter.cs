@@ -31,6 +31,20 @@ public readonly record struct ConversionEdge(
     string From, string To, int Cost = 10, bool ImageSourcesOnly = false, bool NotForImageSources = false,
     bool FrameSequence = false);
 
+/// <summary>
+/// A conversion an engine refuses with a reason the user can act on, shown in their language (the file's
+/// <see cref="FileResult.ErrorKey"/>) instead of "The engine reported an error".
+/// </summary>
+/// <param name="errorKey">Localization key of the reason, e.g. <c>error.too_many_frames</c>.</param>
+/// <param name="detail">Non-localized detail shown after it in brackets (numbers, a name), or null.</param>
+public sealed class ConversionRefusedException(string errorKey, string? detail = null)
+    : Exception(detail is null ? errorKey : $"{errorKey} ({detail})")
+{
+    public string ErrorKey { get; } = errorKey;
+
+    public string? Detail { get; } = detail;
+}
+
 /// <summary>Whether an engine can currently be used.</summary>
 /// <param name="IsAvailable">True if conversions can run.</param>
 /// <param name="ReasonKey">Localization key explaining why the engine is unavailable (e.g. <c>engine.reason.not_installed</c>).</param>

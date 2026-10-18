@@ -287,7 +287,13 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private Choice<ArchiveLevel> _archiveLevel;
     [ObservableProperty] private bool _combineIntoOne;
     [ObservableProperty] private bool _saveEveryFrame;
-    [ObservableProperty] private int _frameInterval = 1;
+
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(FrameEstimate))]
+    private int _frameInterval = 1;
+
+    /// <summary>How many pictures a minute of 30 fps video gives at the chosen interval, and the limit per video.</summary>
+    public string FrameEstimate => _loc.Format("presets.frame_estimate",
+        (int)Math.Ceiling(1800.0 / Math.Clamp(FrameInterval, 1, 1000)), MediaOptions.MaxFrames.ToString("N0", System.Globalization.CultureInfo.InvariantCulture));
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowTraceColors))]
     private Choice<TracingMode> _traceMode;

@@ -671,6 +671,8 @@ public class RenderTests
         var vm = new PresetEditorViewModel(preset, loc);
         Assert.True(vm.ShowSaveEveryFrame);
         vm.SaveEveryFrame = true;
+        vm.FrameInterval = 5;
+        Assert.Equal("One minute of 30 fps video gives 360 pictures, at most 100,000 per video.", vm.FrameEstimate);
         vm.FrameInterval = 5000; // out of range: clamped
         Assert.True(vm.Apply());
         Assert.True(preset.Media.SaveEveryFrame);

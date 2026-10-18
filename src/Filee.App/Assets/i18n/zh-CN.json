@@ -58,6 +58,8 @@
   "error.unsupported_source": "不支持此文件类型",
   "error.no_route": "没有引擎可以完成此转换",
   "error.cannot_turn": "只能旋转和翻转图片",
+  "error.too_many_frames": "帧数太多，请调大“每 N 帧”",
+  "error.not_enough_space": "磁盘空间不足，无法保存这些图片",
   "error.conversion_failed": "转换引擎出错",
 
   "engine.reason.not_installed": "未安装",
@@ -370,6 +372,7 @@
   "presets.save_every_frame": "将所有帧保存为图像",
   "presets.save_every_frame_hint": "从视频转换时：将所有帧提取到专用子文件夹中，而不是仅保存单张静态图像。",
   "presets.frame_interval": "每 N 帧",
+  "presets.frame_estimate": "30 fps 的视频每分钟生成 {0} 张图片，每个视频最多 {1} 张。",
   "presets.ico_sizes": "图标尺寸",
   "presets.group.pdf": "PDF",
   "presets.merge": "将所有文件合并为一个 PDF",

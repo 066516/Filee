@@ -16,12 +16,17 @@ internal sealed class FakeConverter(string id, params ConversionEdge[] edges) : 
 
     public bool Throw { get; set; }
 
+    /// <summary>Thrown instead of converting, when set.</summary>
+    public Exception? Failure { get; set; }
+
     public EngineStatus GetStatus() => Available ? EngineStatus.Available() : EngineStatus.Unavailable("engine.reason.not_installed");
 
     public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
     {
         if (Throw)
             throw new InvalidOperationException("boom");
+        if (Failure is not null)
+            throw Failure;
 
         var written = new List<string>();
         for (var i = 0; i < OutputsPerInput; i++)

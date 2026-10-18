@@ -389,6 +389,12 @@ public sealed class MediaOptions
     /// <summary>With <see cref="SaveEveryFrame"/>: extract every Nth frame (1 = every frame).</summary>
     public int FrameInterval { get; set; } = 1;
 
+    /// <summary>
+    /// Most pictures one video may become (<see cref="SaveEveryFrame"/>): about an hour at 30 fps, already more than
+    /// anyone looks through. A longer video needs a larger <see cref="FrameInterval"/>.
+    /// </summary>
+    public const long MaxFrames = 100_000;
+
     /// <summary>With <see cref="SaveEveryFrame"/>: target frames per second (0 = keep source rate).</summary>
     public double FramesPerSecond { get; set; }
 

@@ -925,6 +925,25 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public void Every_frame_is_estimated_before_anything_is_written()
+    {
+        var hd = new VideoStreamInfo(1920, 1080, 1, 0, 30);
+        var hour = new MediaInfo(TimeSpan.FromHours(1), hd, null, null);
+        // An hour at 30 fps: 108,000 pictures, over the limit; every second frame is fine.
+        Assert.Equal(108_000, FrameSequenceWriter.EstimatedFrames(hour, 1));
+        Assert.Equal(54_000, FrameSequenceWriter.EstimatedFrames(hour, 2));
+        Assert.True(FrameSequenceWriter.EstimatedFrames(hour, 1) > MediaOptions.MaxFrames);
+        // Unknown duration or frame rate: no estimate, no refusal.
+        Assert.Null(FrameSequenceWriter.EstimatedFrames(hour with { Duration = null }, 1));
+        Assert.Null(FrameSequenceWriter.EstimatedFrames(hour with { Video = hd with { FrameRate = 0 } }, 1));
+
+        // Full HD: about 3 MB a PNG, half a MB a JPG; 10-bit video becomes 16-bit PNG, twice the size.
+        Assert.Equal(3_110_400, FrameSequenceWriter.EstimatedBytes(hd, "png", 1));
+        Assert.Equal(518_400, FrameSequenceWriter.EstimatedBytes(hd, "jpg", 1));
+        Assert.Equal(6_220_800, FrameSequenceWriter.EstimatedBytes(hd with { PixelFormat = "yuv420p10le" }, "png", 1));
+    }
+
+    [Fact]
     public async Task Every_frame_of_a_variable_frame_rate_video_is_saved_once()
     {
         SkipUnlessInstalled();

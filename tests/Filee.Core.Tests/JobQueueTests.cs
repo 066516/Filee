@@ -133,6 +133,24 @@ public class JobQueueTests
     }
 
     [Fact]
+    public async Task A_refused_conversion_says_why_in_the_users_language()
+    {
+        using var dir = new TempDir();
+        var video = dir.File("long.mp4");
+        var ffmpeg = new FakeConverter("ffmpeg", new ConversionEdge("mp4", "png", FrameSequence: true))
+        {
+            Failure = new ConversionRefusedException("error.too_many_frames", "216,000 > 100,000"),
+        };
+        await using var queue = new JobQueue(new ConverterCatalog([ffmpeg]));
+
+        var job = await Run(queue, [video], new Preset { TargetFormat = "png", Media = { SaveEveryFrame = true } });
+
+        var file = job.Files.Single();
+        Assert.Equal(FileState.Failed, file.State);
+        Assert.Equal(("error.too_many_frames", "216,000 > 100,000"), (file.ErrorKey, file.ErrorDetail));
+    }
+
+    [Fact]
     public async Task Multi_step_route_keeps_intermediates_out_of_the_output_folder()
     {
         using var dir = new TempDir();
