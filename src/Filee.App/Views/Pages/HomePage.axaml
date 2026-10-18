@@ -39,6 +39,21 @@
       </DockPanel>
     </Border>
 
+    <!-- Windows: Filee runs as administrator while Explorer doesn't. Explorer can't drop files here, use the menu or
+         have its selection read until Filee runs with normal rights again. -->
+    <Border IsVisible="{Binding IsElevated}" Background="{DynamicResource AccentFaintBrush}"
+            BorderBrush="{DynamicResource DangerBrush}" BorderThickness="1" CornerRadius="{DynamicResource SoftRadius}" Padding="14,10">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0" Classes="accent"
+                Content="{DynamicResource home.elevated_restart}" Command="{Binding RestartWithoutAdministratorRightsCommand}" />
+        <StackPanel Spacing="6" VerticalAlignment="Center">
+          <TextBlock TextWrapping="Wrap" Text="{DynamicResource home.elevated}" />
+          <TextBlock Classes="caption danger" TextWrapping="Wrap" IsVisible="{Binding ElevationRestartFailed}"
+                     Text="{DynamicResource home.elevated_restart_failed}" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
     <!-- Drop zone: files dropped here open the donut toolbar at the cursor. -->
     <Border x:Name="DropZone" DragDrop.AllowDrop="True" MinHeight="220"
             Background="{DynamicResource AccentFaintBrush}" BorderBrush="{DynamicResource AccentSoftBrush}"

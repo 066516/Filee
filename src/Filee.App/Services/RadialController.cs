@@ -46,6 +46,10 @@ public sealed class RadialController(
     private JobViewModel? _lastRingJob;   // for "click the ✓ to open the folder"
     private IDisposable? _handOffTimer;
     private int _dragGeneration;
+    private bool _dragReachedDonut;
+
+    /// <summary>A gesture over something that isn't a file drag (a rubber-band selection) is common: a line now and then.</summary>
+    private static readonly LogThrottle Throttle = new(TimeSpan.FromMinutes(1));
 
     /// <summary>
     /// How long a drag that never brought files may keep the invisible window up, in case the button release is
@@ -69,6 +73,7 @@ public sealed class RadialController(
         // A ring from an earlier conversion (finished or handed to the toast) must not keep this gesture's window up.
         window.DonutControl.LeaveProgressMode();
         _dropped = false;
+        _dragReachedDonut = false;
         viewModel.ResetForDrag();
         window.DonutControl.AllowContextEdit = false;
         PlaceAndShow(window, x, y, activate: false);
@@ -101,6 +106,12 @@ public sealed class RadialController(
     {
         if (!_visible || viewModel.IsClickMode)
             return;
+        // No drag ever entered the donut's window: nothing was dragged (a rubber-band selection), or Windows kept
+        // Explorer's drag out (Filee runs as administrator). Tells "the donut didn't react" reports apart.
+        if (!_dragReachedDonut && Throttle.TryEnter("no-drag-enter", out var held))
+            log.LogInformation("Drag gesture ended without a drag entering the donut{Elevation}{Held}",
+                Program.Elevation.ShellCannotReachFilee ? " (Filee runs as administrator: Windows blocks drops from Explorer)" : "",
+                LogThrottle.HeldText(held));
         // Nothing was brought to the donut: the window is invisible but catches clicks, so go right away.
         if (!viewModel.HasFiles && !_window!.DonutControl.IsInProgressMode)
         {
@@ -154,6 +165,7 @@ public sealed class RadialController(
         var window = new RadialWindow { DataContext = viewModel };
         var donut = window.DonutControl;
 
+        window.DragEntered += () => _dragReachedDonut = true;
         window.FilesEntered += files =>
         {
             if (viewModel.IsClickMode || SameFiles(files, viewModel.Files))

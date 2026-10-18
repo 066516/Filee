@@ -142,10 +142,48 @@ public sealed class EngineEnvironment(string dataDirectory)
         SystemCopyFolder(id) is { } folder ? Path.Combine(folder, ProgramName(program)) : null;
 
     /// <summary>Searches the PC again (Settings → Engines → Check again, settings changes).</summary>
-    public static void ForgetSystemCopies() => SystemCopies.Clear();
+    public static void ForgetSystemCopies()
+    {
+        SystemCopies.Clear();
+        ReachableShares.Clear();
+    }
 
     private static string? FindOnSystem(string id) =>
-        SystemFolders(id).Select(folder => FolderWithPrograms(id, folder)).FirstOrDefault(found => found is not null);
+        SystemFolders(id).Where(IsReachable).Select(folder => FolderWithPrograms(id, folder)).FirstOrDefault(found => found is not null);
+
+    /// <summary>How long a network share on the PATH may take to answer before the search leaves it out.</summary>
+    private static readonly TimeSpan ShareTimeout = TimeSpan.FromSeconds(2);
+
+    private static readonly ConcurrentDictionary<string, bool> ReachableShares = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// False for a folder on a network share that doesn't answer in time. A PATH entry on a server that is offline
+    /// (a mapped work share at home) made every file check wait for the network timeout, many seconds each, and the
+    /// search runs for every engine. Each share is asked once, until <see cref="ForgetSystemCopies"/>.
+    /// </summary>
+    private static bool IsReachable(string folder)
+    {
+        if (ShareOf(folder) is not { } share)
+            return true;
+        return ReachableShares.GetOrAdd(share, s =>
+        {
+            var probe = Task.Run(() => Directory.Exists(s));
+            return probe.Wait(ShareTimeout) && probe.Result;
+        });
+    }
+
+    /// <summary>
+    /// The share root of a UNC path (<c>\\server\share</c>), or null for a local path. Device paths (<c>\\?\</c>,
+    /// <c>\\.\</c>) are local. Plain string work, the same on every OS.
+    /// </summary>
+    internal static string? ShareOf(string path)
+    {
+        if (!path.StartsWith(@"\\", StringComparison.Ordinal) || path.StartsWith(@"\\?\", StringComparison.Ordinal)
+            || path.StartsWith(@"\\.\", StringComparison.Ordinal))
+            return null;
+        var parts = path[2..].Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2 ? $@"\\{parts[0]}\{parts[1]}" : parts.Length == 1 ? $@"\\{parts[0]}" : null;
+    }
 
     private static IEnumerable<string> SystemFolders(string id)
     {
