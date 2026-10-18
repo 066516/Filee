@@ -130,6 +130,17 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services)
         _feedbackNotice.Show();
     }
 
+    /// <summary>Shows the "Filee is running as administrator" card in the bottom-right corner (once per run).</summary>
+    public void ShowElevationNotice()
+    {
+        if (_elevationNoticeShown)
+            return;
+        _elevationNoticeShown = true;
+        new ElevationNoticeWindow(services.GetRequiredService<ElevationService>()).Show();
+    }
+
+    private bool _elevationNoticeShown;
+
     /// <summary>Opens the preset popup. Returns true when the user saved (the preset object was updated).</summary>
     public async Task<bool> EditPresetAsync(Preset preset, Window? owner)
     {

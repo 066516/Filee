@@ -44,6 +44,7 @@ public static class AppHost
         services.AddSingleton<ILocalizer>(sp => sp.GetRequiredService<LocalizationService>());
         services.AddSingleton<ThemeService>();
         services.AddSingleton<SystemIntegrationService>();
+        services.AddSingleton<ElevationService>();
 
         // Conversion engines
         services.AddSingleton(_ => new EngineEnvironment(dataDir));

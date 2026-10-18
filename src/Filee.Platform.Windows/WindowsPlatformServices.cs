@@ -105,6 +105,17 @@ public sealed class WindowsPlatformServices : IPlatformServices
         return [];
     }
 
+    public string DescribeForegroundWindow()
+    {
+        var foreground = NativeMethods.GetForegroundWindow();
+        if (foreground == 0)
+            return "no foreground window";
+        var root = NativeMethods.GetAncestor(foreground, NativeMethods.GA_ROOT);
+        if (root == 0)
+            root = foreground;
+        return $"{NativeMethods.ClassNameOf(root)} / {ProcessNameOf(root) ?? "?"}";
+    }
+
     public int SystemDragThreshold => Math.Max(2, NativeMethods.GetSystemMetrics(NativeMethods.SM_CXDRAG));
 
     public bool PrefersReducedMotion =>

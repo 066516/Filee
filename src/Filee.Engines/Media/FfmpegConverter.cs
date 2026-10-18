@@ -175,13 +175,8 @@ public sealed partial class FfmpegConverter : IConverter, IImageTransformer
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             }) ?? throw new InvalidOperationException("FFmpeg could not be started.");
-            var firstLine = process.StandardOutput.ReadLine() ?? "";
-            process.StandardOutput.ReadToEnd();
-            if (!process.WaitForExit(10_000))
-            {
-                process.Kill(entireProcessTree: true);
-                throw new InvalidOperationException("FFmpeg did not start in time.");
-            }
+            var firstLine = (OutputWithin(process, ProbeTimeout) ?? throw new InvalidOperationException("FFmpeg did not start in time."))
+                .Split('\n')[0];
             if (process.ExitCode != 0)
                 throw new InvalidOperationException($"FFmpeg does not start (exit code {process.ExitCode}).");
             // "ffmpeg version 9.0.2-full_build-www.gyan.dev Copyright …" → "9.0.2"
@@ -212,10 +207,8 @@ public sealed partial class FfmpegConverter : IConverter, IImageTransformer
                 });
                 if (process is null)
                     return null;
-                process.ErrorDataReceived += (_, _) => { };
-                process.BeginErrorReadLine();
-                var list = process.StandardOutput.ReadToEnd();
-                if (!process.WaitForExit(10_000) || process.ExitCode != 0)
+                var list = OutputWithin(process, ProbeTimeout);
+                if (list is null || process.ExitCode != 0)
                     return null;
                 // " V....D libx265              libx265 H.265 / HEVC (codec hevc)"
                 return list.Split('\n')
@@ -229,6 +222,41 @@ public sealed partial class FfmpegConverter : IConverter, IImageTransformer
                 return null;
             }
         });
+
+    /// <summary>How long <c>-version</c> and <c>-encoders</c> may take (they answer in well under a second).</summary>
+    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// Standard output of a started <paramref name="process"/> once it has exited, or null (and the process killed)
+    /// when it doesn't exit within <paramref name="timeout"/>. Both streams are read in the background: reading
+    /// standard output to its end first waited for ever on an FFmpeg that hung, the timeout never came into play.
+    /// </summary>
+    internal static string? OutputWithin(Process process, TimeSpan timeout)
+    {
+        var output = process.StandardOutput.ReadToEndAsync();
+        var errors = process.StandardError.ReadToEndAsync(); // drained, so a full pipe can't stall the program
+        if (!process.WaitForExit(timeout))
+        {
+            try
+            {
+                process.Kill(entireProcessTree: true);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+                // Exited meanwhile.
+            }
+            return null;
+        }
+        // Exited: the streams end now (a grandchild that kept them open must not hold this up either).
+        try
+        {
+            return Task.WhenAll(output, errors).Wait(TimeSpan.FromSeconds(5)) ? output.Result : null;
+        }
+        catch (AggregateException)
+        {
+            return null; // a pipe broke while reading
+        }
+    }
 
     private static void TryDelete(string path)
     {
