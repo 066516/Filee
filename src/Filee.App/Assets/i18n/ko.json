@@ -65,6 +65,8 @@
   "error.unsupported_source": "지원하지 않는 파일 형식이에요",
   "error.no_route": "이 변환을 할 수 있는 엔진이 없어요",
   "error.cannot_turn": "회전·반전은 이미지에만 할 수 있어요",
+  "error.too_many_frames": "프레임이 너무 많아요. 'N번째 프레임마다' 값을 늘려 주세요",
+  "error.not_enough_space": "이미지를 저장할 디스크 공간이 부족해요",
   "error.conversion_failed": "엔진에서 오류가 발생했어요",
 
   "engine.reason.not_installed": "설치되지 않음",
@@ -142,6 +144,8 @@
   "preset.extract_subtitles": "자막 추출",
   "preset.trace_svg": "벡터화",
   "preset.trace_line_art": "흑백 선화",
+  "preset.extract_frames_png": "프레임 추출 (PNG)",
+  "preset.extract_frames_jpg": "프레임 추출 (JPG)",
 
   "format.folder": "폴더",
   "format.category.Image": "이미지",
@@ -371,6 +375,10 @@
   "presets.webp_lossless": "무손실 WEBP",
   "presets.multipage_tiff": "모든 파일을 여러 페이지짜리 TIFF 하나로 합치기",
   "presets.multipage_tiff_hint": "이미지 한 장, PDF·TIFF 한 페이지가 순서대로 한 페이지씩 들어가요.\nPDF 하나만 넣어도 여러 페이지 TIFF가 돼요.",
+  "presets.save_every_frame": "동영상의 모든 프레임 저장하기",
+  "presets.save_every_frame_hint": "동영상에서 정지 이미지 한 장 대신 프레임마다 이미지를 만들어 폴더 하나에 담아요.\n긴 동영상은 파일이 아주 많이 생겨요.",
+  "presets.frame_interval": "N번째 프레임마다",
+  "presets.frame_estimate": "30fps 동영상 1분이면 이미지 {0}장이 생겨요. 동영상 하나에 최대 {1}장까지예요.",
   "presets.ico_sizes": "아이콘 크기",
   "presets.group.pdf": "PDF",
   "presets.merge": "모든 파일을 하나의 PDF로 합치기",

@@ -1,14 +1,15 @@
 // Video and audio conversion with FFmpeg (GPL-3.0 build, an optional download run as a separate program in
-// engines/ffmpeg): video ↔ video (H.264, HEVC, AV1, …), video → animated GIF / APNG or a still frame, audio
-// extraction, subtitle extraction (the first text track as SRT / ASS / WebVTT), audio ↔ audio and GIF, APNG or a still
-// picture → video, and images → HEIC (FFmpeg's HEVC encoder, Filee's own container writer).
-// Container and codec choices live in MediaEncoding, the process handling in FfmpegRunner, hardware encoders in
-// HardwareVideo (options) and HardwareProbe (which one works here).
+// engines/ffmpeg): video ↔ video (H.264, HEVC, AV1, …), video → animated GIF / APNG, a still frame or every frame
+// (FrameSequenceWriter), audio extraction, subtitle extraction (the first text track as SRT / ASS / WebVTT), audio ↔
+// audio and GIF, APNG or a still picture → video, and images → HEIC (FFmpeg's HEVC encoder, Filee's own container
+// writer). Container and codec choices live in MediaEncoding, the process handling in FfmpegRunner, hardware encoders
+// in HardwareVideo (options) and HardwareProbe (which one works here).
 
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using Filee.Core.Conversion;
 using Filee.Core.Formats;
+using Filee.Core.Presets;
 using Filee.Engines.Heic;
 using Filee.Engines.Infrastructure;
 using Filee.Engines.Magick;
@@ -49,6 +50,7 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
 
     /// <summary>
     /// Every video format (read by FFmpeg's demuxers) → every video target, animated GIF or APNG, a still PNG frame,
+    /// every frame as PNG or JPG pictures (only when a preset asks for it, see <see cref="ConversionEdge.FrameSequence"/>),
     /// every audio target and SRT / ASS / WebVTT (its subtitles); every audio format → every audio target (including
     /// itself: re-encode with another bitrate); GIF, APNG and PNG → MP4, WEBM, MOV; every image ImageMagick reads →
     /// HEIC. Only formats the pinned build can write are targets (see MediaEncoding).
@@ -69,6 +71,8 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
         return
         [
             .. from source in videos from target in videoTargets select new ConversionEdge(source, target),
+            // "Save every frame": a folder of numbered pictures, only when a preset asks for it (never in another route).
+            .. from source in videos from target in MediaOptions.FrameTargets select new ConversionEdge(source, target, FrameSequence: true),
             // Subtitles out of a video. SRT is the hub to the other subtitle formats (the subtitle engine takes it on),
             // so ASS and WebVTT cost a little more and are only taken when they are the target.
             .. from source in videos from target in MediaEncoding.SubtitleTargets.Keys
@@ -108,6 +112,9 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
         var input = Path.GetFullPath(step.InputPath);
         var info = await MediaInfo.ProbeAsync(ffprobe, input, cancellationToken);
         progress?.Report(0.02);
+
+        if (step.FrameSequence)
+            return await FrameSequenceWriter.ConvertAsync(ffmpeg, step, input, info, progress, cancellationToken);
 
         var output = step.Output.Allocate(FormatRegistry.Get(step.To).PrimaryExtension);
         if (output is null)
@@ -199,7 +206,7 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
     }
 
     /// <summary>Runs one pass and maps FFmpeg's position (seconds) onto this pass' share of the progress.</summary>
-    private static async Task RunPassAsync(string ffmpeg, FfmpegPass pass, TimeSpan? duration, IProgress<double>? progress, double done, CancellationToken cancellationToken)
+    internal static async Task RunPassAsync(string ffmpeg, FfmpegPass pass, TimeSpan? duration, IProgress<double>? progress, double done, CancellationToken cancellationToken)
     {
         var total = duration?.TotalSeconds ?? 0;
         Action<double>? onPosition = progress is null || total <= 0

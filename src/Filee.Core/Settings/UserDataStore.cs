@@ -495,6 +495,23 @@ internal static class SettingsMigrations
         //      the user changed gets it when it has room.
         if (from < 18)
             changed |= AddPdfSlides(presets, profiles);
+        // v19: "Extract frames" (every frame of a video as PNG or JPG pictures in a folder), on no donut, after "PPTX
+        //      (slides)" or "Split PDF" as in a new library: a long video gives thousands of files, so users add them in
+        //      Settings → Toolbar.
+        if (from < 19)
+        {
+            var at = presets.FindIndex(p => p.Id == "pdf-slides");
+            if (at < 0)
+                at = presets.FindIndex(p => p.Id == "pdf-split");
+            at = at < 0 ? presets.Count : at + 1;
+            foreach (var preset in BuiltInData.FramePresets())
+            {
+                if (presets.Any(p => p.Id == preset.Id))
+                    continue;
+                presets.Insert(Math.Min(at++, presets.Count), preset);
+                changed = true;
+            }
+        }
         return changed;
     }
 

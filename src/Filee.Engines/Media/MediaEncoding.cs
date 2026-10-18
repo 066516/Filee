@@ -164,6 +164,49 @@ internal static class MediaEncoding
         throw new NotSupportedException($"FFmpeg cannot write '{target}'.");
     }
 
+    /// <summary>
+    /// Maps preset image quality (1..100, 100 best) to FFmpeg's mjpeg -q:v parameter (1..31, 1 best, 2..3 visually lossless).
+    /// </summary>
+    public static int QualityToQv(int quality)
+    {
+        var clamped = Math.Clamp(quality, 1, 100);
+        return Math.Clamp((int)Math.Round(2.0 + (100 - clamped) * 29.0 / 99.0), 1, 31);
+    }
+
+    /// <summary>
+    /// Every frame (or every <paramref name="frameInterval"/>th) of the first video stream as numbered pictures in
+    /// <paramref name="outputPattern"/> (an image2 pattern such as <c>frame_%06d.png</c>), for focus stacking and
+    /// picking a shot.
+    /// </summary>
+    /// <remarks>
+    /// Each decoded frame is written once. The image2 muxer would otherwise pace frames to a constant rate and
+    /// duplicate (or drop) frames of a variable frame rate video (phones), so frames pass through with their own
+    /// timestamps; with an interval the select filter leaves gaps, which <c>vfr</c> keeps as they are.
+    /// </remarks>
+    public static List<string> FrameSequence(
+        string input,
+        string outputPattern,
+        string imageExt,
+        VideoStreamInfo? video = null,
+        int quality = 90,
+        int frameInterval = 1)
+    {
+        var select = frameInterval > 1 ? $"select='not(mod(n\\,{frameInterval}))'" : "null";
+        List<string> args =
+        [
+            .. Common, "-i", input, "-map", "0:V:0", "-vf", (video is null ? "" : SquarePixels(video)) + select,
+            "-fps_mode", frameInterval > 1 ? "vfr" : "passthrough",
+        ];
+
+        if (imageExt is "jpg" or "jpeg")
+            args.AddRange(["-c:v", "mjpeg", "-q:v", QualityToQv(quality).ToString(CultureInfo.InvariantCulture)]);
+        else
+            args.AddRange(["-c:v", "png"]);
+
+        args.AddRange(["-f", "image2", "-progress", "pipe:1", outputPattern]);
+        return args;
+    }
+
     // ───────────────────────── Video ─────────────────────────
 
     /// <summary>

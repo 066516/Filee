@@ -191,12 +191,20 @@ internal static class FfmpegRunner
         return line;
     }
 
+    /// <summary>How long a killed FFmpeg may take to exit (and let go of its output) before the caller moves on.</summary>
+    private static readonly TimeSpan ExitAfterKill = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// Kills FFmpeg and waits until it has exited: Kill only asks Windows to end it, and a process that still runs
+    /// holds its output open, so the half-written file or folder of frames could not be deleted yet.
+    /// </summary>
     private static void Kill(Process process)
     {
         try
         {
             if (!process.HasExited)
                 process.Kill(entireProcessTree: true);
+            process.WaitForExit(ExitAfterKill);
         }
         catch (InvalidOperationException) { }
         catch (System.ComponentModel.Win32Exception) { }

@@ -103,6 +103,54 @@ public class JobQueueTests
     }
 
     [Fact]
+    public async Task Every_frame_is_saved_only_for_videos_and_the_frame_targets()
+    {
+        using var dir = new TempDir();
+        var video = dir.File("clip.mp4");
+        var photo = dir.File("photo.png");
+        var ffmpeg = new FakeRecorder("ffmpeg", new ConversionEdge("mp4", "png"),
+            new ConversionEdge("mp4", "png", FrameSequence: true), new ConversionEdge("mp4", "jpg", FrameSequence: true));
+        var magick = new FakeTurner("magick", new ConversionEdge("png", "jpg"), new ConversionEdge("png", "webp"));
+        await using var queue = new JobQueue(new ConverterCatalog([ffmpeg, magick]));
+
+        // Without "save every frame" a video → JPG is a still frame the image engine turns, as always.
+        var turned = await Run(queue, [video], new Preset { TargetFormat = "jpg", Image = { Rotation = ImageRotation.Left90 } });
+        Assert.Equal(JobState.Completed, turned.State);
+        Assert.Equal([("mp4", "png", false)], ffmpeg.Steps);
+        Assert.Equal([("jpg", ImageRotation.Left90)], magick.Asked);
+
+        // With it: one step that saves the frames.
+        ffmpeg.Steps.Clear();
+        var frames = await Run(queue, [video], new Preset { TargetFormat = "jpg", Media = { SaveEveryFrame = true } });
+        Assert.Equal(JobState.Completed, frames.State);
+        Assert.Equal([("mp4", "jpg", true)], ffmpeg.Steps);
+
+        // A target frames can't be (left over from an earlier PNG target) or a picture: converted as usual.
+        ffmpeg.Steps.Clear();
+        await Run(queue, [video], new Preset { TargetFormat = "webp", Media = { SaveEveryFrame = true } });
+        await Run(queue, [photo], new Preset { TargetFormat = "jpg", Media = { SaveEveryFrame = true } });
+        Assert.Equal([("mp4", "png", false)], ffmpeg.Steps);
+    }
+
+    [Fact]
+    public async Task A_refused_conversion_says_why_in_the_users_language()
+    {
+        using var dir = new TempDir();
+        var video = dir.File("long.mp4");
+        var ffmpeg = new FakeConverter("ffmpeg", new ConversionEdge("mp4", "png", FrameSequence: true))
+        {
+            Failure = new ConversionRefusedException("error.too_many_frames", "216,000 > 100,000"),
+        };
+        await using var queue = new JobQueue(new ConverterCatalog([ffmpeg]));
+
+        var job = await Run(queue, [video], new Preset { TargetFormat = "png", Media = { SaveEveryFrame = true } });
+
+        var file = job.Files.Single();
+        Assert.Equal(FileState.Failed, file.State);
+        Assert.Equal(("error.too_many_frames", "216,000 > 100,000"), (file.ErrorKey, file.ErrorDetail));
+    }
+
+    [Fact]
     public async Task Multi_step_route_keeps_intermediates_out_of_the_output_folder()
     {
         using var dir = new TempDir();

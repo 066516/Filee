@@ -331,7 +331,9 @@ public sealed class JobQueue : IAsyncDisposable
             : job.Preset.TargetFormat == BuiltInData.SameAsSource ? source.Id
             : job.Preset.TargetFormat;
 
-        var route = planner.Plan(source.Id, target);
+        // "Save every frame": a video becomes a folder of pictures in one step of its own. Never for an intermediate
+        // file, and never on the way to another format (video → JPG is otherwise one still frame).
+        var route = planner.Plan(source.Id, target, frames: finalOutput && job.Preset.SavesFramesOf(source.Id));
         if (route is null)
             return Fail(file, "error.no_route", $"{source.Id} → {target}");
 
@@ -378,7 +380,7 @@ public sealed class JobQueue : IAsyncDisposable
                         // Turned once, in step turnAt: every other step gets the preset without rotation and flip,
                         // also one before it whose engine applies image options but doesn't say it turns.
                         var preset = s == turnAt ? job.Preset : unturned;
-                        var stepInfo = new ConversionStep(input, step.From, step.To, preset, allocator, workDir);
+                        var stepInfo = new ConversionStep(input, step.From, step.To, preset, allocator, workDir, step.FrameSequence);
                         outputs.AddRange(await step.Converter.ConvertAsync(stepInfo, progress, ct));
                     }
                     finally
@@ -405,6 +407,11 @@ public sealed class JobQueue : IAsyncDisposable
             file.State = FileState.Cancelled;
             Notify(job);
             return [];
+        }
+        catch (ConversionRefusedException ex)
+        {
+            _log.LogInformation("Converting {File} was refused: {Reason}", file.SourcePath, ex.Message);
+            return Fail(file, ex.ErrorKey, ex.Detail);
         }
         catch (Exception ex)
         {

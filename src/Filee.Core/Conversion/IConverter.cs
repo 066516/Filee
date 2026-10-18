@@ -27,8 +27,28 @@ namespace Filee.Core.Conversion;
 /// <paramref name="To"/> is what the user asked for. PDF → PPTX puts pictures of the pages on slides; a Word document
 /// rendered to PDF must not become pictures on slides, and a picture deck must not be a step towards ODP or PPSX.
 /// </param>
+/// <param name="FrameSequence">
+/// The edge writes every frame of a video as numbered pictures into a folder (<see cref="Presets.MediaOptions.SaveEveryFrame"/>).
+/// It is never part of an ordinary route (a video → JPG stays one still frame), and with
+/// <see cref="RoutePlanner.Plan(string, string, bool)"/> asking for frames it is the whole route.
+/// </param>
 public readonly record struct ConversionEdge(
-    string From, string To, int Cost = 10, bool ImageSourcesOnly = false, bool NotForImageSources = false, bool DirectOnly = false);
+    string From, string To, int Cost = 10, bool ImageSourcesOnly = false, bool NotForImageSources = false,
+    bool DirectOnly = false, bool FrameSequence = false);
+
+/// <summary>
+/// A conversion an engine refuses with a reason the user can act on, shown in their language (the file's
+/// <see cref="FileResult.ErrorKey"/>) instead of "The engine reported an error".
+/// </summary>
+/// <param name="errorKey">Localization key of the reason, e.g. <c>error.too_many_frames</c>.</param>
+/// <param name="detail">Non-localized detail shown after it in brackets (numbers, a name), or null.</param>
+public sealed class ConversionRefusedException(string errorKey, string? detail = null)
+    : Exception(detail is null ? errorKey : $"{errorKey} ({detail})")
+{
+    public string ErrorKey { get; } = errorKey;
+
+    public string? Detail { get; } = detail;
+}
 
 /// <summary>Whether an engine can currently be used.</summary>
 /// <param name="IsAvailable">True if conversions can run.</param>
@@ -63,13 +83,18 @@ public interface IOutputAllocator
 /// <param name="Preset">Options chosen by the user.</param>
 /// <param name="Output">Where to write results.</param>
 /// <param name="WorkDirectory">Private scratch directory for this job; deleted afterwards.</param>
+/// <param name="FrameSequence">
+/// The step takes a <see cref="ConversionEdge.FrameSequence"/> edge: every frame of the video becomes a picture of
+/// format <paramref name="To"/> in one output folder.
+/// </param>
 public sealed record ConversionStep(
     string InputPath,
     string From,
     string To,
     Preset Preset,
     IOutputAllocator Output,
-    string WorkDirectory);
+    string WorkDirectory,
+    bool FrameSequence = false);
 
 /// <summary>
 /// A conversion engine (ImageMagick, LibreOffice, rhwp, ...).

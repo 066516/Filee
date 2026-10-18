@@ -66,6 +66,7 @@ public static class BuiltInData
             Pdf = { SplitPages = true }, Output = { Location = OutputLocation.Subfolder, SubfolderName = "{name}" },
         },
         .. PdfSlidesPresets(),
+        .. FramePresets(),
         new() { Id = "to-docx", Name = "DOCX", TargetFormat = "docx" },
         new() { Id = "to-hwpx", Name = "HWPX", TargetFormat = "hwpx" },
         .. HwpPresets(),
@@ -89,6 +90,16 @@ public static class BuiltInData
     public static List<Preset> PdfSlidesPresets() =>
     [
         new() { Id = "pdf-slides", NameKey = "preset.pdf_slides", TargetFormat = "pptx", Image = { Quality = 90 } },
+    ];
+
+    /// <summary>
+    /// Every frame of a video as PNG or JPG pictures in a folder (added in settings schema 19), on no donut: a long
+    /// video gives thousands of files, so users add them in Settings → Toolbar.
+    /// </summary>
+    public static List<Preset> FramePresets() =>
+    [
+        new() { Id = "extract-frames-png", NameKey = "preset.extract_frames_png", TargetFormat = "png", Media = { SaveEveryFrame = true } },
+        new() { Id = "extract-frames-jpg", NameKey = "preset.extract_frames_jpg", TargetFormat = "jpg", Media = { SaveEveryFrame = true } },
     ];
 
     /// <summary>Raster → SVG tracing, in colour and as black line art (added in settings schema 16).</summary>

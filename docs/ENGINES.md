@@ -30,7 +30,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats; FODT, OpenDocument templates (OTT, OTS, OTP) and XLT out; SVG → EMF/WMF/ODG, a PDF page → SVG |
 | Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, markup languages (reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML) ↔ Markdown/HTML/DOCX/ODT and each other (and → RTF, EPUB, TXT), Markdown and markup → PPTX slides |
 | Ghostscript | **optional download** (~20 MB, 31 MB on disk) | EPS/PS → PDF, PDF → EPS/PS, PostScript-based AI → PDF (images through PDF and PDFium) |
-| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG or a still frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, images → HEIC |
+| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG, a still frame or every frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, images → HEIC |
 | Calibre | **optional download** (~216 MB, 660 MB on disk) | rare e-book formats: LIT, LRF, CHM, PDB, PML, RB, SNB, TCR, OEB → EPUB; EPUB → MOBI, AZW3, LIT, LRF, PDB, PML, RB, SNB, TCR |
 
 DOCX, XLSX, XLS, ODS and PPTX → PDF need neither Microsoft Office nor LibreOffice: they are read in-process, written as HWPX
@@ -801,8 +801,8 @@ Filee (with the GPL source offer), then an `engines.json` component and an optio
 ## FFmpeg
 
 `Media/FfmpegConverter.cs` converts every video format to every video format, to animated GIF or APNG, to a still PNG
-frame, to every audio format (the sound track) and to SRT, ASS and WebVTT (the subtitles); every audio format to every
-audio format; and GIF, APNG and PNG to MP4, WEBM and MOV.
+frame or a folder of every frame, to every audio format (the sound track) and to SRT, ASS and WebVTT (the subtitles);
+every audio format to every audio format; and GIF, APNG and PNG to MP4, WEBM and MOV.
 Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on MP3 files.
 
 - The download is the gyan.dev **9.0.2 "full_build-shared"** Windows build (GPL-3.0, run as a separate program).
@@ -890,12 +890,34 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   FLAC. Portrait phone videos are turned upright. Odd sizes are evened out, frame rates that MPEG-2/MXF/MPEG-4 part 2
   cannot store are converted, and channels WMA or AMR cannot hold are mixed down.
 - Progress comes from `-progress` (position ÷ duration from ffprobe); the GIF palette pass reports per-frame stats of
-  a discarded copy of its frames. Cancelling kills the process tree and deletes the partial output. There is no
-  time limit, but FFmpeg is stopped when it reports nothing for 10 minutes. At most two conversions run at a time
-  (FFmpeg's encoders use every core themselves).
+  a discarded copy of its frames. Cancelling kills the process tree, waits (up to 10 seconds) until it has exited and
+  deletes the partial output. There is no time limit, but FFmpeg is stopped when it reports nothing for 10 minutes.
+  At most two conversions run at a time (FFmpeg's encoders use every core themselves).
 - Video → PNG writes one still frame (a tenth into the video, where the picture has usually faded in); the image
   engines turn it into JPG, WEBP, PDF, …. The GIF edge costs more, so these routes never go through an animated GIF
   of the whole video.
+- **Every frame** (*Save every frame of a video* on a PNG or JPG preset, `MediaOptions.SaveEveryFrame`; the presets
+  "Extract frames (PNG)" and "Extract frames (JPG)", on no donut): `Media/FrameSequenceWriter.cs` writes
+  `frame_000001.png`, `frame_000002.png`, … into one folder, named by the output rule with `_frames` added
+  (`clip_frames`, `clip_frames (2)`; skipped, or filled over like an extracted archive, by the conflict rule).
+  - Routes: the frame edges (`ConversionEdge.FrameSequence`, video → PNG and video → JPG) are taken only when
+    `Preset.SavesFramesOf` the file (the option is set, the target is PNG or JPG and the file is a video), and then as
+    the whole route (`RoutePlanner.Plan(from, to, frames: true)`). Without the option video → JPG stays the still frame
+    above, which the image engines turn, resize and so on; other files and targets ignore the option.
+  - *Every Nth frame* (1–1000) keeps frames 1, N + 1, 2N + 1, … (`select`, `-fps_mode vfr`). Otherwise every decoded
+    frame is written once (`-fps_mode passthrough`): a variable frame rate phone video gives as many pictures as it
+    has frames, not one per 1/30 s with the slow parts repeated. The pictures are numbered, not named by time.
+  - Only the first video stream is read (`-map 0:V:0`). Pixels are made square and portrait videos are turned
+    upright, as for the still frame; nothing else of the image options is applied (no resizing, rotating or
+    metadata). JPG uses the preset's quality (100 → `-q:v 2`, 90 → 5, 1 → 31). HDR video (PQ, HLG) is not
+    tone-mapped, so its frames look flat and grey; 10-bit video becomes 16-bit PNG.
+  - Before anything is written the pictures are estimated (duration × frame rate ÷ interval). More than 100,000
+    (`MediaOptions.MaxFrames`, about an hour at 30 fps), or more than the free space of the output drive (estimated at
+    1.5 bytes a pixel for PNG, 3 for 10-bit video, 0.25 for JPG), fails with a reason in the user's language
+    (`ConversionRefusedException`); a file that doesn't say its length or frame rate is not checked. The editor shows
+    how many pictures a minute of 30 fps video gives at the chosen interval.
+  - The frames go into a hidden folder next to the output and are moved into place when FFmpeg has finished, so a
+    cancelled or failed run leaves no half-filled folder.
 - Pictures → MP4/WEBM/MOV go through a full-size PNG from the image engines (HEIC → PNG → MOV): a 5-second still at
   30 fps, one quality step above the preset (identical frames cost almost nothing; x264 `-tune stillimage`). The
   PNG's ICC profile is read (`-flags2 +icc_profiles`), so primaries and transfer are tagged as the photo's (Display

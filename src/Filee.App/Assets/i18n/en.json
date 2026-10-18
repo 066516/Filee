@@ -65,6 +65,8 @@
   "error.unsupported_source": "This file type isn't supported",
   "error.no_route": "No engine can do this conversion",
   "error.cannot_turn": "Rotate and flip work on images only",
+  "error.too_many_frames": "Too many frames to save as pictures, raise \"Every Nth frame\"",
+  "error.not_enough_space": "Not enough free disk space for the pictures",
   "error.conversion_failed": "The engine reported an error",
 
   "engine.reason.not_installed": "Not installed",
@@ -142,6 +144,8 @@
   "preset.extract_subtitles": "Extract subtitles",
   "preset.trace_svg": "Trace to SVG",
   "preset.trace_line_art": "Line art to SVG",
+  "preset.extract_frames_png": "Extract frames (PNG)",
+  "preset.extract_frames_jpg": "Extract frames (JPG)",
 
   "format.folder": "Folder",
   "format.category.Image": "Image",
@@ -371,6 +375,10 @@
   "presets.webp_lossless": "Lossless WEBP",
   "presets.multipage_tiff": "Put every file into one multi-page TIFF",
   "presets.multipage_tiff_hint": "Each image and each PDF or TIFF page becomes a page, in order.\nOne PDF is enough for a multi-page TIFF.",
+  "presets.save_every_frame": "Save every frame of a video",
+  "presets.save_every_frame_hint": "A video becomes a folder with a picture of each frame instead of one still frame.\nA long video gives many files.",
+  "presets.frame_interval": "Every Nth frame",
+  "presets.frame_estimate": "One minute of 30 fps video gives {0} pictures, at most {1} per video.",
   "presets.ico_sizes": "Icon sizes",
   "presets.group.pdf": "PDF",
   "presets.merge": "Merge all files into one PDF",

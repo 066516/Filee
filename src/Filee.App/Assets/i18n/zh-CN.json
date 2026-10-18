@@ -65,6 +65,8 @@
   "error.unsupported_source": "不支持此文件类型",
   "error.no_route": "没有引擎可以完成此转换",
   "error.cannot_turn": "只能旋转和翻转图片",
+  "error.too_many_frames": "帧数太多，请调大“每 N 帧”",
+  "error.not_enough_space": "磁盘空间不足，无法保存这些图片",
   "error.conversion_failed": "转换引擎出错",
 
   "engine.reason.not_installed": "未安装",
@@ -142,6 +144,8 @@
   "preset.extract_subtitles": "提取字幕",
   "preset.trace_svg": "描摹",
   "preset.trace_line_art": "黑白描摹",
+  "preset.extract_frames_png": "提取帧 (PNG)",
+  "preset.extract_frames_jpg": "提取帧 (JPG)",
 
   "format.folder": "文件夹",
   "format.category.Image": "图片",
@@ -371,6 +375,10 @@
   "presets.webp_lossless": "无损 WEBP",
   "presets.multipage_tiff": "将所有文件合并为一个多页 TIFF",
   "presets.multipage_tiff_hint": "每张图片以及 PDF、TIFF 的每一页按顺序各成一页。\n只放一个 PDF 也能得到多页 TIFF。",
+  "presets.save_every_frame": "保存视频的每一帧",
+  "presets.save_every_frame_hint": "视频的每一帧各保存为一张图片，放在一个文件夹中，而不是只保存一张静态图片。\n长视频会生成大量文件。",
+  "presets.frame_interval": "每 N 帧",
+  "presets.frame_estimate": "30 fps 的视频每分钟生成 {0} 张图片，每个视频最多 {1} 张。",
   "presets.ico_sizes": "图标尺寸",
   "presets.group.pdf": "PDF",
   "presets.merge": "将所有文件合并为一个 PDF",
