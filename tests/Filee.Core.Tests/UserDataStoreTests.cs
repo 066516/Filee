@@ -591,6 +591,30 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void The_close_action_is_saved_and_one_from_a_newer_Filee_reads_as_ask()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        Assert.Equal(CloseAction.Ask, store.Settings.CloseAction);
+        store.Settings.CloseAction = CloseAction.Quit;
+        store.SaveSettings();
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        Assert.Equal(CloseAction.Quit, reloaded.Settings.CloseAction);
+
+        var path = Path.Combine(dir.Path, "settings.json");
+        var json = File.ReadAllText(path);
+        Assert.Contains("\"closeAction\": \"Quit\"", json);
+        File.WriteAllText(path, json.Replace("\"closeAction\": \"Quit\"", "\"closeAction\": \"Minimize\""));
+        var newer = new UserDataStore(dir.Path);
+        newer.Load();
+        Assert.Equal(CloseAction.Ask, newer.Settings.CloseAction);
+        Assert.False(File.Exists(path + ".broken"));
+    }
+
+    [Fact]
     public void A_rotation_from_a_newer_Filee_reads_as_none_and_the_other_presets_still_load()
     {
         using var dir = new TempDir();

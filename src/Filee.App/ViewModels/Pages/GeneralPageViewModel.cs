@@ -10,7 +10,7 @@ using Filee.Core.Settings;
 
 namespace Filee.App.ViewModels.Pages;
 
-public sealed partial class GeneralPageViewModel : ObservableObject
+public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
 {
     private readonly UserDataStore _store;
     private readonly ILocalizer _loc;
@@ -40,6 +40,9 @@ public sealed partial class GeneralPageViewModel : ObservableObject
         _defaultSubfolder = output.SubfolderName;
         _defaultFolder = output.CustomFolder;
         _keepFileDates = store.Settings.KeepFileDates;
+        CloseChoices = Enum.GetValues<CloseAction>().Select(v => new Choice<CloseAction>(v, loc[$"general.close.{v}"])).ToList();
+        _closeChoice = CloseChoices.First(c => c.Value == store.Settings.CloseAction);
+        store.SettingsChanged += OnSettingsChanged;
         _historyCount = store.History.Count;
         RefreshModernMenu();
     }
@@ -77,6 +80,26 @@ public sealed partial class GeneralPageViewModel : ObservableObject
     partial void OnDefaultFolderChanged(string value) => Save(s => s.DefaultOutput.CustomFolder = value.Trim());
 
     [ObservableProperty] private bool _keepFileDates;
+
+    /// <summary>What closing the main window does; its "Don't ask again" also sets it.</summary>
+    public IReadOnlyList<Choice<CloseAction>> CloseChoices { get; }
+
+    [ObservableProperty] private Choice<CloseAction> _closeChoice;
+
+    partial void OnCloseChoiceChanged(Choice<CloseAction> value)
+    {
+        if (_store.Settings.CloseAction != value.Value)
+            Save(s => s.CloseAction = value.Value);
+    }
+
+    // The close dialog may answer "Don't ask again" while this page stays open behind the hidden window.
+    private void OnSettingsChanged(object? sender, EventArgs e)
+    {
+        if (CloseChoice.Value != _store.Settings.CloseAction)
+            CloseChoice = CloseChoices.First(c => c.Value == _store.Settings.CloseAction);
+    }
+
+    public void Dispose() => _store.SettingsChanged -= OnSettingsChanged;
 
     partial void OnKeepFileDatesChanged(bool value) => Save(s => s.KeepFileDates = value);
 

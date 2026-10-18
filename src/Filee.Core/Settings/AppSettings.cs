@@ -1,5 +1,6 @@
 // Root settings object persisted to settings.json.
 
+using System.Text.Json.Serialization;
 using Filee.Core.Presets;
 
 namespace Filee.Core.Settings;
@@ -9,6 +10,19 @@ public enum ThemeMode
     System,
     Light,
     Dark,
+}
+
+/// <summary>What closing the main window does (Settings → General).</summary>
+public enum CloseAction
+{
+    /// <summary>Ask, with "Don't ask again" (which saves the answer).</summary>
+    Ask,
+
+    /// <summary>Hide the window; Filee keeps running in the tray.</summary>
+    Tray,
+
+    /// <summary>Quit Filee.</summary>
+    Quit,
 }
 
 /// <summary>Look and feel.</summary>
@@ -63,6 +77,10 @@ public sealed class AppSettings
     public bool ContextMenuEnabled { get; set; } = true;
 
     public bool CheckForUpdates { get; set; } = true;
+
+    /// <summary>What closing the main window does. A value from a newer Filee reads as <see cref="CloseAction.Ask"/>.</summary>
+    [JsonConverter(typeof(LenientEnumJsonConverter<CloseAction>))]
+    public CloseAction CloseAction { get; set; } = CloseAction.Ask;
 
     /// <summary>Record finished conversions in the history (home page). Off: nothing new is recorded.</summary>
     public bool KeepHistory { get; set; } = true;
