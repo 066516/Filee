@@ -22,6 +22,9 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services)
     private UpdateNoticeWindow? _updateNotice;
     private EngineUpdateNoticeWindow? _engineNotice;
     private FeedbackNoticeWindow? _feedbackNotice;
+    private FormatRequestNoticeWindow? _formatRequestNotice;
+
+    internal FormatRequestNoticeWindow? FormatRequestNotice => _formatRequestNotice;
 
     public MainWindow? Main => _main;
 
@@ -128,6 +131,22 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services)
         _feedbackNotice = new FeedbackNoticeWindow();
         _feedbackNotice.Closed += (_, _) => _feedbackNotice = null;
         _feedbackNotice.Show();
+    }
+
+    /// <summary>
+    /// Shows the "Filee can't convert .ncm files yet" card with "Request this format", replacing an earlier one.
+    /// </summary>
+    public void ShowFormatRequestNotice(IReadOnlyList<string> extensions)
+    {
+        _formatRequestNotice?.Close();
+        var notice = new FormatRequestNoticeWindow(extensions, loc.Format("format_request.notice_title", FormatRequest.Label(extensions)));
+        notice.Closed += (_, _) =>
+        {
+            if (_formatRequestNotice == notice)
+                _formatRequestNotice = null;
+        };
+        _formatRequestNotice = notice;
+        notice.Show();
     }
 
     /// <summary>Opens the preset popup. Returns true when the user saved (the preset object was updated).</summary>

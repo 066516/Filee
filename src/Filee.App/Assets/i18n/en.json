@@ -56,6 +56,9 @@
   "toast.cancel": "Cancel",
 
   "error.unsupported_source": "This file type isn't supported",
+  "format_request.request": "Request this format",
+  "format_request.notice_title": "Filee can't convert {0} files yet",
+  "format_request.notice_text": "Tell us which format you need.\nRequests decide what Filee supports next.\nEncrypted or copy-protected (DRM) files can't be converted, whatever the format.",
   "error.no_route": "No engine can do this conversion",
   "error.cannot_turn": "Rotate and flip work on images only",
   "error.conversion_failed": "The engine reported an error",

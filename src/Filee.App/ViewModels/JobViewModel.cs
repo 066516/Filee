@@ -2,6 +2,7 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Filee.App.Services;
 using Filee.Core.Conversion;
 using Filee.Core.Localization;
 using Filee.Core.Platform;
@@ -41,6 +42,13 @@ public sealed partial class JobViewModel : ObservableObject
     [ObservableProperty] private string? _errorDetails;
     [ObservableProperty] private bool _canRetry;
 
+    /// <summary>Extensions of failed files Filee can't read (".ncm"), for "Request this format".</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanRequestFormat))]
+    private IReadOnlyList<string> _unknownExtensions = [];
+
+    public bool CanRequestFormat => UnknownExtensions.Count > 0;
+
     /// <summary>Source files that failed.</summary>
     public IEnumerable<string> FailedSources => Job.Files.Where(f => f.State == FileState.Failed).Select(f => f.SourcePath);
 
@@ -60,6 +68,10 @@ public sealed partial class JobViewModel : ObservableObject
         ErrorDetails = failed.Count == 0 ? null : string.Join(Environment.NewLine,
             failed.Select(f => $"{Path.GetFileName(f.SourcePath)} — {FailureText.Reason(_loc, f.ErrorKey, f.ErrorDetail)}"));
         CanRetry = _retry is not null && !IsRunning && failed.Count > 0;
+        IReadOnlyList<string> unknown = IsRunning ? [] : FormatRequest.UnknownExtensions(
+            failed.Where(f => f.ErrorKey == "error.unsupported_source").Select(f => f.SourcePath));
+        if (!unknown.SequenceEqual(UnknownExtensions))
+            UnknownExtensions = unknown;
 
         Status = Job.State switch
         {

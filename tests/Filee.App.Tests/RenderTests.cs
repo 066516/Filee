@@ -1109,6 +1109,21 @@ public class RenderTests
         }
     }
 
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    [InlineData("zh-CN")]
+    public void Format_request_notice_renders(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var loc = AppHost.Get<ILocalizer>();
+        var notice = new FormatRequestNoticeWindow([".ncm"], loc.Format("format_request.notice_title", ".ncm"));
+        notice.Show();
+        Pump();
+        Save(notice, $"window-format-request-{language}.png");
+        notice.Close();
+    }
+
     private static void Pump()
     {
         // Let layout, bindings and a few animation frames run.

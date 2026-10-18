@@ -19,6 +19,7 @@ using Filee.App.ViewModels;
 using Filee.App.Views;
 using Filee.Core.Conversion;
 using Filee.Core.Platform;
+using Filee.Core.Profiles;
 using Filee.Core.Settings;
 using Microsoft.Extensions.Logging;
 
@@ -46,6 +47,8 @@ public sealed class RadialController(
     private JobViewModel? _lastRingJob;   // for "click the ✓ to open the folder"
     private IDisposable? _handOffTimer;
     private int _dragGeneration;
+    private bool _converted;   // a conversion started from the files on the donut now
+    private readonly HashSet<string> _formatRequestsOffered = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// How long a drag that never brought files may keep the invisible window up, in case the button release is
@@ -69,6 +72,7 @@ public sealed class RadialController(
         // A ring from an earlier conversion (finished or handed to the toast) must not keep this gesture's window up.
         window.DonutControl.LeaveProgressMode();
         _dropped = false;
+        _converted = false;
         viewModel.ResetForDrag();
         window.DonutControl.AllowContextEdit = false;
         PlaceAndShow(window, x, y, activate: false);
@@ -89,6 +93,7 @@ public sealed class RadialController(
         ReleaseProgressToToast();
         var window = EnsureWindow();
         _dropped = false;
+        _converted = false;
         viewModel.Load(files, clickMode: true);
         viewModel.FitToThisDonut();
         window.DonutControl.AllowContextEdit = true;
@@ -144,6 +149,22 @@ public sealed class RadialController(
             });
         else
             window.Hide();
+        OfferFormatRequest();
+    }
+
+    /// <summary>
+    /// The donut closed on files Filee can't read at all (".ncm"): offer to request the format, once per extension
+    /// while Filee runs. Files it reads, even mixed with unknown ones, get a conversion and the toast instead.
+    /// </summary>
+    private void OfferFormatRequest()
+    {
+        if (_converted || viewModel.Files.Count == 0 || ProfileSelector.DetectFormats(viewModel.Files).Count > 0)
+            return;
+        var extensions = FormatRequest.UnknownExtensions(viewModel.Files).Where(_formatRequestsOffered.Add).ToList();
+        if (extensions.Count == 0)
+            return;
+        log.LogInformation("Donut closed on files Filee can't read: {Extensions}", FormatRequest.Label(extensions));
+        windows.ShowFormatRequestNotice(extensions);
     }
 
     private RadialWindow EnsureWindow()
@@ -214,6 +235,7 @@ public sealed class RadialController(
             Close();
             return;
         }
+        _converted = true;
         ShowProgress(job);
     }
 

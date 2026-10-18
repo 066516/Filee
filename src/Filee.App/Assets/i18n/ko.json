@@ -56,6 +56,9 @@
   "toast.cancel": "취소",
 
   "error.unsupported_source": "지원하지 않는 파일 형식이에요",
+  "format_request.request": "이 형식 요청하기",
+  "format_request.notice_title": "아직 {0} 파일은 변환할 수 없어요",
+  "format_request.notice_text": "필요한 형식을 알려주세요.\n요청을 보고 다음에 지원할 형식을 정해요.\n암호화되거나 DRM이 걸린 파일은 변환할 수 없어요.",
   "error.no_route": "이 변환을 할 수 있는 엔진이 없어요",
   "error.cannot_turn": "회전·반전은 이미지에만 할 수 있어요",
   "error.conversion_failed": "엔진에서 오류가 발생했어요",
