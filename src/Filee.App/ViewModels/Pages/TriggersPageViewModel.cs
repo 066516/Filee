@@ -177,8 +177,15 @@ public sealed partial class TriggersPageViewModel : ObservableObject, IDisposabl
         LinuxPlatformServices => _loc["triggers.linux_x11"],
         _ => null,
     };
-    public string? HookStatus => _triggers?.Error is { } error ? _loc.Format("triggers.hook_failed", error)
+    public string? HookStatus => _triggers?.Error is { } error ? HookFailure(_loc, error, _triggers.LinuxBackendMissing)
         : _triggers is null ? null : _loc[_triggers.IsRunning ? "triggers.hook_running" : "triggers.hook_stopped"];
+
+    /// <summary>
+    /// A Linux back end that doesn't load is explained (X11 session, X libraries) instead of showing libuiohook's
+    /// result code; the code is in the log.
+    /// </summary>
+    internal static string HookFailure(ILocalizer loc, string error, bool linuxBackendMissing) =>
+        linuxBackendMissing ? loc["triggers.hook_linux_backend"] : loc.Format("triggers.hook_failed", error);
 
     private void OnTriggerStatusChanged(object? sender, EventArgs e) => OnPropertyChanged(nameof(HookStatus));
     private void OnTriggerSettingsChanged(object? sender, EventArgs e) => OnPropertyChanged(nameof(IntegrationError));

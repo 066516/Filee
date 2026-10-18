@@ -75,9 +75,30 @@ they can be installed or removed later in Settings → *Engines*. A conversion t
   (`vcruntime` component) is copied next to `gswin64c.exe`, so it runs on PCs without the VC++ Redistributable.
 
 To bump a version, change `url`, `sha256` and `size` in engines.json together, run
-`pwsh build/fetch-engines.ps1`, test, and update `THIRD-PARTY-NOTICES.md`. When the LibreOffice team retires a
-version from `download.documentfoundation.org/libreoffice/stable/`, its URL stops working: keep the pinned version
-current.
+`pwsh build/fetch-engines.ps1`, test, and update `THIRD-PARTY-NOTICES.md`. For rhwp, also update `RHWP_VERSION`,
+`RHWP_COMMIT` and `RUST_TOOLCHAIN` in `build/build-linux-native.py` (see below); CI fails until they match. When the
+LibreOffice team retires a version from `download.documentfoundation.org/libreoffice/stable/`, its URL stops working:
+keep the pinned version current.
+
+## Linux builds for older glibc
+
+Linux packages run on Ubuntu 22.04 (glibc 2.35). rhwp's Linux release is linked on Ubuntu 24.04 (needs glibc 2.39).
+The `linux-native` job of `.github/workflows/portable.yml` builds it from its pinned, unmodified source on Ubuntu 22.04
+(x64 and arm64) with `build/build-linux-native.py`:
+
+- `rhwp`: `cargo build --release --locked --bin rhwp` at the tag's commit with its pinned Rust toolchain, in the
+  layout of rhwp's release archive.
+- `check` (also run on its own): fails when engines.json pins another rhwp version than the script builds.
+
+The Linux package jobs pass the result to `build/build-portable.ps1 -RhwpOverride <dir>`. Local builds without it use
+the downloaded rhwp (fine on the machine that builds it). SharpHook's native libraries are packaged as they come
+from NuGet: SharpHook 8.0.0 built its X11 back ends against glibc 2.38, 8.0.1 needs glibc 2.34 at most again.
+
+`build/check-elf-glibc.py` lists the newest GLIBC version every ELF file in the package needs and fails above 2.35,
+and the packages are unpacked and started on Ubuntu 22.04 (`build/smoke-portable.ps1`: CLI, rhwp conversions, loading
+the X11 input hook back end; `build/smoke-launch-app.py`: the app under Xvfb). If a SharpHook or engine update fails
+these checks, keep the previous version until upstream builds for an older glibc again, or build the binary from its
+pinned source in `build/build-linux-native.py` like rhwp (PR #113 did this for SharpHook 8.0.0's libuiohook back ends).
 
 ## Images and vector graphics
 

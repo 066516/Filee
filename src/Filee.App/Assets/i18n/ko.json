@@ -234,6 +234,7 @@
   "triggers.hook_running": "전역 입력을 감지하고 있어요.",
   "triggers.hook_stopped": "전역 입력 감지가 멈춰 있어요.\n파일 관리자 메뉴와 드롭 영역은 사용할 수 있어요.",
   "triggers.hook_failed": "전역 입력을 감지하지 못했어요: {0}",
+  "triggers.hook_linux_backend": "X11 입력 라이브러리를 불러오지 못해서 제스처를 시작할 수 없어요.\nX11 세션을 사용하고 libxtst6과 libxt6을 설치한 뒤(Ubuntu/Debian: sudo apt install libxtst6 libxt6) 다시 시도해 주세요.\n파일 관리자 메뉴와 드롭 영역은 계속 사용할 수 있어요.",
   "triggers.add": "제스처 추가",
   "triggers.remove": "삭제",
   "triggers.enabled": "사용",
