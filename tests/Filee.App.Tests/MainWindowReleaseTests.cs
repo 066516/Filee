@@ -36,8 +36,8 @@ public class MainWindowReleaseTests
         var second = windows.Main!;
         Assert.True(second.IsVisible);
         Assert.Equal("watch", ((MainWindowViewModel)second.DataContext!).SelectedItem.Key);
-        Assert.Equal(new PixelPoint(140, 90), second.Position);
         Assert.Equal(new Size(900, 640), second.ClientSize);
+        Assert.Equal(new PixelPoint(140, 90), second.Position);
 
         // Nothing holds the closed window, its view model or its page any more.
         for (var i = 0; i < 3; i++)
@@ -50,27 +50,15 @@ public class MainWindowReleaseTests
         Assert.False(model.TryGetTarget(out _), "view model");
         Assert.False(page.TryGetTarget(out _), "page");
 
+        // Shown again before the posted release ran (e.g. the tray's Open right after closing): it stays open.
+        // In this test, not one of its own: the window service is shared, and tests may run while another pumps.
         second.Close();
-        Pump();
-        Assert.Null(windows.Main);
-    }
-
-    [AvaloniaFact]
-    public void A_window_shown_again_before_it_was_released_stays_open()
-    {
-        TestServices.EnsureInitialized("en");
-        var windows = AppHost.Get<WindowService>();
         windows.ShowMain();
         Pump();
-        var main = windows.Main!;
+        Assert.Same(second, windows.Main);
+        Assert.True(second.IsVisible);
 
-        main.Close();
-        windows.ShowMain(); // e.g. the tray's Open, handled before the posted release
-        Pump();
-        Assert.Same(main, windows.Main);
-        Assert.True(main.IsVisible);
-
-        main.Close();
+        second.Close();
         Pump();
         Assert.Null(windows.Main);
     }
@@ -86,6 +74,7 @@ public class MainWindowReleaseTests
         main.Width = 900;
         main.Height = 640;
         Pump();
+        Assert.Equal(new PixelPoint(140, 90), main.Position);
         var model = (MainWindowViewModel)main.DataContext!;
         var page = model.CurrentPage;
 

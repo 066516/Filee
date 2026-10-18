@@ -43,7 +43,12 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
                 if (page is null)
                     model.Navigate(placement.Page);
             }
-            main.Closing += (_, _) => _mainPlacement = MainWindowPlacement.Of(main, model, _mainPlacement);
+            main.Closing += (_, _) =>
+            {
+                // While it is still on screen: the release closes it hidden, when its position may no longer be known.
+                if (main.IsVisible)
+                    _mainPlacement = MainWindowPlacement.Of(main, model, _mainPlacement);
+            };
             main.Closed += (_, _) =>
             {
                 if (_main == main)
