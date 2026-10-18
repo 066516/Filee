@@ -163,6 +163,10 @@
             <ComboBox ItemsSource="{Binding WavFormats}" SelectedItem="{Binding WavFormat}" HorizontalAlignment="Stretch" />
           </StackPanel>
         </UniformGrid>
+        <StackPanel Spacing="2" IsVisible="{Binding ShowHardwareEncoding}">
+          <CheckBox Content="{DynamicResource presets.hardware_encoding}" IsChecked="{Binding HardwareEncoding}" />
+          <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0" Text="{DynamicResource presets.hardware_encoding_hint}" />
+        </StackPanel>
       </StackPanel>
     </Border>
 

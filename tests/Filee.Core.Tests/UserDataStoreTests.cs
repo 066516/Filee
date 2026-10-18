@@ -119,6 +119,34 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Hardware_encoding_is_saved_and_stays_off_for_presets_from_before_it()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        Assert.All(store.Presets, p => Assert.False(p.Media.HardwareEncoding)); // no built-in preset turns it on
+        store.Presets.Add(new Preset { Id = "fast", Name = "Fast", TargetFormat = "mp4", Media = { HardwareEncoding = true, VideoCodec = VideoCodec.Hevc } });
+        store.Presets.Add(new Preset { Id = "old", Name = "Old", TargetFormat = "mp4" });
+        store.SaveLibrary();
+
+        // A Filee from before the option saved no "hardwareEncoding".
+        var path = Path.Combine(dir.Path, "presets.json");
+        var presets = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsArray();
+        Assert.True((bool)presets.Single(p => (string?)p!["id"] == "fast")!["media"]!["hardwareEncoding"]!);
+        Assert.True(presets.Single(p => (string?)p!["id"] == "old")!["media"]!.AsObject().Remove("hardwareEncoding"));
+        File.WriteAllText(path, presets.ToJsonString());
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        var fast = reloaded.FindPreset("fast")!;
+        Assert.True(fast.Media.HardwareEncoding);
+        Assert.Equal(VideoCodec.Hevc, fast.Media.VideoCodec);
+        Assert.True(fast.Clone().Media.HardwareEncoding);
+        Assert.False(reloaded.FindPreset("old")!.Media.HardwareEncoding);
+    }
+
+    [Fact]
     public void History_is_kept_until_turned_off_and_can_be_cleared()
     {
         using var dir = new TempDir();

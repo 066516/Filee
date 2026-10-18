@@ -25,32 +25,24 @@ public class EngineProbeTests
     public void A_program_that_never_exits_is_given_up_on_and_killed()
     {
         // Both run for about half a minute (ping waits a second between replies).
-        using var process = OperatingSystem.IsWindows() ? Start("ping.exe", "-n 30 127.0.0.1") : Start("/bin/sleep", "30");
+        var (program, arguments) = OperatingSystem.IsWindows()
+            ? ("ping.exe", new[] { "-n", "30", "127.0.0.1" })
+            : ("/bin/sleep", new[] { "30" });
         var watch = Stopwatch.StartNew();
 
-        Assert.Null(FfmpegConverter.OutputWithin(process, TimeSpan.FromSeconds(1)));
+        Assert.Throws<TimeoutException>(() => FfmpegRunner.RunBriefly(program, arguments, TimeSpan.FromSeconds(1)));
 
         Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"took {watch.Elapsed}");
-        Assert.True(process.WaitForExit(TimeSpan.FromSeconds(10)));
     }
 
     [Fact]
     public void Output_of_a_program_that_exits_is_returned()
     {
-        using var process = OperatingSystem.IsWindows()
-            ? Start("cmd.exe", "/d /c echo filee-probe")
-            : Start("/bin/sh", "-c \"echo filee-probe\"");
+        var result = OperatingSystem.IsWindows()
+            ? FfmpegRunner.RunBriefly("cmd.exe", ["/d", "/c", "echo filee-probe"], TimeSpan.FromSeconds(10))
+            : FfmpegRunner.RunBriefly("/bin/sh", ["-c", "echo filee-probe"], TimeSpan.FromSeconds(10));
 
-        Assert.Contains("filee-probe", FfmpegConverter.OutputWithin(process, TimeSpan.FromSeconds(10)));
-        Assert.Equal(0, process.ExitCode);
+        Assert.Contains("filee-probe", result.StandardOutput);
+        Assert.Equal(0, result.ExitCode);
     }
-
-    private static Process Start(string program, string arguments) =>
-        Process.Start(new ProcessStartInfo(program, arguments)
-        {
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        }) ?? throw new InvalidOperationException(program + " did not start");
 }

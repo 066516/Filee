@@ -1012,6 +1012,37 @@ public class RenderTests
     }
 
     [AvaloniaFact]
+    public void Preset_editor_offers_hardware_encoding_for_h264_and_hevc()
+    {
+        TestServices.EnsureInitialized("en");
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "mp4", Name = "Fast" };
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowHardwareEncoding);
+        Assert.False(vm.HardwareEncoding); // off unless asked for
+        vm.HardwareEncoding = true;
+
+        // AV1 and VP9 have no hardware path; HEVC does.
+        vm.VideoCodecChoice = vm.VideoCodecs.Single(c => c.Value == Filee.Core.Presets.VideoCodec.Av1);
+        Assert.False(vm.ShowHardwareEncoding);
+        vm.VideoCodecChoice = vm.VideoCodecs.Single(c => c.Value == Filee.Core.Presets.VideoCodec.Hevc);
+        Assert.True(vm.ShowHardwareEncoding);
+        vm.Target = vm.Targets.Single(t => t.Value == "webm");
+        Assert.False(vm.ShowHardwareEncoding);
+        vm.Target = vm.Targets.Single(t => t.Value == "avi");
+        Assert.False(vm.ShowHardwareEncoding);
+        vm.Target = vm.Targets.Single(t => t.Value == "mp3");
+        Assert.False(vm.ShowHardwareEncoding);
+        vm.Target = vm.Targets.Single(t => t.Value == "ts");
+        Assert.True(vm.ShowHardwareEncoding);
+        vm.Target = vm.Targets.Single(t => t.Value == "mov");
+        Assert.True(vm.Apply());
+        Assert.True(preset.Media.HardwareEncoding);
+        Assert.Equal(Filee.Core.Presets.VideoCodec.Hevc, preset.Media.VideoCodec);
+
+        Assert.True(new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>()).HardwareEncoding);
+    }
+
+    [AvaloniaFact]
     public void Preset_editor_offers_the_codecs_each_target_can_hold()
     {
         TestServices.EnsureInitialized("en");
