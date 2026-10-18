@@ -480,14 +480,17 @@ internal static class SettingsMigrations
             }
         }
 
-        // v18: Video frame sequence extraction presets (PNG and JPG), on no donut to avoid accidental clicks.
-        if (from < 18)
+        // v19: "Extract frames" (every frame of a video as PNG or JPG pictures in a folder), on no donut, after "Split
+        //      PDF" as in a new library: a long video gives thousands of files, so users add them in Settings → Toolbar.
+        if (from < 19)
         {
-            foreach (var id in new[] { "extract-frames-png", "extract-frames-jpg" })
+            var at = presets.FindIndex(p => p.Id == "pdf-split");
+            at = at < 0 ? presets.Count : at + 1;
+            foreach (var preset in BuiltInData.FramePresets())
             {
-                if (presets.Any(p => p.Id == id))
+                if (presets.Any(p => p.Id == preset.Id))
                     continue;
-                presets.Add(BuiltInData.CreatePresets().Single(p => p.Id == id));
+                presets.Insert(Math.Min(at++, presets.Count), preset);
                 changed = true;
             }
         }

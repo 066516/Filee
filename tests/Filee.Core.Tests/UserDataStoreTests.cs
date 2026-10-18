@@ -303,13 +303,13 @@ public class UserDataStoreTests
     }
 
     [Fact]
-    public void Version_17_libraries_get_the_extract_frames_presets()
+    public void Version_18_libraries_get_the_extract_frames_presets_after_split_pdf_on_no_donut()
     {
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id is "extract-frames-png" or "extract-frames-jpg");
         var profiles = BuiltInData.CreateProfiles();
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(17, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(18, presets, profiles));
 
         var pngPreset = presets.Single(p => p.Id == "extract-frames-png");
         Assert.True(pngPreset.Media.SaveEveryFrame);
@@ -319,9 +319,14 @@ public class UserDataStoreTests
         Assert.True(jpgPreset.Media.SaveEveryFrame);
         Assert.Equal("jpg", jpgPreset.TargetFormat);
 
+        // Where a new library has them.
+        Assert.Equal(BuiltInData.CreatePresets().Select(p => p.Id), presets.Select(p => p.Id));
+        var split = presets.FindIndex(p => p.Id == "pdf-split");
+        Assert.Equal(["extract-frames-png", "extract-frames-jpg"], presets.Skip(split + 1).Take(2).Select(p => p.Id));
+
         Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("extract-frames-png"));
         Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("extract-frames-jpg"));
-        Assert.False(SettingsMigrations.ApplyToLibrary(17, presets, profiles)); // once only
+        Assert.False(SettingsMigrations.ApplyToLibrary(18, presets, profiles)); // once only
     }
 
     [Fact]
