@@ -3,7 +3,6 @@
 // keeps that memory committed for the next allocation, so Filee stayed hundreds of MB above its idle size.
 
 using System.Diagnostics;
-using System.Runtime;
 using Filee.Core.Conversion;
 using Filee.Engines.Infrastructure;
 using Filee.Platform.Windows;
@@ -83,9 +82,9 @@ public sealed class MemoryTrimmer : IDisposable
             var watch = Stopwatch.StartNew();
             var before = PrivateMegabytes();
             EngineCaches.Release();
-            GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-            // Aggressive also decommits the free memory the collector would keep for later (about 5 MB more here).
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+            // Not Aggressive and no LOH compaction (5-8 MB more would go): both move the large object heap, which native
+            // code may hold pointers into, e.g. a rendered frame Skia encodes on the UI thread (it crashed on CI).
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
             GC.WaitForPendingFinalizers();
             GC.Collect();
             ProcessMemory.TrimWorkingSet();
