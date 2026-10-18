@@ -1,8 +1,8 @@
 // Video and audio conversion with FFmpeg (GPL-3.0 build, an optional download run as a separate program in
-// engines/ffmpeg): video ↔ video (H.264, HEVC, AV1, …), video → animated GIF / APNG or a still frame, audio
-// extraction, subtitle extraction (the first text track as SRT / ASS / WebVTT), audio ↔ audio and GIF, APNG or a still
-// picture → video, and images → HEIC (FFmpeg's HEVC encoder, Filee's own container writer).
-// Container and codec choices live in MediaEncoding, the process handling in FfmpegRunner.
+// engines/ffmpeg): video ↔ video (H.264, HEVC, AV1, …), video → animated GIF / APNG, a still frame or every frame
+// (FrameSequenceWriter), audio extraction, subtitle extraction (the first text track as SRT / ASS / WebVTT), audio ↔
+// audio and GIF, APNG or a still picture → video, and images → HEIC (FFmpeg's HEVC encoder, Filee's own container
+// writer). Container and codec choices live in MediaEncoding, the process handling in FfmpegRunner.
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -36,6 +36,7 @@ public sealed partial class FfmpegConverter : IConverter, IImageTransformer
 
     /// <summary>
     /// Every video format (read by FFmpeg's demuxers) → every video target, animated GIF or APNG, a still PNG frame,
+    /// every frame as PNG or JPG pictures (only when a preset asks for it, see <see cref="ConversionEdge.FrameSequence"/>),
     /// every audio target and SRT / ASS / WebVTT (its subtitles); every audio format → every audio target (including
     /// itself: re-encode with another bitrate); GIF, APNG and PNG → MP4, WEBM, MOV; every image ImageMagick reads →
     /// HEIC. Only formats the pinned build can write are targets (see MediaEncoding).
