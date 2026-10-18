@@ -26,9 +26,25 @@ public sealed class UserDataStore
         _log = log ?? (ILogger)NullLogger.Instance;
     }
 
-    /// <summary>Default data directory: %APPDATA%\Filee on Windows, ~/Library/Application Support/Filee on macOS.</summary>
+    /// <summary>
+    /// Environment variable that moves all of Filee's per-user data (settings, logs, downloaded engines) to another
+    /// folder and gives that copy its own single instance: a development or test copy then never touches, or talks
+    /// to, the Filee the user runs. A copy started with it also leaves the system integration alone.
+    /// </summary>
+    public const string DirectoryVariable = "FILEE_DATA_DIR";
+
+    /// <summary>The folder <see cref="DirectoryVariable"/> points to (full path), or null when it is not set.</summary>
+    public static string? OverrideDirectory => DirectoryFrom(Environment.GetEnvironmentVariable(DirectoryVariable));
+
+    /// <summary>
+    /// Default data directory: %APPDATA%\Filee on Windows, ~/Library/Application Support/Filee on macOS, or the
+    /// folder in <see cref="DirectoryVariable"/>.
+    /// </summary>
     public static string DefaultDirectory =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Filee");
+        OverrideDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Filee");
+
+    internal static string? DirectoryFrom(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : Path.TrimEndingDirectorySeparator(Path.GetFullPath(value.Trim()));
 
     public string Directory { get; }
 
