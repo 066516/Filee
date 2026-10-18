@@ -479,6 +479,29 @@ internal static class SettingsMigrations
                 }
             }
         }
+
+        // v20: "Compress PDF" (PDF → a smaller PDF), after "Split PDF" as in a new library, on no donut: the PDF donut
+        //      is full. Present already but saved since by a Filee before 20 (back and forth between versions): that
+        //      one dropped the compression level and left a preset that copies the pages, so the level is put back.
+        //      (Schema 18 and 19 belong to other changes: renumber when they land in a different order.)
+        if (from < 20)
+        {
+            foreach (var compress in BuiltInData.PdfCompressionPresets())
+            {
+                if (presets.FirstOrDefault(p => p.Id == compress.Id) is { } existing)
+                {
+                    if (existing.Pdf.Compression == PdfCompression.None && existing.TargetFormat == compress.TargetFormat)
+                    {
+                        existing.Pdf.Compression = compress.Pdf.Compression;
+                        changed = true;
+                    }
+                    continue;
+                }
+                var split = presets.FindIndex(p => p.Id == "pdf-split");
+                presets.Insert(split < 0 ? presets.Count : split + 1, compress);
+                changed = true;
+            }
+        }
         return changed;
     }
 

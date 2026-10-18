@@ -65,6 +65,7 @@ public static class BuiltInData
             Id = "pdf-split", NameKey = "preset.split_pdf", TargetFormat = "pdf",
             Pdf = { SplitPages = true }, Output = { Location = OutputLocation.Subfolder, SubfolderName = "{name}" },
         },
+        .. PdfCompressionPresets(),
         new() { Id = "to-docx", Name = "DOCX", TargetFormat = "docx" },
         new() { Id = "to-hwpx", Name = "HWPX", TargetFormat = "hwpx" },
         .. HwpPresets(),
@@ -79,6 +80,19 @@ public static class BuiltInData
         .. CodecAndSubtitlePresets(),
         .. ModelPresets(),
         .. TracePresets(),
+    ];
+
+    /// <summary>
+    /// "Compress PDF": pictures at 150 dpi, the rest compressed losslessly (added in settings schema 20). On no default
+    /// donut, the PDF donut is full: users add it in Settings → Toolbar.
+    /// </summary>
+    public static List<Preset> PdfCompressionPresets() =>
+    [
+        new()
+        {
+            Id = "compress-pdf", NameKey = "preset.compress_pdf", TargetFormat = "pdf",
+            Pdf = { Compression = PdfCompression.Ebook }, Output = { FileNamePattern = "{name}_compressed" },
+        },
     ];
 
     /// <summary>Raster → SVG tracing, in colour and as black line art (added in settings schema 16).</summary>

@@ -58,13 +58,18 @@ public interface IOutputAllocator
 /// <param name="Preset">Options chosen by the user.</param>
 /// <param name="Output">Where to write results.</param>
 /// <param name="WorkDirectory">Private scratch directory for this job; deleted afterwards.</param>
+/// <param name="Notice">
+/// Records a note on a step that worked, as a localization key (e.g. <c>notice.pdf_not_smaller</c>): shown with the
+/// file's result. Null when nobody listens.
+/// </param>
 public sealed record ConversionStep(
     string InputPath,
     string From,
     string To,
     Preset Preset,
     IOutputAllocator Output,
-    string WorkDirectory);
+    string WorkDirectory,
+    Action<string>? Notice = null);
 
 /// <summary>
 /// A conversion engine (ImageMagick, LibreOffice, rhwp, ...).

@@ -57,7 +57,7 @@ Filee shows new releases in its menu and updates itself, keeping your settings a
 ## Features
 
 - **A donut at the cursor**: hold a key, drag files and drop them on a format. Only formats that fit the files appear.
-- **One toolbar per file type**, arranged by drag and drop, with presets for quality, size, DPI, PDF pages,
+- **One toolbar per file type**, arranged by drag and drop, with presets for quality, size, DPI, PDF pages and compression,
   video and audio, output folder and file names.
 - **Many files at once**, in parallel. Routes with several steps (HWP → HWPX → DOCX) are found automatically.
 - **Watch folders** convert every file that lands in them.
@@ -83,7 +83,7 @@ Filee shows new releases in its menu and updates itself, keeping your settings a
 |---|---|
 | **Images**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …; GIMP XCF, camera RAW (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR read | any of these (HEIC⁵), PDF, SVG (traced), resized, grayscale |
 | **Vector**: SVG, SVGZ, EMF, WMF, AI · EPS, PS¹ · CDR, VSD, CGM, ODG, FODG² | PDF (vector), PNG and other images, SVG ↔ SVGZ, SVG → DXF/DWG, PDF → EPS/PS¹, SVG → EMF, WMF, ODG² |
-| **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, SVG²; merge, split, page ranges |
+| **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, SVG²; merge, split, page ranges, compress (smaller PDFs) |
 | **Documents**: DOCX, DOCM, DOTX, EML, Outlook MSG · DOC, ODT, FODT, OTT, RTF, WPS, WPD, Pages, ClarisWorks, MacWrite, T602, …² | PDF, DOCX, HWPX, EPUB, TXT, HTML; MSG → EML · ODT, FODT, OTT² |
 | **Spreadsheets**: XLSX, XLSM, XLS, XLT, ODS, CSV, TSV · OTS, FODS, Numbers, ET² | PDF, XLSX, ODS, CSV, TSV, JSON, HWPX, HTML · XLT, OTS² |
 | **Presentations**: PPTX, PPTM, POTX, PPSX · PPT, ODP, OTP, FODP, Keynote² | PDF, PNG, JPG, DOCX, HWPX · OTP² |

@@ -41,6 +41,10 @@ public sealed partial class JobViewModel : ObservableObject
     [ObservableProperty] private string? _errorDetails;
     [ObservableProperty] private bool _canRetry;
 
+    /// <summary>Notes on files that converted (e.g. a PDF that couldn't be made smaller and was copied), one per line.</summary>
+    [ObservableProperty] private string? _notices;
+    [ObservableProperty] private bool _hasNotices;
+
     /// <summary>Source files that failed.</summary>
     public IEnumerable<string> FailedSources => Job.Files.Where(f => f.State == FileState.Failed).Select(f => f.SourcePath);
 
@@ -60,6 +64,11 @@ public sealed partial class JobViewModel : ObservableObject
         ErrorDetails = failed.Count == 0 ? null : string.Join(Environment.NewLine,
             failed.Select(f => $"{Path.GetFileName(f.SourcePath)} — {FailureText.Reason(_loc, f.ErrorKey, f.ErrorDetail)}"));
         CanRetry = _retry is not null && !IsRunning && failed.Count > 0;
+
+        var noted = Job.Files.Where(f => f.State == FileState.Done && f.NoticeKey is not null).ToList();
+        HasNotices = noted.Count > 0;
+        Notices = noted.Count == 0 ? null : string.Join(Environment.NewLine,
+            noted.Select(f => $"{Path.GetFileName(f.SourcePath)} — {_loc[f.NoticeKey!]}"));
 
         Status = Job.State switch
         {

@@ -152,7 +152,8 @@ internal static class Cli
         var source = Shorten(file.SourcePath);
         return file.State switch
         {
-            FileState.Done => $"ok    {source} -> {string.Join(", ", file.Outputs.Select(Shorten))}",
+            FileState.Done => $"ok    {source} -> {string.Join(", ", file.Outputs.Select(Shorten))}"
+                + (file.NoticeKey is null ? "" : $" ({texts[file.NoticeKey]})"),
             FileState.Skipped => $"skip  {source} (the output file already exists)",
             FileState.Cancelled => $"stop  {source} (cancelled)",
             _ => $"fail  {source}: {Error(file, texts)}",
@@ -195,6 +196,8 @@ internal static class Cli
                 json.WriteEndArray();
                 if (file.State is FileState.Failed or FileState.Cancelled)
                     json.WriteString("error", Error(file, texts));
+                else if (file.NoticeKey is not null)
+                    json.WriteString("notice", texts[file.NoticeKey]);
                 json.WriteEndObject();
             }
             json.WriteEndArray();

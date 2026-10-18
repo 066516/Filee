@@ -183,7 +183,7 @@ internal sealed partial class PdfDocumentReader
         }
     }
 
-    private static InvalidOperationException PasswordProtected() =>
+    internal static InvalidOperationException PasswordProtected() =>
         new("The PDF is password-protected. Open it with its password and save a copy without one, then convert that copy.");
 
     private PageContent ReadPage(Page page)

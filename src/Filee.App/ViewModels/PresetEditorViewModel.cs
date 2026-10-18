@@ -63,6 +63,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         Rotations = Enum.GetValues<ImageRotation>().Select(v => new Choice<ImageRotation>(v, loc[$"presets.rotation.{v}"])).ToList();
         Flips = Enum.GetValues<ImageFlip>().Select(v => new Choice<ImageFlip>(v, loc[$"presets.flip.{v}"])).ToList();
         PageSizes = Enum.GetValues<PdfPageSize>().Select(v => new Choice<PdfPageSize>(v, loc[$"presets.page_size.{v}"])).ToList();
+        CompressionLevels = Enum.GetValues<PdfCompression>().Select(v => new Choice<PdfCompression>(v, loc[$"presets.pdf_compression.{v}"])).ToList();
         Locations = Enum.GetValues<OutputLocation>().Select(v => new Choice<OutputLocation>(v, loc[$"presets.location.{v}"])).ToList();
         Conflicts = Enum.GetValues<ConflictPolicy>().Select(v => new Choice<ConflictPolicy>(v, loc[$"presets.conflict.{v}"])).ToList();
         TiffCompressions = Enum.GetValues<TiffCompression>().Select(v => new Choice<TiffCompression>(v, v.ToString().ToUpperInvariant())).ToList();
@@ -82,6 +83,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _rotation = Rotations.FirstOrDefault(r => r.Value == _edit.Image.Rotation) ?? Rotations[0];
         _flip = Flips.FirstOrDefault(f => f.Value == _edit.Image.Flip) ?? Flips[0];
         _pageSize = PageSizes.First(p => p.Value == _edit.Pdf.PageSize);
+        _compressionLevel = CompressionLevels.FirstOrDefault(c => c.Value == _edit.Pdf.Compression) ?? CompressionLevels[0];
+        _compressWithGhostscript = _edit.Pdf.CompressWithGhostscript;
         _location = Locations.First(l => l.Value == _edit.Output.Location);
         _conflict = Conflicts.First(c => c.Value == _edit.Output.Conflict);
         _tiffCompression = TiffCompressions.First(t => t.Value == _edit.Image.TiffCompression);
@@ -139,6 +142,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public IReadOnlyList<Choice<ImageRotation>> Rotations { get; }
     public IReadOnlyList<Choice<ImageFlip>> Flips { get; }
     public IReadOnlyList<Choice<PdfPageSize>> PageSizes { get; }
+
+    /// <summary>PDF → PDF: don't compress, or the level (pictures at 72, 150 or 300 dpi).</summary>
+    public IReadOnlyList<Choice<PdfCompression>> CompressionLevels { get; }
     public IReadOnlyList<Choice<OutputLocation>> Locations { get; }
     public IReadOnlyList<Choice<ConflictPolicy>> Conflicts { get; }
     public IReadOnlyList<Choice<TiffCompression>> TiffCompressions { get; }
@@ -157,6 +163,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowImage), nameof(ShowTurnForPdf), nameof(ShowQuality), nameof(ShowTiff), nameof(ShowMultiPageTiff), nameof(ShowWebp), nameof(ShowIco),
         nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
+        nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions),
         nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec),
         nameof(AudioCodecs), nameof(AudioCodecChoice), nameof(ShowAudioCodec),
@@ -265,6 +272,11 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private string _pageRange;
     [ObservableProperty] private bool _splitPages;
 
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowPdfCompressionOptions))]
+    private Choice<PdfCompression> _compressionLevel;
+
+    [ObservableProperty] private bool _compressWithGhostscript;
+
     /// <summary>PDF → image: one tall image of all pages.</summary>
     [ObservableProperty] private bool _combinePages;
     [ObservableProperty] private bool _trimPageMargins;
@@ -313,6 +325,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         or FormatCategory.Subtitle or FormatCategory.Data or FormatCategory.Model3D) && TargetId != "eml";
     public bool ShowPdfBuild => TargetId == "pdf";
     public bool ShowPdfSplit => TargetId == "pdf";
+
+    /// <summary>Compression is for PDF → PDF; Ghostscript and metadata only matter while it is on.</summary>
+    public bool ShowPdfCompression => TargetId == "pdf";
+    public bool ShowPdfCompressionOptions => ShowPdfCompression && CompressionLevel.Value != PdfCompression.None;
 
     /// <summary>PDF → a single-image format: the pages can be stacked into one tall image (TIFF, GIF, APNG and MNG keep pages).</summary>
     public bool ShowPdfCombine => TargetCategory == FormatCategory.Image
@@ -401,6 +417,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         pdf.CombinePages = CombinePages;
         pdf.TrimPageMargins = TrimPageMargins;
         pdf.SplitTallImage = SplitTallImage;
+        pdf.Compression = CompressionLevel.Value;
+        pdf.CompressWithGhostscript = CompressWithGhostscript;
         _original.Document.PdfA = PdfA;
 
         var media = _original.Media;

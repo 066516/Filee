@@ -277,6 +277,22 @@ public enum PdfPageSize
     Letter,
 }
 
+/// <summary>
+/// How hard a PDF → PDF conversion shrinks the file: pictures are scaled down to the level's resolution and saved as
+/// JPEG at its quality, the rest is compressed losslessly. Text, fonts and drawings stay as they are.
+/// </summary>
+public enum PdfCompression
+{
+    /// <summary>Pages are copied as they are.</summary>
+    None,
+    /// <summary>Smallest: pictures at 72 dpi (reading on screen).</summary>
+    Screen,
+    /// <summary>Balanced: pictures at 150 dpi (e-mail, uploads).</summary>
+    Ebook,
+    /// <summary>High quality: pictures at 300 dpi (printing).</summary>
+    Print,
+}
+
 /// <summary>PDF related options.</summary>
 public sealed class PdfOptions
 {
@@ -311,6 +327,19 @@ public sealed class PdfOptions
     /// write several images split between pages instead of scaling the stack down.
     /// </summary>
     public bool SplitTallImage { get; set; }
+
+    /// <summary>
+    /// For PDF → PDF: make the file smaller (also with a page range or one file per page). A level from a newer Filee
+    /// reads as <see cref="PdfCompression.None"/>.
+    /// </summary>
+    [JsonConverter(typeof(LenientEnumJsonConverter<PdfCompression>))]
+    public PdfCompression Compression { get; set; }
+
+    /// <summary>
+    /// With <see cref="Compression"/>: also let Ghostscript rewrite the PDF when it is installed, and keep whichever
+    /// result is smaller. Off by default: it rewrites the whole file (fonts, structure), not only the pictures.
+    /// </summary>
+    public bool CompressWithGhostscript { get; set; }
 
     public PdfOptions Clone() => (PdfOptions)MemberwiseClone();
 }

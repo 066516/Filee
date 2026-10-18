@@ -684,6 +684,37 @@ public class RenderTests
         Assert.True(preset.Image.KeepEnclosedBackground);
     }
 
+    [AvaloniaFact]
+    public void Preset_editor_shows_and_saves_pdf_compression()
+    {
+        TestServices.EnsureInitialized("ko");
+        var preset = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "compress-pdf");
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<Filee.Core.Localization.ILocalizer>());
+        Assert.True(vm.ShowPdfCompression);
+        Assert.True(vm.ShowPdfCompressionOptions);
+        Assert.Equal(Filee.Core.Presets.PdfCompression.Ebook, vm.CompressionLevel.Value);
+        Assert.Equal(["None", "Screen", "Ebook", "Print"], vm.CompressionLevels.Select(c => c.Value.ToString()));
+        var window = new PresetEditorWindow { DataContext = vm, Height = 900 };
+        window.Show();
+        Pump();
+        Save(window, "preset-compress-pdf-ko.png");
+        window.Close();
+
+        vm.CompressionLevel = vm.CompressionLevels.Single(c => c.Value == Filee.Core.Presets.PdfCompression.Screen);
+        vm.CompressWithGhostscript = true;
+        vm.KeepMetadata = false;
+        Assert.True(vm.Apply());
+        Assert.Equal(Filee.Core.Presets.PdfCompression.Screen, preset.Pdf.Compression);
+        Assert.True(preset.Pdf.CompressWithGhostscript);
+        Assert.False(preset.Image.KeepMetadata);
+
+        // Off: Ghostscript and metadata have nothing to do. Other targets don't compress PDFs at all.
+        vm.CompressionLevel = vm.CompressionLevels[0];
+        Assert.False(vm.ShowPdfCompressionOptions);
+        vm.Target = vm.Targets.Single(t => t.Value == "png");
+        Assert.False(vm.ShowPdfCompression);
+    }
+
     [AvaloniaTheory]
     [InlineData("en")]
     [InlineData("ko")]
