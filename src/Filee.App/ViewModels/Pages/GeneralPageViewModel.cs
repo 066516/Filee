@@ -86,10 +86,10 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
 
     [ObservableProperty] private Choice<CloseAction> _closeChoice;
 
-    partial void OnCloseChoiceChanged(Choice<CloseAction> value)
+    partial void OnCloseChoiceChanged(Choice<CloseAction>? oldValue, Choice<CloseAction> newValue)
     {
-        if (_store.Settings.CloseAction != value.Value)
-            Save(s => s.CloseAction = value.Value);
+        if (!Choices.Restore(oldValue, newValue, v => CloseChoice = v) && _store.Settings.CloseAction != newValue.Value)
+            Save(s => s.CloseAction = newValue.Value);
     }
 
     // The close dialog may answer "Don't ask again" while this page stays open behind the hidden window.
