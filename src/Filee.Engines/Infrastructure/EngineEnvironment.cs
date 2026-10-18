@@ -5,6 +5,7 @@
 // the PC (on the PATH or where its installer puts it), so nobody has to download a second FFmpeg they already have.
 
 using System.Collections.Concurrent;
+using Filee.Core.Settings;
 
 namespace Filee.Engines.Infrastructure;
 
@@ -18,10 +19,15 @@ public sealed class EngineEnvironment(string dataDirectory)
     /// <summary>
     /// Per-user folder for engines downloaded on demand (see <see cref="EngineInstaller"/>):
     /// %LOCALAPPDATA%\Filee\engines. It is outside the app folder, so app updates keep it, and inside Filee's
-    /// install root, so uninstalling removes it.
+    /// install root, so uninstalling removes it. With FILEE_DATA_DIR set (<see cref="UserDataStore.DirectoryVariable"/>)
+    /// it is the engines folder in there.
     /// </summary>
-    public static string DownloadRoot { get; set; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Filee", "engines");
+    public static string DownloadRoot { get; set; } = DefaultDownloadRoot(UserDataStore.OverrideDirectory);
+
+    internal static string DefaultDownloadRoot(string? dataDirectoryOverride) =>
+        dataDirectoryOverride is not null
+            ? Path.Combine(dataDirectoryOverride, "engines")
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Filee", "engines");
 
     /// <summary>
     /// Finds an engine directory (<c>engines/&lt;name&gt;</c>): next to the executable (bundled with the installer),

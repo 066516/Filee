@@ -13,6 +13,8 @@ namespace Filee.App.Views;
 public partial class MainWindow : Window
 {
     private bool _asking;
+    private bool _releasePosted;
+    private bool _releasing;
 
     public MainWindow()
     {
@@ -35,12 +37,12 @@ public partial class MainWindow : Window
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         base.OnClosing(e);
-        if (e.CloseReason is not WindowCloseReason.WindowClosing)
+        if (e.CloseReason is not WindowCloseReason.WindowClosing || _releasing)
             return;
         e.Cancel = true;
-        // Close() from code only hides, as before; the setting is for the title bar's close button and Alt+F4.
+        // Close() from code goes to the tray, as before; the setting is for the title bar's close button and Alt+F4.
         if (e.IsProgrammatic)
-            Hide();
+            HideToTray();
         else
             CloseAsTheUserChose();
     }
@@ -52,7 +54,7 @@ public partial class MainWindow : Window
         switch (store.Settings.CloseAction)
         {
             case CloseAction.Tray:
-                Hide();
+                HideToTray();
                 break;
             case CloseAction.Quit:
                 Quit();
@@ -81,7 +83,7 @@ public partial class MainWindow : Window
             if (action == CloseAction.Quit)
                 Quit();
             else
-                Hide();
+                HideToTray();
         }
         finally
         {
@@ -92,4 +94,25 @@ public partial class MainWindow : Window
     // Posted: shutting down closes this window again, which must not happen inside its own Closing handler.
     private static void Quit() => Dispatcher.UIThread.Post(() =>
         (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown());
+
+    /// <summary>
+    /// Leaves Filee in the tray: hides the window at once, then closes it for real, so its pages, visuals and images
+    /// don't stay in memory until the next time (issue #119). <see cref="WindowService.ShowMain"/> opens a new one.
+    /// </summary>
+    internal void HideToTray()
+    {
+        Hide();
+        if (_releasePosted)
+            return;
+        _releasePosted = true;
+        // Posted: a window can't close inside its own Closing handler.
+        Dispatcher.UIThread.Post(() =>
+        {
+            _releasePosted = false;
+            if (IsVisible)
+                return; // shown again meanwhile
+            _releasing = true;
+            Close();
+        });
+    }
 }

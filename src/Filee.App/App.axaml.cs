@@ -134,6 +134,7 @@ public partial class App : Application
         desktop.Exit += (_, _) =>
         {
             watchdog.Dispose();
+            AppHost.Get<MemoryTrimmer>().Dispose();
             AppHost.Get<TriggerService>().Dispose();
             AppHost.Get<TrayService>().Dispose();
             AppHost.Get<WatchFolderService>().DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));

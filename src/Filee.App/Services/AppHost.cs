@@ -66,8 +66,8 @@ public static class AppHost
         services.AddSingleton<RadialController>();
         services.AddSingleton<TrayService>();
         services.AddSingleton<UpdateService>();
+        services.AddSingleton<MemoryTrimmer>();
         services.AddSingleton<WindowService>();
-        services.AddSingleton<MainWindowViewModel>();
 
         _services = services.BuildServiceProvider();
         return _services;

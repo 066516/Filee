@@ -48,6 +48,13 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     public static partial int GetSystemMetrics(int index);
 
+    [LibraryImport("kernel32.dll")]
+    public static partial nint GetCurrentProcess();
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool SetProcessWorkingSetSize(nint process, nint minimumSize, nint maximumSize);
+
     [LibraryImport("user32.dll", EntryPoint = "SystemParametersInfoW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool SystemParametersInfo(uint action, uint param, [MarshalAs(UnmanagedType.Bool)] out bool value, uint winIni);
@@ -83,9 +90,6 @@ internal static partial class NativeMethods
     public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
     public const int TokenElevation = 20;
     public const int TokenIntegrityLevel = 25;
-
-    [LibraryImport("kernel32.dll")]
-    public static partial nint GetCurrentProcess();
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
     public static partial nint OpenProcess(uint access, [MarshalAs(UnmanagedType.Bool)] bool inheritHandle, uint processId);

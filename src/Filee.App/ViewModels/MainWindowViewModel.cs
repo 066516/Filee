@@ -26,10 +26,15 @@ public sealed partial class NavItem(string key, string titleKey, string iconKey,
     public void Refresh(ILocalizer loc) => Title = loc[TitleKey];
 }
 
-public sealed partial class MainWindowViewModel : ObservableObject
+/// <summary>
+/// One per main window (<see cref="WindowService.ShowMain"/>); disposed with it, which drops its subscriptions on the
+/// long-lived services and the current page.
+/// </summary>
+public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private readonly IServiceProvider _services;
     private readonly ILocalizer _loc;
+    private bool _disposed;
 
     /// <summary>The repository, for the GitHub button above the version.</summary>
     public string RepositoryUrl => UpdateService.RepositoryUrl;
@@ -39,11 +44,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _services = services;
         _loc = loc;
         Updates = updates;
-        updates.PropertyChanged += (_, e) =>
-        {
-            if (UpdateTexts.Affects(e.PropertyName))
-                RefreshVersionTexts();
-        };
+        updates.PropertyChanged += OnUpdatesChanged;
         RefreshVersionTexts();
         Items =
         [
@@ -59,13 +60,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ];
         foreach (var item in Items)
             item.Refresh(loc);
-        loc.LanguageChanged += (_, _) =>
-        {
-            foreach (var item in Items)
-                item.Refresh(loc);
-            RefreshVersionTexts();
-            CurrentPage = CreatePage(SelectedItem); // rebuild so code-generated labels update too
-        };
+        loc.LanguageChanged += OnLanguageChanged;
         _selectedItem = Items[0];
         _currentPage = CreatePage(Items[0]);
     }
@@ -92,6 +87,20 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Downloads and runs the new installer (or opens the download page in a portable copy).</summary>
     [RelayCommand]
     private Task DownloadUpdate() => Updates.UpdateAsync();
+
+    private void OnUpdatesChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (UpdateTexts.Affects(e.PropertyName))
+            RefreshVersionTexts();
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        foreach (var item in Items)
+            item.Refresh(_loc);
+        RefreshVersionTexts();
+        CurrentPage = CreatePage(SelectedItem); // rebuild so code-generated labels update too
+    }
 
     private void RefreshVersionTexts()
     {
@@ -122,4 +131,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private ObservableObject CreatePage(NavItem item) =>
         (ObservableObject)ActivatorUtilities.CreateInstance(_services, item.PageType);
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+        _disposed = true;
+        Updates.PropertyChanged -= OnUpdatesChanged;
+        _loc.LanguageChanged -= OnLanguageChanged;
+        (CurrentPage as IDisposable)?.Dispose();
+    }
 }
