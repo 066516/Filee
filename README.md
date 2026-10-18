@@ -49,7 +49,7 @@ Download from [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
   Setup can add the Explorer menu, start at sign-in, the `filee` command and optional engines.
 - **macOS 14+** (preview): unpack the `osx-arm64` or `osx-x64` package and run `./install.sh`.
   The build isn't notarized yet, so allow the first start in System Settings → Privacy & Security → **Open Anyway**.
-- **Linux x64/ARM64** (preview): unpack the package and run `./install.sh` (no root, needs Python 3).
+- **Linux x64/ARM64** (preview, Ubuntu 22.04+): unpack the package and run `./install.sh` (no root, needs Python 3).
   Drag gestures need X11. On Wayland, use the drop zone and the file manager's right-click menu.
 
 Filee shows new releases in its menu and updates itself, keeping your settings and engines.
