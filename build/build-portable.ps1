@@ -1,11 +1,10 @@
 # Builds the Linux or macOS portable package (tar.gz + SHA256SUMS) on its own operating system.
 #
-# Linux packages must run on Ubuntu 22.04 (glibc 2.35). CI builds the two upstream binaries that need a newer glibc
-# from source on Ubuntu 22.04 (build/build-linux-native.py) and passes them in:
-#   -RhwpOverride <dir>     a folder with the rhwp program (rhwp's release archive layout) used instead of the
-#                           rhwp download pinned in engines.json
-#   -UiohookOverride <dir>  a folder with libuiohook-xrecord.so and libuiohook-x11.so that replace SharpHook's
-# Without them (local builds) the package uses the downloads and SharpHook's files, which need a newer glibc.
+# Linux packages must run on Ubuntu 22.04 (glibc 2.35). rhwp's Linux release needs a newer glibc, so CI builds it from
+# source on Ubuntu 22.04 (build/build-linux-native.py) and passes it in:
+#   -RhwpOverride <dir>  a folder with the rhwp program (rhwp's release archive layout) used instead of the rhwp
+#                        download pinned in engines.json
+# Without it (local builds) the package uses the download, which needs a newer glibc.
 [CmdletBinding()]
 param(
     [ValidateSet('linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64')][string]$Runtime,
@@ -13,8 +12,7 @@ param(
     [string]$OutputDir = (Join-Path $PSScriptRoot '../Releases'),
     [string]$SigningIdentity = '-',
     [switch]$SkipFonts,
-    [string]$RhwpOverride,
-    [string]$UiohookOverride
+    [string]$RhwpOverride
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,22 +25,13 @@ if (-not $Runtime) {
 if (($Runtime.StartsWith('osx-') -and -not $IsMacOS) -or ($Runtime.StartsWith('linux-') -and -not $IsLinux)) {
     throw "Build $Runtime on its native operating system."
 }
-$uiohookLibraries = @('libuiohook-xrecord.so', 'libuiohook-x11.so')
-if (($RhwpOverride -or $UiohookOverride) -and -not $Runtime.StartsWith('linux-')) {
-    throw '-RhwpOverride and -UiohookOverride are for Linux packages.'
+if ($RhwpOverride -and -not $Runtime.StartsWith('linux-')) {
+    throw '-RhwpOverride is for Linux packages.'
 }
 if ($RhwpOverride) {
     $RhwpOverride = (Resolve-Path -LiteralPath $RhwpOverride).Path
     if (-not (Test-Path -LiteralPath (Join-Path $RhwpOverride 'rhwp') -PathType Leaf)) {
         throw "-RhwpOverride: $RhwpOverride has no rhwp program."
-    }
-}
-if ($UiohookOverride) {
-    $UiohookOverride = (Resolve-Path -LiteralPath $UiohookOverride).Path
-    foreach ($library in $uiohookLibraries) {
-        if (-not (Test-Path -LiteralPath (Join-Path $UiohookOverride $library) -PathType Leaf)) {
-            throw "-UiohookOverride: $UiohookOverride has no $library."
-        }
     }
 }
 if (-not $Version) {
@@ -89,17 +78,6 @@ if ($RhwpOverride) {
 }
 else {
     & (Join-Path $PSScriptRoot 'fetch-portable-engines.ps1') -Runtime $Runtime -Destination $engines
-}
-if ($UiohookOverride) {
-    # SharpHook's loader (libuiohook.so) dlopens these back ends from its own folder, the publish root.
-    foreach ($library in $uiohookLibraries) {
-        $target = Join-Path $publish $library
-        if (-not (Test-Path -LiteralPath $target -PathType Leaf)) {
-            throw "Publish has no $library to replace: SharpHook's native layout changed."
-        }
-        Copy-Item -LiteralPath (Join-Path $UiohookOverride $library) -Destination $target -Force
-    }
-    Write-Host "libuiohook back ends from $UiohookOverride"
 }
 foreach ($name in @('Filee', 'filee-cli')) {
     $executable = Join-Path $publish $name

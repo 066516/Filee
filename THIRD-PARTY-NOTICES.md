@@ -40,11 +40,8 @@ Each component remains under its own license.
 | cu2qu (fontTools): the cubic-to-quadratic approach followed by `Filee.Engines/Fonts/Cff/CubicToQuadratic.cs` | Apache-2.0, Copyright 2016 Google Inc. | https://github.com/fonttools/fonttools |
 
 libuiohook (the native input hook inside SharpHook) is the fork https://github.com/TolikPylypchuk/libuiohook, licensed
-under the GNU LGPL-3.0 (`COPYING.LESSER.md` in its repository). Filee loads it dynamically. In the Linux packages,
-`libuiohook-xrecord.so` and `libuiohook-x11.so` are built by Filee's CI from the unmodified source SharpHook 8.0.0 uses
-(commit `a41658fb2bef7503a3bcb305ab8bf849755fe906`) with SharpHook's build flags on Ubuntu 22.04, so they run on older
-Linux systems; the other libuiohook files are SharpHook's. The build steps are in `build/build-linux-native.py`. You
-may replace these libraries with your own build of libuiohook.
+under the GNU LGPL-3.0 (`COPYING.LESSER.md` in its repository). Filee loads SharpHook's unmodified build of it
+dynamically; you may replace those libraries with your own build of libuiohook.
 
 Used by the tests only (not redistributed): DocumentFormat.OpenXml (Open XML SDK, MIT, https://github.com/dotnet/Open-XML-SDK) validates the DOCX files Filee writes.
 

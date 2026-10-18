@@ -35,9 +35,9 @@ install/uninstall scripts. `Filee-<version>-<rid>-SHA256SUMS.txt` verifies the a
 `com.filee.app` and a development ad-hoc signature by default; public distribution still needs Developer ID signing
 and notarization. `-SigningIdentity` can supply a signing identity, but does not perform notarization.
 
-Linux release packages must run on Ubuntu 22.04 (glibc 2.35). CI builds rhwp and SharpHook's X11 input hook back ends
-from source on Ubuntu 22.04 (`build/build-linux-native.py`) and passes them with `-RhwpOverride` and
-`-UiohookOverride`; a local package without them needs the glibc of the machine that built it. Check a package with
+Linux release packages must run on Ubuntu 22.04 (glibc 2.35). CI builds rhwp from source on Ubuntu 22.04
+(`build/build-linux-native.py`) and passes it with `-RhwpOverride`; a local package without it needs the glibc of the
+machine that built it. Check a package with
 `python3 build/check-elf-glibc.py --max 2.35 <unpacked package>`. See [docs/ENGINES.md](docs/ENGINES.md#linux-builds-for-older-glibc).
 
 - **Linux:** drag gestures require X11. Install the Avalonia desktop dependencies (fontconfig, FreeType, X11,
