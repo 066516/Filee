@@ -49,6 +49,7 @@ public static class EngineRegistry
         new FontConverter(),
         new DocxWriterConverter(),
         new PdfTextConverter(),
+        new PdfSlidesConverter(),
         new EmlConverter(),
         new DataConverter(),
         new SubtitleConverter(),
