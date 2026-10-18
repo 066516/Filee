@@ -170,9 +170,15 @@ internal static class MediaEncoding
     }
 
     /// <summary>
-    /// Slices frames of a video into an image sequence in <paramref name="outputPattern"/>
-    /// for focus stacking and photography analysis.
+    /// Every frame (or every <paramref name="frameInterval"/>th) of the first video stream as numbered pictures in
+    /// <paramref name="outputPattern"/> (an image2 pattern such as <c>frame_%06d.png</c>), for focus stacking and
+    /// picking a shot.
     /// </summary>
+    /// <remarks>
+    /// Each decoded frame is written once. The image2 muxer would otherwise pace frames to a constant rate and
+    /// duplicate (or drop) frames of a variable frame rate video (phones), so frames pass through with their own
+    /// timestamps; with an interval the select filter leaves gaps, which <c>vfr</c> keeps as they are.
+    /// </remarks>
     public static List<string> FrameSequence(
         string input,
         string outputPattern,
@@ -182,27 +188,24 @@ internal static class MediaEncoding
         int frameInterval = 1,
         double fps = 0)
     {
-        List<string> args = [.. Common, "-i", input];
-
-        var filters = new List<string>();
-        if (video is not null && Math.Abs(video.SampleAspect - 1) > 0.01)
-            filters.Add("scale=w='trunc(iw*sar/2)*2':h=ih,setsar=1");
-
-        if (frameInterval > 1)
-            filters.Add($"select='not(mod(n\\,{frameInterval}))'");
-        else if (fps > 0)
-            filters.Add($"fps={fps.ToString(CultureInfo.InvariantCulture)}");
-
-        if (filters.Count > 0)
-            args.AddRange(["-vf", string.Join(",", filters)]);
-
+        var select = frameInterval > 1 ? $"select='not(mod(n\\,{frameInterval}))'"
+            : fps > 0 ? $"fps={fps.ToString(CultureInfo.InvariantCulture)}"
+            : "null";
+        List<string> args =
+        [
+            .. Common, "-i", input, "-map", "0:V:0", "-vf", (video is null ? "" : SquarePixels(video)) + select,
+        ];
         if (frameInterval > 1)
             args.AddRange(["-fps_mode", "vfr"]);
+        else if (fps <= 0)
+            args.AddRange(["-fps_mode", "passthrough"]);
 
         if (imageExt is "jpg" or "jpeg")
-            args.AddRange(["-q:v", QualityToQv(quality).ToString(CultureInfo.InvariantCulture)]);
+            args.AddRange(["-c:v", "mjpeg", "-q:v", QualityToQv(quality).ToString(CultureInfo.InvariantCulture)]);
+        else
+            args.AddRange(["-c:v", "png"]);
 
-        args.AddRange(["-progress", "pipe:1", outputPattern]);
+        args.AddRange(["-f", "image2", "-progress", "pipe:1", outputPattern]);
         return args;
     }
 

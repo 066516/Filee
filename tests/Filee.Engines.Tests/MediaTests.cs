@@ -910,10 +910,39 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal("vfr", After(jpg, "-fps_mode"));
         Assert.Equal("out_frames/frame_%06d.jpg", jpg[^1]);
 
+        Assert.Equal("0:V:0", After(jpg, "-map"));
+
+        // Every frame: each decoded frame once, never paced to a constant rate.
+        var every = MediaEncoding.FrameSequence("in.mp4", "out_frames/frame_%06d.png", "png", video);
+        Assert.Equal("passthrough", After(every, "-fps_mode"));
+        Assert.Equal("0:V:0", After(every, "-map"));
+        Assert.Equal("png", After(every, "-c:v"));
+
         var png = MediaEncoding.FrameSequence("in.mp4", "out_frames/frame_%06d.png", "png", fps: 10);
         Assert.DoesNotContain("-q:v", png);
         Assert.Contains("fps=10", After(png, "-vf"));
         Assert.Equal("out_frames/frame_%06d.png", png[^1]);
+    }
+
+    [Fact]
+    public async Task Every_frame_of_a_variable_frame_rate_video_is_saved_once()
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        // One second at 30 fps, then three seconds at 10 fps: 60 frames, as a phone records a darker scene. Paced to a
+        // constant 30 fps the slow part would come out three times over (120 pictures).
+        var source = Path.Combine(folder, "vfr.mkv");
+        await RunAsync(Tools!.Value.Ffmpeg,
+        [
+            "-hide_banner", "-nostdin", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=160x120:rate=30:duration=2",
+            "-vf", "setpts='if(lt(N,30),N/30,1+(N-30)/10)/TB'", "-fps_mode", "vfr", "-c:v", "libx264", "-pix_fmt", "yuv420p", source,
+        ]);
+        var decoded = (await ProbeAsync(source)).Video!.Frames;
+        Assert.Equal(60, decoded);
+
+        var frames = await ConvertAsync(source, "png", new MediaOptions { SaveEveryFrame = true });
+
+        Assert.Equal(decoded, Directory.GetFiles(frames, "*.png").Length);
     }
 
     [Fact]
