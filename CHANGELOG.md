@@ -7,7 +7,8 @@ Add a `## <version>` section before tagging a release. Write what someone using 
 find it, what it does and doesn't do.
 
 Start the section with an `<!-- update -->` block (hidden on GitHub). The app's update notice shows its level and its
-one-line summaries in the user's language (`ko`, `en`, `zh`; a line per change, a language may repeat):
+one-line summaries in the user's language (`ko`, `en`, `zh`, `pl`; a line per change, a language may repeat; a language
+without lines shows the English ones):
 
 - `required`: wrong or lost results, security, Filee not starting. The card shows every time Filee starts.
 - `recommended`: bug fixes. The card shows once per version.
@@ -38,6 +39,13 @@ zh: 转换结束后会释放内存，在托盘中占用更少
 zh: 关闭窗口时可以选择保留在托盘或退出
 zh: 新增波兰语界面
 zh: 修复了部分 SVG 无法转换的问题和下拉列表的错误
+pl: Konwersja PDF do PowerPointa lub do mniejszego PDF
+pl: Zapis każdej klatki wideo jako obrazów
+pl: Szybsze kodowanie wideo na karcie graficznej
+pl: Filee oddaje pamięć po konwersjach i mniej obciąża zasobnik
+pl: Wybór, czy zamknięcie okna zostawia Filee w zasobniku, czy je zamyka
+pl: Język polski
+pl: Naprawiono niektóre pliki SVG, których nie dało się przekonwertować, i błąd w listach rozwijanych
 -->
 
 ### New
