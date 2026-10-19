@@ -86,6 +86,14 @@ Bump `AppSettings.CurrentSchemaVersion` and add a step to `SettingsMigrations` w
 Everything OS-specific goes through `IPlatformServices` (`Filee.Core/Platform`). Windows lives in
 `Filee.Platform.Windows`; macOS will get its own project. Global input uses SharpHook on both.
 
+On macOS, files reach Filee from file managers other than Finder too (issue #160). The "Convert with Filee" service
+(`MacOSServicesProvider`) and the donut's drags (`DraggedFiles`) read file URLs first, then the older
+`NSFilenamesPboardType` array of paths (`PasteboardPaths`); the service also takes plain-text lines that are absolute
+paths. The donut registers those types with AppKit next to Avalonia's own, so such a drag reaches it, and a drag or
+service request without readable files is logged with the types it offered. File promises (`NSFilePromiseProvider`)
+can't be received through Avalonia. A click-mode donut opened for a later launch or the service forgives one loss of
+focus within a second of opening (`ActivationGrace`): Filee becoming the active app can take focus away from it.
+
 ## Explorer integration
 
 Settings → General → "Show “Convert with Filee” in the Explorer context menu" (`AppSettings.ContextMenuEnabled`) is
