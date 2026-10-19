@@ -1061,7 +1061,7 @@ internal sealed partial class HtmlReader
         try
         {
             if (reference.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
-                return new Uri(reference).LocalPath is var local && AllowedResource(local) && File.Exists(local) ? local : null;
+                return new Uri(reference).LocalPath is var local && InsideFolder(local, _options.ResourceRoot) && File.Exists(local) ? local : null;
             if (reference.Contains("://", StringComparison.Ordinal) || reference.StartsWith("//", StringComparison.Ordinal)
                 || reference.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
                 return null;
@@ -1070,7 +1070,7 @@ internal sealed partial class HtmlReader
             if (relative.Length == 0)
                 return null;
             var candidate = Path.GetFullPath(Path.Combine(_options.BaseFolder, relative));
-            return AllowedResource(candidate) && File.Exists(candidate) ? candidate : null;
+            return InsideFolder(candidate, _options.ResourceRoot) && File.Exists(candidate) ? candidate : null;
         }
         catch (Exception ex) when (ex is ArgumentException or UriFormatException or NotSupportedException or PathTooLongException)
         {
@@ -1078,12 +1078,13 @@ internal sealed partial class HtmlReader
         }
     }
 
-    /// <summary>Packaged books may only refer to files in their own unpacked folder.</summary>
-    private bool AllowedResource(string path)
+    /// <summary>Packaged books may only refer to files in their own unpacked folder: true when there is no
+    /// <paramref name="root"/> or <paramref name="path"/> is inside it.</summary>
+    internal static bool InsideFolder(string path, string? root)
     {
-        if (_options.ResourceRoot is null)
+        if (root is null)
             return true;
-        var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(_options.ResourceRoot)) + Path.DirectorySeparatorChar;
+        root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)) + Path.DirectorySeparatorChar;
         var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         return Path.GetFullPath(path).StartsWith(root, comparison);
     }
