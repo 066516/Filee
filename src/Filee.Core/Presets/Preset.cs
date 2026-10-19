@@ -270,6 +270,26 @@ public sealed class ImageOptions
     /// <summary>Icon sizes embedded in an ICO file.</summary>
     public List<int> IcoSizes { get; set; } = [256, 128, 64, 48, 32, 16];
 
+    /// <summary>The playback speeds the preset editor offers (<see cref="AnimationSpeed"/>).</summary>
+    public static readonly double[] AnimationSpeeds = [0.25, 0.5, 0.75, 1, 1.5, 2, 4];
+
+    /// <summary>
+    /// Plays an animation (GIF, WebP, APNG, MNG; video → GIF or APNG) this many times as fast: 2 halves every frame
+    /// delay, 0.5 doubles it. 1 (the default, also for presets saved before the option) leaves the timing as it is.
+    /// </summary>
+    public double AnimationSpeed { get; set; } = 1;
+
+    /// <summary>
+    /// <see cref="AnimationSpeed"/> as the engines use it: between 0.1 and 10, and 1 for a value that makes no sense
+    /// (zero, negative; a hand-edited preset file).
+    /// </summary>
+    [JsonIgnore]
+    public double PlaybackSpeed => double.IsFinite(AnimationSpeed) && AnimationSpeed > 0 ? Math.Clamp(AnimationSpeed, 0.1, 10) : 1;
+
+    /// <summary>True when animations are played faster or slower than they were made (<see cref="PlaybackSpeed"/>).</summary>
+    [JsonIgnore]
+    public bool ChangesSpeed => PlaybackSpeed != 1;
+
     public ImageOptions Clone()
     {
         var copy = (ImageOptions)MemberwiseClone();
@@ -359,6 +379,11 @@ public sealed class DocumentOptions
 {
     /// <summary>Export PDF/A (archival) when producing PDF from documents.</summary>
     public bool PdfA { get; set; }
+
+    /// <summary>
+    /// Markdown output: the text only, without the document's pictures (no "&lt;name&gt;_files" folder next to it).
+    /// </summary>
+    public bool LeaveOutPictures { get; set; }
 
     public DocumentOptions Clone() => (DocumentOptions)MemberwiseClone();
 }

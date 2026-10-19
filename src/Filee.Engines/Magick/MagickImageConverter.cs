@@ -86,7 +86,11 @@ public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransf
         cancellationToken.ThrowIfCancellationRequested();
         progress?.Report(0.3);
 
+        var animation = ImageEncoder.KeepsAnimation(from, step.To);
         var frames = ImageEncoder.SelectFrames(images, from, step.To);
+        // Before the options: frames dropped for speed aren't resized for nothing.
+        if (animation && step.Preset.Image.ChangesSpeed)
+            frames = AnimationTiming.ChangeSpeed(frames, step.Preset.Image.PlaybackSpeed, step.To);
         foreach (var frame in frames)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -94,8 +98,7 @@ public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransf
         }
         progress?.Report(0.7);
 
-        var written = ImageEncoder.Write(frames, step.To, step.Output, step.Preset.Image, step.InputPath,
-            ImageEncoder.KeepsAnimation(from, step.To));
+        var written = ImageEncoder.Write(frames, step.To, step.Output, step.Preset.Image, step.InputPath, animation);
         progress?.Report(1);
         return written;
     }
