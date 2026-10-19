@@ -1218,6 +1218,22 @@ public class RenderTests
         Assert.Equal("Subtitle", vm.Target.Detail);
     }
 
+    /// <summary>The geospatial donut in the toolbar editor: GeoJSON, Shapefile, KML, CSV, GPX and KMZ for geo files.</summary>
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    public void Toolbar_geospatial_donut_renders(string language)
+    {
+        WithProfiles(language, false, 1240, _ => { }, (window, vm) =>
+        {
+            vm.SelectedProfile = vm.Profiles.Single(p => p.Profile.Id == "geo");
+            Pump();
+            Assert.Equal(["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz"], vm.SelectedProfile.Profile.PresetIds);
+            Assert.Contains("shp", vm.ExtensionTags!.Tags.Select(t => t.Text.TrimStart('.')));
+            Save(window, $"toolbar-geospatial-{language}.png");
+        });
+    }
+
     /// <summary>Shows the toolbar page (tall, so the profile card is visible) with temporarily changed profiles.</summary>
     private static void WithProfiles(string language, bool dark, double height, Action<List<ToolbarProfile>> change, Action<Window, ToolbarPageViewModel> act)
     {

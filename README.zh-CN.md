@@ -102,6 +102,7 @@
 | **字体**：TTF、OTF、WOFF、WOFF2、EOT | 互相转换 |
 | **数据**：JSON、JSON Lines、YAML、TOML、XML · vCard | 互相转换、CSV 和 XLSX（表格数据）、vCard ↔ CSV |
 | **3D 模型**：GLB、glTF、STL、OBJ（+ MTL）、3MF、PLY；FBX 仅读取 | 互相转换、PNG 预览 |
+| **地理信息（矢量）**：Shapefile、GeoJSON、KML、KMZ、GPX · 带坐标的 CSV | 互相转换、CSV / XLSX / JSON；投影坐标系（UTM、Web 墨卡托、兰伯特、阿尔伯斯）会转换为 WGS 84 经纬度 |
 
 未标注的格式装好即用，无需 Office、韩文办公软件或 LibreOffice。
 标注的格式需要可选引擎，只在需要时下载，分别是 ¹ Ghostscript、² LibreOffice、³ Pandoc、⁴ calibre、⁵ FFmpeg
