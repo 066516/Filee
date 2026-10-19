@@ -602,6 +602,29 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_23_libraries_learn_potm_on_the_presentation_donut_and_nothing_else()
+    {
+        // As written with schema 23: no POTM, and the user took ODP off the presentation donut.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var slides = profiles.Single(p => p.Id == "presentations");
+        slides.Extensions.RemoveAll(e => e is "potm" or "odp");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(23, presets, profiles));
+
+        Assert.Contains("potm", slides.Extensions);
+        Assert.DoesNotContain("odp", slides.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(23, presets, profiles)); // once only
+
+        // A donut of the user that already opens .potm files keeps them.
+        profiles = BuiltInData.CreateProfiles();
+        profiles.Single(p => p.Id == "presentations").Extensions.Remove("potm");
+        profiles.Insert(0, new ToolbarProfile { Id = "templates", Name = "Templates", Extensions = ["potm"] });
+        Assert.False(SettingsMigrations.ApplyToLibrary(23, presets, profiles));
+        Assert.DoesNotContain("potm", profiles.Single(p => p.Id == "presentations").Extensions);
+    }
+
+    [Fact]
     public void Version_15_libraries_get_the_tracing_presets_on_the_images_donut_after_pdf()
     {
         // As written before tracing: no trace presets, and the images donut without them.

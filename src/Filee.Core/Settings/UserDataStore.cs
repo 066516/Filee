@@ -627,6 +627,10 @@ internal static class SettingsMigrations
         //      the user already takes them.
         if (from < 23)
             changed |= LearnExtensions(profiles, out _, ["mhtml", "mht"]);
+        // v24: macro-enabled PowerPoint templates (.potm) open from the presentation donut next to POTX, unless a donut
+        //      of the user already takes them.
+        if (from < 24)
+            changed |= LearnExtensions(profiles, out _, ["potm"]);
         return changed;
     }
 
