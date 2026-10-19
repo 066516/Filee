@@ -300,6 +300,8 @@
   "toolbar.add_profile": "Nowy profil",
   "toolbar.profile_new": "Nowy profil",
   "toolbar.delete_profile": "Usuń profil",
+  "toolbar.reset_profile": "Przywróć domyślny",
+  "toolbar.reset_profile_confirm": "Przywrócić domyślne ustawienia i rozszerzenia profilu „{0}”? Pozostałe profile i ustawienia się nie zmienią.",
   "toolbar.name": "Nazwa",
   "toolbar.extensions": "Używany dla tych rozszerzeń",
   "toolbar.extensions_hint": "Dodaj rozszerzenie, np. jpg",

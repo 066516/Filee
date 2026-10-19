@@ -305,6 +305,58 @@ public class RenderTests
         }
     }
 
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("es")]
+    [InlineData("ko")]
+    [InlineData("hi")]
+    public void Reset_to_default_sits_beside_delete_for_a_built_in_profile_only(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var store = AppHost.Get<UserDataStore>();
+        var profiles = store.Profiles.Select(p => p.Clone()).ToList();
+        try
+        {
+            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            vm.Navigate("toolbar");
+            var page = (ToolbarPageViewModel)vm.CurrentPage!;
+            var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+            window.Show();
+            page.SelectedProfile = page.Profiles.Single(p => p.Profile.Id == "images");
+            Pump();
+
+            var actions = window.GetVisualDescendants().OfType<StackPanel>().Single(s => s.Name == "ProfileActions");
+            var reset = (Button)actions.Children[0];
+            var delete = (Button)actions.Children[1];
+            Assert.Same(page.ResetProfileCommand, reset.Command);
+            Assert.Same(page.DeleteProfileCommand, delete.Command);
+            Assert.True(reset.IsVisible && delete.IsVisible);
+            // On one row, reset first, both inside the profile card.
+            var card = window.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "ProfileCard");
+            var resetBox = Avalonia.VisualExtensions.TranslatePoint(reset, default, card)!.Value;
+            var deleteBox = Avalonia.VisualExtensions.TranslatePoint(delete, default, card)!.Value;
+            Assert.Equal(resetBox.Y, deleteBox.Y);
+            Assert.True(resetBox.X + reset.Bounds.Width < deleteBox.X);
+            Assert.True(resetBox.X >= 0 && deleteBox.X + delete.Bounds.Width <= card.Bounds.Width);
+            actions.BringIntoView();
+            Pump();
+            Save(window, $"toolbar-reset-profile-{language}.png");
+
+            // A profile the user made has no default: only delete.
+            page.AddProfileCommand.Execute(null);
+            Pump();
+            Assert.False(reset.IsVisible);
+            Assert.True(delete.IsVisible);
+            window.Close();
+        }
+        finally
+        {
+            store.Profiles.Clear();
+            store.Profiles.AddRange(profiles);
+            store.SaveLibrary();
+        }
+    }
+
     [AvaloniaFact]
     public void Dragging_a_preset_opens_a_gap_with_a_preview_slice()
     {

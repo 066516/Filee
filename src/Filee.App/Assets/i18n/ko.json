@@ -300,6 +300,8 @@
   "toolbar.add_profile": "새 프로필",
   "toolbar.profile_new": "새 프로필",
   "toolbar.delete_profile": "프로필 삭제",
+  "toolbar.reset_profile": "기본값으로 초기화",
+  "toolbar.reset_profile_confirm": "“{0}”의 프리셋과 확장자를 기본값으로 되돌릴까요? 다른 프로필과 프리셋은 그대로예요.",
   "toolbar.name": "이름",
   "toolbar.extensions": "적용할 확장자",
   "toolbar.extensions_hint": "확장자 추가 (예: jpg)",

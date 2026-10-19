@@ -287,6 +287,8 @@
   "toolbar.add_profile": "नई प्रोफ़ाइल",
   "toolbar.profile_new": "नई प्रोफ़ाइल",
   "toolbar.delete_profile": "प्रोफ़ाइल हटाएँ",
+  "toolbar.reset_profile": "डिफ़ॉल्ट पर रीसेट करें",
+  "toolbar.reset_profile_confirm": "“{0}” के प्रीसेट और एक्सटेंशन डिफ़ॉल्ट पर रीसेट करें? बाकी प्रोफ़ाइल और प्रीसेट जैसे हैं वैसे ही रहेंगे।",
   "toolbar.name": "नाम",
   "toolbar.extensions": "इन एक्सटेंशन के लिए इस्तेमाल",
   "toolbar.extensions_hint": "एक्सटेंशन जोड़ें, जैसे jpg",
