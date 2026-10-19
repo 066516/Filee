@@ -52,6 +52,12 @@
     </ResourceDictionary>
   </Styles.Resources>
 
+  <!-- Reuse existing translated state labels instead of ToggleSwitch's English defaults. -->
+  <Style Selector="ToggleSwitch">
+    <Setter Property="OnContent" Value="{DynamicResource triggers.enabled}" />
+    <Setter Property="OffContent" Value="{DynamicResource watch.status_off}" />
+  </Style>
+
   <!-- ───────── Windows & typography ───────── -->
   <Style Selector="Window">
     <Setter Property="Background" Value="{DynamicResource PageBrush}" />

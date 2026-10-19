@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Filee.App.Tests;
 
-/// <summary>Keeps en / es / ko / zh-CN / pl / hi in sync so no language silently falls back to English.</summary>
+/// <summary>Keeps en / es / ja / ko / zh-CN / pl / hi in sync so no language silently falls back to English.</summary>
 public partial class LocalizationTests
 {
     private static string I18nDirectory
@@ -20,7 +20,7 @@ public partial class LocalizationTests
     private static Dictionary<string, string> Load(string code) =>
         JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(I18nDirectory, code + ".json")))!;
 
-    public static TheoryData<string> Languages => new() { "es", "ko", "zh-CN", "pl", "hi" };
+    public static TheoryData<string> Languages => new() { "es", "ja", "ko", "zh-CN", "pl", "hi" };
 
     [Theory]
     [MemberData(nameof(Languages))]

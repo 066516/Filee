@@ -20,11 +20,12 @@ public sealed class ThemeService(IPlatformServices platform)
 
     /// <summary>Embedded Noto fonts (see build/fetch-fonts.ps1). Missing files fall back to system fonts.</summary>
     private const string Latin = "fonts:Filee#Noto Sans";
+    private const string Japanese = "fonts:Filee#Noto Sans JP";
     private const string Korean = "fonts:Filee#Noto Sans KR";
     private const string Chinese = "fonts:Filee#Noto Sans SC";
     private const string Devanagari = "fonts:Filee#Noto Sans Devanagari";
     private const string SystemFallbacks =
-        "Segoe UI, Nirmala UI, Malgun Gothic, Microsoft YaHei, PingFang SC, Apple SD Gothic Neo, Kohinoor Devanagari, sans-serif";
+        "Segoe UI, Nirmala UI, Yu Gothic UI, Meiryo, Hiragino Sans, Malgun Gothic, Microsoft YaHei, PingFang SC, Apple SD Gothic Neo, Kohinoor Devanagari, sans-serif";
 
     /// <summary>
     /// theme.json colour names → the brushes in Styles/Soft.axaml they replace. Must cover exactly
@@ -79,10 +80,12 @@ public sealed class ThemeService(IPlatformServices platform)
         res["ControlCornerRadius"] = new CornerRadius(Math.Round(r * 0.55));
         res["OverlayCornerRadius"] = new CornerRadius(r);
 
-        // Han characters look different in Korean and Chinese fonts: put the UI language's font first.
-        var cjk = language.StartsWith("zh", StringComparison.OrdinalIgnoreCase)
-            ? $"{Chinese}, {Korean}"
-            : $"{Korean}, {Chinese}";
+        // Han characters vary by region: put the UI language's CJK font first.
+        var cjk = language.StartsWith("ja", StringComparison.OrdinalIgnoreCase)
+            ? $"{Japanese}, {Korean}, {Chinese}"
+            : language.StartsWith("zh", StringComparison.OrdinalIgnoreCase)
+                ? $"{Chinese}, {Korean}, {Japanese}"
+                : $"{Korean}, {Chinese}, {Japanese}";
         res["AppFontFamily"] = FontFamily.Parse($"{Latin}, {Devanagari}, {cjk}, {SystemFallbacks}");
 
         // Application.Resources is searched before the styles, so these theme dictionaries win over Soft.axaml's.
