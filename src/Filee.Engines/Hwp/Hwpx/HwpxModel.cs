@@ -152,6 +152,8 @@ internal sealed class HCell
     public HVerticalAlign VerticalAlign { get; set; }
     public string? Fill { get; set; }
     public HBorders? Borders { get; set; }
+    /// <summary>Cell-specific padding; null inherits the table's padding.</summary>
+    public HInsets? CellMargin { get; set; }
     public List<HBlock> Blocks { get; } = [];
 }
 
