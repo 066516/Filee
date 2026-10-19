@@ -191,10 +191,19 @@ internal readonly record struct HBorders(HBorder Left, HBorder Right, HBorder To
 
 internal abstract class HInline;
 
-internal sealed class HText(string text, HCharFormat format) : HInline
+internal class HText(string text, HCharFormat format) : HInline
 {
     public string Text { get; } = text;
     public HCharFormat Format { get; } = format;
+}
+
+/// <summary>
+/// An equation (from Word math): a 한글 equation object in HWPX. It is text too, its linear form ("(a)/(b)", "x^2"),
+/// which the writers without equations (HTML, EPUB, Markdown, plain text) write instead.
+/// </summary>
+internal sealed class HEquation(MathNode math, HCharFormat format) : HText(EquationScript.Linear(math), format)
+{
+    public MathNode Math { get; } = math;
 }
 
 internal sealed class HLineBreak(HCharFormat format) : HInline
