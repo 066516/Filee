@@ -78,6 +78,7 @@
   "error.not_enough_space": "Not enough free disk space for the pictures",
   "error.rhwp_timeout": "rhwp couldn't finish this long document in time",
   "error.rhwp_timeout_calibre": "rhwp couldn't finish this long document in time. For an e-book, move Calibre above the HWPX writer in Settings → Engines, and Calibre makes the PDF much faster",
+  "error.needs_shaping": "This script needs LibreOffice to convert correctly. Install it in Settings → Engines",
   "error.conversion_failed": "The engine reported an error",
   "notice.pdf_not_smaller": "Couldn't make it smaller, so it was copied as it is",
 
