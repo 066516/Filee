@@ -20,7 +20,7 @@ public partial class LocalizationTests
     private static Dictionary<string, string> Load(string code) =>
         JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(I18nDirectory, code + ".json")))!;
 
-    public static TheoryData<string> Languages => new() { "ko", "zh-CN" };
+    public static TheoryData<string> Languages => new() { "ko", "zh-CN", "pl" };
 
     [Theory]
     [MemberData(nameof(Languages))]

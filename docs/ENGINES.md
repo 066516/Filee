@@ -31,7 +31,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, markup languages (reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML) ↔ Markdown/HTML/DOCX/ODT and each other (and → RTF, EPUB, TXT), Markdown and markup → PPTX slides |
 | Ghostscript | **optional download** (~20 MB, 31 MB on disk) | EPS/PS → PDF, PDF → EPS/PS, PostScript-based AI → PDF (images through PDF and PDFium); smaller PDFs when a preset asks for it |
 | FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG, a still frame or every frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, images → HEIC |
-| Calibre | **optional download** (~216 MB, 660 MB on disk) | rare e-book formats: LIT, LRF, CHM, PDB, PML, RB, SNB, TCR, OEB → EPUB; EPUB → MOBI, AZW3, LIT, LRF, PDB, PML, RB, SNB, TCR |
+| Calibre | **optional download** (~216 MB, 660 MB on disk) | rare e-book formats: LIT, LRF, CHM, PDB, PML, RB, SNB, TCR, OEB → EPUB; EPUB → MOBI, AZW3, LIT, LRF, PDB, PML, RB, SNB, TCR; e-books → PDF (ranked above the HWPX writer, see below) |
 
 DOCX, XLSX, XLS, ODS and PPTX → PDF need neither Microsoft Office nor LibreOffice: they are read in-process, written as HWPX
 and rendered by rhwp. Anything the built-in readers understand (including PDF) is written as DOCX by the DOCX writer.
@@ -699,6 +699,17 @@ LIT, LRF, CHM, PDB, PML, RB, SNB, TCR and OEB → EPUB, and EPUB → MOBI, AZW3,
 EPUB is the hub, so for example FB2 → AZW3 is FB2 → EPUB (built in) → AZW3 (calibre). Its edges cost 20, so
 built-in routes always win where they exist.
 
+calibre also makes PDFs of EPUB, MOBI, AZW3, AZW, PRC, FB2, HTMLZ, TXTZ and the formats only it reads (one
+`ebook-convert` run: A4 with `--paper-size a4`, page numbers with `--pdf-page-numbers`, calibre's margins and font
+sizes; the built-in route ignores the preset's PDF options too). For long books it is much faster than the built-in
+route, HWPX writer → rhwp (a 640-page novel: about a minute against some 48 minutes, #127), but the built-in route
+stays the default so results don't change under users. The PDF edges cost 23: in the default engine order the
+built-in route costs 31 (HWPX writer 10 + 8, rhwp 10 + 3) and calibre 23 + 9, so the built-in route wins by one; once
+the user moves calibre above the HWPX writer in Settings → *Engines*, calibre costs at most 31 and the built-in route
+at least 32. LIT, LRF and the other formats only calibre reads go straight to PDF instead of calibre → EPUB → HWPX
+writer → rhwp. When rhwp runs out of time and calibre is installed, the error says to rank calibre higher; Filee
+never switches engines by itself.
+
 - The pinned `calibre-64bit-<version>.msi` from download.calibre-ebook.com is unpacked like LibreOffice; the folder
   with `ebook-convert.exe` becomes `engines/calibre`.
 - Each run gets its own configuration, cache and temp folders in the job's work directory
@@ -715,6 +726,14 @@ change something for it (`Hwp/RhwpInput.cs`): fonts that are installed, the laid
 the column, spaced equation commands, and, in an HWPX exported from an HWP (rhwp's `META-INF/rhwp-hwp5-origin`
 marker), the stored line of a cell paragraph that holds only a floating table moved up to the paragraph's top, so the
 table is not drawn over the paragraphs below it (#49).
+
+rhwp renders text slowly: about 1 s per KB of section XML, some 4 s per page of a novel (rhwp 0.8.7 on an
+i7-1185G7, pictures cost little). So each rhwp run's time limit follows the document's text: 2 minutes + 30 minutes
+per MB of unpacked `Contents/section*.xml` (an HWP counts three times its file size, its text being deflated), at most
+60 minutes, after which a rhwp that hangs is stopped. The progress estimate assumes 15 minutes per MB. Cancelling
+stops rhwp at once. A time-out fails with "rhwp couldn't finish this long document in time" (with calibre installed,
+it suggests ranking calibre above the HWPX writer for e-books). The other engines keep fixed limits: LibreOffice 3
+minutes, Ghostscript 5, Pandoc 2 and calibre 10 (it made the 640-page novel's PDF in a minute).
 
 ## Archives
 
