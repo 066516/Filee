@@ -349,7 +349,6 @@ public static class BuiltInData
         .. WithSubtitleProfile(CatalogProfiles()),
         DataProfile(),
         ModelProfile(),
-
         new()
         {
             Id = "mixed", NameKey = "profile.mixed", IsFallback = true,

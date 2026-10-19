@@ -11,7 +11,7 @@ public sealed class PresetAvailability(ConverterCatalog catalog, ILocalizer loc,
 {
     private static readonly HashSet<string> WritableSingleFrameRasterFormats =
     [
-        "jpg", "png", "webp", "bmp", "avif", "heic", "jxl", "jp2", "tga", "qoi", "dds", "pcx",
+        "jpg", "png", "webp", "bmp", "avif", "jxl", "jp2", "tga", "qoi", "dds", "pcx",
     ];
     /// <summary>
     /// Returns <c>null</c> when at least one of <paramref name="formats"/> can be converted with the preset,

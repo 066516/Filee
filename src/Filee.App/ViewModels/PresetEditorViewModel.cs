@@ -155,6 +155,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     }
 
     public string PresetId => _original.Id;
+    public bool IsTool => _original.IsTool;
+    public bool CanChangeTarget => !IsTool;
+    public bool ShowImageTools => !IsTool;
 
     public IReadOnlyList<Choice<string>> Targets { get; }
     public IReadOnlyList<Choice<ResizeMode>> ResizeModes { get; }
@@ -390,7 +393,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowMultiPageTiff => TargetId is "tiff";
     public bool ShowIco => TargetId == "ico";
     /// <summary>PDF options (also used when a PDF source becomes images) mean nothing for media, archive, font, subtitle, data, e-mail and 3D targets.</summary>
-    public bool ShowPdf => TargetCategory is not (FormatCategory.Video or FormatCategory.Audio or FormatCategory.Archive or FormatCategory.Font
+    public bool ShowPdf => !IsTool && TargetCategory is not (FormatCategory.Video or FormatCategory.Audio or FormatCategory.Archive or FormatCategory.Font
         or FormatCategory.Subtitle or FormatCategory.Data or FormatCategory.Model3D) && TargetId != "eml";
     public bool ShowPdfBuild => TargetId == "pdf";
     public bool ShowPdfSplit => TargetId == "pdf";
@@ -425,7 +428,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     /// <summary>"Extract" has nothing to set; a line says what it does instead.</summary>
     public bool ShowExtractNote => TargetId == FormatRegistry.Folder;
     /// <summary>"Save every frame" of a video: PNG and JPG (format ids, <see cref="MediaOptions.FrameTargets"/>).</summary>
-    public bool ShowSaveEveryFrame => MediaOptions.FrameTargets.Contains(TargetId);
+    public bool ShowSaveEveryFrame => !IsTool && MediaOptions.FrameTargets.Contains(TargetId);
     /// <summary>
     /// Tracing options: raster images reach SVG (and DXF / DWG through it) only by tracing. For other sources (a
     /// drawing, a CAD file) the options are ignored.

@@ -64,6 +64,10 @@
             <Border IsVisible="{Binding HasMultipleFiles}" Background="{DynamicResource AccentSoftBrush}" CornerRadius="10" Padding="8,2">
               <TextBlock Text="{Binding CounterText}" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" />
             </Border>
+
+            <Border IsVisible="{Binding HasStatusNotice}" Background="{DynamicResource CardShadow}" CornerRadius="10" Padding="8,2">
+              <TextBlock Text="{Binding StatusNotice}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+            </Border>
           </StackPanel>
         </DockPanel>
       </Border>

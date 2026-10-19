@@ -70,6 +70,8 @@ public sealed class CropCanvas : Control
     private static readonly IBrush DimMaskBrush = new SolidColorBrush(Color.FromArgb(175, 0, 0, 0));
     private static readonly IPen CropBorderPen = new Pen(Brushes.White, 1.5);
     private static readonly IPen GridPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)), 1);
+    private static readonly IPen HandlePen = new Pen(Brushes.White, 3.5);
+    private static readonly IPen HandleShadowPen = new Pen(new SolidColorBrush(Color.FromArgb(140, 0, 0, 0)), 5.0);
 
     private static double SafeClamp(double val, double min, double max) =>
         min > max ? Math.Clamp(val, max, min) : Math.Clamp(val, min, max);
@@ -129,8 +131,8 @@ public sealed class CropCanvas : Control
         w = Math.Max(MinSizePx, w);
         h = Math.Max(MinSizePx, h);
 
-        var x = Math.Clamp(current.Center.X - w / 2.0, imgBounds.Left, Math.Max(imgBounds.Left, imgBounds.Right - w));
-        var y = Math.Clamp(current.Center.Y - h / 2.0, imgBounds.Top, Math.Max(imgBounds.Top, imgBounds.Bottom - h));
+        var x = SafeClamp(current.Center.X - w / 2.0, imgBounds.Left, Math.Max(imgBounds.Left, imgBounds.Right - w));
+        var y = SafeClamp(current.Center.Y - h / 2.0, imgBounds.Top, Math.Max(imgBounds.Top, imgBounds.Bottom - h));
 
         SetCropFromScreen(new Rect(x, y, w, h), imgBounds);
     }
@@ -166,12 +168,12 @@ public sealed class CropCanvas : Control
         if (imgBounds.Width <= 0 || imgBounds.Height <= 0)
             return;
 
-        var x = Math.Clamp(screenCrop.X, imgBounds.Left, Math.Max(imgBounds.Left, imgBounds.Right - MinSizePx));
-        var y = Math.Clamp(screenCrop.Y, imgBounds.Top, Math.Max(imgBounds.Top, imgBounds.Bottom - MinSizePx));
+        var x = SafeClamp(screenCrop.X, imgBounds.Left, Math.Max(imgBounds.Left, imgBounds.Right - MinSizePx));
+        var y = SafeClamp(screenCrop.Y, imgBounds.Top, Math.Max(imgBounds.Top, imgBounds.Bottom - MinSizePx));
         var maxW = imgBounds.Right - x;
         var maxH = imgBounds.Bottom - y;
-        var w = Math.Clamp(screenCrop.Width, MinSizePx, Math.Max(MinSizePx, maxW));
-        var h = Math.Clamp(screenCrop.Height, MinSizePx, Math.Max(MinSizePx, maxH));
+        var w = SafeClamp(screenCrop.Width, MinSizePx, Math.Max(MinSizePx, maxW));
+        var h = SafeClamp(screenCrop.Height, MinSizePx, Math.Max(MinSizePx, maxH));
 
         NormalizedCropRect = new Rect(
             (x - imgBounds.Left) / imgBounds.Width,
@@ -238,29 +240,21 @@ public sealed class CropCanvas : Control
     private void DrawCornerBracket(DrawingContext context, Point corner, int dirX, int dirY)
     {
         const double length = 18;
-        const double thickness = 3.5;
-        var pCorner = new Pen(Brushes.White, thickness);
-        var pShadow = new Pen(new SolidColorBrush(Color.FromArgb(140, 0, 0, 0)), thickness + 1.5);
-
         var pHoriz = new Point(corner.X + dirX * length, corner.Y);
         var pVert = new Point(corner.X, corner.Y + dirY * length);
 
         // Shadow behind bracket for clear visibility on bright/white photos
-        context.DrawLine(pShadow, new Point(corner.X - dirX * 0.5, corner.Y), pHoriz);
-        context.DrawLine(pShadow, new Point(corner.X, corner.Y - dirY * 0.5), pVert);
+        context.DrawLine(HandleShadowPen, new Point(corner.X - dirX * 0.5, corner.Y), pHoriz);
+        context.DrawLine(HandleShadowPen, new Point(corner.X, corner.Y - dirY * 0.5), pVert);
 
         // Crisp white bracket
-        context.DrawLine(pCorner, corner, pHoriz);
-        context.DrawLine(pCorner, corner, pVert);
+        context.DrawLine(HandlePen, corner, pHoriz);
+        context.DrawLine(HandlePen, corner, pVert);
     }
 
     private void DrawEdgeBar(DrawingContext context, Point center, bool isHorizontal)
     {
         const double halfLen = 10;
-        const double thickness = 3.5;
-        var pBar = new Pen(Brushes.White, thickness);
-        var pShadow = new Pen(new SolidColorBrush(Color.FromArgb(140, 0, 0, 0)), thickness + 1.5);
-
         Point p1, p2;
         if (isHorizontal)
         {
@@ -273,8 +267,8 @@ public sealed class CropCanvas : Control
             p2 = new Point(center.X, center.Y + halfLen);
         }
 
-        context.DrawLine(pShadow, p1, p2);
-        context.DrawLine(pBar, p1, p2);
+        context.DrawLine(HandleShadowPen, p1, p2);
+        context.DrawLine(HandlePen, p1, p2);
     }
 
     private CropHandle HitTestHandle(Point pt, Rect crop, Rect imgBounds)
@@ -582,15 +576,15 @@ public sealed class CropCanvas : Control
         }
         else
         {
-            newW = Math.Clamp(crop.Width * zoomFactor, MinSizePx, imgBounds.Width);
-            newH = Math.Clamp(crop.Height * zoomFactor, MinSizePx, imgBounds.Height);
+            newW = SafeClamp(crop.Width * zoomFactor, MinSizePx, imgBounds.Width);
+            newH = SafeClamp(crop.Height * zoomFactor, MinSizePx, imgBounds.Height);
         }
 
-        newW = Math.Max(MinSizePx, newW);
-        newH = Math.Max(MinSizePx, newH);
+        newW = Math.Max(1, newW);
+        newH = Math.Max(1, newH);
 
-        var newX = Math.Clamp(crop.Center.X - newW / 2.0, imgBounds.Left, imgBounds.Right - newW);
-        var newY = Math.Clamp(crop.Center.Y - newH / 2.0, imgBounds.Top, imgBounds.Bottom - newH);
+        var newX = SafeClamp(crop.Center.X - newW / 2.0, imgBounds.Left, imgBounds.Right - newW);
+        var newY = SafeClamp(crop.Center.Y - newH / 2.0, imgBounds.Top, imgBounds.Bottom - newH);
 
         SetCropFromScreen(new Rect(newX, newY, newW, newH), imgBounds);
         e.Handled = true;
