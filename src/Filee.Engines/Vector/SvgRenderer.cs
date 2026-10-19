@@ -30,9 +30,10 @@ internal static class SvgRenderer
 
     static SvgRenderer()
     {
-        // An SVG may reference images, other SVGs and XML entities by URL. Files next to the drawing are fine;
-        // resources elsewhere on the computer and network access are not: converting a file must not read unrelated
-        // local files or fetch anything (tracking pixels, slow servers).
+        // An SVG may reference images, other SVGs, fonts and XML entities by URL. SafeParameters (Svg.Skia's SameOrigin
+        // policy) keeps them inside the drawing's folder and its subfolders: ../, absolute and UNC paths and web URLs
+        // are rejected, also for <use>, nested SVG images and @font-face, which ExternalType.Local alone didn't stop.
+        // Converting a file must not read unrelated local files or fetch anything (tracking pixels, slow servers).
         SvgDocument.ResolveExternalImages = ExternalType.Local;
         SvgDocument.ResolveExternalElements = ExternalType.Local;
         SvgDocument.ResolveExternalXmlEntites = ExternalType.None;
