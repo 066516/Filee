@@ -1,6 +1,7 @@
 // theme.json: reading, dropping what Filee cannot use, and leaving the user's file alone.
 
 using Filee.Core.Settings;
+using Microsoft.Extensions.Logging;
 
 namespace Filee.Core.Tests;
 
@@ -60,9 +61,48 @@ public class CustomThemeTests
         Assert.Equal(content, File.ReadAllText(path));
     }
 
+    [Theory]
+    [InlineData("""{ "Dark": { "page": "#101820" } }""")]
+    [InlineData("{}")]
+    [InlineData("null")]
+    public void A_file_with_no_usable_colour_says_so_in_the_log(string content)
+    {
+        using var dir = new TempDir();
+        dir.File(CustomTheme.FileName, content);
+        var log = new ListLogger();
+
+        Assert.Null(CustomTheme.Load(dir.Path, log));
+        Assert.Contains(log.Messages, m => m.Contains("sets no colours Filee can use"));
+    }
+
+    [Fact]
+    public void A_file_over_the_size_cap_is_skipped_without_reading_it()
+    {
+        using var dir = new TempDir();
+        var padding = new string(' ', (int)CustomTheme.MaxBytes);
+        dir.File(CustomTheme.FileName, $$"""{ "dark": { "page": "#101820" } }{{padding}}""");
+        var log = new ListLogger();
+
+        Assert.Null(CustomTheme.Load(dir.Path, log));
+        Assert.Contains(log.Messages, m => m.Contains("is larger than"));
+    }
+
     [Fact]
     public void Every_name_is_unique()
     {
         Assert.Equal(CustomTheme.Keys.Count, CustomTheme.Keys.Distinct(StringComparer.OrdinalIgnoreCase).Count());
     }
+}
+
+/// <summary>Collects formatted log messages.</summary>
+internal sealed class ListLogger : ILogger
+{
+    public List<string> Messages { get; } = [];
+
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+    public bool IsEnabled(LogLevel logLevel) => true;
+
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+        Messages.Add(formatter(state, exception));
 }

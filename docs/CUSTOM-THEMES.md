@@ -27,9 +27,14 @@ Filee's own colours can be replaced with a `theme.json` file in the folder that 
 ```
 
 - `dark` and `light` are both optional, and so is every colour in them. Anything left out keeps Filee's colour.
-- Colours are `#RRGGBB` or `#AARRGGBB`. Unknown names and other values are ignored and written to the log.
+- Colours are `#RRGGBB` or `#AARRGGBB`. Unknown names and other values are ignored and written to the log, and so is
+  a file with no usable colour (for example `"Dark"` with a capital D) or one over 64 KB.
 - The accent colour, corner radius and light/dark choice stay in **Settings > Theme**.
 - Filee reads the file when it starts and whenever a setting is saved. Restart Filee, or change any setting, after
   editing it. Deleting the file brings the built-in colours back.
 
 Keep `text` and `textSecondary` readable on `page`, `surface` and `surfaceAlt`: they are drawn on all three.
+
+Keep `dark` colours dark and `light` colours light. Text boxes, drop-downs, check boxes, menus, tooltips and plain
+buttons come from Avalonia's Fluent theme and keep its standard light/dark look; they do not follow `theme.json`. A
+white `page` in the `dark` variant would put white-on-white text boxes on it.

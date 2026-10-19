@@ -650,6 +650,12 @@ public class RenderTests
         }
     }
 
+    [Fact]
+    public void Every_custom_theme_name_maps_to_a_brush()
+    {
+        Assert.Equal(CustomTheme.Keys.Order(), ThemeService.CustomBrushKeys.Keys.Order());
+    }
+
     private static Avalonia.Media.Color BrushColor(Window window, string key, Avalonia.Styling.ThemeVariant? variant = null)
     {
         Assert.True(window.TryFindResource(key, variant ?? window.ActualThemeVariant, out var value), key);

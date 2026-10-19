@@ -15,6 +15,12 @@ public sealed partial class CustomTheme
     /// <summary>File name inside the data directory (<see cref="UserDataStore.Directory"/>).</summary>
     public const string FileName = "theme.json";
 
+    /// <summary>
+    /// Larger files are skipped: Load runs on the UI thread at start-up and on every settings save (the Softness
+    /// slider saves on each tick), and a real theme is well under 1 KB.
+    /// </summary>
+    public const long MaxBytes = 64 * 1024;
+
     /// <summary>Colour names a theme may set.</summary>
     public static readonly IReadOnlyList<string> Keys =
         ["page", "surface", "surfaceAlt", "border", "text", "textSecondary", "danger", "success", "warning"];
@@ -37,8 +43,14 @@ public sealed partial class CustomTheme
     {
         log ??= NullLogger.Instance;
         var path = Path.Combine(directory, FileName);
-        if (!File.Exists(path))
+        var info = new FileInfo(path);
+        if (!info.Exists)
             return null;
+        if (info.Length > MaxBytes)
+        {
+            log.LogWarning("Custom theme {Path} is larger than {Max} bytes; using the built-in colours", path, MaxBytes);
+            return null;
+        }
 
         CustomTheme? theme;
         try
@@ -51,12 +63,18 @@ public sealed partial class CustomTheme
             log.LogWarning(ex, "Custom theme {Path} could not be read; using the built-in colours", path);
             return null;
         }
-        if (theme is null)
+        if (theme is not null)
+        {
+            theme.Light = Clean(theme.Light, "light", path, log);
+            theme.Dark = Clean(theme.Dark, "dark", path, log);
+        }
+        if (theme is null || theme.IsEmpty)
+        {
+            // Also covers "Dark" or "Light" with a capital: variant names are case-sensitive, colour names are not.
+            log.LogWarning("Custom theme {Path} sets no colours Filee can use (expected \"light\"/\"dark\" objects of #RRGGBB values)", path);
             return null;
-
-        theme.Light = Clean(theme.Light, "light", path, log);
-        theme.Dark = Clean(theme.Dark, "dark", path, log);
-        return theme.IsEmpty ? null : theme;
+        }
+        return theme;
     }
 
     private static Dictionary<string, string> Clean(Dictionary<string, string>? colors, string variant, string path, ILogger log)

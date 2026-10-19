@@ -26,8 +26,11 @@ public sealed class ThemeService(IPlatformServices platform)
     private const string SystemFallbacks =
         "Segoe UI, Nirmala UI, Malgun Gothic, Microsoft YaHei, PingFang SC, Apple SD Gothic Neo, Kohinoor Devanagari, sans-serif";
 
-    /// <summary>theme.json colour names → the brushes in Styles/Soft.axaml they replace.</summary>
-    private static readonly IReadOnlyDictionary<string, string> CustomBrushKeys = new Dictionary<string, string>
+    /// <summary>
+    /// theme.json colour names → the brushes in Styles/Soft.axaml they replace. Must cover exactly
+    /// <see cref="CustomTheme.Keys"/> (a test checks).
+    /// </summary>
+    internal static readonly IReadOnlyDictionary<string, string> CustomBrushKeys = new Dictionary<string, string>
     {
         ["page"] = "PageBrush",
         ["surface"] = "SurfaceBrush",
