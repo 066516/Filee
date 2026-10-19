@@ -251,6 +251,7 @@
   "triggers.macos_permissions": "Zezwól Filee w Ustawienia systemowe > Prywatność i ochrona > Dostępność.\nFinder poprosi też o uprawnienie Automatyzacji przy pierwszym użyciu skrótu zaznaczenia.",
   "triggers.linux_x11": "Gesty przeciągania działają w X11.\nPrzy włączonej integracji z menedżerem plików pierwszy skrót klawiszowy uruchamia akcję Filee w Thunarze (po zmianie otwórz Thunara ponownie).\nGesty przytrzymania i skróty w innych menedżerach plików są niedostępne. Użyj menu Filee lub strefy upuszczania.",
   "triggers.linux_wayland": "Gesty podążające za kursorem są niedostępne w Waylandzie.\nUżyj sesji X11 albo konwertuj przez menu menedżera plików i strefę upuszczania.\nThunar może używać pierwszego skrótu klawiszowego po ponownym uruchomieniu.",
+  "triggers.linux_wayland_experimental": "Gesty w Waylandzie są eksperymentalne i działają tylko w KDE Plasma.\nFilee odczytuje mysz z /dev/input, a skrypt KWin umieszcza pasek-pierścień przy kursorze (zobacz INSTALL.txt). Przeciąganie z Ctrl w innych aplikacjach może zostać przerwane; jeśli to przeszkadza, użyj innego modyfikatora, np. Ctrl+Shift.",
   "triggers.open_accessibility": "Otwórz ustawienia Dostępności",
   "triggers.retry_hook": "Ponów gesty",
   "triggers.hook_running": "Globalne wykrywanie wejścia działa.",

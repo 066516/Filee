@@ -251,6 +251,7 @@
   "triggers.macos_permissions": "请在系统设置 > 隐私与安全性 > 辅助功能中允许 Filee。\n首次使用选择文件的快捷键时，Finder 还会请求自动化权限。",
   "triggers.linux_x11": "拖动手势需要 X11。\n启用文件管理器集成后，第一个键盘快捷键会运行 Thunar 的 Filee 操作（修改后请重新打开 Thunar）。\n不支持长按手势和其他文件管理器的快捷键，请使用 Filee 菜单或拖放区域。",
   "triggers.linux_wayland": "Wayland 下无法使用跟随光标的手势。\n请使用 X11 会话，或通过文件管理器菜单和拖放区域转换。\nThunar 重启后可以使用第一个键盘快捷键。",
+  "triggers.linux_wayland_experimental": "Wayland 下的手势为实验性功能，仅在 KDE Plasma 中可用。\nFilee 从 /dev/input 读取鼠标输入，并由 KWin 脚本将环形工具栏移到光标处（参见 INSTALL.txt）。在其他应用中按住 Ctrl 拖动可能会被打断，如有影响，请改用其他修饰键，例如 Ctrl+Shift。",
   "triggers.open_accessibility": "打开辅助功能设置",
   "triggers.retry_hook": "重试手势",
   "triggers.hook_running": "正在检测全局输入。",

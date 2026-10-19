@@ -251,6 +251,7 @@
   "triggers.macos_permissions": "시스템 설정 > 개인정보 보호 및 보안 > 손쉬운 사용에서 Filee를 허용해 주세요.\n선택 파일 단축키를 처음 쓸 때 Finder 자동화 권한도 요청해요.",
   "triggers.linux_x11": "드래그 제스처는 X11에서 작동해요.\n파일 관리자 연동을 켜면 첫 번째 키보드 단축키가 Thunar의 Filee 동작에 연결돼요(바꾼 뒤 Thunar를 다시 열어 주세요).\n길게 누르기와 다른 파일 관리자의 단축키는 지원하지 않아요. Filee 메뉴나 드롭 영역을 써 주세요.",
   "triggers.linux_wayland": "Wayland에서는 커서를 따라가는 제스처를 쓸 수 없어요.\nX11 세션을 쓰거나, 파일 관리자 메뉴와 드롭 영역으로 변환해 주세요.\nThunar는 다시 시작하면 첫 번째 키보드 단축키를 쓸 수 있어요.",
+  "triggers.linux_wayland_experimental": "Wayland에서 제스처는 실험 기능이고 KDE Plasma에서만 동작해요.\nFilee가 /dev/input에서 마우스 입력을 읽고, KWin 스크립트가 원형 툴바를 커서 위치로 옮겨요(INSTALL.txt 참고). 다른 앱에서 Ctrl+드래그가 방해받을 수 있으니, 불편하면 Ctrl+Shift 같은 다른 보조 키를 쓰세요.",
   "triggers.open_accessibility": "손쉬운 사용 설정 열기",
   "triggers.retry_hook": "제스처 다시 시도",
   "triggers.hook_running": "전역 입력을 감지하고 있어요.",
