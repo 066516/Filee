@@ -43,9 +43,10 @@ internal sealed partial class DocxReader
         var look = tblPr?.Element(W + "tblLook");
         var firstRowLook = Attr(look, "firstRow") is { } firstRow ? firstRow is "1" or "true"
             : int.TryParse(Val(look), System.Globalization.NumberStyles.HexNumber, null, out var mask) && (mask & 0x20) != 0;
-        var firstRowStyle = firstRowLook
-            ? styleChain.SelectMany(s => s.TableConditions).LastOrDefault(c => Attr(c, "type") == "firstRow")
-            : null;
+        var firstRowStyles = firstRowLook
+            ? styleChain.SelectMany(s => s.TableConditions).Where(c => Attr(c, "type") == "firstRow").ToList()
+            : [];
+        var firstRowStyle = firstRowStyles.LastOrDefault();
 
         var rows = tbl.Elements().SelectMany(e => e.Name == W + "tr" ? [e] : FlattenRows(e)).ToList();
         // vMerge: the cell that restarts a vertical merge, per grid column.
@@ -91,8 +92,12 @@ internal sealed partial class DocxReader
                     ["bottom"] = borders.GetValueOrDefault(isLastRow ? "bottom" : "insideH", HBorder.None),
                 };
                 string? fill = null;
-                foreach (var properties in styleChain.Select(s => s.TcPr).Append(r == 0 ? firstRowStyle?.Element(W + "tcPr") : null).Append(tcPr))
+                foreach (var properties in styleChain.Select(s => s.TcPr)
+                             .Concat(r == 0 ? firstRowStyles.Select(s => s.Element(W + "tcPr")) : [])
+                             .Append(tcPr))
                 {
+                    if (properties?.Element(W + "tcMar") is { } cellMar)
+                        cell.CellMargin = CellMargins(cellMar, cell.CellMargin ?? table.CellMargin);
                     ApplyBorders(properties?.Element(W + "tcBorders"), cellBorders);
                     if (properties?.Element(W + "shd") is { } shd)
                         fill = ShadingColor(shd) ?? fill;
@@ -167,8 +172,13 @@ internal sealed partial class DocxReader
 
     private static HInsets CellMargins(XElement cellMar, HInsets? current)
     {
-        int Get(string name, string alternative, int fallback) =>
-            HwpxUnits.FromTwips(Twips(cellMar.Element(W + name), "w") ?? Twips(cellMar.Element(W + alternative), "w") ?? fallback / 5);
+        int Get(string name, string alternative, int fallback)
+        {
+            var side = cellMar.Element(W + name) ?? cellMar.Element(W + alternative);
+            if (Attr(side, "type") == "nil")
+                return 0;
+            return Twips(side, "w") is { } twips ? HwpxUnits.FromTwips(twips) : fallback;
+        }
         var existing = current ?? new HInsets(540, 540, 0, 0);
         return new HInsets(Get("left", "start", existing.Left), Get("right", "end", existing.Right), Get("top", "top", existing.Top), Get("bottom", "bottom", existing.Bottom));
     }
