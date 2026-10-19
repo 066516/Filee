@@ -101,6 +101,8 @@ public sealed partial class HomePageViewModel : ObservableObject, IDisposable
         var drag = store.Settings.Triggers.FirstOrDefault(t => t.Enabled && t.Kind == TriggerKind.Drag);
         DropHint = loc.Format(OperatingSystem.IsMacOS() ? "home.drop_hint_macos" : OperatingSystem.IsLinux() ? "home.drop_hint_linux" : "home.drop_hint", drag is null ? "—" : GestureText.Modifiers(drag.Modifiers));
         store.HistoryChanged += OnHistoryChanged;
+        VisibleHistory = new FilteredList<HistoryItemViewModel>(History,
+            item => [item.Title, item.Subtitle]);
         Reload();
     }
 
@@ -146,12 +148,20 @@ public sealed partial class HomePageViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<HistoryItemViewModel> History { get; } = [];
 
+    /// <summary>The history entries visible after the search query is applied.</summary>
+    public FilteredList<HistoryItemViewModel> VisibleHistory { get; }
+
+    [ObservableProperty] private string _search = "";
+
+    partial void OnSearchChanged(string value) => VisibleHistory.Query = value;
+
     [ObservableProperty] private bool _isEmpty;
 
     private void Reload()
     {
         History.Clear();
-        foreach (var entry in _store.History.Take(40))
+        var max = Math.Clamp(_store.Settings.MaxHistory, 50, 2000);
+        foreach (var entry in _store.History.Take(max))
             History.Add(new HistoryItemViewModel(entry, _loc, _platform, _conversions));
         IsEmpty = History.Count == 0;
     }
