@@ -398,6 +398,10 @@ public sealed class JobQueue : IAsyncDisposable
                         // Turned once, in step turnAt: every other step gets the preset without rotation and flip,
                         // also one before it whose engine applies image options but doesn't say it turns.
                         var preset = s == turnAt ? job.Preset : unturned;
+                        // Playback speed changes once, in the step that writes the output: an animation passed from one
+                        // engine to another would otherwise change speed in both.
+                        if (preset.Image.ChangesSpeed && !(isLast && finalOutput))
+                            preset = AtOriginalSpeed(preset);
                         var stepInfo = new ConversionStep(input, step.From, step.To, preset, allocator, workDir, step.FrameSequence,
                             key => file.NoticeKey = key);
                         outputs.AddRange(await step.Converter.ConvertAsync(stepInfo, progress, ct));
@@ -443,6 +447,13 @@ public sealed class JobQueue : IAsyncDisposable
             var copy = preset.Clone();
             copy.Image.Rotation = ImageRotation.None;
             copy.Image.Flip = ImageFlip.None;
+            return copy;
+        }
+
+        static Preset AtOriginalSpeed(Preset preset)
+        {
+            var copy = preset.Clone();
+            copy.Image.AnimationSpeed = 1;
             return copy;
         }
 

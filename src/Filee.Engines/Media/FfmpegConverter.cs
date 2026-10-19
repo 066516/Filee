@@ -140,12 +140,15 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
                 : await HardwareProbe.SelectAsync(ffmpeg, codec, tenBit, encoders, _logger, cancellationToken);
         }
 
+        // Video → animated GIF / APNG can play faster or slower (the image options' playback speed).
+        var speed = step.To is "gif" or "apng" ? step.Preset.Image.PlaybackSpeed : 1;
         IReadOnlyList<FfmpegPass> Plan(HardwareEncoder? encoder) => still
             ? MediaEncoding.PlanStill(input, output, step.To, media, info)
-            : MediaEncoding.Plan(input, output, step.To, media, info, step.WorkDirectory, cover, encoders, encoder);
+            : MediaEncoding.Plan(input, output, step.To, media, info, step.WorkDirectory, cover, encoders, encoder, speed);
         // Throws for a missing stream before anything is written (an existing file of that name stays untouched).
         var passes = Plan(hardware);
-        var duration = still ? MediaEncoding.StillDuration : info.Duration;
+        // FFmpeg reports the position in the output, which a speed change makes longer or shorter.
+        var duration = still ? MediaEncoding.StillDuration : info.Duration / speed;
         try
         {
             await RunWithFallbackAsync(passes, hardware, Plan,
