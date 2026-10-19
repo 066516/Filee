@@ -10,8 +10,9 @@
 // positions, and a line that ends early although the next line's first word would have fitted (an address) keeps its
 // line break.
 //
-// Not converted: tables (their cells come out as paragraphs in reading order), vector drawings on text pages,
-// annotations other than links, form fields.
+// Tables drawn with lines become tables (PdfDocumentReader.Tables). Not converted: tables without rules (their cells
+// come out as paragraphs in reading order), other vector drawings on text pages, annotations other than links, form
+// fields.
 
 using System.Text;
 using System.Text.RegularExpressions;
@@ -113,25 +114,29 @@ internal sealed partial class PdfDocumentReader
         public string Text => string.Join(' ', Words.Select(w => w.Text));
     }
 
-    /// <summary>A paragraph or a picture on a page, the unit of reading order.</summary>
+    /// <summary>A paragraph, a picture or a ruled table on a page, the unit of reading order.</summary>
     private sealed class Item
     {
         public List<TextLine> Lines { get; } = [];
         public string? PicturePath { get; init; }
         public PdfRectangle? PictureBounds { get; init; }
+        public RuledTable? Table { get; init; }
 
-        public double Left => PictureBounds?.Left ?? Lines.Min(l => l.Left);
-        public double Right => PictureBounds?.Right ?? Lines.Max(l => l.Right);
-        public double Top => PictureBounds?.Top ?? Lines[0].Top;
-        public double Bottom => PictureBounds?.Bottom ?? Lines[^1].Bottom;
+        private PdfRectangle? Box => PictureBounds ?? Table?.Bounds;
+
+        public double Left => Box?.Left ?? Lines.Min(l => l.Left);
+        public double Right => Box?.Right ?? Lines.Max(l => l.Right);
+        public double Top => Box?.Top ?? Lines[0].Top;
+        public double Bottom => Box?.Bottom ?? Lines[^1].Bottom;
         public double Width => Right - Left;
         public bool IsPicture => PicturePath is not null;
+        public bool IsTable => Table is not null;
 
         /// <summary>Size of most of the text (by characters).</summary>
         public double Size => Lines.SelectMany(l => l.Words).GroupBy(w => Math.Round(w.Size * 2) / 2)
             .OrderByDescending(g => g.Sum(w => w.Text.Length)).Select(g => g.Key).FirstOrDefault(10);
 
-        public string Text => string.Join(' ', Lines.Select(l => l.Text));
+        public string Text => Table?.Text ?? string.Join(' ', Lines.Select(l => l.Text));
 
         /// <summary>Left and right edges of the column (or the text area) the item sits in, set by the reading order.</summary>
         public double ContainerLeft { get; set; }
@@ -258,14 +263,23 @@ internal sealed partial class PdfDocumentReader
             return content;
         }
 
+        // Plain text (TXT, page texts for slides) keeps table cells as paragraphs in reading order.
+        var tables = _textOnly ? [] : RuledTables(page.Paths, crop, words);
+        content.Items = words.Count > 0 ? TextItems(words) : [];
+        content.Items.AddRange(tables.Select(t => new Item { Table = t }));
+        if (!_textOnly)
+            content.Items.AddRange(Pictures(page, content, crop));
+        return content;
+    }
+
+    /// <summary>Words → lines → paragraphs, with tabbed rows joined.</summary>
+    private static List<Item> TextItems(List<TextWord> words)
+    {
         var lines = Lines(words);
         var items = Paragraphs(lines);
         if (JoinTabbedRows(lines, items) is { } joined)
             items = Paragraphs(joined);
-        content.Items = items;
-        if (!_textOnly)
-            content.Items.AddRange(Pictures(page, content, crop));
-        return content;
+        return items;
     }
 
     private static PdfRectangle Shift(PdfRectangle box, PdfRectangle crop) =>
@@ -485,7 +499,7 @@ internal sealed partial class PdfDocumentReader
     private HDocument Build(List<PageContent> pages, string? title)
     {
         var document = new HDocument { Title = title };
-        var items = pages.SelectMany(p => p.Items.Where(i => !i.IsPicture)).ToList();
+        var items = pages.SelectMany(p => p.Items.Where(i => !i.IsPicture && !i.IsTable)).ToList();
         var bodySize = BodySize(items);
         var headingLevels = HeadingLevels(items, bodySize);
         var (left, right, top, bottom) = Margins(pages);
@@ -529,13 +543,18 @@ internal sealed partial class PdfDocumentReader
                 Item? previous = null;
                 foreach (var item in page.Items)
                 {
-                    blocks.Add(item.IsPicture ? PictureParagraph(item, previous) : TextParagraph(item, previous, headingLevels, lineRatio));
+                    blocks.Add(item.IsPicture ? PictureParagraph(item, previous)
+                        : item.IsTable ? TableBlock(item, lineRatio)
+                        : TextParagraph(item, previous, headingLevels, lineRatio));
                     previous = item;
                 }
                 if (blocks.Count == first)
                     blocks.Add(new HParagraph());
             }
 
+            // A table cannot start a page in every format: a tiny empty paragraph before it carries the page break.
+            if (!newSection && blocks[first] is HTable)
+                blocks.Insert(first, new HParagraph { MarkFormat = new HCharFormat(Size: 100) });
             if (!newSection && blocks[first] is HParagraph startOfPage)
                 startOfPage.PageBreakBefore = true;
         }
@@ -674,9 +693,9 @@ internal sealed partial class PdfDocumentReader
         if (previous is null || previous.Bottom <= item.Top - 1 || previous.Right <= item.Left || previous.Left >= item.Right)
             return 0;
         // Edges of the line boxes: a text line reaches about 0.25 em below its baseline and 0.95 em above it.
-        var above = previous.IsPicture ? previous.Bottom : previous.Lines[^1].Baseline - 0.25 * previous.Size;
-        var top = item.IsPicture ? item.Top : item.Lines[0].Baseline + 0.95 * item.Size;
-        var normal = item.IsPicture || previous.IsPicture ? 0 : (lineRatio - 1.2) * item.Size;
+        var above = previous.Lines.Count == 0 ? previous.Bottom : previous.Lines[^1].Baseline - 0.25 * previous.Size;
+        var top = item.Lines.Count == 0 ? item.Top : item.Lines[0].Baseline + 0.95 * item.Size;
+        var normal = item.Lines.Count == 0 || previous.Lines.Count == 0 ? 0 : (lineRatio - 1.2) * item.Size;
         var extra = above - top - normal;
         return extra > 1 ? Hwp(Math.Min(extra, 72)) : 0;
     }
