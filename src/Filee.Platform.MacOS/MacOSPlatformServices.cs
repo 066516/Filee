@@ -110,6 +110,16 @@ public sealed class MacOSPlatformServices : IPlatformServices
             NativeMethods.RaiseTopmost(windowHandle);
     }
 
+    /// <summary>
+    /// Lets drags that offer file paths or file promises in older forms reach the window (the donut), not just ones
+    /// offering file URLs: other file managers than Finder write those (issue #160).
+    /// </summary>
+    public void AcceptFileDrags(nint windowHandle)
+    {
+        if (windowHandle != 0)
+            NativeMethods.AddDraggedTypes(windowHandle, PasteboardPaths.DragTypes);
+    }
+
     internal static IReadOnlyList<string> ParseSelection(string json) =>
         JsonSerializer.Deserialize<string[]>(json) ?? [];
 
