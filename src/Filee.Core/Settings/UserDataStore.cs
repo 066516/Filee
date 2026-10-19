@@ -318,6 +318,12 @@ internal static class SettingsMigrations
                 InsertBefore(settings.EnginePriority, "pdf-slides", "pandoc");
         }
 
+        // v21: built-in "wic" engine (JPEG XR through the Windows Imaging Component), after the other built-in engines:
+        //      no other engine reads JPEG XR, and higher up it would push the HWPX writer out of the ranks that win
+        //      ties. (Schema 21 may be renumbered if another change takes it first.)
+        if (settings.SchemaVersion < 21)
+            InsertBefore(settings.EnginePriority, "wic", settings.EnginePriority.Contains("ffmpeg") ? "ffmpeg" : "pandoc");
+
         if (settings.Triggers.Count == 0)
             settings.Triggers = TriggerGesture.Defaults();
 
@@ -549,6 +555,10 @@ internal static class SettingsMigrations
                 changed = true;
             }
         }
+        // v21: JPEG XR (.jxr, .wdp, .hdp; HDR screenshots of Windows): the images donut learns the extensions unless
+        //      another donut already has them. (Schema 21 may be renumbered if another change takes it first.)
+        if (from < 21)
+            changed |= LearnExtensions(profiles, out _, ["jxr", "wdp", "hdp"]);
         return changed;
     }
 
@@ -633,7 +643,8 @@ internal static class SettingsMigrations
     /// Adds the default extensions of the built-in donuts that no donut of the user takes yet.
     /// </summary>
     /// <param name="claimed">Every extension a donut takes afterwards.</param>
-    private static bool LearnExtensions(List<ToolbarProfile> profiles, out HashSet<string> claimed)
+    /// <param name="only">Learn only these (the ones a version added), not others the user removed from a donut since.</param>
+    private static bool LearnExtensions(List<ToolbarProfile> profiles, out HashSet<string> claimed, IReadOnlyCollection<string>? only = null)
     {
         var changed = false;
         // Extensions checked on a mixed-selection profile only limit that profile; they don't claim files.
@@ -641,7 +652,7 @@ internal static class SettingsMigrations
         var defaults = BuiltInData.CreateProfiles().ToDictionary(p => p.Id);
         foreach (var profile in profiles.Where(p => !p.IsFallback && defaults.ContainsKey(p.Id)))
         {
-            foreach (var extension in defaults[profile.Id].Extensions.Where(claimed.Add))
+            foreach (var extension in defaults[profile.Id].Extensions.Where(e => only is null || only.Contains(e)).Where(claimed.Add))
             {
                 profile.Extensions.Add(extension);
                 changed = true;

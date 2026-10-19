@@ -205,6 +205,17 @@ public sealed class CliTests : IDisposable
         Assert.Contains("to-png", output);
     }
 
+    [Fact]
+    public async Task Jpeg_xr_converts_on_windows_and_is_no_download_away_elsewhere()
+    {
+        var (code, output, _) = await Run("formats", "jxr");
+
+        Assert.Equal(Cli.Success, code);
+        Assert.Equal(OperatingSystem.IsWindows(), output.Contains("png, jpg", StringComparison.Ordinal));
+        // Elsewhere no download would help (on Windows, FFmpeg adds HEIC and video).
+        Assert.Equal(OperatingSystem.IsWindows(), output.Contains("optional engines", StringComparison.Ordinal));
+    }
+
     /// <summary>Adds presets to the settings folder the CLI runs with.</summary>
     private void AddPresets(params Preset[] presets)
     {

@@ -19,6 +19,7 @@ using Filee.Engines.Pdf;
 using Filee.Engines.Subtitles;
 using Filee.Engines.Text;
 using Filee.Engines.Vector;
+using Filee.Engines.Wic;
 using Microsoft.Extensions.Logging;
 
 namespace Filee.Engines;
@@ -56,6 +57,7 @@ public static class EngineRegistry
         new EmlConverter(),
         new DataConverter(),
         new SubtitleConverter(),
+        new WicImageConverter(),
         new FfmpegConverter(loggers?.CreateLogger<FfmpegConverter>()),
         new CadConverter(),
         new ModelConverter(),
