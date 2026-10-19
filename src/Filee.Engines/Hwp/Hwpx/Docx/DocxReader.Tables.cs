@@ -1,5 +1,5 @@
 // DOCX tables: grid column widths, merged cells (gridSpan / vMerge), borders from the table style, the table and
-// each cell, cell shading, vertical alignment, row heights and repeated header rows.
+// each cell, cell shading, cell margins, vertical alignment, row heights and repeated header rows.
 
 using System.Xml.Linq;
 
@@ -96,8 +96,9 @@ internal sealed partial class DocxReader
                              .Concat(r == 0 ? firstRowStyles.Select(s => s.Element(W + "tcPr")) : [])
                              .Append(tcPr))
                 {
+                    // Sides a cell leaves out keep the padding its neighbours get: the table's, else the HWPX default.
                     if (properties?.Element(W + "tcMar") is { } cellMar)
-                        cell.CellMargin = CellMargins(cellMar, cell.CellMargin ?? table.CellMargin);
+                        cell.CellMargin = CellMargins(cellMar, cell.CellMargin ?? table.CellMargin ?? new HInsets(510, 510, 141, 141));
                     ApplyBorders(properties?.Element(W + "tcBorders"), cellBorders);
                     if (properties?.Element(W + "shd") is { } shd)
                         fill = ShadingColor(shd) ?? fill;
