@@ -174,8 +174,18 @@ public sealed partial class EmlConverter : IConverter
     private static (string Body, string Styles) SafeHtml(string html)
     {
         var document = new HtmlParser().ParseDocument(html);
-        foreach (var element in document.QuerySelectorAll("script, noscript, iframe, object, embed, applet, frame, frameset, portal, form, input, button, textarea, select, option, meta, link, base, svg, math, template, video, audio, source, track").ToArray())
+        // Raw-text elements (noembed, xmp…) and comments go too: browsers read them as text, other HTML readers may not.
+        foreach (var element in document.QuerySelectorAll("script, noscript, iframe, object, embed, applet, frame, frameset, portal, input, button, textarea, select, option, meta, link, base, svg, math, template, video, audio, source, track, noembed, noframes, xmp, plaintext").ToArray())
             element.Parent?.RemoveChild(element);
+        foreach (var comment in document.Descendants<IComment>().ToArray())
+            comment.Parent?.RemoveChild(comment);
+        // Newsletters wrap whole bodies in forms: keep the content, the controls are gone already.
+        foreach (var form in document.QuerySelectorAll("form").ToArray())
+        {
+            while (form.FirstChild is { } child)
+                form.Parent!.InsertBefore(child, form);
+            form.Parent!.RemoveChild(form);
+        }
 
         foreach (var element in document.QuerySelectorAll("*").ToArray())
         {
@@ -199,21 +209,16 @@ public sealed partial class EmlConverter : IConverter
 
     private static readonly HashSet<string> SafeHtmlAttributes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "class", "id", "title", "lang", "dir", "style", "align", "width", "height", "colspan", "rowspan",
-        "cellpadding", "cellspacing", "border",
+        "class", "id", "title", "lang", "dir", "style", "align", "valign", "width", "height", "colspan", "rowspan",
+        "cellpadding", "cellspacing", "border", "bgcolor", "color", "face", "size", "nowrap", "start", "type",
+        "span", "scope", "headers", "abbr", "summary", "hspace", "vspace", "clear", "noshade", "frame", "rules", "open",
     };
 
     private static bool SafeLink(string value) => value.StartsWith('#')
         || Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" or "mailto";
 
-    private static bool SafeInlineImage(string value) =>
-        value.StartsWith("data:image/png;base64,", StringComparison.OrdinalIgnoreCase)
-        || value.StartsWith("data:image/jpeg;base64,", StringComparison.OrdinalIgnoreCase)
-        || value.StartsWith("data:image/jpg;base64,", StringComparison.OrdinalIgnoreCase)
-        || value.StartsWith("data:image/gif;base64,", StringComparison.OrdinalIgnoreCase)
-        || value.StartsWith("data:image/webp;base64,", StringComparison.OrdinalIgnoreCase)
-        || value.StartsWith("data:image/bmp;base64,", StringComparison.OrdinalIgnoreCase)
-        || value.StartsWith("data:image/avif;base64,", StringComparison.OrdinalIgnoreCase);
+    /// <summary>Any raster data: image (old Outlook writes image/x-png, image/pjpeg…), never SVG, which can carry script.</summary>
+    private static bool SafeInlineImage(string value) => RasterDataImage().IsMatch(value);
 
     // ───────────────────────── Text ─────────────────────────
 
@@ -313,6 +318,9 @@ public sealed partial class EmlConverter : IConverter
 
     [GeneratedRegex("<script[^>]*>.*?</script>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex ScriptBlock();
+
+    [GeneratedRegex("^data:image/(?!svg)[a-z0-9.+-]+;base64,", RegexOptions.IgnoreCase)]
+    private static partial Regex RasterDataImage();
 
     [GeneratedRegex("cid:([^\"'\\s)>]+)", RegexOptions.IgnoreCase)]
     private static partial Regex ContentIdReference();
