@@ -68,6 +68,10 @@ public sealed partial class DonutMenu : Control
     public static readonly StyledProperty<bool> ReserveSubRingProperty =
         AvaloniaProperty.Register<DonutMenu, bool>(nameof(ReserveSubRing));
 
+    /// <summary>The theme's softness (Styles/Soft.axaml binds SoftRadius): rounds the corners of the slices.</summary>
+    public static readonly StyledProperty<CornerRadius> CornerRadiusProperty =
+        AvaloniaProperty.Register<DonutMenu, CornerRadius>(nameof(CornerRadius));
+
     public static readonly StyledProperty<IBrush?> SliceBrushProperty =
         AvaloniaProperty.Register<DonutMenu, IBrush?>(nameof(SliceBrush), Brushes.White);
     public static readonly StyledProperty<IBrush?> SliceBorderBrushProperty =
@@ -127,7 +131,7 @@ public sealed partial class DonutMenu : Control
         AffectsMeasure<DonutMenu>(OuterRadiusProperty, ReserveSubRingProperty);
         AffectsRender<DonutMenu>(HoleRatioProperty, SliceOpacityProperty, CenterTitleProperty, CenterSubtitleProperty,
             IsEditModeProperty, SliceBrushProperty, SliceBorderBrushProperty, CenterBrushProperty, AccentBrushProperty,
-            OnAccentBrushProperty, ForegroundProperty, SecondaryForegroundProperty, SuccessBrushProperty);
+            OnAccentBrushProperty, ForegroundProperty, SecondaryForegroundProperty, SuccessBrushProperty, CornerRadiusProperty);
         ItemsProperty.Changed.AddClassHandler<DonutMenu>((d, _) => d.OnItemsChanged());
     }
 
@@ -155,6 +159,8 @@ public sealed partial class DonutMenu : Control
     /// so the window doesn't grow, and the donut move, when they do.
     /// </summary>
     public bool ReserveSubRing { get => GetValue(ReserveSubRingProperty); set => SetValue(ReserveSubRingProperty, value); }
+
+    public CornerRadius CornerRadius { get => GetValue(CornerRadiusProperty); set => SetValue(CornerRadiusProperty, value); }
 
     public IBrush? SliceBrush { get => GetValue(SliceBrushProperty); set => SetValue(SliceBrushProperty, value); }
     public IBrush? SliceBorderBrush { get => GetValue(SliceBorderBrushProperty); set => SetValue(SliceBorderBrushProperty, value); }
@@ -966,7 +972,6 @@ public sealed partial class DonutMenu : Control
 
     private static double Distance(Point a, Point b) => Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
 
-    /// <summary>Wedge-shaped slice with a constant-width gap to its neighbours.</summary>
     /// <summary>The translucent slice where a dragged preset would land, with its name.</summary>
     private void DrawPreview(DrawingContext context, Point center, double r1, double r2, Typeface bold, Typeface regular)
     {
@@ -982,24 +987,53 @@ public sealed partial class DonutMenu : Control
                 span * (r1 + r2) / 2 - 10, r2 - r1 - 16, bold, regular, hot: false);
     }
 
-    private static StreamGeometry CreateWedge(Point c, double r1, double r2, int index, int count) =>
+    /// <summary>
+    /// How round the slices' corners are: half the theme's softness (0 to 28), so the largest setting still leaves the
+    /// slices clearly apart. <see cref="DonutGeometry.Wedge"/> shrinks it for slices too thin for it.
+    /// </summary>
+    internal double SliceCornerRadius => Math.Clamp(CornerRadius.TopLeft, 0, 28) * 0.5;
+
+    private StreamGeometry CreateWedge(Point c, double r1, double r2, int index, int count) =>
         count == 1 ? CreateRing(c, r1, r2) : CreateWedge(c, r1, r2, DonutGeometry.MidAngle(index, count), DonutGeometry.Span(count));
 
-    /// <summary>A slice of <paramref name="span"/> radians centred on <paramref name="mid"/> (a ring when it is all of it).</summary>
-    private static StreamGeometry CreateWedge(Point c, double r1, double r2, double mid, double span)
+    /// <summary>A rounded slice of <paramref name="span"/> radians centred on <paramref name="mid"/> (a ring when it is all of it).</summary>
+    private StreamGeometry CreateWedge(Point c, double r1, double r2, double mid, double span) =>
+        CreateWedge(c, r1, r2, mid, span, SliceCornerRadius);
+
+    // Slices are drawn every frame while the donut animates, but their shapes only change with the size, the layout
+    // or the softness: the shapes are kept and reused. Animations move them with transforms; only the edit mode's
+    // sliding slices make new ones, and the cache starts over when it fills up.
+    private readonly Dictionary<(Point C, double R1, double R2, double Mid, double Span, double Corner), StreamGeometry> _wedges = new();
+    private const int MaxCachedWedges = 256;
+
+    private StreamGeometry CreateWedge(Point c, double r1, double r2, double mid, double span, double cornerRadius)
+    {
+        var key = (c, r1, r2, mid, span, cornerRadius);
+        if (_wedges.TryGetValue(key, out var cached))
+            return cached;
+        if (_wedges.Count >= MaxCachedWedges)
+            _wedges.Clear();
+        return _wedges[key] = BuildWedge(c, r1, r2, mid, span, cornerRadius);
+    }
+
+    /// <summary>A slice with a constant-width gap to its neighbours and corners rounded by <paramref name="cornerRadius"/>.</summary>
+    private static StreamGeometry BuildWedge(Point c, double r1, double r2, double mid, double span, double cornerRadius)
     {
         if (span >= 2 * Math.PI - 0.001)
             return CreateRing(c, r1, r2);
 
-        var outerHalf = Math.Max(0.001, span / 2 - GapPixels / 2 / r2);
-        var innerHalf = Math.Max(0.001, span / 2 - GapPixels / 2 / r1);
-
+        var outline = DonutGeometry.Wedge(c, r1, r2, mid, span, GapPixels, cornerRadius);
         var geometry = new StreamGeometry();
         using var ctx = geometry.Open();
-        ctx.BeginFigure(DonutGeometry.PointAt(c, r2, mid - outerHalf), true);
-        ctx.ArcTo(DonutGeometry.PointAt(c, r2, mid + outerHalf), new Size(r2, r2), 0, outerHalf * 2 > Math.PI, SweepDirection.Clockwise);
-        ctx.LineTo(DonutGeometry.PointAt(c, r1, mid + innerHalf));
-        ctx.ArcTo(DonutGeometry.PointAt(c, r1, mid - innerHalf), new Size(r1, r1), 0, innerHalf * 2 > Math.PI, SweepDirection.CounterClockwise);
+        ctx.BeginFigure(outline.Start, true);
+        foreach (var step in outline.Steps)
+        {
+            if (step.IsArc)
+                ctx.ArcTo(step.To, new Size(step.ArcRadius, step.ArcRadius), 0, step.IsLargeArc,
+                    step.Clockwise ? SweepDirection.Clockwise : SweepDirection.CounterClockwise);
+            else
+                ctx.LineTo(step.To);
+        }
         ctx.EndFigure(true);
         return geometry;
     }
