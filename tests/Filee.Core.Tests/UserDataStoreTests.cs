@@ -7,6 +7,33 @@ namespace Filee.Core.Tests;
 public class UserDataStoreTests
 {
     [Fact]
+    public void Version_20_library_gains_live_photo_presets_once_and_keeps_customizations()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        var ids = BuiltInData.LivePhotoPresets().Select(p => p.Id).ToHashSet();
+        store.Presets.RemoveAll(p => ids.Contains(p.Id));
+        store.Presets.Add(new Preset { Id = "to-livp", Name = "My live photo", TargetFormat = "livp", Media = { LivePhotoDuration = 2.4 } });
+        store.FindPreset("to-mp4")!.Media.LivePhotoStart = 7;
+        store.Settings.SchemaVersion = 20;
+        store.SaveSettings();
+        store.SaveLibrary();
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        foreach (var id in ids)
+            Assert.Single(reloaded.Presets, p => p.Id == id);
+        Assert.Equal("My live photo", reloaded.FindPreset("to-livp")!.Name);
+        Assert.Equal(2.4, reloaded.FindPreset("to-livp")!.Media.LivePhotoDuration);
+        Assert.Equal(7, reloaded.FindPreset("to-mp4")!.Media.LivePhotoStart);
+        Assert.True(reloaded.FindPreset("extract-motion")!.Media.ExtractMotionPhoto);
+        Assert.DoesNotContain(reloaded.Profiles, p => p.PresetIds.Any(ids.Contains));
+        reloaded.Load();
+        foreach (var id in ids)
+            Assert.Single(reloaded.Presets, p => p.Id == id);
+    }
+
+    [Fact]
     public void Groups_keep_only_conversions_once_and_at_most_six()
     {
         using var dir = new TempDir();

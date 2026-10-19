@@ -36,10 +36,11 @@ public sealed class PresetAvailability(ConverterCatalog catalog, ILocalizer loc,
             if (merge && f.Id == "pdf" && !turns)
                 return true; // merged as it is
             var frames = preset.SavesFramesOf(f.Id);
+            var motion = preset.ExtractsMotionOf(f.Id);
             if (!turns)
-                return planner.CanConvert(f.Id, target, frames);
+                return planner.CanConvert(f.Id, target, frames, motion);
             // Rotate / flip: a route only counts when an engine on it turns images (not a PDF or a video copied).
-            if (planner.Plan(f.Id, target, frames) is not { } route)
+            if (planner.Plan(f.Id, target, frames, motion) is not { } route)
                 return false;
             if (route.FirstTransformStep() >= 0)
                 return true;

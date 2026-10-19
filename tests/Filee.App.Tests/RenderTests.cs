@@ -1305,6 +1305,47 @@ public class RenderTests
         notice.Close();
     }
 
+    [AvaloniaTheory]
+    [InlineData("en", "livp")]
+    [InlineData("en", "motionphoto")]
+    [InlineData("zh-CN", "livp")]
+    [InlineData("zh-CN", "motionphoto")]
+    [InlineData("en", "mp4")]
+    [InlineData("zh-CN", "mp4")]
+    public void Live_photo_editor_renders_and_saves_clip_and_extraction_options(string language, string target)
+    {
+        TestServices.EnsureInitialized(language);
+        var preset = Filee.Core.Presets.BuiltInData.LivePhotoPresets().Single(p => p.TargetFormat == target);
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowMedia);
+        Assert.Equal(target != "mp4", vm.ShowLivePhoto);
+        Assert.Equal(target == "mp4", vm.ShowExtractMotionPhoto);
+        if (vm.ShowLivePhoto)
+        {
+            Assert.False(vm.ShowImage);
+            Assert.False(vm.ShowPdf);
+        }
+        vm.LivePhotoStart = 2;
+        vm.LivePhotoDuration = 2.5;
+        vm.LivePhotoCover = 0.8;
+        vm.ExtractMotionPhoto = true;
+        var window = new PresetEditorWindow { DataContext = vm, Height = 980 };
+        window.Show();
+        Pump();
+        Save(window, $"preset-livephoto-{target}-{language}.png");
+        window.Close();
+        Assert.True(vm.Apply());
+        Assert.Equal(2, preset.Media.LivePhotoStart);
+        Assert.Equal(2.5, preset.Media.LivePhotoDuration);
+        Assert.Equal(0.8, preset.Media.LivePhotoCover);
+        Assert.Equal(target == "mp4", preset.Media.ExtractMotionPhoto);
+        var restored = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.Equal(2.5, restored.LivePhotoDuration);
+        restored.Target = restored.Targets.Single(t => t.Value == "png");
+        Assert.True(restored.Apply());
+        Assert.False(preset.Media.ExtractMotionPhoto);
+    }
+
     private static void Pump()
     {
         // Let layout, bindings and a few animation frames run.

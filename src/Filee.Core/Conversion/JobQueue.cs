@@ -351,7 +351,8 @@ public sealed class JobQueue : IAsyncDisposable
 
         // "Save every frame": a video becomes a folder of pictures in one step of its own. Never for an intermediate
         // file, and never on the way to another format (video → JPG is otherwise one still frame).
-        var route = planner.Plan(source.Id, target, frames: finalOutput && job.Preset.SavesFramesOf(source.Id));
+        var route = planner.Plan(source.Id, target, frames: finalOutput && job.Preset.SavesFramesOf(source.Id),
+            motionPhoto: finalOutput && job.Preset.ExtractsMotionOf(source.Id));
         if (route is null)
             return Fail(file, "error.no_route", $"{source.Id} → {target}");
 

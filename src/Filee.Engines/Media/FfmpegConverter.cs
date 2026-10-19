@@ -4,6 +4,7 @@
 // audio and GIF, APNG or a still picture → video, and images → HEIC (FFmpeg's HEVC encoder, Filee's own container
 // writer). Container and codec choices live in MediaEncoding, the process handling in FfmpegRunner, hardware encoders
 // in HardwareVideo (options) and HardwareProbe (which one works here).
+// LivePhotoConversion writes Apple LIVP and Android Motion Photos; LivePhotoSource extracts their videos explicitly.
 
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
@@ -85,6 +86,13 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
             .. MediaEncoding.PictureToVideoTargets.Select(target => new ConversionEdge("png", target, 11)),
             // HEIC: ImageMagick reads, x265 encodes, Filee writes the container (see Heic/HeicWriter).
             .. ImageEncoder.Sources.Select(source => new ConversionEdge(source, "heic")),
+            .. from source in videos from target in new[] { "livp", "motionphoto" }
+               select new ConversionEdge(source, target, DirectOnly: true),
+            .. from source in new[] { "jpg", "heic", "avif", "motionphoto", "livp" }
+               from target in new[] { "mp4", "mov" }
+               select new ConversionEdge(source, target, MotionPhoto: true),
+            .. from source in new[] { "livp", "motionphoto" } from target in new[] { "mp4", "mov" }
+               select new ConversionEdge(source, target, DirectOnly: true),
         ];
     }
 
@@ -107,6 +115,13 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
     public async Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
     {
         var (ffmpeg, ffprobe) = _tools ?? Locate() ?? throw new InvalidOperationException("FFmpeg was not found.");
+        if (step.To is "livp" or "motionphoto")
+            return await LivePhotoConversion.CreateAsync(ffmpeg, ffprobe, step, progress, cancellationToken);
+        if (step.From is "livp" or "motionphoto" || step.Preset.ExtractsMotionOf(step.From))
+        {
+            var video = await LivePhotoSource.ExtractAsync(step.InputPath, step.WorkDirectory, cancellationToken);
+            return await ConvertAsync(step with { InputPath = video, From = "mov" }, progress, cancellationToken);
+        }
         if (step.To == "heic")
             return await HeicWriter.ConvertAsync(ffmpeg, step, progress, cancellationToken);
         var input = Path.GetFullPath(step.InputPath);

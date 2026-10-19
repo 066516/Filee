@@ -933,6 +933,10 @@ Filee (with the GPL source offer), then an `engines.json` component and an optio
 
 ## FFmpeg
 
+Short SDR videos can also become Apple LIVP packages or Android JPEG Motion Photos. Camera-image motion is exported
+through an explicit extraction preset; ordinary still-image routes are unchanged. See [Live and Motion Photos](LIVE-PHOTOS.md)
+for clip options, supported input layouts, import instructions and the device compatibility checks still required.
+
 `Media/FfmpegConverter.cs` converts every video format to every video format, to animated GIF or APNG, to a still PNG
 frame or a folder of every frame, to every audio format (the sound track) and to SRT, ASS and WebVTT (the subtitles);
 every audio format to every audio format; and GIF, APNG and PNG to MP4, WEBM and MOV.

@@ -1,4 +1,18 @@
 {
+  "error.live_photo_hdr": "Tworzenie Live/Motion Photo z HDR nie jest jeszcze obsługiwane. Najpierw wyeksportuj klip SDR.",
+  "format.livp": "Live Photo (iPhone · LIVP)",
+  "format.motionphoto": "Motion Photo (Android)",
+  "preset.extract_motion": "Wyodrębnij wideo ze zdjęcia",
+  "presets.live_photo_start": "Początek klipu (s)",
+  "presets.live_photo_duration": "Długość klipu (s)",
+  "presets.live_photo_cover": "Okładka w klipie (s)",
+  "presets.live_photo_cover_hint": "Czas okładki liczy się od początku klipu i jest ograniczony do klatki w jego obrębie.",
+  "presets.extract_motion_photo": "Wyodrębnij wideo Live/Motion Photo",
+  "presets.extract_motion_photo_hint": "Odczytuje osadzone wideo lub pasującą parę zdjęcie/MOV Apple. Zwykłe zdjęcia zgłaszają brak ruchu.",
+  "notice.live_photo_import": "Rozpakuj LIVP i zaimportuj zdjęcie oraz MOV razem narzędziem obsługującym Live Photo. Zgodność z telefonami wymaga testów na urządzeniach.",
+  "notice.motion_photo_compatibility": "Dla galerii obsługujących standard Motion Photo. Zgodność zależy od producenta i wymaga testów na urządzeniach.",
+  "error.no_motion_photo": "Nie znaleziono obsługiwanego wideo ruchu ani pasującej pary Live Photo.",
+  "error.live_photo_clip": "Wybierz prawidłowy początek, długość 0,1–10 sekund i nieujemny czas okładki.",
   "app.name": "Filee",
   "app.tagline": "Przeciągnij, upuść, gotowe.",
 

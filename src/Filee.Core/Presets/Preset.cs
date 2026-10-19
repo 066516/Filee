@@ -130,6 +130,11 @@ public sealed class Preset
         && MediaOptions.FrameTargets.Contains(TargetFormat)
         && Formats.FormatRegistry.FindById(sourceFormat)?.Category == Formats.FormatCategory.Video;
 
+    /// <summary>Explicitly extract motion from a camera image instead of making a video of its still image.</summary>
+    public bool ExtractsMotionOf(string sourceFormat) => Media.ExtractMotionPhoto
+        && TargetFormat is "mp4" or "mov"
+        && Formats.FormatRegistry.FindById(sourceFormat)?.Category == Formats.FormatCategory.Image;
+
     /// <summary>Creates a new random preset id.</summary>
     public static string NewId() => Guid.NewGuid().ToString("N")[..12];
 
@@ -447,6 +452,18 @@ public sealed class MediaOptions
     /// sources and a target in <see cref="FrameTargets"/> (<see cref="Preset.SavesFramesOf"/>).
     /// </summary>
     public bool SaveEveryFrame { get; set; }
+
+    /// <summary>MP4/MOV targets: read an image's embedded motion or its paired Live Photo video.</summary>
+    public bool ExtractMotionPhoto { get; set; }
+
+    /// <summary>Start of the clip, in seconds, when creating a Live/Motion Photo.</summary>
+    public double LivePhotoStart { get; set; }
+
+    /// <summary>Maximum clip length in seconds (0.1–10); short clips keep phone imports manageable.</summary>
+    public double LivePhotoDuration { get; set; } = 3;
+
+    /// <summary>Still frame time relative to the clip, in seconds; clamped to an actual frame in the clip.</summary>
+    public double LivePhotoCover { get; set; } = 1.5;
 
     /// <summary>With <see cref="SaveEveryFrame"/>: extract every Nth frame (1 = every frame).</summary>
     public int FrameInterval { get; set; } = 1;

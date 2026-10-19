@@ -30,11 +30,12 @@ namespace Filee.Core.Conversion;
 /// <param name="FrameSequence">
 /// The edge writes every frame of a video as numbered pictures into a folder (<see cref="Presets.MediaOptions.SaveEveryFrame"/>).
 /// It is never part of an ordinary route (a video → JPG stays one still frame), and with
-/// <see cref="RoutePlanner.Plan(string, string, bool)"/> asking for frames it is the whole route.
+/// <see cref="RoutePlanner.Plan"/> asking for frames it is the whole route.
 /// </param>
+/// <param name="MotionPhoto">Only taken when explicitly extracting a camera image's motion; never a still-image route.</param>
 public readonly record struct ConversionEdge(
     string From, string To, int Cost = 10, bool ImageSourcesOnly = false, bool NotForImageSources = false,
-    bool DirectOnly = false, bool FrameSequence = false);
+    bool DirectOnly = false, bool FrameSequence = false, bool MotionPhoto = false);
 
 /// <summary>
 /// A conversion an engine refuses with a reason the user can act on, shown in their language (the file's
@@ -86,6 +87,7 @@ public interface IOutputAllocator
 /// <param name="FrameSequence">
 /// The step takes a <see cref="ConversionEdge.FrameSequence"/> edge: every frame of the video becomes a picture of
 /// format <paramref name="To"/> in one output folder.
+/// </param>
 /// <param name="Notice">
 /// Records a note on a step that worked, as a localization key (e.g. <c>notice.pdf_not_smaller</c>): shown with the
 /// file's result. Null when nobody listens.

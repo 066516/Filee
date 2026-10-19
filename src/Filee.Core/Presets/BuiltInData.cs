@@ -68,6 +68,7 @@ public static class BuiltInData
         .. PdfCompressionPresets(),
         .. PdfSlidesPresets(),
         .. FramePresets(),
+        .. LivePhotoPresets(),
         new() { Id = "to-docx", Name = "DOCX", TargetFormat = "docx" },
         new() { Id = "to-hwpx", Name = "HWPX", TargetFormat = "hwpx" },
         .. HwpPresets(),
@@ -82,6 +83,16 @@ public static class BuiltInData
         .. CodecAndSubtitlePresets(),
         .. ModelPresets(),
         .. TracePresets(),
+    ];
+
+    /// <summary>
+    /// Live/Motion Photo conversions, added to the library but not to a user's existing donut.
+    /// </summary>
+    public static List<Preset> LivePhotoPresets() =>
+    [
+        new() { Id = "to-livp", NameKey = "format.livp", TargetFormat = "livp" },
+        new() { Id = "to-motionphoto", NameKey = "format.motionphoto", TargetFormat = "motionphoto" },
+        new() { Id = "extract-motion", NameKey = "preset.extract_motion", TargetFormat = "mp4", Media = { ExtractMotionPhoto = true } },
     ];
 
     /// <summary>

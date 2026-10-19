@@ -107,6 +107,9 @@
 标注的格式需要可选引擎，只在需要时下载，分别是 ¹ Ghostscript、² LibreOffice、³ Pandoc、⁴ calibre、⁵ FFmpeg
 （[详情](docs/ENGINES.md)）。
 
+实验性[实况／动态照片转换](docs/LIVE-PHOTOS.md)：短视频转苹果 LIVP 或安卓 Motion Photo，以及支持的实况照片转 MP4/MOV。
+需要 FFmpeg，手机相册的兼容性仍需实机验证。
+
 ## 命令行
 
 `filee` 命令使用与应用相同的引擎和预设（安装程序或 `install.sh` 会添加它）。

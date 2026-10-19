@@ -1,4 +1,18 @@
 {
+  "error.live_photo_hdr": "HDR 동영상으로 Live/Motion Photo를 만들 수 없습니다. 먼저 SDR 클립으로 내보내세요.",
+  "format.livp": "Live Photo (iPhone · LIVP)",
+  "format.motionphoto": "모션 포토 (Android)",
+  "preset.extract_motion": "실황 동영상 추출",
+  "presets.live_photo_start": "클립 시작 (초)",
+  "presets.live_photo_duration": "클립 길이 (초)",
+  "presets.live_photo_cover": "클립 내 표지 (초)",
+  "presets.live_photo_cover_hint": "표지 시간은 선택한 클립 기준이며 클립 안의 프레임으로 제한됩니다.",
+  "presets.extract_motion_photo": "Live/Motion Photo 동영상 추출",
+  "presets.extract_motion_photo_hint": "내장 동영상 또는 짝이 맞는 Apple 사진/MOV를 읽습니다. 일반 사진은 움직임이 없다고 표시됩니다.",
+  "notice.live_photo_import": "LIVP의 압축을 풀고 Live Photo를 지원하는 가져오기 도구로 사진과 MOV를 함께 가져오세요. 휴대폰 호환성은 기기 테스트가 필요합니다.",
+  "notice.motion_photo_compatibility": "표준 모션 포토를 지원하는 갤러리용입니다. 제조사별 호환성은 다르며 기기 테스트가 필요합니다.",
+  "error.no_motion_photo": "지원되는 모션 동영상이나 일치하는 Live Photo 쌍을 찾지 못했습니다.",
+  "error.live_photo_clip": "유효한 시작 시간, 0.1–10초 길이, 0 이상의 표지 시간을 선택하세요.",
   "app.name": "Filee",
   "app.tagline": "끌어서 놓으면, 변환 끝.",
 

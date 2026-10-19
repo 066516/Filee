@@ -73,7 +73,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
                 .Where(f => f.Writable)
                 .Select(f => new Choice<string>(
                     f.Id,
-                    f.Id == FormatRegistry.Folder ? loc["presets.target_folder"] : f.DisplayName,
+                    f.Id == FormatRegistry.Folder ? loc["presets.target_folder"] : FormatLabels.Name(loc, f),
                     FormatLabels.Category(loc, f.Category))),
         ];
         ResizeModes = Enum.GetValues<ResizeMode>().Select(v => new Choice<ResizeMode>(v, loc[$"presets.resize.{v}"])).ToList();
@@ -122,6 +122,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _combineIntoOne = _edit.Archive.CombineIntoOne;
         _saveEveryFrame = _edit.Media.SaveEveryFrame;
         _frameInterval = _edit.Media.FrameInterval > 0 ? _edit.Media.FrameInterval : 1;
+        _extractMotionPhoto = _edit.Media.ExtractMotionPhoto;
+        _livePhotoStart = _edit.Media.LivePhotoStart;
+        _livePhotoDuration = _edit.Media.LivePhotoDuration;
+        _livePhotoCover = _edit.Media.LivePhotoCover;
         _traceMode = TraceModes.First(m => m.Value == _edit.Trace.Mode);
         _animationSpeed = AnimationSpeeds.First(s => s.Value == _edit.Image.PlaybackSpeed);
         _traceColors = Math.Clamp(_edit.Trace.Colors, TracingOptions.MinColors, TracingOptions.MaxColors);
@@ -196,7 +200,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec), nameof(ShowHardwareEncoding),
         nameof(AudioCodecs), nameof(AudioCodecChoice), nameof(ShowAudioCodec),
         nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote),
-        nameof(ShowSaveEveryFrame), nameof(ShowAnimationSpeed), nameof(ShowTrace))]
+        nameof(ShowSaveEveryFrame), nameof(ShowAnimationSpeed), nameof(ShowTrace),
+        nameof(ShowLivePhoto), nameof(ShowExtractMotionPhoto), nameof(LivePhotoNotice))]
     private Choice<string> _target;
 
     private VideoCodec _videoCodecValue;
@@ -343,6 +348,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private Choice<ArchiveLevel> _archiveLevel;
     [ObservableProperty] private bool _combineIntoOne;
     [ObservableProperty] private bool _saveEveryFrame;
+    [ObservableProperty] private bool _extractMotionPhoto;
+    [ObservableProperty] private double _livePhotoStart;
+    [ObservableProperty] private double _livePhotoDuration;
+    [ObservableProperty] private double _livePhotoCover;
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(FrameEstimate))]
     private int _frameInterval = 1;
@@ -389,9 +398,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     private bool TargetIsLossyMedia => TargetIsVideo
         || (TargetIsAudio && !LosslessAudioTargets.Contains(TargetId) && MediaCodecs.Effective(TargetId, _audioCodecValue) != AudioCodec.Alac);
 
-    public bool ShowImage => TargetIsImage;
+    public bool ShowImage => TargetIsImage && !ShowLivePhoto;
     /// <summary>Images and PDFs (pictures placed on pages) can be turned and flipped.</summary>
-    private bool CanTurn => TargetIsImage || TargetId == "pdf";
+    private bool CanTurn => (TargetIsImage && !ShowLivePhoto) || TargetId == "pdf";
     /// <summary>Rotate and flip for a PDF target, which has no image card to show them in.</summary>
     public bool ShowTurnForPdf => TargetId == "pdf";
     public bool ShowQuality => TargetId == BuiltInData.SameAsSource || LossyTargets.Contains(TargetId);
@@ -400,7 +409,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowMultiPageTiff => TargetId is "tiff";
     public bool ShowIco => TargetId == "ico";
     /// <summary>PDF options (also used when a PDF source becomes images) mean nothing for media, archive, font, subtitle, data, e-mail and 3D targets.</summary>
-    public bool ShowPdf => TargetCategory is not (FormatCategory.Video or FormatCategory.Audio or FormatCategory.Archive or FormatCategory.Font
+    public bool ShowPdf => !ShowLivePhoto && TargetCategory is not (FormatCategory.Video or FormatCategory.Audio or FormatCategory.Archive or FormatCategory.Font
         or FormatCategory.Subtitle or FormatCategory.Data or FormatCategory.Model3D) && TargetId != "eml";
     public bool ShowPdfBuild => TargetId == "pdf";
     public bool ShowPdfSplit => TargetId == "pdf";
@@ -415,7 +424,11 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowDocument => TargetId == "pdf";
     /// <summary>Markdown can't hold pictures: they go into a folder next to it, or are left out.</summary>
     public bool ShowLeaveOutPictures => TargetId == "md";
-    public bool ShowMedia => ShowMediaQuality || ShowMaxHeight || ShowRemoveAudio || ShowAudioChannels || ShowVideoCodec || ShowAudioCodec;
+    public bool ShowMedia => ShowMediaQuality || ShowMaxHeight || ShowRemoveAudio || ShowAudioChannels || ShowVideoCodec || ShowAudioCodec || ShowLivePhoto;
+    /// <summary>Video clip options for Apple's LIVP or the Android Motion Photo target.</summary>
+    public bool ShowLivePhoto => TargetId is "livp" or "motionphoto";
+    public bool ShowExtractMotionPhoto => TargetId is "mp4" or "mov";
+    public string LivePhotoNotice => _loc[TargetId == "livp" ? "notice.live_photo_import" : "notice.motion_photo_compatibility"];
     /// <summary>Mono / stereo for every audio target but AMR, which is mono by definition.</summary>
     public bool ShowAudioChannels => TargetIsAudio && TargetId != "amr";
     /// <summary>Sample rate and sample format: the PCM of WAV and W64 takes any.</summary>
@@ -426,10 +439,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowHardwareEncoding => TargetIsVideo && MediaCodecs.TakesHardwareEncoding(TargetId, _videoCodecValue);
     /// <summary>M4A / M4B can hold Apple Lossless besides AAC.</summary>
     public bool ShowAudioCodec => AudioCodecs.Count > 1;
-    public bool ShowMediaQuality => TargetIsLossyMedia;
-    public bool ShowMaxHeight => TargetIsVideo;
-    public bool ShowAudioBitrate => TargetIsLossyMedia;
-    public bool ShowRemoveAudio => TargetIsVideo;
+    public bool ShowMediaQuality => TargetIsLossyMedia || ShowLivePhoto;
+    public bool ShowMaxHeight => TargetIsVideo || ShowLivePhoto;
+    public bool ShowAudioBitrate => TargetIsLossyMedia || ShowLivePhoto;
+    public bool ShowRemoveAudio => TargetIsVideo || ShowLivePhoto;
     public bool ShowArchive => TargetCategory == FormatCategory.Archive;
     public bool ShowArchiveOptions => ShowArchive && TargetId != FormatRegistry.Folder;
     /// <summary>"Extract" has nothing to set; a line says what it does instead.</summary>
@@ -529,6 +542,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         // Only where the option is shown: a box ticked for PNG and left behind by another target saves nothing.
         media.SaveEveryFrame = ShowSaveEveryFrame && SaveEveryFrame;
         media.FrameInterval = media.SaveEveryFrame ? Math.Clamp(FrameInterval, 1, 1000) : 1;
+        media.ExtractMotionPhoto = ShowExtractMotionPhoto && ExtractMotionPhoto;
+        media.LivePhotoStart = double.IsFinite(LivePhotoStart) ? Math.Max(0, LivePhotoStart) : 0;
+        media.LivePhotoDuration = double.IsFinite(LivePhotoDuration) ? Math.Clamp(LivePhotoDuration, 0.1, 10) : 3;
+        media.LivePhotoCover = double.IsFinite(LivePhotoCover) ? Math.Max(0, LivePhotoCover) : 1.5;
         _original.Archive.Level = ArchiveLevel.Value;
         _original.Archive.CombineIntoOne = CombineIntoOne;
         _original.Trace.Mode = TraceMode.Value;

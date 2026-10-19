@@ -108,6 +108,9 @@ Unmarked formats work out of the box, without Office, Hancom Office or LibreOffi
 Marked ones need an optional engine, downloaded only when needed: ¹ Ghostscript, ² LibreOffice, ³ Pandoc, ⁴ calibre,
 ⁵ FFmpeg ([details](docs/ENGINES.md)).
 
+Experimental [Live/Motion Photo conversion](docs/LIVE-PHOTOS.md): short videos → Apple LIVP or Android Motion Photo,
+and supported camera photos → MP4/MOV. FFmpeg required; phone-gallery compatibility still needs device validation.
+
 ## Command line
 
 The `filee` command uses the same engines and presets as the app (Setup or `install.sh` adds it).

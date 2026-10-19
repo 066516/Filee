@@ -1,4 +1,18 @@
 {
+  "error.live_photo_hdr": "HDR video is not supported for Live/Motion Photo creation yet. Export an SDR clip first.",
+  "format.livp": "Live Photo (iPhone · LIVP)",
+  "format.motionphoto": "Motion Photo (Android)",
+  "preset.extract_motion": "Extract live video",
+  "presets.live_photo_start": "Clip start (s)",
+  "presets.live_photo_duration": "Clip length (s)",
+  "presets.live_photo_cover": "Cover in clip (s)",
+  "presets.live_photo_cover_hint": "The cover time is relative to the selected clip and is limited to a frame inside it.",
+  "presets.extract_motion_photo": "Extract Live/Motion Photo video",
+  "presets.extract_motion_photo_hint": "Read embedded motion or a matching Apple photo/MOV pair. An ordinary still photo is reported as having no motion.",
+  "notice.live_photo_import": "Unpack the LIVP and import its photo and MOV together with a Live Photo-aware importer. Phone import compatibility still needs device testing.",
+  "notice.motion_photo_compatibility": "For galleries supporting standard Motion Photos. Vendor compatibility varies and still needs device testing.",
+  "error.no_motion_photo": "No supported motion video or matching Live Photo pair was found.",
+  "error.live_photo_clip": "Choose a valid start, a clip length of 0.1–10 seconds, and a non-negative cover time.",
   "app.name": "Filee",
   "app.tagline": "Drag, drop, converted.",
 

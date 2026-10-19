@@ -549,6 +549,16 @@ internal static class SettingsMigrations
                 changed = true;
             }
         }
+        // v21: Live/Motion Photo presets, on no existing donut. Preserve custom toolbar assignments.
+        if (from < 21)
+        {
+            foreach (var preset in BuiltInData.LivePhotoPresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+            {
+                presets.Add(preset);
+                changed = true;
+            }
+            changed |= LearnExtensions(profiles, out _);
+        }
         return changed;
     }
 

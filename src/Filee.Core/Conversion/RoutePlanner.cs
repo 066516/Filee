@@ -57,27 +57,28 @@ public sealed class RoutePlanner
     /// <see cref="ConversionEdge.FrameSequence"/> edge from <paramref name="from"/> to <paramref name="to"/>, or none.
     /// Without it those edges are never taken.
     /// </param>
-    public Route? Plan(string from, string to, bool frames = false)
+    /// <param name="motionPhoto">Extract motion from a camera image through a dedicated direct edge.</param>
+    public Route? Plan(string from, string to, bool frames = false, bool motionPhoto = false)
     {
         from = from.ToLowerInvariant();
         to = to.ToLowerInvariant();
 
-        if (frames)
+        if (frames || motionPhoto)
         {
             var sequence = EdgesFrom(from)
-                .Where(e => e.Edge.FrameSequence && e.Edge.To == to)
+                .Where(e => e.Edge.FrameSequence == frames && e.Edge.MotionPhoto == motionPhoto && e.Edge.To == to)
                 .OrderBy(e => e.Cost)
                 .FirstOrDefault();
             return sequence.Converter is null
                 ? null
-                : new Route([new RouteStep(sequence.Converter, from, to, FrameSequence: true)], sequence.Cost);
+                : new Route([new RouteStep(sequence.Converter, from, to, FrameSequence: frames)], sequence.Cost);
         }
 
         // Same-format "conversions" (re-encode, split, compress) must use an explicit self edge.
         if (from == to)
         {
             var best = EdgesFrom(from)
-                .Where(e => e.Edge.To == to && !e.Edge.FrameSequence)
+                .Where(e => e.Edge.To == to && !e.Edge.FrameSequence && !e.Edge.MotionPhoto)
                 .OrderBy(e => e.Cost)
                 .FirstOrDefault();
             return best.Converter is null
@@ -106,7 +107,7 @@ public sealed class RoutePlanner
 
             foreach (var (converter, edge, edgeCost) in EdgesFrom(node))
             {
-                if (edge.To == edge.From || edge.FrameSequence
+                if (edge.To == edge.From || edge.FrameSequence || edge.MotionPhoto
                     || (edge.ImageSourcesOnly && !imageSource) || (edge.NotForImageSources && imageSource)
                     || (edge.DirectOnly && (node != from || edge.To != to)))
                     continue;
@@ -133,7 +134,7 @@ public sealed class RoutePlanner
 
     /// <summary>True if <paramref name="from"/> can be converted to <paramref name="to"/>.</summary>
     /// <param name="frames">Every frame of a video as pictures (see <see cref="Plan"/>).</param>
-    public bool CanConvert(string from, string to, bool frames = false) => Plan(from, to, frames) is not null;
+    public bool CanConvert(string from, string to, bool frames = false, bool motionPhoto = false) => Plan(from, to, frames, motionPhoto) is not null;
 
     private IReadOnlyList<(IConverter Converter, ConversionEdge Edge, int Cost)> EdgesFrom(string format) =>
         _edgesFrom.TryGetValue(format, out var edges) ? edges : [];
