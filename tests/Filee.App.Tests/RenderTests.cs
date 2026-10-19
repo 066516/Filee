@@ -503,6 +503,78 @@ public class RenderTests
         }
     }
 
+    /// <summary>
+    /// The theme's softness rounds the donut's slices (and a group's ring) too, live while it is open; the corners it
+    /// cuts away still belong to their slice for clicks and drops.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Donut_slices_follow_the_softness(bool dark)
+    {
+        TestServices.EnsureInitialized("en");
+        var theme = AppHost.Get<ThemeService>();
+        var store = AppHost.Get<UserDataStore>();
+        var images = store.Profiles.Single(p => p.Id == "images");
+        var before = images.PresetIds.ToList();
+        var group = new Filee.Core.Presets.Preset
+        {
+            Id = "render-soft-group",
+            Name = "Formats",
+            Kind = Filee.Core.Presets.PresetKind.Group,
+            SubPresetIds = ["to-png", "to-jpg", "to-webp"],
+        };
+        var mode = dark ? ThemeMode.Dark : ThemeMode.Light;
+        var suffix = dark ? "dark" : "light";
+        try
+        {
+            store.Presets.Add(group);
+            images.PresetIds.Add(group.Id);
+            theme.Apply(new ThemeSettings { Mode = mode, CornerRadius = 0 }, "en");
+            var vm = AppHost.Get<RadialViewModel>();
+            vm.Load([@"C:\photos\a.jpg", @"C:\photos\b.jpg"], clickMode: true);
+            vm.FitToThisDonut();
+            var window = new RadialWindow { DataContext = vm };
+            window.Show();
+            var donut = window.DonutControl;
+            donut.SetExternalHighlight(1);
+            Pump();
+            Assert.Equal(0, donut.SliceCornerRadius);
+            Save(window, $"donut-softness-0-{suffix}.png");
+
+            // Changing the setting while the donut is open rounds it at once.
+            theme.Apply(new ThemeSettings { Mode = mode, CornerRadius = 28 }, "en");
+            Pump();
+            Assert.Equal(14, donut.SliceCornerRadius);
+            Save(window, $"donut-softness-28-{suffix}.png");
+
+            // The sharp corner of slice 2, cut away now, still picks slice 2.
+            var n = vm.Items.Count;
+            var center = new Avalonia.Point(donut.Bounds.Width / 2, donut.Bounds.Height / 2);
+            var inner = vm.OuterRadius * vm.HoleRatio;
+            var corner = DonutGeometry.Wedge(center, inner, vm.OuterRadius, DonutGeometry.MidAngle(2, n), DonutGeometry.Span(n), 3).Start;
+            var inside = center + (corner - center) * 0.995;
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, 2), donut.HitTest(inside));
+
+            var index = n - 1;
+            donut.SetExternalHit(new DonutHit(DonutHitKind.Segment, index));
+            donut.ExpandPendingGroup();
+            donut.SetExternalHit(new DonutHit(DonutHitKind.SubSegment, index, 1));
+            vm.ShowHint(index, donut.ActiveSubIndex, centerHot: false);
+            Pump();
+            Assert.Equal(new DonutHit(DonutHitKind.SubSegment, index, 1), donut.HitTest(donut.SubSliceCenter(index, 1)));
+            Save(window, $"donut-softness-28-group-{suffix}.png");
+            window.Close();
+        }
+        finally
+        {
+            images.PresetIds.Clear();
+            images.PresetIds.AddRange(before);
+            store.Presets.Remove(group);
+            theme.Apply(new ThemeSettings(), "en");
+        }
+    }
+
     /// <summary>The middle of slot <paramref name="slot"/> of a donut with <paramref name="slots"/> slices.</summary>
     private static Avalonia.Point DonutPoint(DonutMenu donut, int slot, int slots)
     {
