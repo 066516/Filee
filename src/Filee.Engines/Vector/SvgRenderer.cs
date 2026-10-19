@@ -6,6 +6,7 @@ using Filee.Core.Presets;
 using ImageMagick;
 using SkiaSharp;
 using Svg;
+using Svg.Model;
 using Svg.Skia;
 
 namespace Filee.Engines.Vector;
@@ -23,10 +24,15 @@ internal static class SvgRenderer
     private const int MaximumLongEdge = 16384;
     private const long MaximumPixels = 100_000_000;
 
+    private static readonly SvgParameters SafeParameters = new(
+        null, null, null,
+        new SvgDocumentLoadOptions { ExternalResources = SvgExternalResourcePolicy.SameOrigin });
+
     static SvgRenderer()
     {
         // An SVG may reference images, other SVGs and XML entities by URL. Files next to the drawing are fine;
-        // network access is not: converting a file must not fetch anything (tracking pixels, slow servers).
+        // resources elsewhere on the computer and network access are not: converting a file must not read unrelated
+        // local files or fetch anything (tracking pixels, slow servers).
         SvgDocument.ResolveExternalImages = ExternalType.Local;
         SvgDocument.ResolveExternalElements = ExternalType.Local;
         SvgDocument.ResolveExternalXmlEntites = ExternalType.None;
@@ -91,7 +97,7 @@ internal static class SvgRenderer
     private static SKPicture? Parse(SKSvg svg, byte[] bytes, Uri baseUri)
     {
         using var stream = new MemoryStream(bytes, writable: false);
-        return svg.Load(stream, null, baseUri);
+        return svg.Load(stream, SafeParameters, baseUri);
     }
 
     /// <summary>The file's SVG text as bytes: SVGZ (or a gzipped .svg) is decompressed.</summary>

@@ -322,6 +322,39 @@ public class GraphicsTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public void Svg_external_images_stay_beside_the_drawing()
+    {
+        var dir = fx.NewFolder();
+        var sourceDir = Path.Combine(dir, "source");
+        var outsideDir = Path.Combine(dir, "outside");
+        Directory.CreateDirectory(sourceDir);
+        Directory.CreateDirectory(outsideDir);
+        using (var allowed = new MagickImage(MagickColors.Green, 20, 20))
+            allowed.Write(Path.Combine(sourceDir, "allowed.png"));
+        var secret = Path.Combine(outsideDir, "secret.png");
+        using (var outside = new MagickImage(MagickColors.Red, 20, 20))
+            outside.Write(secret);
+        var svg = Write(sourceDir, "drawing.svg", $"""
+            <svg xmlns="http://www.w3.org/2000/svg" width="60" height="20">
+              <image href="allowed.png" width="20" height="20"/>
+              <image href="../outside/secret.png" x="20" width="20" height="20"/>
+              <image href="{new Uri(secret).AbsoluteUri}" x="40" width="20" height="20"/>
+            </svg>
+            """);
+
+        using var drawing = SvgRenderer.Load(svg);
+        using var rendered = SvgRenderer.Rasterize(drawing, 1);
+
+        var allowedPixel = Pixel(rendered, 10, 10);
+        Assert.True(allowedPixel.G > 100 && allowedPixel.R < 50, "same-folder image: " + allowedPixel);
+        foreach (var x in new[] { 30, 50 })
+        {
+            var blocked = Pixel(rendered, x, 10);
+            Assert.False(blocked.R > 200 && blocked.G < 50 && blocked.B < 50, "outside image was rendered: " + blocked);
+        }
+    }
+
+    [Fact]
     public async Task Svg_with_a_loose_ampersand_and_html_entities_still_converts()
     {
         // Issue #120: generated SVGs with "A & B" in a <text> stopped the XML parser ("parsing EntityName").
