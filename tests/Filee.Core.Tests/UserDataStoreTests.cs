@@ -147,6 +147,38 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Animation_speed_is_saved_and_is_the_original_speed_for_presets_from_before_it()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        Assert.All(store.Presets, p => Assert.Equal(1, p.Image.AnimationSpeed)); // no built-in preset changes it
+        store.Presets.Add(new Preset { Id = "slow", Name = "Slow", TargetFormat = "gif", Image = { AnimationSpeed = 0.5 } });
+        store.Presets.Add(new Preset { Id = "old", Name = "Old", TargetFormat = "gif" });
+        store.Presets.Add(new Preset { Id = "odd", Name = "Odd", TargetFormat = "gif" });
+        store.SaveLibrary();
+
+        // A Filee from before the option saved no "animationSpeed"; a hand-edited file may hold anything.
+        var path = Path.Combine(dir.Path, "presets.json");
+        var presets = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsArray();
+        Assert.Equal(0.5, (double)presets.Single(p => (string?)p!["id"] == "slow")!["image"]!["animationSpeed"]!);
+        Assert.True(presets.Single(p => (string?)p!["id"] == "old")!["image"]!.AsObject().Remove("animationSpeed"));
+        presets.Single(p => (string?)p!["id"] == "odd")!["image"]!["animationSpeed"] = -3;
+        File.WriteAllText(path, presets.ToJsonString());
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        var slow = reloaded.FindPreset("slow")!;
+        Assert.Equal(0.5, slow.Image.AnimationSpeed);
+        Assert.Equal(0.5, slow.Clone().Image.AnimationSpeed);
+        Assert.True(slow.Image.ChangesSpeed);
+        Assert.Equal(1, reloaded.FindPreset("old")!.Image.AnimationSpeed);
+        Assert.False(reloaded.FindPreset("old")!.Image.ChangesSpeed);
+        Assert.Equal(1, reloaded.FindPreset("odd")!.Image.PlaybackSpeed); // a speed that makes no sense plays as made
+    }
+
+    [Fact]
     public void History_is_kept_until_turned_off_and_can_be_cleared()
     {
         using var dir = new TempDir();

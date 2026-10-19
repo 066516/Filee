@@ -116,6 +116,25 @@ public class JobQueueTests
     }
 
     [Fact]
+    public async Task Playback_speed_changes_only_in_the_step_that_writes_the_output()
+    {
+        // MP4 → GIF → WebP: both engines keep the animation, only the last one may change its speed (not 2 × 2 = 4×).
+        using var dir = new TempDir();
+        var video = dir.File("clip.mp4");
+        var ffmpeg = new FakeRecorder("ffmpeg", new ConversionEdge("mp4", "gif"));
+        var magick = new FakeRecorder("magick", new ConversionEdge("gif", "webp"));
+        await using var queue = new JobQueue(new ConverterCatalog([ffmpeg, magick]));
+        var preset = new Preset { TargetFormat = "webp", Image = { AnimationSpeed = 2 } };
+
+        var job = await Run(queue, [video], preset);
+
+        Assert.Equal(JobState.Completed, job.State);
+        Assert.Equal([("gif", 1.0)], ffmpeg.Speeds);
+        Assert.Equal([("webp", 2.0)], magick.Speeds);
+        Assert.Equal(2, preset.Image.AnimationSpeed); // the job's preset itself is left alone
+    }
+
+    [Fact]
     public async Task Keep_dates_gives_outputs_the_dates_of_their_source()
     {
         using var dir = new TempDir();
