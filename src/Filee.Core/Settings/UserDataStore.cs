@@ -563,6 +563,10 @@ internal static class SettingsMigrations
         //      takes it. Other extensions the user removed from a built-in donut stay removed.
         if (from < 22)
             changed |= LearnExtensions(profiles, out _, ["fbx"]);
+        // v23: MHTML web archives (.mhtml, .mht; read only) open from the text donut next to HTML, unless a donut of
+        //      the user already takes them.
+        if (from < 23)
+            changed |= LearnExtensions(profiles, out _, ["mhtml", "mht"]);
         return changed;
     }
 

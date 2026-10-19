@@ -578,6 +578,30 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_22_libraries_learn_mhtml_on_the_text_donut_and_nothing_else()
+    {
+        // As written with schema 22: no MHTML, and the user took Markdown off the text donut.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var text = profiles.Single(p => p.Id == "text");
+        text.Extensions.RemoveAll(e => e is "mhtml" or "mht" or "md" or "markdown");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(22, presets, profiles));
+
+        Assert.Contains("mhtml", text.Extensions);
+        Assert.Contains("mht", text.Extensions);
+        Assert.DoesNotContain("md", text.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(22, presets, profiles)); // once only
+
+        // A donut of the user that already opens .mht files keeps them; .mhtml still goes to the text donut.
+        profiles = BuiltInData.CreateProfiles();
+        profiles.Single(p => p.Id == "text").Extensions.RemoveAll(e => e is "mhtml" or "mht");
+        profiles.Insert(0, new ToolbarProfile { Id = "web", Name = "Web", Extensions = ["mht"] });
+        Assert.True(SettingsMigrations.ApplyToLibrary(22, presets, profiles));
+        Assert.Equal(["mhtml"], profiles.Single(p => p.Id == "text").Extensions.Where(e => e.StartsWith("mht", StringComparison.Ordinal)));
+    }
+
+    [Fact]
     public void Version_15_libraries_get_the_tracing_presets_on_the_images_donut_after_pdf()
     {
         // As written before tracing: no trace presets, and the images donut without them.
