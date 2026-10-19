@@ -68,6 +68,7 @@
   "toast.cancel": "取消",
 
   "error.unsupported_source": "不支持此文件类型",
+  "error.empty_file": "文件是空的（0 字节）。用右键菜单“新建”创建的文件，要在对应的应用中打开并保存后才有内容",
   "format_request.request": "请求支持此格式",
   "format_request.notice_title": "Filee 暂时无法转换 {0} 文件",
   "format_request.notice_text": "告诉我们你需要的格式。\n我们会根据请求决定接下来支持哪些格式。\n加密或有复制保护 (DRM) 的文件，无论什么格式都无法转换。",
@@ -85,6 +86,7 @@
   "engine.reason.unsupported_platform": "此平台不可用",
   "engine.reason.needs_package": "需要 {0}，请在“设置 → 转换引擎”中安装",
   "engine.magick.description": "JPG、PNG、WEBP、AVIF、HEIC、TIFF、GIF、APNG、PSD、相机 RAW 等图片。\n质量、尺寸和 DPI 按预设处理。",
+  "engine.wic.description": "用 Windows 自带的编解码器把 JPEG XR 图片（.jxr、.wdp、.hdp，如 Windows 的 HDR 截图）转为 PNG、JPG 等图片。\nHDR 经过色调映射，高光保留细节。",
   "engine.pdfium.description": "按预设分辨率将 PDF 页面渲染为 PNG、JPG、TIFF（也支持多页 TIFF 和 GIF）。",
   "engine.pdfsharp.description": "用图片生成 PDF，合并、拆分 PDF 或截取指定页码。\n还能缩小 PDF 中的图片来减小文件。",
   "engine.rhwp.description": "将 HWP/HWPX 渲染为 PDF，并在 HWP ↔ HWPX 之间转换。\n经 HWPX 转为 PDF 的文档（DOCX、XLSX、PPTX、电子书等）也由它渲染。",

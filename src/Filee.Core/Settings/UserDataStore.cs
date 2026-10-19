@@ -318,6 +318,12 @@ internal static class SettingsMigrations
                 InsertBefore(settings.EnginePriority, "pdf-slides", "pandoc");
         }
 
+        // v21: built-in "wic" engine (JPEG XR through the Windows Imaging Component), after the other built-in engines:
+        //      no other engine reads JPEG XR, and higher up it would push the HWPX writer out of the ranks that win
+        //      ties. (Schema 21 may be renumbered if another change takes it first.)
+        if (settings.SchemaVersion < 21)
+            InsertBefore(settings.EnginePriority, "wic", settings.EnginePriority.Contains("ffmpeg") ? "ffmpeg" : "pandoc");
+
         if (settings.Triggers.Count == 0)
             settings.Triggers = TriggerGesture.Defaults();
 
@@ -549,9 +555,12 @@ internal static class SettingsMigrations
                 changed = true;
             }
         }
+        // v21: JPEG XR (.jxr, .wdp, .hdp; HDR screenshots of Windows): the images donut learns the extensions unless
+        //      another donut already has them.
+        if (from < 21)
+            changed |= LearnExtensions(profiles, out _, ["jxr", "wdp", "hdp"]);
         // v22: FBX models (read only) open from the 3D donut: it learns ".fbx" unless a donut of the user already
-        //      takes it. Other extensions the user removed from a built-in donut stay removed. (Schema 21 is taken by
-        //      other open changes; renumber this step if another change lands first.)
+        //      takes it. Other extensions the user removed from a built-in donut stay removed.
         if (from < 22)
             changed |= LearnExtensions(profiles, out _, ["fbx"]);
         return changed;

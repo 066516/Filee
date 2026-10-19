@@ -107,8 +107,8 @@ public sealed class AppSettings
     public List<string> EnginePriority { get; set; } =
     [
         "magick", "pdfium", "pdfsharp", "rhwp", "unhwp", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer",
-        "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "ffmpeg",
-        "pandoc", "ghostscript", "calibre", "libreoffice",
+        "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook",
+        "subtitle", "wic", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice",
     ];
 
     /// <summary>Set once the first-run welcome has been shown.</summary>
