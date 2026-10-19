@@ -119,6 +119,138 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Dock_and_menu_bar_preferences_round_trip_independently()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        Assert.True(store.Settings.ShowInDock);
+        Assert.True(store.Settings.ShowMenuBarIcon);
+
+        store.Settings.ShowInDock = false;
+        store.SaveSettings();
+        var dockOff = new UserDataStore(dir.Path);
+        dockOff.Load();
+        Assert.False(dockOff.Settings.ShowInDock);
+        Assert.True(dockOff.Settings.ShowMenuBarIcon);
+
+        dockOff.Settings.ShowInDock = true;
+        dockOff.Settings.ShowMenuBarIcon = false;
+        dockOff.SaveSettings();
+        var menuBarOff = new UserDataStore(dir.Path);
+        menuBarOff.Load();
+        Assert.True(menuBarOff.Settings.ShowInDock);
+        Assert.False(menuBarOff.Settings.ShowMenuBarIcon);
+
+        menuBarOff.Settings.ShowInDock = false;
+        menuBarOff.SaveSettings();
+        var bothOff = new UserDataStore(dir.Path);
+        bothOff.Load();
+        Assert.False(bothOff.Settings.ShowInDock);
+        Assert.False(bothOff.Settings.ShowMenuBarIcon);
+    }
+
+    [Fact]
+    public void Version_20_settings_upgrade_preserves_other_values_and_icon_defaults()
+    {
+        using var dir = new TempDir();
+        var path = Path.Combine(dir.Path, "settings.json");
+        File.WriteAllText(path, """{ "schemaVersion": 20, "language": "ko" }""");
+
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        Assert.Equal(23, store.Settings.SchemaVersion);
+        Assert.Equal("ko", store.Settings.Language);
+        Assert.True(store.Settings.ShowInDock);
+        Assert.True(store.Settings.ShowMenuBarIcon);
+        var rewritten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        Assert.Equal(23, (int?)rewritten["schemaVersion"]);
+        Assert.True((bool?)rewritten["showInDock"]);
+        Assert.True((bool?)rewritten["showMenuBarIcon"]);
+        Assert.Equal("ko", (string?)rewritten["language"]);
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        Assert.Equal(23, reloaded.Settings.SchemaVersion);
+        Assert.Equal("ko", reloaded.Settings.Language);
+        Assert.True(reloaded.Settings.ShowInDock);
+        Assert.True(reloaded.Settings.ShowMenuBarIcon);
+    }
+
+    [Fact]
+    public void Older_Filee_round_trip_restores_missing_icon_defaults()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Settings.Language = "ko";
+        store.Settings.ShowInDock = false;
+        store.Settings.ShowMenuBarIcon = false;
+        store.SaveSettings();
+
+        var path = Path.Combine(dir.Path, "settings.json");
+        var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        json["schemaVersion"] = 20;
+        Assert.True(json.Remove("showInDock"));
+        Assert.True(json.Remove("showMenuBarIcon"));
+        File.WriteAllText(path, json.ToJsonString());
+
+        var migrated = new UserDataStore(dir.Path);
+        migrated.Load();
+
+        Assert.Equal(23, migrated.Settings.SchemaVersion);
+        Assert.True(migrated.Settings.ShowInDock);
+        Assert.True(migrated.Settings.ShowMenuBarIcon);
+        Assert.Equal("ko", migrated.Settings.Language);
+        Assert.False(File.Exists(path + ".broken"));
+
+        var rewritten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        Assert.Equal(23, (int?)rewritten["schemaVersion"]);
+        Assert.True((bool?)rewritten["showInDock"]);
+        Assert.True((bool?)rewritten["showMenuBarIcon"]);
+        Assert.Equal("ko", (string?)rewritten["language"]);
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        Assert.Equal(23, reloaded.Settings.SchemaVersion);
+        Assert.Equal("ko", reloaded.Settings.Language);
+        Assert.True(reloaded.Settings.ShowInDock);
+        Assert.True(reloaded.Settings.ShowMenuBarIcon);
+    }
+
+    [Theory]
+    [InlineData("showInDock", "null")]
+    [InlineData("showInDock", "\"future\"")]
+    [InlineData("showInDock", "42")]
+    [InlineData("showMenuBarIcon", "null")]
+    [InlineData("showMenuBarIcon", "\"future\"")]
+    [InlineData("showMenuBarIcon", "42")]
+    public void Unexpected_icon_preference_values_default_on_without_losing_settings(string field, string value)
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Settings.Language = "ko";
+        store.Settings.ShowInDock = field == "showInDock";
+        store.Settings.ShowMenuBarIcon = field == "showMenuBarIcon";
+        store.SaveSettings();
+
+        var path = Path.Combine(dir.Path, "settings.json");
+        var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        json[field] = System.Text.Json.Nodes.JsonNode.Parse(value);
+        File.WriteAllText(path, json.ToJsonString());
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        Assert.Equal("ko", reloaded.Settings.Language);
+        Assert.True(field == "showInDock" ? reloaded.Settings.ShowInDock : reloaded.Settings.ShowMenuBarIcon);
+        Assert.False(field == "showInDock" ? reloaded.Settings.ShowMenuBarIcon : reloaded.Settings.ShowInDock);
+        Assert.False(File.Exists(path + ".broken"));
+    }
+
+    [Fact]
     public void Hardware_encoding_is_saved_and_stays_off_for_presets_from_before_it()
     {
         using var dir = new TempDir();
@@ -956,12 +1088,16 @@ public class UserDataStoreTests
     {
         using var dir = new TempDir();
         File.WriteAllText(Path.Combine(dir.Path, "presets.json"), "{ not json");
+        File.WriteAllText(Path.Combine(dir.Path, "settings.json"), "{ not json");
 
         var store = new UserDataStore(dir.Path);
         store.Load();
 
         Assert.NotEmpty(store.Presets);
+        Assert.True(store.Settings.ShowInDock);
+        Assert.True(store.Settings.ShowMenuBarIcon);
         Assert.True(File.Exists(Path.Combine(dir.Path, "presets.json.broken")));
+        Assert.True(File.Exists(Path.Combine(dir.Path, "settings.json.broken")));
     }
 
     [Fact]

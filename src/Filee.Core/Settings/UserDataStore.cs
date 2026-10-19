@@ -327,6 +327,7 @@ internal static class SettingsMigrations
         if (settings.Triggers.Count == 0)
             settings.Triggers = TriggerGesture.Defaults();
 
+        // v23: missing icon preferences use their true property initializers; explicit false values are preserved.
         settings.SchemaVersion = AppSettings.CurrentSchemaVersion;
     }
 
