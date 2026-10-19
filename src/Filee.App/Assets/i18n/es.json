@@ -62,6 +62,7 @@
   "toast.open_folder": "Mostrar",
   "toast.cancel": "Cancelar",
   "error.unsupported_source": "Este tipo de archivo no es compatible",
+  "error.empty_file": "El archivo está vacío (0 bytes). Un archivo creado con «Nuevo» en el menú contextual sigue vacío hasta que lo abres en su aplicación y lo guardas",
   "format_request.request": "Solicitar este formato",
   "format_request.notice_title": "Filee aún no puede convertir archivos {0}",
   "format_request.notice_text": "Cuéntanos qué formato necesitas.\nLas solicitudes determinan qué formatos admitirá Filee a continuación.\nLos archivos cifrados o con protección de copia (DRM) no se pueden convertir, sea cual sea su formato.",

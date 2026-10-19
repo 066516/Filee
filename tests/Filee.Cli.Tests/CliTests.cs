@@ -124,6 +124,18 @@ public sealed class CliTests : IDisposable
         Assert.Contains("fail", output);
     }
 
+    [Fact]
+    public async Task An_empty_file_says_it_is_empty()
+    {
+        var empty = Path.Combine(_folder, "new.docx");
+        File.WriteAllBytes(empty, []);
+
+        var (code, output, _) = await Run("convert", empty, "--to", "pdf");
+
+        Assert.Equal(Cli.SomeFailed, code);
+        Assert.Contains("new.docx: The file is empty (0 bytes).", output);
+    }
+
     [Theory]
     [InlineData(new[] { "convert", "a.png" }, "--to")]
     [InlineData(new[] { "convert", "a.png", "--to", "jpg", "--preset", "x" }, "--to")]
