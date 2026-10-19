@@ -104,7 +104,7 @@
   "engine.icns.description": "Ikony aplikacji macOS (ICNS) z obrazów i do obrazów.",
   "engine.font.description": "Czcionki: TTF, OTF, WOFF, WOFF2 i EOT między sobą.",
   "engine.cad.description": "Rysunki AutoCAD: DWG ↔ DXF, oba także do PDF, SVG i PNG.",
-  "engine.model3d.description": "Modele 3D: GLB, glTF, STL, OBJ, 3MF i PLY między sobą oraz podgląd PNG.",
+  "engine.model3d.description": "Modele 3D: GLB, glTF, STL, OBJ, 3MF i PLY między sobą, FBX do każdego z nich oraz podgląd PNG.",
   "engine.archive.description": "Rozpakowuje ZIP, 7Z, RAR, TAR, ISO i inne, pakuje do ZIP, 7Z lub TAR.GZ (7-Zip).",
   "engine.ebook.description": "EPUB, MOBI, AZW3, FB2 i komiksy (CBZ, CBR) do PDF, EPUB, DOCX i tekstu.\nTakże dokumenty do EPUB, EPUB do KEPUB dla Kobo i PDF do CBZ.",
   "engine.subtitle.description": "Napisy: SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD i SCC między sobą, zapisywane w UTF-8.\nKoreańskie pliki SMI i SRT w CP949 / EUC-KR są odczytywane poprawnie.",
