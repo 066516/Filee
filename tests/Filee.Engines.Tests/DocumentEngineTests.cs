@@ -1,8 +1,10 @@
 // Tests for engines that are downloaded or bundled separately (LibreOffice, rhwp).
 // They skip automatically when the engine is not available, so CI stays green without them.
 
+using System.IO.Compression;
 using Filee.Core.Conversion;
 using Filee.Core.Presets;
+using Filee.Engines.Hwp;
 using Filee.Engines.Office;
 
 namespace Filee.Engines.Tests;
@@ -90,6 +92,22 @@ public class DocumentEngineTests(EngineFixture fx) : IClassFixture<EngineFixture
         Assert.Equal(JobState.Completed, back.State);
         Assert.Equal("rhwp", Assert.Single(fx.Catalog.CreatePlanner().Plan("hwp", "hwpx")!.Steps).Converter.Id);
         Assert.Contains("두 번째 문단입니다", HwpxAssert.ReadBackText(back.Outputs.Single()));
+    }
+
+    [Fact]
+    public async Task Rhwp_time_limit_grows_with_the_documents_text()
+    {
+        var dir = fx.NewFolder();
+        var hwpx = await fx.MakeHwpxAsync(dir);
+        using (var zip = ZipFile.OpenRead(hwpx))
+            Assert.Equal(zip.Entries.Where(e => e.FullName.StartsWith("Contents/section", StringComparison.Ordinal)).Sum(e => e.Length), RhwpConverter.TextSize(hwpx));
+        var hwp = Path.Combine(dir, "deflated.hwp");
+        await File.WriteAllBytesAsync(hwp, new byte[1000], TestContext.Current.CancellationToken);
+        Assert.Equal(3000, RhwpConverter.TextSize(hwp)); // not a ZIP: an HWP's text is deflated to about a third
+
+        Assert.Equal(TimeSpan.FromMinutes(2), RhwpConverter.TimeLimit(0));
+        Assert.Equal(TimeSpan.FromMinutes(32), RhwpConverter.TimeLimit(1024 * 1024));
+        Assert.Equal(TimeSpan.FromMinutes(60), RhwpConverter.TimeLimit(100 * 1024 * 1024)); // a hung rhwp is still stopped
     }
 
     [Fact]

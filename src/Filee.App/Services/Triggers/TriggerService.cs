@@ -20,15 +20,23 @@ public sealed class TriggerService : IDisposable
     private readonly GestureDetector _detector = new();
     private readonly string _ownProcess = Process.GetCurrentProcess().ProcessName;
     private EventLoopGlobalHook? _hook;
+    private Thread? _hookThread;
+    private readonly Func<EventLoopGlobalHook> _createHook;
     private HashSet<string> _excluded = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>FILEE_TRACE_GESTURES=1 logs each mouse press and scope decision, to find why a gesture doesn't fire.</summary>
     private static readonly bool Trace = Environment.GetEnvironmentVariable("FILEE_TRACE_GESTURES") == "1";
 
     public TriggerService(IPlatformServices platform, ILogger<TriggerService> log)
+        : this(platform, log, () => new EventLoopGlobalHook(useBackgroundThreadForEventLoop: true))
+    {
+    }
+
+    internal TriggerService(IPlatformServices platform, ILogger<TriggerService> log, Func<EventLoopGlobalHook> createHook)
     {
         _platform = platform;
         _log = log;
+        _createHook = createHook;
         _detector.SystemDragThreshold = platform.SystemDragThreshold;
         _detector.ScopeFilter = InScope;
 
@@ -98,7 +106,7 @@ public sealed class TriggerService : IDisposable
         try
         {
             // Background threads: a hook that fails to stop can never keep Filee running after it quits.
-            _hook = new EventLoopGlobalHook(useBackgroundThreadForEventLoop: true);
+            _hook = _createHook();
             _hook.HookEnabled += (_, _) => { _log.LogInformation("Global input hook started"); NotifyStatus(); };
             _hook.HookDisabled += (_, _) => { _log.LogInformation("Global input hook stopped"); NotifyStatus(); };
             _hook.MousePressed += (_, e) =>
@@ -111,15 +119,26 @@ public sealed class TriggerService : IDisposable
             _hook.MouseDragged += (_, e) => OnMove(e);
             _hook.MouseMoved += (_, e) => OnMove(e);
             _hook.KeyPressed += (_, e) => _detector.KeyDown(KeyName(e.Data.KeyCode), Map(e.RawEvent.Mask));
-            _ = _hook.RunAsync(useBackgroundThread: true).ContinueWith(t =>
+            // Own the actual Run thread. SharpHook's RunAsync task completes BEFORE its finally
+            // clears the native callback, so awaiting that task alone is not a safe restart barrier.
+            var hook = _hook;
+            _hookThread = new Thread(() =>
             {
-                // e.g. macOS without Accessibility permission. Drop zone and context menu keep working.
-                if (t.Exception is not null)
+                try
                 {
-                    ReportFailure(t.Exception.GetBaseException(), "Global input hook failed; gestures are unavailable");
+                    hook.Run();
+                }
+                catch (Exception ex)
+                {
+                    ReportFailure(ex.GetBaseException(), "Global input hook failed; gestures are unavailable");
+                }
+                finally
+                {
                     NotifyStatus();
                 }
-            }, TaskScheduler.Default);
+            })
+            { IsBackground = true, Name = "Filee global input" };
+            _hookThread.Start();
         }
         catch (Exception ex)
         {
@@ -127,6 +146,7 @@ public sealed class TriggerService : IDisposable
             ReportFailure(ex, "Could not start the global input hook");
             _hook?.Dispose();
             _hook = null;
+            _hookThread = null;
             NotifyStatus();
         }
     }
@@ -232,8 +252,25 @@ public sealed class TriggerService : IDisposable
         {
             // Quitting goes on: the hook runs on background threads, which end with the process.
             _log.LogWarning(ex, "Could not stop the global input hook");
+            // SharpHook marks the hook disposed before Stop can throw. Its finalizer must not
+            // dispose the already-completed event queue again; we still own and join its Run thread.
+            if (_hook is { IsDisposed: true } failedHook)
+                GC.SuppressFinalize(failedHook);
+            Error = ex.Message;
+            NotifyStatus();
+            return; // Keep ownership: starting a second native hook would corrupt the first one.
+        }
+        // Dispose only requests native shutdown. Its Run thread must finish its finally block
+        // before another hook installs the process-wide callback, or the old thread clears it.
+        if (_hookThread is { IsAlive: true } thread && !thread.Join(TimeSpan.FromSeconds(5)))
+        {
+            Error = "The previous global input hook did not finish stopping. Retry after it exits.";
+            _log.LogWarning("Global input hook shutdown timed out; keeping the previous hook to prevent overlap");
+            NotifyStatus();
+            return;
         }
         _hook = null;
+        _hookThread = null;
     }
 }
 

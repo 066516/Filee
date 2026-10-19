@@ -25,6 +25,23 @@ public sealed class WindowsPlatformServices : IPlatformServices
         "WorkerW",       // desktop (when wallpaper slideshow / Win+Tab created a WorkerW)
     };
 
+    /// <summary>
+    /// File managers people use instead of Explorer, by process name (issue #124): their windows count as "over the
+    /// file manager" for gestures too. Dragging files out of them reaches the donut like a drag from Explorer.
+    /// </summary>
+    private static readonly HashSet<string> FileManagerProcesses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "explorer",
+        "Files",          // Files (files.community)
+        "dopus",          // Directory Opus
+        "TOTALCMD64",     // Total Commander
+        "TOTALCMD",
+        "XYplorer",
+        "OneCommander",
+        "Q-Dir",
+        "FreeCommander",
+    };
+
     public void RaiseTopmost(nint windowHandle)
     {
         if (windowHandle != 0)
@@ -37,9 +54,13 @@ public sealed class WindowsPlatformServices : IPlatformServices
         var root = RootWindowAt(x, y);
         if (root == 0)
             return false;
-        return FileManagerClasses.Contains(NativeMethods.ClassNameOf(root))
-               || string.Equals(ProcessNameOf(root), "explorer", StringComparison.OrdinalIgnoreCase);
+        return IsFileManager(NativeMethods.ClassNameOf(root), ProcessNameOf(root));
     }
+
+    /// <summary>True for a top-level window of Explorer, the desktop or another file manager.</summary>
+    public static bool IsFileManager(string? windowClass, string? processName) =>
+        windowClass is not null && FileManagerClasses.Contains(windowClass)
+        || processName is not null && FileManagerProcesses.Contains(processName);
 
     public string? ProcessNameAt(int x, int y)
     {

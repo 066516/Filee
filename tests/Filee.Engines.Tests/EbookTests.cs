@@ -77,6 +77,43 @@ public class EbookTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal("ebook", Assert.Single(planner.Plan("epub", "fb2")!.Steps).Converter.Id);
     }
 
+    /// <summary>The engine order with calibre moved to <paramref name="index"/>.</summary>
+    private List<string> CalibreAt(int index)
+    {
+        var order = fx.Catalog.Priority.Where(id => id != "calibre").ToList();
+        order.Insert(index, "calibre");
+        return order;
+    }
+
+    [Fact]
+    public void Calibre_makes_e_book_pdfs_only_when_ranked_above_the_hwpx_writer()
+    {
+        string[] installed = ["calibre", "rhwp", "pandoc", "libreoffice"];
+        var writer = fx.Catalog.Priority.ToList().IndexOf("hwpx-writer");
+        RoutePlanner Planner(IReadOnlyList<string> priority) =>
+            new ConverterCatalog(fx.Converters) { Priority = priority }.CreatePlanner(installed);
+        var byDefault = fx.Catalog.CreatePlanner(installed);
+        var belowWriter = Planner(CalibreAt(writer + 1));
+        var aboveWriter = Planner(CalibreAt(writer));
+        var first = Planner(CalibreAt(0));
+
+        // Books the built-in engines read: the default stays HWPX writer → rhwp (#127 moved calibre to the top).
+        foreach (var from in CalibreConverter.PdfInputs.Except(CalibreConverter.Inputs))
+        {
+            Assert.Equal(["hwpx-writer", "rhwp"], byDefault.Plan(from, "pdf")!.Steps.Select(s => s.Converter.Id));
+            Assert.Equal(["hwpx-writer", "rhwp"], belowWriter.Plan(from, "pdf")!.Steps.Select(s => s.Converter.Id));
+            Assert.Equal("calibre", Assert.Single(aboveWriter.Plan(from, "pdf")!.Steps).Converter.Id);
+            Assert.Equal("calibre", Assert.Single(first.Plan(from, "pdf")!.Steps).Converter.Id);
+        }
+        Assert.Equal(["hwpx-writer", "rhwp", "pdfium"], byDefault.Plan("epub", "png")!.Steps.Select(s => s.Converter.Id));
+        Assert.Equal(["calibre", "pdfium"], first.Plan("epub", "png")!.Steps.Select(s => s.Converter.Id));
+
+        // Formats only calibre reads: one calibre run instead of calibre → EPUB → HWPX writer → rhwp.
+        Assert.Equal("calibre", Assert.Single(byDefault.Plan("lit", "pdf")!.Steps).Converter.Id);
+        // Other documents keep their engines.
+        Assert.DoesNotContain("calibre", first.Plan("docx", "pdf")!.Steps.Select(s => s.Converter.Id));
+    }
+
     // ───────────────────────── EPUB ─────────────────────────
 
     [Fact]
@@ -443,6 +480,26 @@ public class EbookTests(EngineFixture fx) : IClassFixture<EngineFixture>
 
         Assert.Contains("밤하늘에", text);
         Assert.Contains("주석 내용입니다.", text);
+    }
+
+    [Fact]
+    public async Task Calibre_ranked_first_makes_a4_pdfs_of_e_books()
+    {
+        Assert.SkipUnless(HasCalibre, "calibre not found (pwsh build/fetch-engines.ps1 -Only calibre)");
+        var epub = EbookBuilders.Epub(fx.NewFolder());
+        var catalog = new ConverterCatalog(fx.Converters) { Priority = CalibreAt(0) };
+        await using var queue = new JobQueue(catalog);
+        var job = new ConversionJob([epub], new Preset { TargetFormat = "pdf" }, "pdf");
+
+        await queue.RunAsync(job);
+
+        Assert.True(job.State == JobState.Completed, string.Join("; ", job.Files.Select(f => $"{f.ErrorKey} {f.ErrorDetail}")));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(job.Outputs.Single());
+        Assert.Contains("calibre", pdf.Information.Producer, StringComparison.OrdinalIgnoreCase);
+        var page = pdf.GetPage(pdf.NumberOfPages);
+        Assert.Equal(595, page.Width, 2.0);  // A4 in points (calibre: 594.96 × 840.96)
+        Assert.Equal(842, page.Height, 2.0);
+        Assert.Contains("밤하늘에", string.Concat(pdf.GetPages().Select(p => p.Text)));
     }
 }
 
