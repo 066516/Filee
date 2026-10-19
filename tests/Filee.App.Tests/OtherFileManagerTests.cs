@@ -37,6 +37,29 @@ public class OtherFileManagerTests
     }
 
     [Fact]
+    public void A_dragged_folder_counts_like_a_file_so_it_can_go_into_an_archive()
+    {
+        var folder = Directory.CreateTempSubdirectory("filee-drag-folder-").FullName;
+        var file = Path.Combine(folder, "1.png");
+        File.WriteAllBytes(file, [1]);
+        try
+        {
+            Assert.True(DraggedFiles.IsFileOrFolder(file));
+            Assert.True(DraggedFiles.IsFileOrFolder(folder));
+            Assert.False(DraggedFiles.IsFileOrFolder(Path.Combine(folder, "missing.png")));
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+
+        // Issue #186: files and folders dragged together all stay in the list.
+        using var data = Drag(PasteboardPaths.FilenamesType, Encoding.UTF8.GetBytes(Plist));
+        HashSet<string> existing = ["/Users/a/1.png", "/Users/a/folder"];
+        Assert.Equal(["/Users/a/1.png", "/Users/a/folder"], DraggedFiles.Local(data, existing.Contains));
+    }
+
+    [Fact]
     public void A_drag_of_text_or_file_promises_brings_no_files_and_says_what_it_offered()
     {
         using var text = new DataTransfer();

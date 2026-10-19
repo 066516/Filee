@@ -16,17 +16,21 @@ internal static class DraggedFiles
         data.Contains(DataFormat.File) || data.Items.Any(item => item.Formats.Any(IsFilenames));
 
     /// <summary>
-    /// Local file paths in the drag (folders and virtual items are ignored). A shortcut counts as the file it points
-    /// to; one to a folder is ignored like the folder.
+    /// Local file and folder paths in the drag (virtual items are ignored). A shortcut counts as the file or folder it
+    /// points to. Folders go into "Compress into one archive" like on the command line (issue #186); other presets
+    /// report them as unsupported.
     /// </summary>
     public static IReadOnlyList<string> Local(IDataTransfer data) =>
-        Local(data, File.Exists, AppHost.Get<IPlatformServices>().ResolveShortcuts);
+        Local(data, IsFileOrFolder, AppHost.Get<IPlatformServices>().ResolveShortcuts);
 
-    internal static IReadOnlyList<string> Local(IDataTransfer data, Func<string, bool> fileExists,
+    /// <summary>Whether <paramref name="path"/> is a file or a folder that exists.</summary>
+    internal static bool IsFileOrFolder(string path) => File.Exists(path) || Directory.Exists(path);
+
+    internal static IReadOnlyList<string> Local(IDataTransfer data, Func<string, bool> exists,
         Func<IReadOnlyList<string>, IReadOnlyList<string>>? resolveShortcuts = null)
     {
         IReadOnlyList<string> Usable(IReadOnlyList<string> paths) =>
-            (resolveShortcuts?.Invoke(paths) ?? paths).Where(fileExists).Distinct(FileSystemPaths.Comparer).ToList();
+            (resolveShortcuts?.Invoke(paths) ?? paths).Where(exists).Distinct(FileSystemPaths.Comparer).ToList();
 
         var files = Usable((data.TryGetFiles() ?? []).Select(item => item.TryGetLocalPath()).OfType<string>().ToList());
         return files.Count > 0 ? files : Usable(Filenames(data).ToList());
