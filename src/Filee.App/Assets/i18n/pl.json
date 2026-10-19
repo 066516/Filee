@@ -75,6 +75,8 @@
   "error.cannot_turn": "Obracanie i odbicie działają tylko na obrazach",
   "error.too_many_frames": "Za dużo klatek do zapisania jako obrazy, zwiększ „Co N-ta klatka”",
   "error.not_enough_space": "Za mało wolnego miejsca na dysku na obrazy",
+  "error.rhwp_timeout": "rhwp nie zdążył przetworzyć tego długiego dokumentu",
+  "error.rhwp_timeout_calibre": "rhwp nie zdążył przetworzyć tego długiego dokumentu. Dla e-booka przenieś Calibre nad HWPX writer w Ustawienia → Silniki, a Calibre zrobi PDF znacznie szybciej",
   "error.conversion_failed": "Silnik zgłosił błąd",
   "notice.pdf_not_smaller": "Nie udało się zmniejszyć pliku, więc skopiowano go bez zmian",
 
@@ -107,7 +109,7 @@
   "engine.ffmpeg.description": "Wideo i audio: MP4, MOV, MKV, WEBM, MP3, M4A, WAV, FLAC i inne.\nWyodrębnia też dźwięk i napisy, tworzy animacje GIF i APNG oraz zapisuje obrazy jako HEIC.",
   "engine.pandoc.description": "Markdown i HTML ↔ ODT i RTF, DOCX → Markdown\nreStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter i inne ↔ Markdown, HTML, DOCX i ODT\nMarkdown i Org → slajdy PPTX",
   "engine.ghostscript.description": "EPS, PostScript i starsze pliki Illustratora do PDF i obrazów; PDF do EPS i PS.",
-  "engine.calibre.description": "Rzadkie formaty e-booków (LIT, LRF, CHM, PDB, RB…) i zapis dla Kindle (MOBI, AZW3).",
+  "engine.calibre.description": "Rzadkie formaty e-booków (LIT, LRF, CHM, PDB, RB…) i zapis dla Kindle (MOBI, AZW3).\nUmieszczony nad HWPX writer tworzy też PDF-y e-booków (znacznie szybciej przy długich książkach).",
   "engine.libreoffice.description": "Odczytuje starsze i rzadsze formaty: DOC, PPT, Pages, Keynote, Numbers, WordPerfect, ClarisWorks, Publisher, Visio…\nZapisuje też jako DOC, XLS, PPT, ODT, ODP, szablony OpenDocument i EMF.",
 
   "profile.images": "Obrazy",
