@@ -16,7 +16,7 @@
       <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource close.text}" />
     </StackPanel>
     <CheckBox x:Name="DontAsk" Content="{DynamicResource close.dont_ask}" />
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
       <Button MinWidth="88" HorizontalContentAlignment="Center" Content="{DynamicResource common.cancel}"
               Click="OnCancel" IsCancel="True" />
       <Button MinWidth="88" HorizontalContentAlignment="Center" Content="{DynamicResource close.quit}" Click="OnQuit" />
