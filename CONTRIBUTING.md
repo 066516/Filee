@@ -15,6 +15,11 @@ Thanks for helping! Filee is built to be easy to extend: most contributions touc
    Engines lets you choose a specific copy. Microsoft Office is not used.
 4. `dotnet run --project src/Filee.App`, `dotnet test`.
 
+To try a build next to the Filee you use every day (testing, measuring memory), set `FILEE_DATA_DIR` to an empty
+folder first. Settings, logs and downloaded engines then live there, the copy is its own single instance (later
+launches with the same variable, `--quit` included, reach it and never your installed Filee), and it registers no
+startup entry, context menu or Explorer menu.
+
 Any IDE works (Visual Studio 2022+, Rider, VS Code with C# Dev Kit).
 
 ## Linux and macOS development

@@ -23,6 +23,9 @@ public partial class App : Application
     private IDisposable? _convertDebounce;
     private bool _selectionPending;
 
+    /// <summary>Forwarded launches and empty selections can come in bursts: a few lines a minute are enough.</summary>
+    private static readonly LogThrottle Throttle = new(TimeSpan.FromSeconds(30));
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -39,6 +42,9 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
+    /// <summary>Ends Filee as the tray's Quit does.</summary>
+    public static void Quit() => (Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown();
+
     private void Start(IClassicDesktopStyleApplicationLifetime desktop)
     {
         // macOS: "Convert with Filee" in Finder's right-click menu. Registered first, so a service picked while
@@ -47,12 +53,20 @@ public partial class App : Application
             Filee.Platform.MacOS.MacOSServicesProvider.Register(files =>
                 Dispatcher.UIThread.Post(() => HandleCommandLine(CommandLine.Parse(["--convert", .. files]))));
         var log = AppHost.Get<ILogger<App>>();
+        // Exceptions in UI event handlers end Filee; write them down first (they are not marked handled).
+        Dispatcher.UIThread.UnhandledException += (_, e) =>
+            log.LogCritical(e.Exception, "Unhandled exception on the UI thread");
+        var watchdog = new UiWatchdog(action => Dispatcher.UIThread.Post(action), AppHost.Get<ILogger<UiWatchdog>>());
+        watchdog.Start();
         var store = AppHost.Get<UserDataStore>();
         store.Load();
 
         var loc = AppHost.Get<LocalizationService>();
         loc.Attach(this);
         ApplySettings(store.Settings);
+        // Every engine's availability, checked once off the UI thread: the first donut or drop otherwise starts
+        // every engine's check (FFmpeg -version, folder searches) on the UI thread and freezes it meanwhile.
+        _ = AppHost.Get<ConverterCatalog>().CheckInBackgroundAsync();
 
         // Global gestures → donut toolbar
         var triggers = AppHost.Get<TriggerService>();
@@ -71,6 +85,11 @@ public partial class App : Application
                     ? await Task.Run(platform.GetFileManagerSelection) : platform.GetFileManagerSelection();
                 if (files.Count > 0 && !store.Settings.Paused)
                     radial.ShowForFiles(e.X, e.Y, files);
+                else if (files.Count == 0 && Throttle.TryEnter("empty-selection", out var held))
+                    log.LogInformation("The selection shortcut found no selected files in {Window}{Elevation}{Held}",
+                        platform.DescribeForegroundWindow() is { Length: > 0 } window ? window : "the foreground window",
+                        Program.Elevation.ShellCannotReachFilee ? " (Filee runs as administrator and can't read Explorer)" : "",
+                        LogThrottle.HeldText(held));
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
@@ -109,13 +128,13 @@ public partial class App : Application
 
         // Later launches (context menu, Send To, double-clicking the exe) forward their arguments here.
         if (Program.Instance is { } instance)
-        {
-            instance.ArgumentsReceived += args => Dispatcher.UIThread.Post(() => HandleCommandLine(CommandLine.Parse(args)));
-            instance.StartListening();
-        }
+            ListenForLaterLaunches(instance, log);
+        Program.InstanceAcquired += again => ListenForLaterLaunches(again, log);
 
         desktop.Exit += (_, _) =>
         {
+            watchdog.Dispose();
+            AppHost.Get<MemoryTrimmer>().Dispose();
             AppHost.Get<TriggerService>().Dispose();
             AppHost.Get<TrayService>().Dispose();
             AppHost.Get<WatchFolderService>().DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
@@ -123,6 +142,21 @@ public partial class App : Application
 
         HandleCommandLine(Program.Options, firstLaunch: true);
         WatchForUpdates(store);
+        // Filee runs as administrator while Explorer doesn't (an installer started "as administrator" started it):
+        // say so once, next to the tray, and on the Home page for as long as it lasts.
+        if (AppHost.Get<ElevationService>().ShellCannotReachFilee)
+            DispatcherTimer.RunOnce(() => AppHost.Get<WindowService>().ShowElevationNotice(), TimeSpan.FromSeconds(2));
+    }
+
+    private void ListenForLaterLaunches(SingleInstance instance, ILogger log)
+    {
+        instance.ArgumentsReceived += args =>
+        {
+            if (Throttle.TryEnter("forwarded", out var held))
+                log.LogInformation("A later launch handed over {Count} argument(s){Held}", args.Length, LogThrottle.HeldText(held));
+            Dispatcher.UIThread.Post(() => HandleCommandLine(CommandLine.Parse(args), forwarded: true));
+        };
+        instance.StartListening();
     }
 
     /// <summary>
@@ -198,8 +232,13 @@ public partial class App : Application
         AppHost.Get<SystemIntegrationService>().Apply(settings);
     }
 
-    private void HandleCommandLine(CommandLine options, bool firstLaunch = false)
+    private void HandleCommandLine(CommandLine options, bool firstLaunch = false, bool forwarded = false)
     {
+        // Pairs with "A later launch handed over …": the request reached the UI thread too.
+        if (forwarded && Throttle.TryEnter("forwarded-handled", out var held))
+            AppHost.Get<ILogger<App>>().LogInformation("Handling a later launch: {Request}{Held}",
+                options.Quit ? "quit" : options.ConvertFiles.Count > 0 ? $"convert {options.ConvertFiles.Count} file(s)" : "show Filee",
+                LogThrottle.HeldText(held));
         if (options.Quit)
         {
             // The installer is about to replace or remove Filee's files (Program.RunInstallerCommand waits for this).

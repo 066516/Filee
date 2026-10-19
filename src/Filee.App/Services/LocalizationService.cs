@@ -103,13 +103,35 @@ public sealed class LocalizationService : ILocalizer
         return "en";
     }
 
-    /// <summary>Reads a translation file. Missing files yield an empty dictionary (English is used instead).</summary>
-    internal static Dictionary<string, string> LoadStrings(string code)
+    /// <summary>
+    /// Reads a translation file. Missing files yield an empty dictionary (English is used instead).
+    /// <paramref name="loader"/> reads assets before Avalonia is set up (a message shown by Program).
+    /// </summary>
+    internal static Dictionary<string, string> LoadStrings(string code, IAssetLoader? loader = null)
     {
         var uri = new Uri($"avares://Filee/Assets/i18n/{code}.json");
-        if (!AssetLoader.Exists(uri))
+        if (!(loader?.Exists(uri) ?? AssetLoader.Exists(uri)))
             return [];
-        using var stream = AssetLoader.Open(uri);
+        using var stream = loader?.Open(uri) ?? AssetLoader.Open(uri);
         return JsonSerializer.Deserialize(stream, AppJsonContext.Default.DictionaryStringString) ?? [];
+    }
+
+    /// <summary>
+    /// One string in the system's language, before Avalonia (and the settings) are loaded: for the messages a launch
+    /// shows when it can't reach the running Filee. Falls back to English, then to the key.
+    /// </summary>
+    internal static string EarlyText(string key)
+    {
+        try
+        {
+            var loader = new StandardAssetLoader(typeof(LocalizationService).Assembly);
+            var code = Resolve("auto");
+            if (LoadStrings(code, loader).TryGetValue(key, out var text) || LoadStrings("en", loader).TryGetValue(key, out text))
+                return text;
+        }
+        catch (Exception ex) when (ex is IOException or JsonException or InvalidOperationException or ArgumentException)
+        {
+        }
+        return key;
     }
 }

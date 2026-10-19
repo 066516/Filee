@@ -115,6 +115,17 @@
         </Grid>
         <CheckBox Content="{DynamicResource presets.multipage_tiff}" IsChecked="{Binding MultiPageTiff}" IsVisible="{Binding ShowMultiPageTiff}"
                   ToolTip.Tip="{DynamicResource presets.multipage_tiff_hint}" />
+        <StackPanel Spacing="6" IsVisible="{Binding ShowSaveEveryFrame}">
+          <CheckBox Content="{DynamicResource presets.save_every_frame}" IsChecked="{Binding SaveEveryFrame}"
+                    ToolTip.Tip="{DynamicResource presets.save_every_frame_hint}" />
+          <StackPanel Spacing="4" Margin="28,0,0,0" IsVisible="{Binding SaveEveryFrame}">
+            <Grid ColumnDefinitions="Auto,12,120">
+              <TextBlock Classes="label" VerticalAlignment="Center" Text="{DynamicResource presets.frame_interval}" />
+              <NumericUpDown Grid.Column="2" Value="{Binding FrameInterval}" Minimum="1" Maximum="1000" Increment="1" FormatString="0" />
+            </Grid>
+            <TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding FrameEstimate}" />
+          </StackPanel>
+        </StackPanel>
       </StackPanel>
     </Border>
 
@@ -163,6 +174,10 @@
             <ComboBox ItemsSource="{Binding WavFormats}" SelectedItem="{Binding WavFormat}" HorizontalAlignment="Stretch" />
           </StackPanel>
         </UniformGrid>
+        <StackPanel Spacing="2" IsVisible="{Binding ShowHardwareEncoding}">
+          <CheckBox Content="{DynamicResource presets.hardware_encoding}" IsChecked="{Binding HardwareEncoding}" />
+          <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0" Text="{DynamicResource presets.hardware_encoding_hint}" />
+        </StackPanel>
       </StackPanel>
     </Border>
 
@@ -216,6 +231,21 @@
         <TextBlock Classes="h2" Text="{DynamicResource presets.group.pdf}" />
         <CheckBox Content="{DynamicResource presets.merge}" IsChecked="{Binding Merge}" IsVisible="{Binding ShowPdfBuild}" />
         <CheckBox Content="{DynamicResource presets.split}" IsChecked="{Binding SplitPages}" IsVisible="{Binding ShowPdfSplit}" />
+        <!-- PDF → PDF: make the file smaller -->
+        <StackPanel Spacing="2" IsVisible="{Binding ShowPdfCompression}">
+          <Grid ColumnDefinitions="*,12,*">
+            <StackPanel>
+              <TextBlock Classes="label" Text="{DynamicResource presets.pdf_compression}" />
+              <ComboBox ItemsSource="{Binding CompressionLevels}" SelectedItem="{Binding CompressionLevel}" HorizontalAlignment="Stretch" />
+            </StackPanel>
+          </Grid>
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource presets.pdf_compression_hint}" />
+          <StackPanel Spacing="2" Margin="0,6,0,0" IsVisible="{Binding ShowPdfCompressionOptions}">
+            <CheckBox Content="{DynamicResource presets.pdf_ghostscript}" IsChecked="{Binding CompressWithGhostscript}" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0" Text="{DynamicResource presets.pdf_ghostscript_hint}" />
+            <CheckBox Content="{DynamicResource presets.pdf_keep_metadata}" IsChecked="{Binding KeepMetadata}" />
+          </StackPanel>
+        </StackPanel>
         <StackPanel Spacing="2" IsVisible="{Binding ShowPdfCombine}">
           <CheckBox Content="{DynamicResource presets.combine_pages}" IsChecked="{Binding CombinePages}" />
           <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0" Text="{DynamicResource presets.combine_pages_hint}" />

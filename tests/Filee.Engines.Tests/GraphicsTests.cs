@@ -322,6 +322,45 @@ public class GraphicsTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public async Task Svg_with_a_loose_ampersand_and_html_entities_still_converts()
+    {
+        // Issue #120: generated SVGs with "A & B" in a <text> stopped the XML parser ("parsing EntityName").
+        var dir = fx.NewFolder();
+        var svg = Write(dir, "gemini.svg", """
+            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="100">
+              <rect width="200" height="100" fill="#ff0000"/>
+              <text x="10" y="50" font-size="20">Q&A &amp; R&nbsp;D &copy; 2026 &bogus;</text>
+            </svg>
+            """);
+
+        var job = await fx.ConvertAsync([svg], new Preset { TargetFormat = "png" });
+
+        AssertDone(job);
+        using var png = new MagickImage(job.Outputs.Single());
+        Assert.True(Pixel(png, 3, 3).R > 240, "the drawing was rendered");
+    }
+
+    [Theory]
+    [InlineData("<t>A & B</t>", "<t>A &amp; B</t>")]
+    [InlineData("<t>R&nbsp;D &copy;</t>", "<t>R&#160;D &#169;</t>")]
+    [InlineData("<t>&bogus; &copy</t>", "<t>&amp;bogus; &amp;copy</t>")]
+    [InlineData("<a href=\"x?a=1&b=2\"/>", "<a href=\"x?a=1&amp;b=2\"/>")]
+    public void Loose_ampersands_are_escaped_and_html_entities_become_references(string svg, string repaired) =>
+        Assert.Equal(repaired, Encoding.UTF8.GetString(SvgXmlRepair.FixAmpersands(Encoding.UTF8.GetBytes(svg))!));
+
+    [Theory]
+    [InlineData("<t>A &amp; B &lt; &#38; &#x26;</t>")]
+    [InlineData("<!DOCTYPE svg [<!ENTITY ns_svg \"http://www.w3.org/2000/svg\">]><svg xmlns=\"&ns_svg;\"/>")]
+    [InlineData("<t><!-- a & b --><![CDATA[x && y]]></t>")]
+    [InlineData("<t>no ampersand</t>")]
+    public void Valid_xml_is_left_as_it_is(string svg) =>
+        Assert.Null(SvgXmlRepair.FixAmpersands(Encoding.UTF8.GetBytes(svg)));
+
+    [Fact]
+    public void Text_in_another_encoding_is_not_touched() =>
+        Assert.Null(SvgXmlRepair.FixAmpersands(Encoding.Latin1.GetBytes("<t encoding=\"latin1\">café & co</t>")));
+
+    [Fact]
     public async Task Svgz_round_trip()
     {
         var dir = fx.NewFolder();

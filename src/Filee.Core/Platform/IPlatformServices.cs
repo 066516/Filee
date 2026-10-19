@@ -31,6 +31,12 @@ public interface IPlatformServices
     /// <summary>Files currently selected in the foreground file manager window (empty if none).</summary>
     IReadOnlyList<string> GetFileManagerSelection();
 
+    /// <summary>
+    /// For the log when a shortcut found no selected files: the foreground window's class and process
+    /// ("CabinetWClass / explorer"). Empty where the platform can't tell.
+    /// </summary>
+    string DescribeForegroundWindow() => "";
+
     /// <summary>System drag threshold in the same units as screen coordinates.</summary>
     int SystemDragThreshold { get; }
 

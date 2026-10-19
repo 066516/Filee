@@ -44,10 +44,11 @@ public static class AppHost
         services.AddSingleton<ILocalizer>(sp => sp.GetRequiredService<LocalizationService>());
         services.AddSingleton<ThemeService>();
         services.AddSingleton<SystemIntegrationService>();
+        services.AddSingleton<ElevationService>();
 
         // Conversion engines
         services.AddSingleton(_ => new EngineEnvironment(dataDir));
-        services.AddSingleton(sp => EngineRegistry.CreateAll(sp.GetRequiredService<EngineEnvironment>()));
+        services.AddSingleton(sp => EngineRegistry.CreateAll(sp.GetRequiredService<EngineEnvironment>(), sp.GetRequiredService<ILoggerFactory>()));
         services.AddSingleton(sp => new ConverterCatalog(sp.GetRequiredService<IReadOnlyList<IConverter>>()));
         services.AddSingleton(sp => new JobQueue(
             sp.GetRequiredService<ConverterCatalog>(),
@@ -65,8 +66,8 @@ public static class AppHost
         services.AddSingleton<RadialController>();
         services.AddSingleton<TrayService>();
         services.AddSingleton<UpdateService>();
+        services.AddSingleton<MemoryTrimmer>();
         services.AddSingleton<WindowService>();
-        services.AddSingleton<MainWindowViewModel>();
 
         _services = services.BuildServiceProvider();
         return _services;

@@ -55,6 +55,9 @@ internal static class RhwpFonts
 
     private static readonly ConcurrentDictionary<string, InstalledFont?> Fonts = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Forgets the fonts looked up so far (<see cref="Infrastructure.EngineCaches.Release"/>).</summary>
+    internal static void ReleaseCache() => Fonts.Clear();
+
     /// <summary>Replacements by (slot, face): the language, coverage and CFF2 rules above.</summary>
     internal static Dictionary<(string Slot, string Face), string> Plan(
         IReadOnlyList<(string Slot, string Face)> slots, string text, Func<string, InstalledFont?> lookup)

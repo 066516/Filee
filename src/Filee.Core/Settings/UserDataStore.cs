@@ -26,9 +26,25 @@ public sealed class UserDataStore
         _log = log ?? (ILogger)NullLogger.Instance;
     }
 
-    /// <summary>Default data directory: %APPDATA%\Filee on Windows, ~/Library/Application Support/Filee on macOS.</summary>
+    /// <summary>
+    /// Environment variable that moves all of Filee's per-user data (settings, logs, downloaded engines) to another
+    /// folder and gives that copy its own single instance: a development or test copy then never touches, or talks
+    /// to, the Filee the user runs. A copy started with it also leaves the system integration alone.
+    /// </summary>
+    public const string DirectoryVariable = "FILEE_DATA_DIR";
+
+    /// <summary>The folder <see cref="DirectoryVariable"/> points to (full path), or null when it is not set.</summary>
+    public static string? OverrideDirectory => DirectoryFrom(Environment.GetEnvironmentVariable(DirectoryVariable));
+
+    /// <summary>
+    /// Default data directory: %APPDATA%\Filee on Windows, ~/Library/Application Support/Filee on macOS, or the
+    /// folder in <see cref="DirectoryVariable"/>.
+    /// </summary>
     public static string DefaultDirectory =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Filee");
+        OverrideDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Filee");
+
+    internal static string? DirectoryFrom(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : Path.TrimEndingDirectorySeparator(Path.GetFullPath(value.Trim()));
 
     public string Directory { get; }
 
@@ -495,6 +511,44 @@ internal static class SettingsMigrations
         //      the user changed gets it when it has room.
         if (from < 18)
             changed |= AddPdfSlides(presets, profiles);
+        // v19: "Extract frames" (every frame of a video as PNG or JPG pictures in a folder), on no donut, after "PPTX
+        //      (slides)" or "Split PDF" as in a new library: a long video gives thousands of files, so users add them in
+        //      Settings → Toolbar.
+        if (from < 19)
+        {
+            var at = presets.FindIndex(p => p.Id == "pdf-slides");
+            if (at < 0)
+                at = presets.FindIndex(p => p.Id == "pdf-split");
+            at = at < 0 ? presets.Count : at + 1;
+            foreach (var preset in BuiltInData.FramePresets())
+            {
+                if (presets.Any(p => p.Id == preset.Id))
+                    continue;
+                presets.Insert(Math.Min(at++, presets.Count), preset);
+                changed = true;
+            }
+        }
+        // v20: "Compress PDF" (PDF → a smaller PDF), after "Split PDF" as in a new library, on no donut: the PDF donut
+        //      is full. Present already but saved since by a Filee before 20 (back and forth between versions): that
+        //      one dropped the compression level and left a preset that copies the pages, so the level is put back.
+        if (from < 20)
+        {
+            foreach (var compress in BuiltInData.PdfCompressionPresets())
+            {
+                if (presets.FirstOrDefault(p => p.Id == compress.Id) is { } existing)
+                {
+                    if (existing.Pdf.Compression == PdfCompression.None && existing.TargetFormat == compress.TargetFormat)
+                    {
+                        existing.Pdf.Compression = compress.Pdf.Compression;
+                        changed = true;
+                    }
+                    continue;
+                }
+                var split = presets.FindIndex(p => p.Id == "pdf-split");
+                presets.Insert(split < 0 ? presets.Count : split + 1, compress);
+                changed = true;
+            }
+        }
         return changed;
     }
 

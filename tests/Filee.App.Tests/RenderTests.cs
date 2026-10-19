@@ -663,6 +663,33 @@ public class RenderTests
     }
 
     [AvaloniaFact]
+    public void Preset_editor_saves_every_frame_only_for_png_and_jpg()
+    {
+        TestServices.EnsureInitialized("en");
+        var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "jpg" };
+        var vm = new PresetEditorViewModel(preset, loc);
+        Assert.True(vm.ShowSaveEveryFrame);
+        vm.SaveEveryFrame = true;
+        vm.FrameInterval = 5;
+        Assert.Equal("One minute of 30 fps video gives 360 pictures, at most 100,000 per video.", vm.FrameEstimate);
+        vm.FrameInterval = 5000; // out of range: clamped
+        Assert.True(vm.Apply());
+        Assert.True(preset.Media.SaveEveryFrame);
+        Assert.Equal(1000, preset.Media.FrameInterval);
+
+        // Ticked, then another target: nothing on screen says so any more, so it isn't saved.
+        vm = new PresetEditorViewModel(preset, loc);
+        Assert.True(vm.SaveEveryFrame);
+        vm.Target = vm.Targets.Single(t => t.Value == "webp");
+        Assert.False(vm.ShowSaveEveryFrame);
+        Assert.True(vm.Apply());
+        Assert.False(preset.Media.SaveEveryFrame);
+        Assert.Equal(1, preset.Media.FrameInterval);
+    }
+
+    [AvaloniaFact]
     public void Preset_editor_shows_and_saves_background_removal()
     {
         TestServices.EnsureInitialized("ko");
@@ -683,6 +710,37 @@ public class RenderTests
         Assert.True(preset.Image.RemoveBackground);
         Assert.Equal(100, preset.Image.BackgroundTolerance);
         Assert.True(preset.Image.KeepEnclosedBackground);
+    }
+
+    [AvaloniaFact]
+    public void Preset_editor_shows_and_saves_pdf_compression()
+    {
+        TestServices.EnsureInitialized("ko");
+        var preset = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "compress-pdf");
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<Filee.Core.Localization.ILocalizer>());
+        Assert.True(vm.ShowPdfCompression);
+        Assert.True(vm.ShowPdfCompressionOptions);
+        Assert.Equal(Filee.Core.Presets.PdfCompression.Ebook, vm.CompressionLevel.Value);
+        Assert.Equal(["None", "Screen", "Ebook", "Print"], vm.CompressionLevels.Select(c => c.Value.ToString()));
+        var window = new PresetEditorWindow { DataContext = vm, Height = 900 };
+        window.Show();
+        Pump();
+        Save(window, "preset-compress-pdf-ko.png");
+        window.Close();
+
+        vm.CompressionLevel = vm.CompressionLevels.Single(c => c.Value == Filee.Core.Presets.PdfCompression.Screen);
+        vm.CompressWithGhostscript = true;
+        vm.KeepMetadata = false;
+        Assert.True(vm.Apply());
+        Assert.Equal(Filee.Core.Presets.PdfCompression.Screen, preset.Pdf.Compression);
+        Assert.True(preset.Pdf.CompressWithGhostscript);
+        Assert.False(preset.Image.KeepMetadata);
+
+        // Off: Ghostscript and metadata have nothing to do. Other targets don't compress PDFs at all.
+        vm.CompressionLevel = vm.CompressionLevels[0];
+        Assert.False(vm.ShowPdfCompressionOptions);
+        vm.Target = vm.Targets.Single(t => t.Value == "png");
+        Assert.False(vm.ShowPdfCompression);
     }
 
     [AvaloniaTheory]
@@ -1013,6 +1071,37 @@ public class RenderTests
     }
 
     [AvaloniaFact]
+    public void Preset_editor_offers_hardware_encoding_for_h264_and_hevc()
+    {
+        TestServices.EnsureInitialized("en");
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "mp4", Name = "Fast" };
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowHardwareEncoding);
+        Assert.False(vm.HardwareEncoding); // off unless asked for
+        vm.HardwareEncoding = true;
+
+        // AV1 and VP9 have no hardware path; HEVC does.
+        vm.VideoCodecChoice = vm.VideoCodecs.Single(c => c.Value == Filee.Core.Presets.VideoCodec.Av1);
+        Assert.False(vm.ShowHardwareEncoding);
+        vm.VideoCodecChoice = vm.VideoCodecs.Single(c => c.Value == Filee.Core.Presets.VideoCodec.Hevc);
+        Assert.True(vm.ShowHardwareEncoding);
+        vm.Target = vm.Targets.Single(t => t.Value == "webm");
+        Assert.False(vm.ShowHardwareEncoding);
+        vm.Target = vm.Targets.Single(t => t.Value == "avi");
+        Assert.False(vm.ShowHardwareEncoding);
+        vm.Target = vm.Targets.Single(t => t.Value == "mp3");
+        Assert.False(vm.ShowHardwareEncoding);
+        vm.Target = vm.Targets.Single(t => t.Value == "ts");
+        Assert.True(vm.ShowHardwareEncoding);
+        vm.Target = vm.Targets.Single(t => t.Value == "mov");
+        Assert.True(vm.Apply());
+        Assert.True(preset.Media.HardwareEncoding);
+        Assert.Equal(Filee.Core.Presets.VideoCodec.Hevc, preset.Media.VideoCodec);
+
+        Assert.True(new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>()).HardwareEncoding);
+    }
+
+    [AvaloniaFact]
     public void Preset_editor_offers_the_codecs_each_target_can_hold()
     {
         TestServices.EnsureInitialized("en");
@@ -1124,6 +1213,21 @@ public class RenderTests
         dialog.Close();
     }
 
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    [InlineData("zh-CN")]
+    public void Format_request_notice_renders(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var loc = AppHost.Get<ILocalizer>();
+        var notice = new FormatRequestNoticeWindow([".ncm"], loc.Format("format_request.notice_title", ".ncm"));
+        notice.Show();
+        Pump();
+        Save(notice, $"window-format-request-{language}.png");
+        notice.Close();
+    }
+
     private static void Pump()
     {
         // Let layout, bindings and a few animation frames run.
@@ -1136,7 +1240,9 @@ public class RenderTests
 
     private static void Save(TopLevel window, string name)
     {
-        var frame = window.CaptureRenderedFrame();
+        // Disposed at the end, so the frame stays alive while Skia encodes it: a collection in between (the idle memory
+        // trim runs one on another thread) would otherwise finalize its image under the encoder.
+        using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         using var stream = File.Create(Path.Combine(TestServices.ScreenshotDirectory, name));
         frame.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());

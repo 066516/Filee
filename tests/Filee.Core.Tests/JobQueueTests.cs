@@ -29,6 +29,47 @@ public class JobQueueTests
     }
 
     [Fact]
+    public async Task Is_busy_from_enqueueing_until_the_job_has_finished()
+    {
+        // The app frees memory only while the queue is idle: a waiting or running job must count.
+        using var dir = new TempDir();
+        var gate = new TaskCompletionSource();
+        await using var queue = new JobQueue(new ConverterCatalog([new GatedConverter(gate.Task, new ConversionEdge("jpg", "png"))]));
+        var busyWhenFinished = new TaskCompletionSource<bool>();
+        queue.JobFinished += (_, _) => busyWhenFinished.TrySetResult(queue.IsBusy);
+        Assert.False(queue.IsBusy);
+
+        queue.Enqueue([dir.File("a.jpg")], new Preset { TargetFormat = "png" }, "Test");
+        Assert.True(queue.IsBusy);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+        Assert.True(queue.IsBusy);
+
+        gate.SetResult();
+        Assert.True(await busyWhenFinished.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (queue.IsBusy && DateTime.UtcNow < deadline)
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        Assert.False(queue.IsBusy);
+    }
+
+    /// <summary>Converts like <see cref="FakeConverter"/> once the gate opens.</summary>
+    private sealed class GatedConverter(Task gate, params ConversionEdge[] edges) : IConverter
+    {
+        private readonly FakeConverter _inner = new("gated", edges);
+        public string Id => "gated";
+        public string DisplayName => "gated";
+        public IReadOnlyList<ConversionEdge> Edges => edges;
+        public int MaxParallelism => 0;
+        public EngineStatus GetStatus() => EngineStatus.Available();
+
+        public async Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
+        {
+            await gate;
+            return await _inner.ConvertAsync(step, progress, cancellationToken);
+        }
+    }
+
+    [Fact]
     public async Task Rotate_needs_an_engine_that_turns_images_and_turns_once_on_a_longer_route()
     {
         using var dir = new TempDir();
@@ -100,6 +141,54 @@ public class JobQueueTests
         Assert.Equal(modified, File.GetLastWriteTimeUtc(output));
         // Without the option the output has the time it was made.
         Assert.True(File.GetLastWriteTimeUtc(Path.Combine(dir.Path, "plain.png")) > DateTime.UtcNow.AddMinutes(-5));
+    }
+
+    [Fact]
+    public async Task Every_frame_is_saved_only_for_videos_and_the_frame_targets()
+    {
+        using var dir = new TempDir();
+        var video = dir.File("clip.mp4");
+        var photo = dir.File("photo.png");
+        var ffmpeg = new FakeRecorder("ffmpeg", new ConversionEdge("mp4", "png"),
+            new ConversionEdge("mp4", "png", FrameSequence: true), new ConversionEdge("mp4", "jpg", FrameSequence: true));
+        var magick = new FakeTurner("magick", new ConversionEdge("png", "jpg"), new ConversionEdge("png", "webp"));
+        await using var queue = new JobQueue(new ConverterCatalog([ffmpeg, magick]));
+
+        // Without "save every frame" a video → JPG is a still frame the image engine turns, as always.
+        var turned = await Run(queue, [video], new Preset { TargetFormat = "jpg", Image = { Rotation = ImageRotation.Left90 } });
+        Assert.Equal(JobState.Completed, turned.State);
+        Assert.Equal([("mp4", "png", false)], ffmpeg.Steps);
+        Assert.Equal([("jpg", ImageRotation.Left90)], magick.Asked);
+
+        // With it: one step that saves the frames.
+        ffmpeg.Steps.Clear();
+        var frames = await Run(queue, [video], new Preset { TargetFormat = "jpg", Media = { SaveEveryFrame = true } });
+        Assert.Equal(JobState.Completed, frames.State);
+        Assert.Equal([("mp4", "jpg", true)], ffmpeg.Steps);
+
+        // A target frames can't be (left over from an earlier PNG target) or a picture: converted as usual.
+        ffmpeg.Steps.Clear();
+        await Run(queue, [video], new Preset { TargetFormat = "webp", Media = { SaveEveryFrame = true } });
+        await Run(queue, [photo], new Preset { TargetFormat = "jpg", Media = { SaveEveryFrame = true } });
+        Assert.Equal([("mp4", "png", false)], ffmpeg.Steps);
+    }
+
+    [Fact]
+    public async Task A_refused_conversion_says_why_in_the_users_language()
+    {
+        using var dir = new TempDir();
+        var video = dir.File("long.mp4");
+        var ffmpeg = new FakeConverter("ffmpeg", new ConversionEdge("mp4", "png", FrameSequence: true))
+        {
+            Failure = new ConversionRefusedException("error.too_many_frames", "216,000 > 100,000"),
+        };
+        await using var queue = new JobQueue(new ConverterCatalog([ffmpeg]));
+
+        var job = await Run(queue, [video], new Preset { TargetFormat = "png", Media = { SaveEveryFrame = true } });
+
+        var file = job.Files.Single();
+        Assert.Equal(FileState.Failed, file.State);
+        Assert.Equal(("error.too_many_frames", "216,000 > 100,000"), (file.ErrorKey, file.ErrorDetail));
     }
 
     [Fact]

@@ -19,6 +19,7 @@ using Filee.Engines.Pdf;
 using Filee.Engines.Subtitles;
 using Filee.Engines.Text;
 using Filee.Engines.Vector;
+using Microsoft.Extensions.Logging;
 
 namespace Filee.Engines;
 
@@ -30,7 +31,8 @@ public static class EngineRegistry
     /// AppSettings.EnginePriority: built-in engines first, the optional downloads last. Software installed on the
     /// system (Microsoft Office, a system-wide LibreOffice) is never used.
     /// </summary>
-    public static IReadOnlyList<IConverter> CreateAll(EngineEnvironment env) =>
+    /// <param name="loggers">The app's log; FFmpeg writes which hardware encoders work and when one failed.</param>
+    public static IReadOnlyList<IConverter> CreateAll(EngineEnvironment env, ILoggerFactory? loggers = null) =>
     [
         new MagickImageConverter(),
         new PdfSharpConverter(),
@@ -51,7 +53,7 @@ public static class EngineRegistry
         new EmlConverter(),
         new DataConverter(),
         new SubtitleConverter(),
-        new FfmpegConverter(),
+        new FfmpegConverter(loggers?.CreateLogger<FfmpegConverter>()),
         new CadConverter(),
         new ModelConverter(),
         new EbookConverter(),

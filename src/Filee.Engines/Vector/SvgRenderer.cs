@@ -56,10 +56,23 @@ internal static class SvgRenderer
         svg.Settings.EnableJavaScript = false;
         svg.Settings.EnableExternalJavaScript = false;
         SKPicture? picture;
+        var uri = new Uri(Path.GetFullPath(path));
         try
         {
-            using var stream = new MemoryStream(bytes, writable: false);
-            picture = svg.Load(stream, null, new Uri(Path.GetFullPath(path)));
+            picture = Parse(svg, bytes, uri);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException && SvgXmlRepair.FixAmpersands(bytes) is { } repaired)
+        {
+            // "A & B" or &nbsp; in the text (common in generated SVGs): read it again with those escaped.
+            try
+            {
+                picture = Parse(svg, repaired, uri);
+            }
+            catch (Exception retry) when (retry is not OutOfMemoryException)
+            {
+                svg.Dispose();
+                throw new InvalidDataException("The SVG file could not be read: " + ex.Message, ex);
+            }
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
@@ -73,6 +86,12 @@ internal static class SvgRenderer
             throw new InvalidDataException("The SVG file has no drawable content or no size.");
         }
         return new Drawing(svg, picture, bounds);
+    }
+
+    private static SKPicture? Parse(SKSvg svg, byte[] bytes, Uri baseUri)
+    {
+        using var stream = new MemoryStream(bytes, writable: false);
+        return svg.Load(stream, null, baseUri);
     }
 
     /// <summary>The file's SVG text as bytes: SVGZ (or a gzipped .svg) is decompressed.</summary>
