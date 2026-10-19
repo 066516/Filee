@@ -85,31 +85,74 @@ public sealed class TriggerServiceLifecycleTests
         }
     }
 
+    private const EventMask Held = EventMask.LeftCtrl | EventMask.Button1;
+
     [AvaloniaFact]
-    public void Relative_motion_since_the_press_starts_a_drag_gesture()
+    public void Wayland_relative_motion_adds_to_the_cursor_estimate_that_presses_start_from()
     {
-        // Wayland reports presses at (0, 0) and mouse motion only as deltas, so the drag distance is summed from the press.
+        // Wayland reports presses at (0, 0) and a mouse only moves relatively; LastCursor must not take the estimate.
+        var (provider, service, started) = StartGesture(wayland: true);
+
+        provider.PostMouse(EventType.MouseMovedRelative, 500, 400, EventMask.None); // estimate before the press
+        provider.PostMouse(EventType.MousePressed, 0, 0, Held);
+        provider.PostMouse(EventType.MouseDraggedRelative, 3, 0, Held); // under the drag threshold
+        provider.PostMouse(EventType.MouseDraggedRelative, 3, 1, Held); // 6 from the press: over it
+
+        var e = WaitForStart(started);
+        Assert.Equal((506, 401), (e.X, e.Y));
+        Assert.Equal((0, 0), service.LastCursor);
+    }
+
+    [AvaloniaFact]
+    public void Wayland_absolute_pointer_moves_set_the_estimate()
+    {
+        // Tablets and virtual machines still send absolute moves, while their presses arrive at (0, 0).
+        var (provider, service, started) = StartGesture(wayland: true);
+
+        provider.PostMouse(EventType.MouseMoved, 100, 200, EventMask.None);
+        provider.PostMouse(EventType.MousePressed, 0, 0, Held);
+        provider.PostMouse(EventType.MouseDragged, 101, 200, Held); // 1 from the press: must not start
+        provider.PostMouse(EventType.MouseDragged, 110, 200, Held);
+
+        var e = WaitForStart(started);
+        Assert.Equal((110, 200), (e.X, e.Y));
+        Assert.Equal((110, 200), service.LastCursor);
+    }
+
+    [AvaloniaFact]
+    public void Off_Wayland_presses_and_the_cursor_keep_their_coordinates()
+    {
+        var (provider, service, started) = StartGesture(wayland: false);
+
+        provider.PostMouse(EventType.MousePressed, 50, 60, Held);
+        provider.PostMouse(EventType.MouseDragged, 60, 60, Held);
+
+        var e = WaitForStart(started);
+        Assert.Equal((60, 60), (e.X, e.Y));
+        Assert.Equal((60, 60), service.LastCursor);
+    }
+
+    private static (DelayedProvider Provider, TriggerService Service, Func<GestureEventArgs?> Started) StartGesture(bool wayland)
+    {
         var provider = new DelayedProvider();
         provider.AllowExit.Set();
-        using var service = Create(provider, () => { });
+        var service = Create(provider, () => { }, wayland);
         service.Apply(new AppSettings());
         GestureEventArgs? started = null;
         service.DragStarted += (_, e) => started = e;
         service.Start();
         Assert.True(SpinWait.SpinUntil(() => provider.Runs == 1, 2000));
-
-        const EventMask held = EventMask.LeftCtrl | EventMask.Button1;
-        provider.PostMouse(EventType.MouseMovedRelative, 500, 500, EventMask.None); // before the press: must not count
-        provider.PostMouse(EventType.MousePressed, 0, 0, held);
-        provider.PostMouse(EventType.MouseDraggedRelative, 3, 0, held); // under the drag threshold
-        provider.PostMouse(EventType.MouseDraggedRelative, 3, 1, held); // 6 in total: over it
-
-        Assert.True(SpinWait.SpinUntil(() => { Dispatcher.UIThread.RunJobs(); return started is not null; }, 2000));
-        Assert.Equal((6, 1), (started!.X, started.Y));
+        return (provider, service, () => started);
     }
 
-    private static TriggerService Create(DelayedProvider provider, Action key) =>
-        new(new NullPlatformServicesForHooks(), NullLogger<TriggerService>.Instance, () =>
+    private static GestureEventArgs WaitForStart(Func<GestureEventArgs?> started)
+    {
+        Assert.True(SpinWait.SpinUntil(() => { Dispatcher.UIThread.RunJobs(); return started() is not null; }, 2000));
+        return started()!;
+    }
+
+    private static TriggerService Create(DelayedProvider provider, Action key, bool wayland = false) =>
+        new(new NullPlatformServicesForHooks { PressCarriesPosition = !wayland }, NullLogger<TriggerService>.Instance, () =>
         {
             var hook = new EventLoopGlobalHook(provider, useBackgroundThreadForEventLoop: true);
             hook.KeyPressed += (_, _) => key();
@@ -176,6 +219,7 @@ public sealed class TriggerServiceLifecycleTests
 
     private sealed class NullPlatformServicesForHooks : IPlatformServices
     {
+        public bool PressCarriesPosition { get; init; } = true;
         public bool IsFileManagerAt(int x, int y) => true;
         public string? ProcessNameAt(int x, int y) => "explorer";
         public IReadOnlyList<string> GetFileManagerSelection() => [];

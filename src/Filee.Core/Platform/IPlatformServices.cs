@@ -6,6 +6,12 @@ public interface IPlatformServices
     bool SupportsGlobalPointerGestures => true;
     bool SupportsSelectionShortcut => true;
 
+    /// <summary>
+    /// False where mouse presses arrive without a position (Wayland reports them at (0, 0)), so the gesture has to
+    /// start from the last known cursor estimate instead.
+    /// </summary>
+    bool PressCarriesPosition => true;
+
     /// <summary>True if the window at the screen point belongs to the file manager or desktop. Coordinates are pixels on Windows/Linux and desktop points on macOS.</summary>
     bool IsFileManagerAt(int x, int y);
 

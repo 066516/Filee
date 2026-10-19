@@ -113,10 +113,14 @@ public sealed class TriggerService : IDisposable
             {
                 if (Trace)
                     _log.LogInformation("Trace: press {Button} at {X},{Y}, mask {Mask} = {Modifiers}", e.Data.Button, e.Data.X, e.Data.Y, e.RawEvent.Mask, Map(e.RawEvent.Mask));
-                _relX = _relY = 0; // Wayland reports presses at (0, 0), so relative motion is counted from the press
-                _detector.MouseDown(Map(e.Data.Button), e.Data.X, e.Data.Y, Map(e.RawEvent.Mask));
+                var (x, y) = ButtonPoint(e);
+                _detector.MouseDown(Map(e.Data.Button), x, y, Map(e.RawEvent.Mask));
             };
-            _hook.MouseReleased += (_, e) => _detector.MouseUp(Map(e.Data.Button), e.Data.X, e.Data.Y);
+            _hook.MouseReleased += (_, e) =>
+            {
+                var (x, y) = ButtonPoint(e);
+                _detector.MouseUp(Map(e.Data.Button), x, y);
+            };
             _hook.MouseDragged += (_, e) => OnMove(e);
             _hook.MouseMoved += (_, e) => OnMove(e);
             _hook.MouseDraggedRelative += (_, e) => OnRelativeMove(e);
@@ -167,25 +171,30 @@ public sealed class TriggerService : IDisposable
     internal static bool IsMissingLinuxBackend(Exception exception) =>
         exception is HookException { Result: UioHookResult.ErrorLinuxLoadBackend };
 
+    // Wayland (experimental): presses carry no position and a mouse only moves relatively, while tablets and virtual
+    // machines still send absolute moves. So a running estimate is kept: absolute moves set it, relative moves add to
+    // it, and presses start from it. It is only good for the drag threshold and drifts over a long hover. Placing the
+    // donut at the real cursor is a KWin script's job (installer/linux/kwin), and LastCursor is left alone because
+    // the estimate is not a screen position.
+    private int _estX, _estY;
+
+    private (int X, int Y) ButtonPoint(MouseHookEventArgs e) =>
+        _platform.PressCarriesPosition ? (e.Data.X, e.Data.Y) : (_estX, _estY);
+
     private void OnMove(MouseHookEventArgs e)
     {
+        (_estX, _estY) = (e.Data.X, e.Data.Y);
         LastCursor = (e.Data.X, e.Data.Y);
         _detector.MouseMove(e.Data.X, e.Data.Y, Map(e.RawEvent.Mask), HeldButton(e.RawEvent.Mask));
     }
 
-    // Wayland (experimental). A mouse only gives relative motion there, so the detector gets the distance
-    // moved since the last press (enough for the drag threshold). Placing the donut at the real cursor is a KWin
-    // script's job (installer/linux/kwin/filee-donut.js), and a long hover drifts until the next press resets it.
-    private int _relX, _relY;
-
     private void OnRelativeMove(MouseHookEventArgs e)
     {
-        _relX += e.Data.X;
-        _relY += e.Data.Y;
+        _estX += e.Data.X;
+        _estY += e.Data.Y;
         if (Trace && HeldButton(e.RawEvent.Mask) != TriggerMouseButton.None)
-            _log.LogInformation("Trace: relative move {Dx},{Dy} -> {X},{Y}, mask {Mask}", e.Data.X, e.Data.Y, _relX, _relY, e.RawEvent.Mask);
-        LastCursor = (_relX, _relY);
-        _detector.MouseMove(_relX, _relY, Map(e.RawEvent.Mask), HeldButton(e.RawEvent.Mask));
+            _log.LogInformation("Trace: relative move {Dx},{Dy} -> {X},{Y}, mask {Mask}", e.Data.X, e.Data.Y, _estX, _estY, e.RawEvent.Mask);
+        _detector.MouseMove(_estX, _estY, Map(e.RawEvent.Mask), HeldButton(e.RawEvent.Mask));
     }
 
     private bool InScope(TriggerGesture gesture, int x, int y)
