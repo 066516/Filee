@@ -187,7 +187,13 @@ internal sealed partial class HwpxWriter
                 if (inline is HLink link)
                     Flatten(link.Content);
                 else
-                    pieces.Add((inline, inline is HText text ? TextWidth(text.Text, text.Format.Size ?? size) : 0));
+                    pieces.Add((inline, inline switch
+                    {
+                        // An equation is as wide as its box and margins (a centred display equation between tabs).
+                        HEquation equation => EquationScript.Measure(equation.Math, equation.Format.Size ?? size).Width + 2 * EquationMargin,
+                        HText text => TextWidth(text.Text, text.Format.Size ?? size),
+                        _ => 0,
+                    }));
             }
         }
         Flatten(paragraph.Inlines);

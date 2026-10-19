@@ -10,14 +10,14 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | ICNS | built in | images → ICNS (16–1024 px), ICNS → images |
 | PDFsharp | built in (library) | images → PDF, merge, split, page ranges, **compression** (smaller PDFs, see below) |
 | PDFium | built in (library) | PDF → images (multi-page TIFF/GIF supported) |
-| Unhwp | built in (library) | HWP/HWPX → TXT, Markdown, HTML |
+| Unhwp | built in (library) | HWP/HWPX → TXT, Markdown, HTML (pictures in a `<name>_files` folder next to the Markdown, embedded in the HTML) |
 | Markdown (Markdig) | built in (library) | **Markdown → HTML, TXT** (and → PDF / DOCX through the HWPX writer, rhwp or LibreOffice) |
 | Spreadsheets (ExcelDataReader for XLS) | built in (library) | **XLSX, XLS, ODS, CSV, TSV → XLSX, ODS, CSV, TSV** (one CSV / TSV per sheet) |
 | Office Open XML | built in | **DOCM / DOTX / DOTM ↔ DOCX, XLSM / XLTX ↔ XLSX, PPTM / POTX / PPSX ↔ PPTX** (macros removed for macro-free types) |
 | Fonts | built in | **TTF, OTF, WOFF, WOFF2, EOT ↔ each other**; CFF (PostScript) outlines become TrueType for TTF and EOT |
 | **HWPX writer** | built in | **DOCX (+ DOCM/DOTX/DOTM), XLSX (+ XLSM/XLTX), XLS, ODS, CSV, TSV, PPTX (+ PPTM/POTX/PPSX), PDF, HTML, EPUB, MOBI/AZW3, FB2, HWPX, TXT, Markdown → HWPX** (and with rhwp → PDF and images); ODT, RTF, reStructuredText, LaTeX → HWPX with Pandoc |
 | **DOCX writer** | built in | **HWPX (and HWP through rhwp), PDF, HTML, EPUB, MOBI/AZW3, FB2, Markdown, TXT, XLSX, XLS, ODS, CSV, PPTX (+ variants) → DOCX** |
-| PDF text | built in (PdfPig) | **PDF → TXT** (reading order, also two columns; no OCR) |
+| PDF text | built in (PdfPig) | **PDF → TXT, Markdown** (reading order, also two columns; Markdown keeps headings, emphasis, links and the pictures; no OCR) |
 | PDF slides | built in (PDFium, PdfPig) | **PDF → PPTX**: a picture of each page on its own slide (looks like the PDF, not editable), the page's text in the speaker notes |
 | E-mail | built in (MimeKit, MsgReader) | **EML, Outlook MSG → HTML** (headers + body, inline pictures), **TXT**, **ZIP** (the attachments); **MSG → EML** |
 | Data | built in (System.Text.Json, YamlDotNet, Tomlyn, System.Xml) | **JSON, JSON Lines, YAML, TOML, XML, CSV ↔ each other** (CSV for tables); **vCard ↔ CSV**; spreadsheets and contacts reach JSON / YAML / TOML / XML through CSV |
@@ -238,6 +238,7 @@ Readers turn the source into a small document model (`Hwp/Hwpx/HwpxModel.cs`) an
   - tables with merged cells, column widths, borders and shading from the table style and cells, repeated header rows;
   - pictures inline and floating, text boxes, rectangles/ellipses/lines with solid or gradient fills, groups;
   - footnotes, endnotes, bookmarks, hyperlinks (web and within the document, e.g. a table of contents);
+  - equations (Word's equation editor, Office Math) as 한글 equations, see *Equations* below;
   - Word's document grid ("lines"), which 한글 does not have, as an "at least" line spacing.
 - **XLSX, XLS, ODS, CSV and TSV** (`Office/Sheets`, see [Spreadsheets](#spreadsheets)): every visible sheet becomes a section with one table. Cells show what Excel
   shows (number formats via ExcelNumberFormat, dates, percentages, cached formula results), with fonts, fills,
@@ -280,7 +281,29 @@ Every generated file is checked in the tests with three independent readers: rhw
 text) and LibreOffice + H2Orestart (opens it), see `tests/Filee.Engines.Tests/DocxToHwpxTests.cs` and
 `OfficeTests.cs`.
 
-Not converted: Word charts, SmartArt, equations (kept as text), free-form shapes, tracked changes and comments.
+Not converted: Word charts, SmartArt, free-form shapes, tracked changes and comments.
+
+### Equations
+
+Word equations (`m:oMath`, `m:oMathPara`) become 한글 equation objects (`hp:equation`) with an equation script
+(`Hwp/Hwpx/Docx/OmmlReader.cs` reads them into a small math tree, `Hwp/Hwpx/EquationScript.cs` writes the script),
+so DOCX → HWPX and HWP keep editable equations and DOCX → PDF draws them with rhwp (#143):
+
+- fractions (`{a} over {b}`, also without bar or written linear `a/b`), sub- and superscripts and scripts before the
+  base, square roots and roots with an index, sums, products, unions and integrals with their limits, brackets that
+  grow (`LEFT ( … RIGHT )`), matrices (`pmatrix`, `bmatrix`, `dmatrix`), cases, equation arrays (`pile`), function
+  names and `lim` with what goes under it, accents (hat, bar, vec, dot, tilde …), over- and underlines;
+- Greek letters, operators and arrows as 한글's commands (`omega`, `TIMES`, `LEQ`, `INF`, `rarrow` …), upright text
+  (`m:sty="p"`, normal text) in `rm`, bold in `bold`; a display equation alone in its paragraph is centred;
+- variables are written letter by letter when they read like a command (`x _{i n}`, not `in` = ∈);
+- boxes, phantoms and group characters (braces above or below) keep only their content; other characters are
+  written as they are.
+
+The box an equation is stored with (`hp:sz`) is measured like rhwp lays the script out (estimated character
+widths, script scale 0.7, fraction and root spacing, from rhwp's `equation/layout.rs`): rhwp stretches an equation to
+its stored width, so a wrong box would distort it. 한글 lays the script out again when the equation is edited.
+The model's other writers (HTML, EPUB, Markdown, TXT …) write a linear form instead, `(a+b)/(2c)`, `x_i^2`, `√(x)`,
+which is also the equation's alternative text in HWPX.
 
 ## Spreadsheets
 
@@ -370,7 +393,7 @@ it. DOCX → DOCX is no edge; the Word variants are the Office Open XML engine's
 ## PDF reader
 
 `Pdf/PdfDocumentReader*.cs` reads PDFs with PdfPig (Apache-2.0) into the document model, for PDF → DOCX, HWPX and
-(with `PdfTextConverter`) TXT:
+(with `PdfTextConverter`) TXT and Markdown:
 
 - words with their positions, fonts, sizes and colours → lines → paragraphs: a line continues the paragraph above
   when it follows at about one line pitch, unless it starts with a bullet or number, is indented as a first line,
@@ -387,14 +410,45 @@ it. DOCX → DOCX is no edge; the Word variants are the Office Open XML engine's
   and italic from the fonts, colours, links from link annotations, alignment, indents, spacing and line pitch;
 - pictures: JPEG streams are kept as they are, others are decoded to PNG, and what PdfPig cannot decode is cut out
   of the rendered page; a picture covering the page behind text (the scan under an OCR layer) is skipped;
-- page size per page and margins shared by the document; running headers and footers that repeat on most pages
-  (and bare page numbers) are left out;
+- ruled tables (`PdfDocumentReader.Tables.cs`): tables drawn with lines become real tables in their place in the
+  reading order. The rules come from the page's vector paths: stroked straight lines and rectangle edges, and thin
+  filled rectangles (up to 4 pt, the way Word and many generators draw borders). Rules on one line (within 1.5 pt)
+  that overlap or leave a gap of at most 2.5 pt are joined; horizontal and vertical rules that meet or cross form a
+  grid, and grid lines closer than 3 pt are one edge. The edges give the columns and rows (the column widths and
+  minimum row heights of the result); where a rule covers less than half of the edge between two grid units, the
+  units are one merged cell (column and row spans). A table without side or bottom rules still reaches as far as
+  most of its rules do. Words go into the cell under their centre and are read like the rest of the page
+  (paragraphs, line breaks, alignment within the cell, fonts, sizes, bold / italic, colours); each cell gets the
+  borders that are drawn around it (weight, colour, dashed or solid), shading from a filled rectangle under it, and
+  a vertical alignment from where its text sits. Only clear tables are rebuilt: at least 2 rows and 2 columns,
+  every merged cell a rectangle, no rule through the middle of a word, and text in at least two cells. A box around
+  a note, underlines, separators and empty grids (a chart's frame) stay as they were. Not rebuilt: tables without
+  rules (aligned by white space only, or with only horizontal rules), nested tables (their text stays in the outer
+  cell), rotated pages; a table running over several pages becomes one table per page. PDF → TXT keeps the cell
+  text in reading order;
+- page size per page and margins shared by the document; what sits at the top or bottom edge only because it is a
+  page is left out: running headers and footers that repeat on most pages (digits ignored, so "Page 3" matches
+  "Page 4"), running heads that change with the chapter (the same text at the same height on three pages or more,
+  no larger than the body text, so a heading that starts several pages stays), bare page numbers ("12", "- 12 -",
+  "Page 3 of 10", "第 3 页", roman "iv") and the same picture (a logo) at the same place on most pages;
 - a page without text (a scan, a page of drawings, a turned page) becomes the rendered page (PDFium, 150 dpi JPEG)
   as a picture behind the text of an empty page, so nothing is lost; there is no OCR. PDF → TXT includes the
   invisible OCR text layer of scanned PDFs that have one.
 
-Password-protected PDFs fail with a clear message. Not converted: tables (their cells come out as paragraphs in
-reading order), vector drawings on text pages, form fields and annotations other than links.
+Password-protected PDFs fail with a clear message. Not converted: tables without rules (their cells come out as
+paragraphs in reading order), other vector drawings on text pages, form fields and annotations other than links.
+
+**PDF → Markdown** is one step (`PdfTextConverter`, a `DirectOnly` edge, so PDF → HTML, EPUB, ... never start going
+through a Markdown file): the document is written by `MarkdownWriter` as for e-books, with headings (`#`, not bold
+inside), bold / italic and links. Indents are the PDF's layout, not block quotes, and the PDF's information title
+(often a file name) gives no front matter. A Markdown file can't hold pictures, so `Text/MarkdownPictures.cs` writes
+them into a folder next to it, reserved through the output allocator like any output (`report.md` →
+`report_files/img0001.jpg`, `report_files (2)` when that folder is taken), and links them relatively, so editors
+show them and the pair can be moved together; JPEGs are the PDF's own, a scanned page is the picture of the page.
+The preset option *Leave out pictures* (`DocumentOptions.LeaveOutPictures`, Documents card, shown for Markdown)
+writes the text only, read like PDF → TXT (the invisible OCR layer of scans included) and without a folder. The same
+option applies to every Markdown writer: e-books (`EbookConverter`), HWP / HWPX (`UnhwpConverter`) and Pandoc (a
+Lua filter drops the pictures, figures keep their captions).
 
 ## PDF → PPTX
 
@@ -725,7 +779,10 @@ For HWP / HWPX → PDF, rhwp renders a copy of the HWPX (an HWP is exported with
 change something for it (`Hwp/RhwpInput.cs`): fonts that are installed, the laid-out size of boxes sized relative to
 the column, spaced equation commands, and, in an HWPX exported from an HWP (rhwp's `META-INF/rhwp-hwp5-origin`
 marker), the stored line of a cell paragraph that holds only a floating table moved up to the paragraph's top, so the
-table is not drawn over the paragraphs below it (#49).
+table is not drawn over the paragraphs below it (#49). Paragraphs without stored lines (Word equations written by the
+HWPX writer) get room for their equations: rhwp puts a line's baseline at 85 % of its tallest equation and the
+equation's own baseline on it, so a fraction, matrix or sum hangs below the line; that overhang is added as space
+after the paragraph (#143).
 
 rhwp renders text slowly: about 1 s per KB of section XML, some 4 s per page of a novel (rhwp 0.8.7 on an
 i7-1185G7, pictures cost little). So each rhwp run's time limit follows the document's text: 2 minutes + 30 minutes
@@ -784,6 +841,9 @@ bundled with the installer), never a 7-Zip installed on the PC. It runs as a sep
   fails when two conversions share a profile).
 - HWP/HWPX import comes from the H2Orestart extension, which is written in Java; Filee points LibreOffice at the
   downloaded JRE (`-env:UNO_JAVA_JFW_JREHOME`).
+- When LibreOffice can't load an Office Open XML or OpenDocument file ("source file could not be loaded"), Filee
+  converts once more from a copy in the job folder with the same parts in a plainly written ZIP (`PackageRepacker`):
+  LibreOffice 26.2 refuses some valid containers, e.g. uncompressed entries with data descriptors (Tencent Docs, #141).
 - It is the only reader of rarer formats, converted to PDF and to the editable formats of their kind: DOT, Works /
   WPS Writer, WordPerfect, Lotus Word Pro, AbiWord, Apple Pages, StarWriter, ClarisWorks / AppleWorks (`.cwk`),
   MacWrite (`.mcw`), T602 (`.602`) and Pocket Word (`.psw`) (→ DOCX, ODT, FODT, OTT, DOC, RTF, TXT, HTML); WPS
@@ -824,7 +884,8 @@ DocBook (`.dbk`, `.docbook`; written as DocBook 5), Jupyter notebooks (`.ipynb`)
 - Extensions that mean other things are not claimed: man pages only as `.man` (`.1` … `.9` are also rotated logs,
   `app.log.1`), DocBook as `.dbk` / `.docbook`, never every `.xml`.
 - DocBook, man pages, OPML, Typst, HTML and LaTeX are written with `--standalone` (a root element, a `.TH` header,
-  a preamble), the text formats extract pictures into `<name>_files` next to the result.
+  a preamble), the text formats extract pictures into `<name>_files` next to the result (Markdown with *Leave out
+  pictures* gets none: a Lua filter drops them).
 
 ## Subtitles
 

@@ -2,16 +2,18 @@
 //
 // Every page's words (with their positions, fonts, sizes and colours) become lines, lines become paragraphs, and the
 // paragraphs and pictures are put in reading order, also on two-column pages (PdfDocumentReader.Layout). Headings
-// come from font sizes, bold / italic from the fonts, page size and margins from the page. Headers and footers that
-// repeat on the pages (and bare page numbers) are left out. A page without text (a scan) becomes the rendered page as
-// a picture (PDFium via PDFtoImage), so the result is complete; there is no OCR.
+// come from font sizes, bold / italic from the fonts, page size and margins from the page. Running headers and
+// footers (also those that change with the chapter), page numbers and a logo repeated at the top or bottom of the
+// pages are left out. A page without text (a scan) becomes the rendered page as a picture (PDFium via PDFtoImage), so
+// the result is complete; there is no OCR.
 //
 // Rows laid out with tab stops (a number, a label and a date far to the right) stay one line with tabs at the PDF's
 // positions, and a line that ends early although the next line's first word would have fitted (an address) keeps its
 // line break.
 //
-// Not converted: tables (their cells come out as paragraphs in reading order), vector drawings on text pages,
-// annotations other than links, form fields.
+// Tables drawn with lines become tables (PdfDocumentReader.Tables). Not converted: tables without rules (their cells
+// come out as paragraphs in reading order), other vector drawings on text pages, annotations other than links, form
+// fields.
 
 using System.Text;
 using System.Text.RegularExpressions;
@@ -113,25 +115,29 @@ internal sealed partial class PdfDocumentReader
         public string Text => string.Join(' ', Words.Select(w => w.Text));
     }
 
-    /// <summary>A paragraph or a picture on a page, the unit of reading order.</summary>
+    /// <summary>A paragraph, a picture or a ruled table on a page, the unit of reading order.</summary>
     private sealed class Item
     {
         public List<TextLine> Lines { get; } = [];
         public string? PicturePath { get; init; }
         public PdfRectangle? PictureBounds { get; init; }
+        public RuledTable? Table { get; init; }
 
-        public double Left => PictureBounds?.Left ?? Lines.Min(l => l.Left);
-        public double Right => PictureBounds?.Right ?? Lines.Max(l => l.Right);
-        public double Top => PictureBounds?.Top ?? Lines[0].Top;
-        public double Bottom => PictureBounds?.Bottom ?? Lines[^1].Bottom;
+        private PdfRectangle? Box => PictureBounds ?? Table?.Bounds;
+
+        public double Left => Box?.Left ?? Lines.Min(l => l.Left);
+        public double Right => Box?.Right ?? Lines.Max(l => l.Right);
+        public double Top => Box?.Top ?? Lines[0].Top;
+        public double Bottom => Box?.Bottom ?? Lines[^1].Bottom;
         public double Width => Right - Left;
         public bool IsPicture => PicturePath is not null;
+        public bool IsTable => Table is not null;
 
         /// <summary>Size of most of the text (by characters).</summary>
         public double Size => Lines.SelectMany(l => l.Words).GroupBy(w => Math.Round(w.Size * 2) / 2)
             .OrderByDescending(g => g.Sum(w => w.Text.Length)).Select(g => g.Key).FirstOrDefault(10);
 
-        public string Text => string.Join(' ', Lines.Select(l => l.Text));
+        public string Text => Table?.Text ?? string.Join(' ', Lines.Select(l => l.Text));
 
         /// <summary>Left and right edges of the column (or the text area) the item sits in, set by the reading order.</summary>
         public double ContainerLeft { get; set; }
@@ -258,14 +264,23 @@ internal sealed partial class PdfDocumentReader
             return content;
         }
 
+        // Plain text (TXT, page texts for slides) keeps table cells as paragraphs in reading order.
+        var tables = _textOnly ? [] : RuledTables(page.Paths, crop, words);
+        content.Items = words.Count > 0 ? TextItems(words) : [];
+        content.Items.AddRange(tables.Select(t => new Item { Table = t }));
+        if (!_textOnly)
+            content.Items.AddRange(Pictures(page, content, crop));
+        return content;
+    }
+
+    /// <summary>Words → lines → paragraphs, with tabbed rows joined.</summary>
+    private static List<Item> TextItems(List<TextWord> words)
+    {
         var lines = Lines(words);
         var items = Paragraphs(lines);
         if (JoinTabbedRows(lines, items) is { } joined)
             items = Paragraphs(joined);
-        content.Items = items;
-        if (!_textOnly)
-            content.Items.AddRange(Pictures(page, content, crop));
-        return content;
+        return items;
     }
 
     private static PdfRectangle Shift(PdfRectangle box, PdfRectangle crop) =>
@@ -456,9 +471,21 @@ internal sealed partial class PdfDocumentReader
         "^[\\s\\-–—(\\[]*(page|p\\.|페이지|第)?\\s*\\d+\\s*(/|of|페이지|쪽|页)?\\s*\\d*[\\s\\-–—)\\]]*$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    /// <summary>Page numbers in roman numerals ("iv", "- XII -"), as front matter is often numbered.</summary>
+    private static readonly Regex RomanPageNumber = new(
+        "^[\\s\\-–—(\\[]*(?=[ivxlcdm])m{0,3}(cm|cd|d?c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})[\\s\\-–—)\\]]*$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     /// <summary>
-    /// Leaves out paragraphs at the top or bottom edge that repeat on most pages (running heads, footers; digits are
-    /// ignored so "Page 3" matches "Page 4") and bare page numbers there.
+    /// Leaves out what sits at the top or bottom edge of the pages only because it is a page (running heads, footers,
+    /// page numbers), so text exports read on without it:
+    /// <list type="bullet">
+    /// <item>paragraphs that repeat on most pages (digits are ignored, so "Page 3" matches "Page 4");</item>
+    /// <item>running heads that change with the chapter: the same text at the same height on three pages or more,
+    /// no larger than the body text (a heading that starts several pages is larger, and stays);</item>
+    /// <item>bare page numbers ("12", "- 12 -", "Page 3 of 10", "iv");</item>
+    /// <item>the same picture (a logo) at the same place on most pages.</item>
+    /// </list>
     /// </summary>
     private static void RemoveRepeatedHeadersAndFooters(List<PageContent> pages)
     {
@@ -467,17 +494,45 @@ internal sealed partial class PdfDocumentReader
             return;
         bool AtEdge(Item item, PageContent page) => item.Top > page.Height * 0.9 || item.Bottom < page.Height * 0.1;
         static string Key(Item item) => Regex.Replace(item.Text, "\\d+", "#").Trim();
+        static (string Key, long Top) Place(Item item) => (Key(item), (long)Math.Round(item.Top / 2));
 
-        var counts = textPages
-            .SelectMany(p => p.Items.Where(i => !i.IsPicture && AtEdge(i, p)).Select(i => (Page: p.Index, Key: Key(i))).Distinct())
+        var edgeText = textPages.SelectMany(p => p.Items.Where(i => !i.IsPicture && AtEdge(i, p)).Select(i => (Page: p.Index, Item: i))).ToList();
+        var counts = edgeText.Select(x => (x.Page, Key: Key(x.Item))).Distinct()
             .GroupBy(x => x.Key)
             .ToDictionary(g => g.Key, g => g.Count());
+        var placeCounts = edgeText.Select(x => (x.Page, Place: Place(x.Item))).Distinct()
+            .GroupBy(x => x.Place)
+            .ToDictionary(g => g.Key, g => g.Count());
+        var bodySize = BodySize([.. textPages.SelectMany(p => p.Items.Where(i => !i.IsPicture))]);
         var needed = Math.Max(2, (int)Math.Ceiling(textPages.Count * 0.5));
+
+        bool RunningText(Item item) =>
+            item.Lines.Count <= 2
+            && (counts.GetValueOrDefault(Key(item)) >= needed
+                || (placeCounts.GetValueOrDefault(Place(item)) >= 3 && item.Size <= bodySize + 0.5)
+                || PageNumber.IsMatch(item.Text) || RomanPageNumber.IsMatch(item.Text));
+
+        var pictureKeys = textPages.SelectMany(p => p.Items.Where(i => i.IsPicture && AtEdge(i, p))).ToDictionary(i => i, PictureKey);
+        var pictureCounts = textPages
+            .SelectMany(p => p.Items.Where(pictureKeys.ContainsKey).Select(i => (Page: p.Index, Key: pictureKeys[i])).Distinct())
+            .GroupBy(x => x.Key)
+            .ToDictionary(g => g.Key, g => g.Count());
+
         foreach (var page in textPages)
         {
-            page.Items.RemoveAll(i => !i.IsPicture && AtEdge(i, page) && i.Lines.Count <= 2
-                                      && (counts.GetValueOrDefault(Key(i)) >= needed || PageNumber.IsMatch(i.Text)));
+            page.Items.RemoveAll(i => AtEdge(i, page) && (i.IsPicture
+                ? pictureCounts.GetValueOrDefault(pictureKeys[i]) >= needed
+                : RunningText(i)));
         }
+    }
+
+    /// <summary>A picture's place (to 2 points) and content: the same logo on every page has the same key.</summary>
+    private static string PictureKey(Item item)
+    {
+        var bounds = item.PictureBounds!.Value;
+        var bytes = File.ReadAllBytes(item.PicturePath!);
+        return FormattableString.Invariant($"{Math.Round(bounds.Left / 2)},{Math.Round(bounds.Top / 2)},{Math.Round(bounds.Width / 2)},{Math.Round(bounds.Height / 2)}:")
+               + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes));
     }
 
     // ───────────────────────── Building the document ─────────────────────────
@@ -485,7 +540,7 @@ internal sealed partial class PdfDocumentReader
     private HDocument Build(List<PageContent> pages, string? title)
     {
         var document = new HDocument { Title = title };
-        var items = pages.SelectMany(p => p.Items.Where(i => !i.IsPicture)).ToList();
+        var items = pages.SelectMany(p => p.Items.Where(i => !i.IsPicture && !i.IsTable)).ToList();
         var bodySize = BodySize(items);
         var headingLevels = HeadingLevels(items, bodySize);
         var (left, right, top, bottom) = Margins(pages);
@@ -529,13 +584,18 @@ internal sealed partial class PdfDocumentReader
                 Item? previous = null;
                 foreach (var item in page.Items)
                 {
-                    blocks.Add(item.IsPicture ? PictureParagraph(item, previous) : TextParagraph(item, previous, headingLevels, lineRatio));
+                    blocks.Add(item.IsPicture ? PictureParagraph(item, previous)
+                        : item.IsTable ? TableBlock(item, lineRatio)
+                        : TextParagraph(item, previous, headingLevels, lineRatio));
                     previous = item;
                 }
                 if (blocks.Count == first)
                     blocks.Add(new HParagraph());
             }
 
+            // A table cannot start a page in every format: a tiny empty paragraph before it carries the page break.
+            if (!newSection && blocks[first] is HTable)
+                blocks.Insert(first, new HParagraph { MarkFormat = new HCharFormat(Size: 100) });
             if (!newSection && blocks[first] is HParagraph startOfPage)
                 startOfPage.PageBreakBefore = true;
         }
@@ -674,9 +734,9 @@ internal sealed partial class PdfDocumentReader
         if (previous is null || previous.Bottom <= item.Top - 1 || previous.Right <= item.Left || previous.Left >= item.Right)
             return 0;
         // Edges of the line boxes: a text line reaches about 0.25 em below its baseline and 0.95 em above it.
-        var above = previous.IsPicture ? previous.Bottom : previous.Lines[^1].Baseline - 0.25 * previous.Size;
-        var top = item.IsPicture ? item.Top : item.Lines[0].Baseline + 0.95 * item.Size;
-        var normal = item.IsPicture || previous.IsPicture ? 0 : (lineRatio - 1.2) * item.Size;
+        var above = previous.Lines.Count == 0 ? previous.Bottom : previous.Lines[^1].Baseline - 0.25 * previous.Size;
+        var top = item.Lines.Count == 0 ? item.Top : item.Lines[0].Baseline + 0.95 * item.Size;
+        var normal = item.Lines.Count == 0 || previous.Lines.Count == 0 ? 0 : (lineRatio - 1.2) * item.Size;
         var extra = above - top - normal;
         return extra > 1 ? Hwp(Math.Min(extra, 72)) : 0;
     }
