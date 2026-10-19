@@ -160,12 +160,18 @@ internal static partial class ComplexScripts
         {
             if (IsZip(path))
                 return FindInPackage(path, format);
+            // Web archives and mail are MIME: their HTML (or text) part is what reaches the PDF.
+            if (format is "mhtml" or "eml")
+            {
+                var message = MimeKit.MimeMessage.Load(path);
+                return FindInString(message.HtmlBody ?? message.TextBody ?? "");
+            }
             return format is "txt" or "md" or "html" or "csv" or "tsv" or "fb2" or "rtf" or "rst" or "tex" or "org" or "adoc"
                 or "typ" or "mediawiki" or "dbk" or "textile" or "man" or "opml"
                 ? FindInText(path)
                 : null; // binary formats (HWP, DOC, MOBI, ...): left to the engines
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or FormatException)
         {
             return null;
         }
@@ -189,7 +195,11 @@ internal static partial class ComplexScripts
             bytes = new byte[(int)Math.Min(stream.Length, MaxTextBytes)];
             stream.ReadExactly(bytes);
         }
-        var text = DocumentReaders.DecodeText(bytes);
+        return FindInString(DocumentReaders.DecodeText(bytes));
+    }
+
+    private static string? FindInString(string text)
+    {
         if (Find(text) is { } script)
             return script;
         // &#2693; / &#x0A85; in HTML and XML, ⚓? in RTF.
