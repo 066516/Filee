@@ -296,6 +296,7 @@ public static class FormatRegistry
         new("obj", "OBJ", FormatCategory.Model3D, ["obj"]),
         new("3mf", "3MF", FormatCategory.Model3D, ["3mf"]),
         new("ply", "PLY", FormatCategory.Model3D, ["ply"]),
+        new("fbx", "FBX", FormatCategory.Model3D, ["fbx"], Writable: false),
     ];
 
     private static readonly Dictionary<string, FileFormat> ById =

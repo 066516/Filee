@@ -506,7 +506,7 @@ public class UserDataStoreTests
         Assert.Equal(ids.IndexOf("data") + 1, ids.IndexOf("models"));
         Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("models"));
         var models = profiles.Single(p => p.Id == "models");
-        Assert.Equal(["glb", "gltf", "stl", "obj", "3mf", "ply"], models.Extensions);
+        Assert.Equal(["glb", "gltf", "stl", "obj", "3mf", "ply", "fbx"], models.Extensions);
         Assert.Equal(BuiltInData.ModelProfile().PresetIds, models.PresetIds);
         Assert.False(SettingsMigrations.ApplyToLibrary(14, presets, profiles)); // once only
     }
@@ -520,7 +520,29 @@ public class UserDataStoreTests
 
         Assert.True(SettingsMigrations.ApplyToLibrary(14, presets, profiles));
 
-        Assert.Equal(["glb", "gltf", "obj", "ply"], profiles.Single(p => p.Id == "models").Extensions);
+        Assert.Equal(["glb", "gltf", "obj", "ply", "fbx"], profiles.Single(p => p.Id == "models").Extensions);
+    }
+
+    [Fact]
+    public void Version_21_libraries_learn_fbx_on_the_3d_donut_and_nothing_else()
+    {
+        // As written with schema 21: no FBX, and the user took PLY off the 3D donut.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var models = profiles.Single(p => p.Id == "models");
+        models.Extensions.RemoveAll(e => e is "fbx" or "ply");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(21, presets, profiles));
+
+        Assert.Equal(["glb", "gltf", "stl", "obj", "3mf", "fbx"], models.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(21, presets, profiles)); // once only
+
+        // A donut of the user that already opens FBX files keeps them.
+        profiles = BuiltInData.CreateProfiles();
+        profiles.Single(p => p.Id == "models").Extensions.Remove("fbx");
+        profiles.Insert(0, new ToolbarProfile { Id = "games", Name = "Games", Extensions = ["fbx"] });
+        Assert.False(SettingsMigrations.ApplyToLibrary(21, presets, profiles));
+        Assert.DoesNotContain("fbx", profiles.Single(p => p.Id == "models").Extensions);
     }
 
     [Fact]
