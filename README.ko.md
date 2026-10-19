@@ -24,6 +24,10 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6A62C9" alt="MIT 라이선스"></a>
 </p>
 
+<p align="center">
+<a href="https://trendshift.io/repositories/276987" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23" alt="Filee | Trendshift" width="250" height="55"/></a>
+</p>
+
 <p align="center"><a href="README.md">English</a> · <b>한국어</b> · <a href="README.zh-CN.md">简体中文</a></p>
 
 <table>
