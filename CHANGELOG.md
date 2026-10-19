@@ -22,18 +22,21 @@ ko: 동영상의 모든 프레임을 그림으로 저장할 수 있어요
 ko: 그래픽 칩으로 동영상을 더 빠르게 인코딩할 수 있어요
 ko: 변환이 끝나면 메모리를 돌려줘서 트레이에서 훨씬 가벼워요
 ko: 창을 닫을 때 트레이에 둘지 종료할지 고를 수 있어요
+ko: 폴란드어를 지원해요
 ko: 일부 SVG가 변환되지 않던 문제와 드롭다운 오류를 고쳤어요
 en: Convert PDF to PowerPoint, or to a smaller PDF
 en: Save every frame of a video as pictures
 en: Encode video faster on the graphics chip
 en: Filee gives memory back after conversions and stays light in the tray
 en: Choose whether closing the window keeps Filee in the tray or quits
+en: Polish translation
 en: Fixed some SVGs that couldn't be converted and an error in dropdowns
 zh: 可以将 PDF 转为 PowerPoint，或压缩为更小的 PDF
 zh: 可以将视频的每一帧保存为图片
 zh: 可以用显卡更快地编码视频
 zh: 转换结束后会释放内存，在托盘中占用更少
 zh: 关闭窗口时可以选择保留在托盘或退出
+zh: 新增波兰语界面
 zh: 修复了部分 SVG 无法转换的问题和下拉列表的错误
 -->
 
@@ -60,6 +63,11 @@ zh: 修复了部分 SVG 无法转换的问题和下拉列表的错误
   that reason, *Request this format* opens a GitHub form with the extension filled in (only the extension, never a
   file name). Encrypted or copy-protected (DRM) files can't be converted, whatever their format.
 - **Ubuntu 22.04** (issue #102). The Linux packages run on Ubuntu 22.04 and newer again, global gestures included.
+- **Polish** (by @rafek1241). Filee speaks Polish, and picks it when Windows, macOS or Linux does.
+- **Other file managers** (issue #124). Gestures set to "File managers and desktop" also start over Files, Directory
+  Opus, Total Commander, XYplorer, OneCommander, Q-Dir and FreeCommander, not only Explorer.
+- **calibre for e-book PDFs** (issue #127). With calibre installed and moved above the HWPX writer in Settings →
+  Engines, EPUB, MOBI, AZW3 and other e-books become PDFs through calibre, much faster for long books.
 
 ### Improved
 
@@ -75,6 +83,9 @@ zh: 修复了部分 SVG 无法转换的问题和下拉列表的错误
 - SVGs with an unescaped "&" or HTML entities such as `&nbsp;` in their text (often from AI tools) failed with "An
   error occurred while parsing EntityName" (issue #120).
 - Pressing Ctrl+Space twice in a dropdown, or Ctrl+clicking the selected item, showed an error (issue #107).
+- Long e-books to PDF stopped at 95 % after two minutes (issue #127): the time limit now grows with the text, up to
+  an hour.
+- "Retry gestures" could leave gestures dead while Filee said they were running (by @leishifu666).
 - calibre couldn't be downloaded on macOS and Linux: it now comes from calibre's own server.
 
 ## 1.11.0
