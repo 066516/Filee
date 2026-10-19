@@ -75,6 +75,8 @@
   "error.cannot_turn": "只能旋转和翻转图片",
   "error.too_many_frames": "帧数太多，请调大“每 N 帧”",
   "error.not_enough_space": "磁盘空间不足，无法保存这些图片",
+  "error.rhwp_timeout": "文档太长，rhwp 未能在时限内完成",
+  "error.rhwp_timeout_calibre": "文档太长，rhwp 未能在时限内完成。如果是电子书，请在“设置 → 转换引擎”中把 Calibre 移到 HWPX writer 之上，Calibre 生成 PDF 要快得多",
   "error.conversion_failed": "转换引擎出错",
   "notice.pdf_not_smaller": "无法再缩小，已原样复制",
 
@@ -107,7 +109,7 @@
   "engine.ffmpeg.description": "MP4、MOV、MKV、WEBM、MP3、M4A、WAV、FLAC 等视频和音频。\n还能提取声音和字幕、制作 GIF 和 APNG、把图片保存为 HEIC。",
   "engine.pandoc.description": "Markdown 和 HTML ↔ ODT、RTF，DOCX → Markdown\nreStructuredText、LaTeX、Org、AsciiDoc、Typst、MediaWiki、DocBook、Jupyter 等 ↔ Markdown、HTML、DOCX、ODT\nMarkdown 和 Org → PPTX 幻灯片",
   "engine.ghostscript.description": "EPS、PostScript 和旧版 Illustrator 文件转为 PDF 和图片；PDF 转为 EPS 和 PS。",
-  "engine.calibre.description": "少见的电子书格式（LIT、LRF、CHM、PDB、RB…）以及 Kindle 输出（MOBI、AZW3）。",
+  "engine.calibre.description": "少见的电子书格式（LIT、LRF、CHM、PDB、RB…）以及 Kindle 输出（MOBI、AZW3）。\n排在 HWPX writer 之上时，也由它把电子书转为 PDF（长书快得多）。",
   "engine.libreoffice.description": "读取较旧或少见的格式，如 DOC、PPT、Pages、Keynote、Numbers、WordPerfect、ClarisWorks、Publisher、Visio。\n也能保存为 DOC、XLS、PPT、ODT、ODP、OpenDocument 模板或 EMF。",
 
   "profile.images": "图片",
