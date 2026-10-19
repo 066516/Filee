@@ -117,6 +117,28 @@ public class EbookTests(EngineFixture fx) : IClassFixture<EngineFixture>
     // ───────────────────────── EPUB ─────────────────────────
 
     [Fact]
+    public void Book_chapters_only_include_images_from_the_unpacked_book()
+    {
+        var folder = fx.NewFolder();
+        var book = Path.Combine(folder, "book");
+        var chapterFolder = Path.Combine(book, "Text");
+        var imageFolder = Path.Combine(book, "Images");
+        Directory.CreateDirectory(chapterFolder);
+        Directory.CreateDirectory(imageFolder);
+        var inside = Path.Combine(imageFolder, "inside.png");
+        var outside = Path.Combine(folder, "private.png");
+        File.WriteAllBytes(inside, EbookBuilders.Png(4, 4, MagickColors.Teal));
+        File.WriteAllBytes(outside, EbookBuilders.Png(4, 4, MagickColors.Red));
+        var chapter = Path.Combine(chapterFolder, "chapter.xhtml");
+        File.WriteAllText(chapter, $"""
+            <html><body><p><img src="../Images/inside.png"><img src="../../private.png"><img src="{new Uri(outside).AbsoluteUri}"></p></body></html>
+            """);
+
+        var document = ChapterReader.Read([chapter], Path.Combine(book, "~media"), TestContext.Current.CancellationToken);
+        Assert.Equal(inside, Assert.Single(Hwp.Hwpx.HDocumentWalker.Images(document)).Path);
+    }
+
+    [Fact]
     public void Epub_reader_keeps_chapters_links_pictures_and_metadata()
     {
         var book = EpubReader.ReadBook(EbookBuilders.Epub(fx.NewFolder()), fx.NewFolder(), TestContext.Current.CancellationToken);
