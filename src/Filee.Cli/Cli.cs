@@ -232,7 +232,7 @@ internal static class Cli
                 ?? presets.FirstOrDefault(p => string.Equals(host.Texts.DisplayName(p), wanted, StringComparison.OrdinalIgnoreCase));
             // Conversions first: a group of the same name (say a "Rotate" group next to your own "Rotate" preset)
             // must not hide one. A group is only found to say what it holds.
-            var found = Find(host.Store.Presets.Where(p => !p.IsGroup)) ?? Find(host.Store.Presets);
+            var found = Find(host.Store.Presets.Where(p => !p.IsGroup && !p.IsTool)) ?? Find(host.Store.Presets);
             if (found is null)
             {
                 errors.WriteLine($"filee: no preset '{wanted}'. Run 'filee presets' for the list.");
@@ -245,6 +245,11 @@ internal static class Cli
                 errors.WriteLine(members.Count > 0
                     ? $"filee: '{wanted}' is a group on the donut, not a conversion. Use one of: {string.Join(", ", members)}"
                     : $"filee: '{wanted}' is a group on the donut, not a conversion, and has no presets left. Run 'filee presets' for the list.");
+                return null;
+            }
+            if (found.IsTool)
+            {
+                errors.WriteLine($"filee: '{wanted}' is an interactive tool, not a conversion.");
                 return null;
             }
             preset = found.Clone();
@@ -337,7 +342,7 @@ internal static class Cli
     private static int ListPresets(CliHost host, TextWriter output)
     {
         output.WriteLine($"{"ID",-24} {"NAME",-28} TARGET");
-        foreach (var preset in host.Store.Presets.Where(p => !p.IsGroup))
+        foreach (var preset in host.Store.Presets.Where(p => !p.IsGroup && !p.IsTool))
             output.WriteLine($"{preset.Id,-24} {host.Texts.DisplayName(preset),-28} {preset.TargetFormat}");
         output.WriteLine();
         output.WriteLine("Use one with: filee convert <files> --preset <id or name>");

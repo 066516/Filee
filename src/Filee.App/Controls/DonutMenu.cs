@@ -44,15 +44,6 @@ public sealed class DonutItem
 
     /// <summary>A group with something to fan out.</summary>
     public bool CanExpand => Children is { Count: > 0 };
-
-    /// <summary>True when this slice navigates between pages of presets rather than converting.</summary>
-    public bool IsNavigation { get; init; }
-
-    /// <summary>True when clicking/hovering this slice advances to the next page.</summary>
-    public bool IsNextPage { get; init; }
-
-    /// <summary>True when clicking/hovering this slice returns to the previous page.</summary>
-    public bool IsPrevPage { get; init; }
 }
 
 /// <summary>Donut-shaped menu control.</summary>
@@ -409,7 +400,6 @@ public sealed partial class DonutMenu : Control
         _span = Enumerable.Range(0, n).Select(_ => new Spring { Value = DonutGeometry.Span(n) }).ToArray();
         _expanded = _shownExpanded = _subHover = -1;
         ClearPending();
-        ClearPendingNav();
         _expand = default;
         // The window is reused: a keyboard hold from the last time it was open must not swallow the first moves now.
         _keyboardHold = _ringFromKeys = false;
@@ -814,7 +804,9 @@ public sealed partial class DonutMenu : Control
         if (n == 0)
         {
             var ring = CreateRing(center, r1, r2);
-            DrawGlassSlice(context, ring, null, center, r1, r2, 0, 2 * Math.PI, 0, _dropTargetIndex >= 0);
+            context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity), BorderPen(), ring);
+            if (_dropTargetIndex >= 0)
+                context.DrawGeometry(WithOpacity(AccentBrush, 0.35), null, ring);
         }
 
         for (var i = 0; i < n; i++)
@@ -845,7 +837,12 @@ public sealed partial class DonutMenu : Control
             using (context.PushOpacity(Math.Clamp(open, 0, 1) * (i == _dimmedIndex ? 0.3 : 1)))
             {
                 var wedge = CreateWedge(center, r1, r2, mid, span);
-                DrawGlassSlice(context, wedge, item, center, r1, r2, mid, span, hover, i == _dropTargetIndex);
+                context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity * (item.IsEnabled ? 1 : 0.55)), BorderPen(), wedge);
+
+                // The accent fades in and out with the highlight (no floor: a floor made it vanish with a jump).
+                var emphasis = i == _dropTargetIndex ? 1.0 : hover;
+                if (emphasis > 0.01 && item.IsEnabled)
+                    context.DrawGeometry(WithOpacity(AccentBrush, 0.82 * Math.Clamp(emphasis, 0, 1)), null, wedge);
 
                 var hot = (i == ActiveIndex || i == _dropTargetIndex) && item.IsEnabled;
                 DrawLabel(context, item, center, (r1 + r2) / 2, mid, span * (r1 + r2) / 2 - 10,
@@ -870,205 +867,21 @@ public sealed partial class DonutMenu : Control
 
     private void DrawSoftShadow(DrawingContext context, Point center, double r2)
     {
+        // A radial gradient ring fakes a soft drop shadow without blur effects (cheap on any GPU).
+        var shadowRadius = r2 + 14;
+        var brush = new RadialGradientBrush
+        {
+            GradientStops =
+            {
+                new GradientStop(Color.FromArgb(0, 0, 0, 0), 0),
+                new GradientStop(Color.FromArgb(0, 0, 0, 0), (r2 - 18) / shadowRadius),
+                new GradientStop(Color.FromArgb(46, 0, 0, 0), (r2 - 2) / shadowRadius),
+                new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
+            },
+        };
         var opening = _open.Length == 0 ? 1 : Math.Clamp(_open.Average(), 0, 1);
-        if (opening <= 0.001)
-            return;
-
         using (context.PushOpacity(opening))
-        {
-            // macOS Tier 1: Large diffuse ambient shadow
-            var ambientRadius = r2 + 28;
-            var ambientBrush = new RadialGradientBrush
-            {
-                GradientStops =
-                {
-                    new GradientStop(Color.FromArgb(0, 0, 0, 0), 0),
-                    new GradientStop(Color.FromArgb(0, 0, 0, 0), (r2 - 14) / ambientRadius),
-                    new GradientStop(Color.FromArgb(26, 0, 0, 0), (r2 - 2) / ambientRadius),
-                    new GradientStop(Color.FromArgb(12, 0, 0, 0), (r2 + 10) / ambientRadius),
-                    new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
-                },
-            };
-            context.DrawEllipse(ambientBrush, null, new Point(center.X, center.Y + 4), ambientRadius, ambientRadius);
-
-            // macOS Tier 2: Directional contact key shadow (grounding the wheel to light from above)
-            var keyRadius = r2 + 12;
-            var keyBrush = new RadialGradientBrush
-            {
-                GradientStops =
-                {
-                    new GradientStop(Color.FromArgb(0, 0, 0, 0), 0),
-                    new GradientStop(Color.FromArgb(0, 0, 0, 0), (r2 - 16) / keyRadius),
-                    new GradientStop(Color.FromArgb(52, 0, 0, 0), (r2 - 2) / keyRadius),
-                    new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
-                },
-            };
-            context.DrawEllipse(keyBrush, null, new Point(center.X, center.Y + 7), keyRadius, keyRadius);
-        }
-    }
-
-    private void DrawGlassSlice(DrawingContext context, Geometry wedge, DonutItem? item, Point center,
-        double r1, double r2, double mid, double span, double hover, bool isDropTarget)
-    {
-        var isEnabled = item?.IsEnabled ?? true;
-        var baseOpacity = SliceOpacity * (isEnabled ? 1.0 : 0.55);
-        var isDark = SliceBrush is ISolidColorBrush sc ? ThemeService.Luminance(sc.Color) < 0.5 : true;
-
-        // 1. Frosted Glass Base Gradient (ambient light catching the upper glass)
-        if (SliceBrush is ISolidColorBrush solid)
-        {
-            var c = solid.Color;
-            var topA = (byte)Math.Clamp(c.A * baseOpacity * (isDark ? 0.94 : 0.96), 0, 255);
-            var botA = (byte)Math.Clamp(c.A * baseOpacity * (isDark ? 0.98 : 0.92), 0, 255);
-            var glassFill = new LinearGradientBrush
-            {
-                StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative),
-                EndPoint = new RelativePoint(0.5, 1, RelativeUnit.Relative),
-                GradientStops =
-                {
-                    new GradientStop(isDark
-                        ? Color.FromArgb(topA, (byte)Math.Min(255, c.R + 22), (byte)Math.Min(255, c.G + 24), (byte)Math.Min(255, c.B + 28))
-                        : Color.FromArgb(topA, 255, 255, 255), 0),
-                    new GradientStop(isDark
-                        ? Color.FromArgb(botA, (byte)Math.Max(0, c.R - 8), (byte)Math.Max(0, c.G - 8), (byte)Math.Max(0, c.B - 6))
-                        : Color.FromArgb(botA, (byte)Math.Max(0, c.R - 10), (byte)Math.Max(0, c.G - 8), (byte)Math.Max(0, c.B - 4)), 1),
-                }
-            };
-            context.DrawGeometry(glassFill, null, wedge);
-        }
-        else
-        {
-            context.DrawGeometry(WithOpacity(SliceBrush, baseOpacity), null, wedge);
-        }
-
-        // 2. Frosted Specular Sheen (Apple macOS physical glass reflection)
-        var sheenBrush = new LinearGradientBrush
-        {
-            StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative),
-            EndPoint = new RelativePoint(0.5, 0.75, RelativeUnit.Relative),
-            GradientStops =
-            {
-                new GradientStop(Color.FromArgb((byte)(isDark ? 30 : 65), 255, 255, 255), 0),
-                new GradientStop(Color.FromArgb((byte)(isDark ? 8 : 16), 255, 255, 255), 0.4),
-                new GradientStop(Color.FromArgb(0, 255, 255, 255), 1),
-            }
-        };
-        context.DrawGeometry(sheenBrush, null, wedge);
-
-        // 3. Specular Glass Hairline Border (1px light-catching rim)
-        var borderBrush = new LinearGradientBrush
-        {
-            StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative),
-            EndPoint = new RelativePoint(0.5, 1, RelativeUnit.Relative),
-            GradientStops =
-            {
-                new GradientStop(isDark ? Color.FromArgb(64, 255, 255, 255) : Color.FromArgb(135, 255, 255, 255), 0),
-                new GradientStop(isDark ? Color.FromArgb(32, 255, 255, 255) : Color.FromArgb(42, 0, 0, 0), 0.5),
-                new GradientStop(isDark ? Color.FromArgb(18, 255, 255, 255) : Color.FromArgb(24, 0, 0, 0), 1),
-            }
-        };
-        context.DrawGeometry(null, new Pen(borderBrush, 1), wedge);
-
-        // 4. Vibrant Neon Glass Hover / Active Glow
-        var emphasis = isDropTarget ? 1.0 : hover;
-        if (emphasis > 0.01 && isEnabled)
-        {
-            var clampedEmp = Math.Clamp(emphasis, 0, 1);
-            if (AccentBrush is ISolidColorBrush accentSolid)
-            {
-                var ac = accentSolid.Color;
-                var hoverFill = new RadialGradientBrush
-                {
-                    Center = new RelativePoint(0.5, 0.45, RelativeUnit.Relative),
-                    GradientOrigin = new RelativePoint(0.5, 0.45, RelativeUnit.Relative),
-                    GradientStops =
-                    {
-                        new GradientStop(Color.FromArgb((byte)(225 * clampedEmp), ac.R, ac.G, ac.B), 0),
-                        new GradientStop(Color.FromArgb((byte)(185 * clampedEmp), (byte)Math.Max(0, ac.R - 15), (byte)Math.Max(0, ac.G - 15), (byte)Math.Max(0, ac.B - 15)), 1),
-                    }
-                };
-                context.DrawGeometry(hoverFill, null, wedge);
-
-                // Specular inner sheen for the hot state
-                var hotSheen = new LinearGradientBrush
-                {
-                    StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative),
-                    EndPoint = new RelativePoint(0.5, 0.6, RelativeUnit.Relative),
-                    GradientStops =
-                    {
-                        new GradientStop(Color.FromArgb((byte)(80 * clampedEmp), 255, 255, 255), 0),
-                        new GradientStop(Color.FromArgb(0, 255, 255, 255), 1),
-                    }
-                };
-                context.DrawGeometry(hotSheen, null, wedge);
-
-                // Glowing rim on hover
-                var glowPen = new Pen(new SolidColorBrush(Color.FromArgb((byte)(235 * clampedEmp), (byte)Math.Min(255, ac.R + 32), (byte)Math.Min(255, ac.G + 32), (byte)Math.Min(255, ac.B + 32))), 1.2);
-                context.DrawGeometry(null, glowPen, wedge);
-            }
-            else
-            {
-                context.DrawGeometry(WithOpacity(AccentBrush, 0.82 * clampedEmp), null, wedge);
-            }
-        }
-    }
-
-    private void DrawCenterDisc(DrawingContext context, Point center, double radius, bool isDark)
-    {
-        // 1. Frosted glass disc fill with top-to-bottom illumination gradient
-        if (CenterBrush is ISolidColorBrush solid)
-        {
-            var baseC = solid.Color;
-            var centerFill = new LinearGradientBrush
-            {
-                StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative),
-                EndPoint = new RelativePoint(0.5, 1, RelativeUnit.Relative),
-                GradientStops =
-                {
-                    new GradientStop(isDark
-                        ? Color.FromArgb(baseC.A, (byte)Math.Min(255, baseC.R + 20), (byte)Math.Min(255, baseC.G + 20), (byte)Math.Min(255, baseC.B + 24))
-                        : Color.FromArgb(baseC.A, 255, 255, 255), 0),
-                    new GradientStop(isDark
-                        ? Color.FromArgb(baseC.A, (byte)Math.Max(0, baseC.R - 8), (byte)Math.Max(0, baseC.G - 8), (byte)Math.Max(0, baseC.B - 6))
-                        : Color.FromArgb(baseC.A, (byte)Math.Max(0, baseC.R - 8), (byte)Math.Max(0, baseC.G - 6), (byte)Math.Max(0, baseC.B - 4)), 1),
-                }
-            };
-            context.DrawEllipse(centerFill, null, center, radius, radius);
-        }
-        else
-        {
-            context.DrawEllipse(CenterBrush, null, center, radius, radius);
-        }
-
-        // 3. Inner glass lens specular reflection dome
-        var lensGleam = new RadialGradientBrush
-        {
-            Center = new RelativePoint(0.5, 0.35, RelativeUnit.Relative),
-            GradientOrigin = new RelativePoint(0.5, 0.35, RelativeUnit.Relative),
-            GradientStops =
-            {
-                new GradientStop(Color.FromArgb((byte)(isDark ? 28 : 55), 255, 255, 255), 0),
-                new GradientStop(Color.FromArgb(0, 255, 255, 255), 1),
-            }
-        };
-        context.DrawEllipse(lensGleam, null, center, radius, radius);
-
-        // 4. Specular glass hairline rim
-        var centerBorder = new LinearGradientBrush
-        {
-            StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative),
-            EndPoint = new RelativePoint(0.5, 1, RelativeUnit.Relative),
-            GradientStops =
-            {
-                new GradientStop(isDark ? Color.FromArgb(70, 255, 255, 255) : Color.FromArgb(130, 255, 255, 255), 0),
-                new GradientStop(isDark ? Color.FromArgb(30, 255, 255, 255) : Color.FromArgb(40, 0, 0, 0), 0.5),
-                new GradientStop(isDark ? Color.FromArgb(16, 255, 255, 255) : Color.FromArgb(20, 0, 0, 0), 1),
-            }
-        };
-        context.DrawEllipse(null, new Pen(centerBorder, 1), center, radius, radius);
-
-        // 5. Inset subtle bright bevel
-        context.DrawEllipse(null, new Pen(new SolidColorBrush(Colors.White, isDark ? 0.05 : 0.35), 0.5), center, radius - 1, radius - 1);
+            context.DrawEllipse(brush, null, new Point(center.X, center.Y + 4), shadowRadius, shadowRadius);
     }
 
     private void DrawCenter(DrawingContext context, Point center, double r1, Typeface bold, Typeface regular)
@@ -1076,23 +889,9 @@ public sealed partial class DonutMenu : Control
         var pulse = 1 + _centerPulse.Value * 0.06;
         var radius = (r1 - 6) * pulse;
         var cancelHot = _externalCenterHot;
-        var isDark = CenterBrush is ISolidColorBrush sc ? ThemeService.Luminance(sc.Color) < 0.5 : true;
-
-        DrawCenterDisc(context, center, radius, isDark);
-
+        context.DrawEllipse(CenterBrush, BorderPen(), center, radius, radius);
         if (cancelHot)
-        {
-            var dangerGlow = new RadialGradientBrush
-            {
-                Center = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
-                GradientStops =
-                {
-                    new GradientStop(Color.FromArgb(60, 220, 60, 60), 0),
-                    new GradientStop(Color.FromArgb(100, 200, 40, 40), 1),
-                }
-            };
-            context.DrawEllipse(dangerGlow, new Pen(DangerBrush, 1.2), center, radius, radius);
-        }
+            context.DrawEllipse(WithOpacity(DangerBrush, 0.18), null, center, radius, radius);
 
         var maxWidth = radius * 1.6;
         var title = MakeText(CenterTitle ?? "", bold, 14, Foreground, maxWidth, maxLines: 2);
@@ -1115,24 +914,12 @@ public sealed partial class DonutMenu : Control
                           label.Height + 14 < maxHeight;
         var caption = showCaption ? MakeText(item.Caption!, regular, 10.5, hot ? OnAccentBrush : SecondaryForeground, width) : null;
 
-        var total = label.Height + (caption?.Height ?? 0) + (item.IsNavigation && showCaption ? 4 : 0);
+        var total = label.Height + (caption?.Height ?? 0);
         var anchor = DonutGeometry.PointAt(center, radius, angle);
         var y = anchor.Y - total / 2;
         DrawCentered(context, label, anchor.X, y);
         if (caption is not null)
-        {
-            var captionY = y + label.Height + (item.IsNavigation ? 3 : 0);
-            if (item.IsNavigation && !hot)
-            {
-                // Sleek macOS glass pill around page numbers e.g. "1/2"
-                var isDark = SliceBrush is ISolidColorBrush sc ? ThemeService.Luminance(sc.Color) < 0.5 : true;
-                var pillWidth = Math.Max(caption.Width + 12, 34);
-                var pillRect = new Rect(anchor.X - pillWidth / 2, captionY - 1, pillWidth, caption.Height + 2);
-                var pillFill = new SolidColorBrush(isDark ? Color.FromArgb(45, 255, 255, 255) : Color.FromArgb(25, 0, 0, 0));
-                context.DrawRectangle(pillFill, null, new RoundedRect(pillRect, 7));
-            }
-            DrawCentered(context, caption, anchor.X, captionY);
-        }
+            DrawCentered(context, caption, anchor.X, y + label.Height);
     }
 
     private Point EditButtonCenter(int index)

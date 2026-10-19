@@ -11,6 +11,7 @@ using Filee.Core.Localization;
 using Filee.Core.Presets;
 using Filee.Core.Settings;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Filee.App.Services;
 
@@ -31,14 +32,17 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
     public MainWindow? Main => _main;
 
-    /// <summary>Opens the zero-window interactive Crop overlay HUD.</summary>
-    public void ShowCropOverlay(IReadOnlyList<string> files, Preset preset)
+    /// <summary>Opens the interactive crop overlay for the files.</summary>
+    public void ShowCropOverlay(IReadOnlyList<string> files, Preset preset, PixelPoint? near = null)
     {
         if (files.Count == 0)
             return;
         _cropOverlay?.Close();
-        var vm = new CropOverlayViewModel(files, preset, loc);
+        var store = services.GetRequiredService<UserDataStore>();
+        var log = services.GetService<ILogger<CropOverlayViewModel>>();
+        var vm = new CropOverlayViewModel(files, preset, loc, store, log);
         var win = new CropOverlayWindow { DataContext = vm };
+        win.PositionOnScreen(near);
         win.Closed += (_, _) =>
         {
             if (_cropOverlay == win)
@@ -210,6 +214,8 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         // A group converts nothing: it gets its own editor (name and the presets it fans out).
         if (preset.IsGroup)
             return await EditGroupAsync(preset, owner);
+        if (preset.IsTool)
+            return false;
         var dialog = new PresetEditorWindow
         {
             DataContext = new PresetEditorViewModel(preset, loc),

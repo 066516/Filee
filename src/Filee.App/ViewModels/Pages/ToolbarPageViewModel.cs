@@ -61,7 +61,6 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
         OuterRadius = store.Settings.Donut.OuterRadius;
         HoleRatio = store.Settings.Donut.HoleRatio * 100;
         SliceOpacity = store.Settings.Donut.Opacity * 100;
-        MaxPageSlices = store.Settings.Donut.MaxPageSlices;
         _loading = false;
 
         SelectedProfile = Profiles.FirstOrDefault();
@@ -103,7 +102,6 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
     [ObservableProperty] private double _outerRadius;
     [ObservableProperty] private double _holeRatio;
     [ObservableProperty] private double _sliceOpacity;
-    [ObservableProperty] private double _maxPageSlices;
 
     private ToolbarProfile? Profile => SelectedProfile?.Profile;
 
@@ -185,7 +183,6 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
     partial void OnOuterRadiusChanged(double value) => SaveAppearance();
     partial void OnHoleRatioChanged(double value) => SaveAppearance();
     partial void OnSliceOpacityChanged(double value) => SaveAppearance();
-    partial void OnMaxPageSlicesChanged(double value) => SaveAppearance();
 
     private void SaveAppearance()
     {
@@ -194,7 +191,6 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
         _store.Settings.Donut.OuterRadius = Math.Round(OuterRadius);
         _store.Settings.Donut.HoleRatio = Math.Round(HoleRatio) / 100;
         _store.Settings.Donut.Opacity = Math.Round(SliceOpacity) / 100;
-        _store.Settings.Donut.MaxPageSlices = (int)Math.Clamp(Math.Round(MaxPageSlices), 6, 12);
         _store.SaveSettings();
     }
 

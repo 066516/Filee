@@ -41,20 +41,6 @@ public sealed partial class DonutMenu
     private IDisposable? _expandTimer;
     private double _pendingDistance;
 
-    // Navigation slice hover timer (e.g. dwell on "More" or "Back" to turn page)
-    public event EventHandler<int>? NavigationRequested;
-    private int _pendingNav = -1;
-    private IDisposable? _navTimer;
-    private bool _navCooldown;
-    private static readonly TimeSpan NavDelay = TimeSpan.FromSeconds(2.0);
-
-    private void ClearPendingNav()
-    {
-        _pendingNav = -1;
-        _navTimer?.Dispose();
-        _navTimer = null;
-    }
-
     /// <summary>How long the pointer rests on a group slice before it opens: passing over on the way elsewhere doesn't.</summary>
     internal static readonly TimeSpan ExpandDelay = TimeSpan.FromMilliseconds(160);
 
@@ -121,38 +107,15 @@ public sealed partial class DonutMenu
         var sub = -1;
         switch (hit.Kind)
         {
-            case DonutHitKind.Segment when hit.Index >= 0 && hit.Index < Count && Items![hit.Index].IsNavigation:
-                _expanded = -1;
-                ClearPending();
-                if (!_navCooldown && _pendingNav != hit.Index)
-                {
-                    ClearPendingNav();
-                    _pendingNav = hit.Index;
-                    var navIndex = hit.Index;
-                    var delta = Items![navIndex].IsNextPage ? 1 : -1;
-                    _navTimer = DispatcherTimer.RunOnce(() =>
-                    {
-                        ClearPendingNav();
-                        _navCooldown = true; // Stay in cooldown while pointer remains on this slot to prevent bounce-back flicker
-                        NavigationRequested?.Invoke(this, delta);
-                    }, NavDelay);
-                }
-                break;
             case DonutHitKind.Segment when hit.Index == _expanded:
-                _navCooldown = false;
-                ClearPendingNav();
                 _ringFromKeys = false; // the mouse reached it: from here on it leads
                 break;
             case DonutHitKind.Segment when at is { } across && OnWayToRing(across):
-                _navCooldown = false;
-                ClearPendingNav();
                 // A neighbour's outer half under the open ring, crossed on the way to its outer slices: that neighbour is
                 // what a click or a drop here converts with, but the ring stays open.
                 ClearPending();
                 break;
             case DonutHitKind.Segment when hit.Index >= 0 && hit.Index < Count && Items![hit.Index].CanExpand:
-                _navCooldown = false;
-                ClearPendingNav();
                 _expanded = -1;
                 var distance = at is { } p ? Distance(p, Center) : 0;
                 if (_pendingGroup != hit.Index)
@@ -172,32 +135,22 @@ public sealed partial class DonutMenu
                 }
                 break;
             case DonutHitKind.SubSegment:
-                _navCooldown = false;
-                ClearPendingNav();
                 _ringFromKeys = false;
                 sub = hit.Sub;
                 break;
             case DonutHitKind.Outside when _pendingGroup >= 0 && at is { } flick && InFan(flick, _pendingGroup) &&
                                            Distance(flick, Center) <= SubRadii.Outer + BackdropMargin:
-                _navCooldown = false;
-                ClearPendingNav();
                 ExpandPendingGroup(); // flicked straight out to where its ring opens: no need to wait
                 break;
             case DonutHitKind.Outside:
-                _navCooldown = false;
-                ClearPendingNav();
                 ClearPending(); // left the slice before it opened: it stays closed
                 if (_expanded >= 0 && at is { } q && !InFan(q, _expanded))
                     _expanded = -1; // went round the outside, away from the ring
                 break;
             case DonutHitKind.Center when _ringFromKeys:
-                _navCooldown = false;
-                ClearPendingNav();
                 sub = _subHover; // on its way out of the hole to the ring
                 break;
             default:
-                _navCooldown = false;
-                ClearPendingNav();
                 _expanded = -1;
                 _ringFromKeys = false;
                 ClearPending();
@@ -325,18 +278,11 @@ public sealed partial class DonutMenu
     /// </summary>
     public bool Converts(DonutHit hit) => hit.Kind switch
     {
-        DonutHitKind.Segment => hit.Index >= 0 && hit.Index < Count && Items![hit.Index] is { IsGroup: false, IsNavigation: false, IsEnabled: true },
+        DonutHitKind.Segment => hit.Index >= 0 && hit.Index < Count && Items![hit.Index] is { IsGroup: false, IsEnabled: true },
         DonutHitKind.SubSegment => hit.Index >= 0 && hit.Index < Count && Items![hit.Index].Children is { } children &&
                                    hit.Sub >= 0 && hit.Sub < children.Count && children[hit.Sub].IsEnabled,
         _ => false,
     };
-
-    /// <summary>True when <paramref name="hit"/> is a page navigation slice.</summary>
-    public bool IsNavigation(DonutHit hit) =>
-        hit.Kind == DonutHitKind.Segment && hit.Index >= 0 && hit.Index < Count && Items![hit.Index] is { IsNavigation: true };
-
-    /// <summary>True when <paramref name="hit"/> accepts a drag drop (conversion slice or page turn slice).</summary>
-    public bool AcceptsDrop(DonutHit hit) => Converts(hit) || IsNavigation(hit);
 
     /// <summary>
     /// A drag from outside left the window, last seen at <paramref name="lastAt"/>: clears what it lit up and folds a
@@ -447,8 +393,10 @@ public sealed partial class DonutMenu
                 var item = children[k];
                 var mid = DonutGeometry.SubMidAngle(parentMid, k, children.Count, subSpan);
                 var wedge = CreateWedge(center, inner, outer, mid, subSpan);
+                context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity * (item.IsEnabled ? 1 : 0.55)), BorderPen(), wedge);
                 var hot = k == _subHover && group == _expanded && item.IsEnabled;
-                DrawGlassSlice(context, wedge, item, center, inner, outer, mid, subSpan, hot ? 1.0 : 0, false);
+                if (hot)
+                    context.DrawGeometry(WithOpacity(AccentBrush, 0.82), null, wedge);
                 DrawLabel(context, item, center, (inner + outer) / 2, mid, subSpan * (inner + outer) / 2 - 8,
                     SubBand - 8, bold, regular, hot);
             }

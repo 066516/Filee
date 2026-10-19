@@ -1,5 +1,4 @@
-// Interactive crop control with manual screenshot-style selection, 8 resize handles,
-// rule-of-thirds grid, and aspect ratio locking (1:1 square, free-form, etc.).
+// Interactive image crop control: handles, rule-of-thirds grid and aspect ratio constraints.
 
 using Avalonia;
 using Avalonia.Controls;
@@ -60,9 +59,20 @@ public sealed class CropCanvas : Control
     private Rect _dragStartCrop;
     private const double MinSizePx = 24.0;
 
+    private static readonly Cursor ArrowCursor = new(StandardCursorType.Arrow);
+    private static readonly Cursor SizeAllCursor = new(StandardCursorType.SizeAll);
+    private static readonly Cursor SizeNorthSouthCursor = new(StandardCursorType.SizeNorthSouth);
+    private static readonly Cursor SizeWestEastCursor = new(StandardCursorType.SizeWestEast);
+    private static readonly Cursor TopLeftCursor = new(StandardCursorType.TopLeftCorner);
+    private static readonly Cursor TopRightCursor = new(StandardCursorType.TopRightCorner);
+    private static readonly Cursor CrossCursor = new(StandardCursorType.Cross);
+
     private static readonly IBrush DimMaskBrush = new SolidColorBrush(Color.FromArgb(175, 0, 0, 0));
     private static readonly IPen CropBorderPen = new Pen(Brushes.White, 1.5);
     private static readonly IPen GridPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)), 1);
+
+    private static double SafeClamp(double val, double min, double max) =>
+        min > max ? Math.Clamp(val, max, min) : Math.Clamp(val, min, max);
 
     static CropCanvas()
     {
@@ -302,26 +312,26 @@ public sealed class CropCanvas : Control
             var h = HitTestHandle(pt, crop, imgBounds);
             Cursor = h switch
             {
-                CropHandle.TopLeft or CropHandle.BottomRight => new Cursor(StandardCursorType.TopLeftCorner),
-                CropHandle.TopRight or CropHandle.BottomLeft => new Cursor(StandardCursorType.TopRightCorner),
-                CropHandle.Top or CropHandle.Bottom => new Cursor(StandardCursorType.SizeNorthSouth),
-                CropHandle.Left or CropHandle.Right => new Cursor(StandardCursorType.SizeWestEast),
-                CropHandle.Body => new Cursor(StandardCursorType.SizeAll),
-                CropHandle.CreateNew => new Cursor(StandardCursorType.Cross),
-                _ => Cursor.Default,
+                CropHandle.TopLeft or CropHandle.BottomRight => TopLeftCursor,
+                CropHandle.TopRight or CropHandle.BottomLeft => TopRightCursor,
+                CropHandle.Top or CropHandle.Bottom => SizeNorthSouthCursor,
+                CropHandle.Left or CropHandle.Right => SizeWestEastCursor,
+                CropHandle.Body => SizeAllCursor,
+                CropHandle.CreateNew => CrossCursor,
+                _ => ArrowCursor,
             };
             return;
         }
 
-        // Active manual screenshot-style selection drag
+        // Active manual selection drag
         if (_activeHandle == CropHandle.CreateNew)
         {
             var p1 = new Point(
-                Math.Clamp(_dragStartPoint.X, imgBounds.Left, imgBounds.Right),
-                Math.Clamp(_dragStartPoint.Y, imgBounds.Top, imgBounds.Bottom));
+                SafeClamp(_dragStartPoint.X, imgBounds.Left, imgBounds.Right),
+                SafeClamp(_dragStartPoint.Y, imgBounds.Top, imgBounds.Bottom));
             var p2 = new Point(
-                Math.Clamp(pt.X, imgBounds.Left, imgBounds.Right),
-                Math.Clamp(pt.Y, imgBounds.Top, imgBounds.Bottom));
+                SafeClamp(pt.X, imgBounds.Left, imgBounds.Right),
+                SafeClamp(pt.Y, imgBounds.Top, imgBounds.Bottom));
 
             if (AspectRatio <= 0)
             {
@@ -334,7 +344,7 @@ public sealed class CropCanvas : Control
             }
             else
             {
-                // Constrained aspect ratio selection (e.g. 1:1 Instagram post)
+                // Constrained aspect ratio selection
                 var R = AspectRatio;
                 var dx = p2.X - p1.X;
                 var dy = p2.Y - p1.Y;
@@ -370,8 +380,8 @@ public sealed class CropCanvas : Control
             var deltaX = pt.X - _dragStartPoint.X;
             var deltaY = pt.Y - _dragStartPoint.Y;
 
-            var newX = Math.Clamp(_dragStartCrop.X + deltaX, imgBounds.Left, Math.Max(imgBounds.Left, imgBounds.Right - _dragStartCrop.Width));
-            var newY = Math.Clamp(_dragStartCrop.Y + deltaY, imgBounds.Top, Math.Max(imgBounds.Top, imgBounds.Bottom - _dragStartCrop.Height));
+            var newX = SafeClamp(_dragStartCrop.X + deltaX, imgBounds.Left, Math.Max(imgBounds.Left, imgBounds.Right - _dragStartCrop.Width));
+            var newY = SafeClamp(_dragStartCrop.Y + deltaY, imgBounds.Top, Math.Max(imgBounds.Top, imgBounds.Bottom - _dragStartCrop.Height));
 
             SetCropFromScreen(new Rect(newX, newY, _dragStartCrop.Width, _dragStartCrop.Height), imgBounds);
             return;
@@ -392,32 +402,32 @@ public sealed class CropCanvas : Control
             switch (_activeHandle)
             {
                 case CropHandle.TopLeft:
-                    left = Math.Clamp(_dragStartCrop.Left + dxRes, imgBounds.Left, right - MinSizePx);
-                    top = Math.Clamp(_dragStartCrop.Top + dyRes, imgBounds.Top, bottom - MinSizePx);
+                    left = SafeClamp(_dragStartCrop.Left + dxRes, imgBounds.Left, right - MinSizePx);
+                    top = SafeClamp(_dragStartCrop.Top + dyRes, imgBounds.Top, bottom - MinSizePx);
                     break;
                 case CropHandle.TopRight:
-                    right = Math.Clamp(_dragStartCrop.Right + dxRes, left + MinSizePx, imgBounds.Right);
-                    top = Math.Clamp(_dragStartCrop.Top + dyRes, imgBounds.Top, bottom - MinSizePx);
+                    right = SafeClamp(_dragStartCrop.Right + dxRes, left + MinSizePx, imgBounds.Right);
+                    top = SafeClamp(_dragStartCrop.Top + dyRes, imgBounds.Top, bottom - MinSizePx);
                     break;
                 case CropHandle.BottomLeft:
-                    left = Math.Clamp(_dragStartCrop.Left + dxRes, imgBounds.Left, right - MinSizePx);
-                    bottom = Math.Clamp(_dragStartCrop.Bottom + dyRes, top + MinSizePx, imgBounds.Bottom);
+                    left = SafeClamp(_dragStartCrop.Left + dxRes, imgBounds.Left, right - MinSizePx);
+                    bottom = SafeClamp(_dragStartCrop.Bottom + dyRes, top + MinSizePx, imgBounds.Bottom);
                     break;
                 case CropHandle.BottomRight:
-                    right = Math.Clamp(_dragStartCrop.Right + dxRes, left + MinSizePx, imgBounds.Right);
-                    bottom = Math.Clamp(_dragStartCrop.Bottom + dyRes, top + MinSizePx, imgBounds.Bottom);
+                    right = SafeClamp(_dragStartCrop.Right + dxRes, left + MinSizePx, imgBounds.Right);
+                    bottom = SafeClamp(_dragStartCrop.Bottom + dyRes, top + MinSizePx, imgBounds.Bottom);
                     break;
                 case CropHandle.Top:
-                    top = Math.Clamp(_dragStartCrop.Top + dyRes, imgBounds.Top, bottom - MinSizePx);
+                    top = SafeClamp(_dragStartCrop.Top + dyRes, imgBounds.Top, bottom - MinSizePx);
                     break;
                 case CropHandle.Bottom:
-                    bottom = Math.Clamp(_dragStartCrop.Bottom + dyRes, top + MinSizePx, imgBounds.Bottom);
+                    bottom = SafeClamp(_dragStartCrop.Bottom + dyRes, top + MinSizePx, imgBounds.Bottom);
                     break;
                 case CropHandle.Left:
-                    left = Math.Clamp(_dragStartCrop.Left + dxRes, imgBounds.Left, right - MinSizePx);
+                    left = SafeClamp(_dragStartCrop.Left + dxRes, imgBounds.Left, right - MinSizePx);
                     break;
                 case CropHandle.Right:
-                    right = Math.Clamp(_dragStartCrop.Right + dxRes, left + MinSizePx, imgBounds.Right);
+                    right = SafeClamp(_dragStartCrop.Right + dxRes, left + MinSizePx, imgBounds.Right);
                     break;
             }
 
@@ -425,7 +435,7 @@ public sealed class CropCanvas : Control
         }
         else
         {
-            // Proportional aspect ratio handle resizing (e.g. 1:1 square)
+            // Proportional aspect ratio handle resizing
             var R = AspectRatio;
 
             switch (_activeHandle)
@@ -435,7 +445,7 @@ public sealed class CropCanvas : Control
                         var anchor = _dragStartCrop.TopLeft;
                         var delta = (dxRes + dyRes * R) / 2.0;
                         var maxW = Math.Min(imgBounds.Right - anchor.X, (imgBounds.Bottom - anchor.Y) * R);
-                        var w = Math.Clamp(_dragStartCrop.Width + delta, MinSizePx, Math.Max(MinSizePx, maxW));
+                        var w = SafeClamp(_dragStartCrop.Width + delta, MinSizePx, Math.Max(MinSizePx, maxW));
                         var h = w / R;
                         SetCropFromScreen(new Rect(anchor.X, anchor.Y, w, h), imgBounds);
                         break;
@@ -446,7 +456,7 @@ public sealed class CropCanvas : Control
                         var anchorY = _dragStartCrop.Top;
                         var delta = (-dxRes + dyRes * R) / 2.0;
                         var maxW = Math.Min(anchorX - imgBounds.Left, (imgBounds.Bottom - anchorY) * R);
-                        var w = Math.Clamp(_dragStartCrop.Width + delta, MinSizePx, Math.Max(MinSizePx, maxW));
+                        var w = SafeClamp(_dragStartCrop.Width + delta, MinSizePx, Math.Max(MinSizePx, maxW));
                         var h = w / R;
                         SetCropFromScreen(new Rect(anchorX - w, anchorY, w, h), imgBounds);
                         break;
@@ -457,7 +467,7 @@ public sealed class CropCanvas : Control
                         var anchorY = _dragStartCrop.Bottom;
                         var delta = (dxRes - dyRes * R) / 2.0;
                         var maxW = Math.Min(imgBounds.Right - anchorX, (anchorY - imgBounds.Top) * R);
-                        var w = Math.Clamp(_dragStartCrop.Width + delta, MinSizePx, Math.Max(MinSizePx, maxW));
+                        var w = SafeClamp(_dragStartCrop.Width + delta, MinSizePx, Math.Max(MinSizePx, maxW));
                         var h = w / R;
                         SetCropFromScreen(new Rect(anchorX, anchorY - h, w, h), imgBounds);
                         break;
@@ -468,7 +478,7 @@ public sealed class CropCanvas : Control
                         var anchorY = _dragStartCrop.Bottom;
                         var delta = (-dxRes - dyRes * R) / 2.0;
                         var maxW = Math.Min(anchorX - imgBounds.Left, (anchorY - imgBounds.Top) * R);
-                        var w = Math.Clamp(_dragStartCrop.Width + delta, MinSizePx, Math.Max(MinSizePx, maxW));
+                        var w = SafeClamp(_dragStartCrop.Width + delta, MinSizePx, Math.Max(MinSizePx, maxW));
                         var h = w / R;
                         SetCropFromScreen(new Rect(anchorX - w, anchorY - h, w, h), imgBounds);
                         break;
@@ -477,9 +487,9 @@ public sealed class CropCanvas : Control
                     {
                         var anchorLeft = _dragStartCrop.Left;
                         var maxW = Math.Min(imgBounds.Right - anchorLeft, imgBounds.Height * R);
-                        var w = Math.Clamp(_dragStartCrop.Width + dxRes, MinSizePx, Math.Max(MinSizePx, maxW));
+                        var w = SafeClamp(_dragStartCrop.Width + dxRes, MinSizePx, Math.Max(MinSizePx, maxW));
                         var h = w / R;
-                        var y = Math.Clamp(_dragStartCrop.Center.Y - h / 2.0, imgBounds.Top, imgBounds.Bottom - h);
+                        var y = SafeClamp(_dragStartCrop.Center.Y - h / 2.0, imgBounds.Top, imgBounds.Bottom - h);
                         SetCropFromScreen(new Rect(anchorLeft, y, w, h), imgBounds);
                         break;
                     }
@@ -487,9 +497,9 @@ public sealed class CropCanvas : Control
                     {
                         var anchorRight = _dragStartCrop.Right;
                         var maxW = Math.Min(anchorRight - imgBounds.Left, imgBounds.Height * R);
-                        var w = Math.Clamp(_dragStartCrop.Width - dxRes, MinSizePx, Math.Max(MinSizePx, maxW));
+                        var w = SafeClamp(_dragStartCrop.Width - dxRes, MinSizePx, Math.Max(MinSizePx, maxW));
                         var h = w / R;
-                        var y = Math.Clamp(_dragStartCrop.Center.Y - h / 2.0, imgBounds.Top, imgBounds.Bottom - h);
+                        var y = SafeClamp(_dragStartCrop.Center.Y - h / 2.0, imgBounds.Top, imgBounds.Bottom - h);
                         SetCropFromScreen(new Rect(anchorRight - w, y, w, h), imgBounds);
                         break;
                     }
@@ -497,9 +507,9 @@ public sealed class CropCanvas : Control
                     {
                         var anchorTop = _dragStartCrop.Top;
                         var maxH = Math.Min(imgBounds.Bottom - anchorTop, imgBounds.Width / R);
-                        var h = Math.Clamp(_dragStartCrop.Height + dyRes, MinSizePx, Math.Max(MinSizePx, maxH));
+                        var h = SafeClamp(_dragStartCrop.Height + dyRes, MinSizePx, Math.Max(MinSizePx, maxH));
                         var w = h * R;
-                        var x = Math.Clamp(_dragStartCrop.Center.X - w / 2.0, imgBounds.Left, imgBounds.Right - w);
+                        var x = SafeClamp(_dragStartCrop.Center.X - w / 2.0, imgBounds.Left, imgBounds.Right - w);
                         SetCropFromScreen(new Rect(x, anchorTop, w, h), imgBounds);
                         break;
                     }
@@ -507,9 +517,9 @@ public sealed class CropCanvas : Control
                     {
                         var anchorBottom = _dragStartCrop.Bottom;
                         var maxH = Math.Min(anchorBottom - imgBounds.Top, imgBounds.Width / R);
-                        var h = Math.Clamp(_dragStartCrop.Height - dyRes, MinSizePx, Math.Max(MinSizePx, maxH));
+                        var h = SafeClamp(_dragStartCrop.Height - dyRes, MinSizePx, Math.Max(MinSizePx, maxH));
                         var w = h * R;
-                        var x = Math.Clamp(_dragStartCrop.Center.X - w / 2.0, imgBounds.Left, imgBounds.Right - w);
+                        var x = SafeClamp(_dragStartCrop.Center.X - w / 2.0, imgBounds.Left, imgBounds.Right - w);
                         SetCropFromScreen(new Rect(x, anchorBottom - h, w, h), imgBounds);
                         break;
                     }

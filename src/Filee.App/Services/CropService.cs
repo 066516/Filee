@@ -1,9 +1,13 @@
-// Service that loads images and executes cropping via ImageMagick.
+// Loads image previews and performs crops using ImageMagick and OutputPathResolver.
 
 using System.IO;
 using Avalonia.Media.Imaging;
+using Filee.Core.History;
+using Filee.Core.Localization;
 using Filee.Core.Presets;
+using Filee.Core.Settings;
 using ImageMagick;
+using Microsoft.Extensions.Logging;
 
 namespace Filee.App.Services;
 
@@ -22,9 +26,8 @@ public static class CropService
             var origWidth = (int)image.Width;
             var origHeight = (int)image.Height;
 
-            // Generate an in-memory PNG for the Avalonia viewport
-            // If the source image is huge (e.g. 40MP camera RAW/photo), scale preview down for UI fluidity
-            var maxDisplayDim = 2560;
+            // Generate an in-memory PNG for the viewport, downscaling huge images for UI fluidity.
+            const int maxDisplayDim = 2560;
             if (image.Width > maxDisplayDim || image.Height > maxDisplayDim)
             {
                 image.Resize(new MagickGeometry((uint)maxDisplayDim, (uint)maxDisplayDim) { Greater = true });
@@ -40,27 +43,32 @@ public static class CropService
     }
 
     /// <summary>
-    /// Crops the image at <paramref name="inputPath"/> with the given pixel coordinates and saves the result.
+    /// Crops the image at <paramref name="inputPath"/> with the given pixel coordinates and saves the result using
+    /// the preset's output rule and the application's default output settings.
     /// </summary>
-    public static async Task<string> CropFileAsync(string inputPath, int x, int y, int width, int height, Preset? preset = null)
+    public static async Task<string?> CropFileAsync(
+        string inputPath,
+        int x, int y, int width, int height,
+        Preset preset,
+        UserDataStore store,
+        ILocalizer loc,
+        ILogger? log = null)
     {
         return await Task.Run(() =>
         {
-            var dir = Path.GetDirectoryName(inputPath) ?? "";
-            var nameWithoutExt = Path.GetFileNameWithoutExtension(inputPath);
-            var ext = Path.GetExtension(inputPath);
-
-            var pattern = preset?.Output.FileNamePattern ?? "{name}_cropped";
-            var outputName = pattern.Replace("{name}", nameWithoutExt) + ext;
-            var outputPath = Path.Combine(dir, outputName);
-
-            // Avoid collisions
-            var counter = 1;
-            while (File.Exists(outputPath))
+            var ext = Path.GetExtension(inputPath).TrimStart('.');
+            var appliedPreset = store.Settings.WithDefaultOutput(preset);
+            var tokens = new OutputPathResolver.Tokens(inputPath, loc.DisplayName(appliedPreset), 1, DateTime.Now);
+            var outputPath = OutputPathResolver.Resolve(appliedPreset.Output, tokens, ext, File.Exists);
+            if (outputPath is null)
             {
-                outputPath = Path.Combine(dir, $"{pattern.Replace("{name}", nameWithoutExt)}_{counter}{ext}");
-                counter++;
+                log?.LogInformation("Skipping crop of {Input} as conflict policy resolved to null", inputPath);
+                return null;
             }
+
+            var outDir = Path.GetDirectoryName(outputPath);
+            if (!string.IsNullOrEmpty(outDir))
+                Directory.CreateDirectory(outDir);
 
             using var image = new MagickImage(inputPath);
             image.AutoOrient();
@@ -73,11 +81,38 @@ public static class CropService
             image.Crop(new MagickGeometry(clampedX, clampedY, clampedW, clampedH));
             image.ResetPage();
 
-            // Quality
-            if (preset?.Image.Quality is > 0 and <= 100)
-                image.Quality = (uint)preset.Image.Quality;
+            if (appliedPreset.Image.Quality is > 0 and <= 100)
+                image.Quality = (uint)appliedPreset.Image.Quality;
 
             image.Write(outputPath);
+
+            if (appliedPreset.Output.KeepDates || store.Settings.KeepFileDates)
+            {
+                try
+                {
+                    File.SetCreationTimeUtc(outputPath, File.GetCreationTimeUtc(inputPath));
+                    File.SetLastWriteTimeUtc(outputPath, File.GetLastWriteTimeUtc(inputPath));
+                }
+                catch
+                {
+                    // Ignore date preservation failures on read-only/virtual filesystems
+                }
+            }
+
+            if (store.Settings.KeepHistory)
+            {
+                store.AddHistory(new HistoryEntry
+                {
+                    JobId = Guid.NewGuid().ToString("N")[..12],
+                    FinishedAt = DateTime.Now,
+                    PresetId = preset.Id,
+                    PresetName = loc.DisplayName(preset),
+                    State = Filee.Core.Conversion.JobState.Completed,
+                    Sources = [inputPath],
+                    Outputs = [outputPath],
+                });
+            }
+
             return outputPath;
         });
     }

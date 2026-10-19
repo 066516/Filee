@@ -1,4 +1,4 @@
-// ViewModel driving the zero-window Crop overlay dialog.
+// State of the interactive crop overlay.
 
 using System.IO;
 using Avalonia;
@@ -8,14 +8,18 @@ using CommunityToolkit.Mvvm.Input;
 using Filee.App.Services;
 using Filee.Core.Localization;
 using Filee.Core.Presets;
+using Filee.Core.Settings;
+using Microsoft.Extensions.Logging;
 
 namespace Filee.App.ViewModels;
 
-public sealed partial class CropOverlayViewModel : ObservableObject
+public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
 {
     private readonly IReadOnlyList<string> _files;
     private readonly Preset _preset;
     private readonly ILocalizer _loc;
+    private readonly UserDataStore _store;
+    private readonly ILogger? _log;
 
     [ObservableProperty] private int _currentIndex;
     [ObservableProperty] private string _currentFileName = "";
@@ -49,13 +53,15 @@ public sealed partial class CropOverlayViewModel : ObservableObject
     public event Action? ResetRequested;
     public event Action<double>? AspectRatioChanged;
 
-    public Rect CurrentCropRect { get; set; } = new(0.1, 0.1, 0.8, 0.8);
+    public Rect CurrentCropRect { get; set; } = new(0.05, 0.05, 0.9, 0.9);
 
-    public CropOverlayViewModel(IReadOnlyList<string> files, Preset preset, ILocalizer loc)
+    public CropOverlayViewModel(IReadOnlyList<string> files, Preset preset, ILocalizer loc, UserDataStore store, ILogger? log = null)
     {
         _files = files;
         _preset = preset;
         _loc = loc;
+        _store = store;
+        _log = log;
         _hasMultipleFiles = files.Count > 1;
 
         _ = LoadFileAsync(0);
@@ -78,18 +84,20 @@ public sealed partial class CropOverlayViewModel : ObservableObject
         try
         {
             var (bitmap, origW, origH) = await CropService.LoadPreviewAsync(path);
+            PreviewImage?.Dispose();
             PreviewImage = bitmap;
             OriginalWidth = origW;
             OriginalHeight = origH;
             SelectedAspect = "free";
             AspectRatio = 0;
+            AspectRatioChanged?.Invoke(0);
             CurrentCropRect = new Rect(0.05, 0.05, 0.9, 0.9);
             UpdateDimensions(CurrentCropRect);
             ResetRequested?.Invoke();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // If failed to load this file, advance or close
+            _log?.LogError(ex, "Failed to load preview for {File}", path);
             if (index < _files.Count - 1)
                 await LoadFileAsync(index + 1);
             else
@@ -124,11 +132,11 @@ public sealed partial class CropOverlayViewModel : ObservableObject
 
         try
         {
-            await CropService.CropFileAsync(path, x, y, w, h, _preset);
+            await CropService.CropFileAsync(path, x, y, w, h, _preset, _store, _loc, _log);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Log/ignore and proceed
+            _log?.LogError(ex, "Failed to crop {File}", path);
         }
         finally
         {
@@ -143,6 +151,18 @@ public sealed partial class CropOverlayViewModel : ObservableObject
         {
             CloseRequested?.Invoke();
         }
+    }
+
+    [RelayCommand]
+    public async Task SkipAsync()
+    {
+        if (IsBusy)
+            return;
+
+        if (CurrentIndex < _files.Count - 1)
+            await LoadFileAsync(CurrentIndex + 1);
+        else
+            CloseRequested?.Invoke();
     }
 
     [RelayCommand]
@@ -177,5 +197,11 @@ public sealed partial class CropOverlayViewModel : ObservableObject
         };
         AspectRatio = ratio;
         AspectRatioChanged?.Invoke(ratio);
+    }
+
+    public void Dispose()
+    {
+        PreviewImage?.Dispose();
+        PreviewImage = null;
     }
 }

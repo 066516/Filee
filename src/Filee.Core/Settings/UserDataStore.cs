@@ -138,8 +138,8 @@ public sealed class UserDataStore
 
     public Preset? FindPreset(string id) => Presets.FirstOrDefault(p => p.Id == id);
 
-    /// <summary>The preset <paramref name="id"/> when it converts (a group doesn't), for every place that runs one.</summary>
-    public Preset? FindConversion(string id) => Presets.FirstOrDefault(p => p.Id == id && !p.IsGroup);
+    /// <summary>The preset <paramref name="id"/> when it converts (a group or tool doesn't), for every place that runs one.</summary>
+    public Preset? FindConversion(string id) => Presets.FirstOrDefault(p => p.Id == id && !p.IsGroup && !p.IsTool);
 
     /// <summary>Exports presets and profiles to a shareable JSON file.</summary>
     public void Export(string path) =>
@@ -183,9 +183,9 @@ public sealed class UserDataStore
         // conversion to "group": still a group, now an empty one, rather than a conversion that can never run.
         foreach (var preset in Presets.Where(p => !p.IsGroup && p.TargetFormat == Preset.GroupTarget))
             preset.Kind = PresetKind.Group;
-        // A group fans out conversions only (no group in a group), each once, at most MaxSubPresets, and has no
+        // A group fans out conversions only (no group or tool in a group), each once, at most MaxSubPresets, and has no
         // target format an older Filee could run it with.
-        var conversions = Presets.Where(p => !p.IsGroup).Select(p => p.Id).ToHashSet();
+        var conversions = Presets.Where(p => !p.IsGroup && !p.IsTool).Select(p => p.Id).ToHashSet();
         foreach (var group in Presets.Where(p => p.IsGroup))
         {
             group.SubPresetIds = group.SubPresetIds.Where(conversions.Contains).Distinct().Take(Preset.MaxSubPresets).ToList();
@@ -550,14 +550,27 @@ internal static class SettingsMigrations
             }
         }
 
-        // v21: interactive "Crop" tool, after "Remove background" as in a new library, on no donut: users add it in Settings → Toolbar.
+        // v21: interactive "Crop" tool, after "Remove background" as in a new library, on no donut: users add it in
+        //      Settings → Toolbar. Present already but saved since by a Filee before 21: that one read the unknown
+        //      kind as a Group, dropped the target format and left an empty group. Kind and target format are put back,
+        //      the user's own changes (name, file name pattern) stay.
         if (from < 21)
         {
-            if (presets.All(p => p.Id != "tool-crop") && BuiltInData.CreatePresets().FirstOrDefault(p => p.Id == "tool-crop") is { } crop)
+            if (BuiltInData.CreatePresets().FirstOrDefault(p => p.Id == "tool-crop") is { } crop)
             {
-                var at = presets.FindIndex(p => p.Id == "remove-background");
-                presets.Insert(at < 0 ? presets.Count : at + 1, crop);
-                changed = true;
+                if (presets.FirstOrDefault(p => p.Id == "tool-crop") is not { } existing)
+                {
+                    var at = presets.FindIndex(p => p.Id == "remove-background");
+                    presets.Insert(at < 0 ? presets.Count : at + 1, crop);
+                    changed = true;
+                }
+                else if (existing.Kind != PresetKind.Tool)
+                {
+                    existing.Kind = PresetKind.Tool;
+                    existing.TargetFormat = crop.TargetFormat;
+                    existing.SubPresetIds = [];
+                    changed = true;
+                }
             }
         }
         return changed;

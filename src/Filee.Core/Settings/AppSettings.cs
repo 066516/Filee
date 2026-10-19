@@ -57,9 +57,6 @@ public sealed class DonutSettings
     /// <summary>Background opacity of the slices (0.5 - 1).</summary>
     public double Opacity { get; set; } = 0.96;
 
-    /// <summary>Maximum slices per page before paginating (6 - 12, default 12).</summary>
-    public int MaxPageSlices { get; set; } = 12;
-
     public DonutSettings Clone() => (DonutSettings)MemberwiseClone();
 }
 
@@ -67,7 +64,7 @@ public sealed class DonutSettings
 public sealed class AppSettings
 {
     /// <summary>Current schema version. Increase when the format changes and add a migration.</summary>
-    public const int CurrentSchemaVersion = 21;
+    public const int CurrentSchemaVersion = 20;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 

@@ -71,7 +71,7 @@ public partial class RadialWindow : Window
         Donut.SetExternalHit(hit, at);
 
         // Always COPY. Reporting MOVE would make Explorer delete the source files after the drop.
-        e.DragEffects = files && Donut.AcceptsDrop(hit) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.DragEffects = files && Donut.Converts(hit) ? DragDropEffects.Copy : DragDropEffects.None;
         e.Handled = true;
     }
 
@@ -88,20 +88,9 @@ public partial class RadialWindow : Window
         DragSummary?.Invoke(_dragOverEvents, hit, Donut.LitAmount(hit.Index));
         Donut.CollapseGroup();
         Donut.SetExternalHighlight(-1);
-        e.DragEffects = Donut.AcceptsDrop(hit) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.DragEffects = Donut.Converts(hit) ? DragDropEffects.Copy : DragDropEffects.None;
         Dropped?.Invoke(hit, LocalFiles(e));
         e.Handled = true;
-    }
-
-    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
-    {
-        base.OnPointerWheelChanged(e);
-        if (DataContext is Filee.App.ViewModels.RadialViewModel vm && vm.TotalPages > 1)
-        {
-            vm.CyclePage(e.Delta.Y < 0 ? 1 : -1);
-            Donut.PlayOpenAnimation();
-            e.Handled = true;
-        }
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
