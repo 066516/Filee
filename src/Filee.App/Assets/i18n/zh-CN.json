@@ -423,6 +423,8 @@
   "presets.split_tall_image_hint": "关闭时，长图会缩小到该格式的最大高度（JPG 65,500 像素，WebP 16,383 像素）。\n打开时保持原尺寸，在页面之间分开，保存成多个文件（名称_1、名称_2……）。",
   "presets.group.document": "文档",
   "presets.pdfa": "PDF/A（长期存档）",
+  "presets.leave_out_pictures": "不保留图片（仅文本）",
+  "presets.leave_out_pictures_hint": "关闭时，图片保存在 Markdown 文件旁的“名称_files”文件夹中，并从文件中链接。\n开启时，只保留文字，不生成文件夹。",
   "presets.target_folder": "文件夹（解压缩）",
   "presets.group.media": "视频和音频",
   "presets.media_quality": "质量",

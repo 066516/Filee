@@ -170,6 +170,11 @@ public class EbookTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Contains("| 이름 | 값 |", markdown);
         var picture = System.Text.RegularExpressions.Regex.Match(markdown, @"!\[\]\(<([^>]+)>\)").Groups[1].Value;
         Assert.True(File.Exists(Path.Combine(Path.GetDirectoryName(md)!, Uri.UnescapeDataString(picture))));
+
+        var textOnly = await fx.ConvertAsync([epub], new Preset { TargetFormat = "md", Document = { LeaveOutPictures = true } });
+        var withoutPictures = await File.ReadAllTextAsync(textOnly.Outputs.Single(), TestContext.Current.CancellationToken);
+        Assert.Contains("# 첫 번째 장", withoutPictures);
+        Assert.DoesNotContain("![", withoutPictures);
     }
 
     [Fact]

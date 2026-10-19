@@ -147,6 +147,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _trimPageMargins = _edit.Pdf.TrimPageMargins;
         _splitTallImage = _edit.Pdf.SplitTallImage;
         _pdfA = _edit.Document.PdfA;
+        _leaveOutPictures = _edit.Document.LeaveOutPictures;
         _subfolderName = _edit.Output.SubfolderName;
         _customFolder = _edit.Output.CustomFolder;
         _pattern = _edit.Output.FileNamePattern;
@@ -182,7 +183,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowImage), nameof(ShowTurnForPdf), nameof(ShowQuality), nameof(ShowTiff), nameof(ShowMultiPageTiff), nameof(ShowWebp), nameof(ShowIco),
-        nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
+        nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowLeaveOutPictures), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
         nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions),
         nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec), nameof(ShowHardwareEncoding),
@@ -315,6 +316,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private bool _trimPageMargins;
     [ObservableProperty] private bool _splitTallImage;
     [ObservableProperty] private bool _pdfA;
+
+    /// <summary>Markdown: the text only, no picture folder next to it (DocumentOptions.LeaveOutPictures).</summary>
+    [ObservableProperty] private bool _leaveOutPictures;
     [ObservableProperty] private string _subfolderName;
     [ObservableProperty] private string _customFolder;
     [ObservableProperty] private string _pattern;
@@ -399,6 +403,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowPdfCombine => TargetCategory == FormatCategory.Image
         && TargetId is not ("tiff" or "gif" or "apng" or "mng" or "ico" or "cur" or "icns" or "svg" or "pdf");
     public bool ShowDocument => TargetId == "pdf";
+    /// <summary>Markdown can't hold pictures: they go into a folder next to it, or are left out.</summary>
+    public bool ShowLeaveOutPictures => TargetId == "md";
     public bool ShowMedia => ShowMediaQuality || ShowMaxHeight || ShowRemoveAudio || ShowAudioChannels || ShowVideoCodec || ShowAudioCodec;
     /// <summary>Mono / stereo for every audio target but AMR, which is mono by definition.</summary>
     public bool ShowAudioChannels => TargetIsAudio && TargetId != "amr";
@@ -489,6 +495,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         pdf.Compression = CompressionLevel.Value;
         pdf.CompressWithGhostscript = CompressWithGhostscript;
         _original.Document.PdfA = PdfA;
+        // Only where the option is shown, as with SaveEveryFrame below.
+        _original.Document.LeaveOutPictures = ShowLeaveOutPictures && LeaveOutPictures;
 
         var media = _original.Media;
         media.Quality = MediaQuality.Value;

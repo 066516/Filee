@@ -409,6 +409,8 @@
   "presets.split_tall_image_hint": "Desactivado: una imagen larga se reduce al límite del formato (JPG 65 500 px, WebP 16 383 px).\nActivado: conserva su tamaño y se reparte entre páginas en varios archivos (nombre_1, nombre_2, …).",
   "presets.group.document": "Documentos",
   "presets.pdfa": "PDF/A (para archivado)",
+  "presets.leave_out_pictures": "Omitir imágenes (solo texto)",
+  "presets.leave_out_pictures_hint": "Desactivado: las imágenes se guardan en una carpeta \"nombre_files\" junto al archivo Markdown y se enlazan desde él.\nActivado: solo el texto, sin carpeta.",
   "presets.target_folder": "Carpeta (extraer archivos comprimidos)",
   "presets.group.media": "Vídeo y audio",
   "presets.media_quality": "Calidad",
