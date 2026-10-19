@@ -33,6 +33,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         _startWithSystem = store.Settings.StartWithSystem;
         _contextMenu = store.Settings.ContextMenuEnabled;
         _noHistory = !store.Settings.KeepHistory;
+        _maxHistoryCount = Math.Clamp(store.Settings.MaxHistory, 50, 2000);
         OutputLocations = new[] { OutputLocation.SameFolder, OutputLocation.Subfolder, OutputLocation.CustomFolder }
             .Select(v => new Choice<OutputLocation>(v, loc[$"presets.location.{v}"])).ToList();
         var output = store.Settings.DefaultOutput;
@@ -193,6 +194,14 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     public string HistoryText => HistoryCleared ? _loc["general.history_cleared"] : _loc.Format("general.history_count", HistoryCount);
 
     partial void OnNoHistoryChanged(bool value) => Save(s => s.KeepHistory = !value);
+
+    [ObservableProperty] private int _maxHistoryCount;
+
+    partial void OnMaxHistoryCountChanged(int value)
+    {
+        var clamped = Math.Clamp(value, 50, 2000);
+        Save(s => s.MaxHistory = clamped);
+    }
 
     partial void OnHistoryClearedChanged(bool value) => OnPropertyChanged(nameof(HistoryText));
 

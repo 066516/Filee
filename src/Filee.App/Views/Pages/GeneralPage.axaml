@@ -57,6 +57,11 @@
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="{DynamicResource general.history}" />
         <ToggleSwitch Content="{DynamicResource general.no_history}" IsChecked="{Binding NoHistory}" />
+        <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding !NoHistory}">
+          <TextBlock Classes="label" VerticalAlignment="Center" Text="{DynamicResource general.max_history}" />
+          <NumericUpDown Value="{Binding MaxHistoryCount}" Minimum="50" Maximum="2000" Increment="50"
+                         FormatString="0" Width="120" />
+        </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="10">
           <Button Content="{DynamicResource general.clear_history}" Command="{Binding ClearHistoryCommand}" />
           <TextBlock Classes="muted" VerticalAlignment="Center" Text="{Binding HistoryText}" />

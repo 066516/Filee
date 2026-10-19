@@ -85,6 +85,9 @@ public sealed class AppSettings
     /// <summary>Record finished conversions in the history (home page). Off: nothing new is recorded.</summary>
     public bool KeepHistory { get; set; } = true;
 
+    /// <summary>Maximum number of finished conversions kept on the Home page (50–2000). Default 200.</summary>
+    public int MaxHistory { get; set; } = 200;
+
     /// <summary>Newest version the user was already told about, so the update notice shows once per release.</summary>
     public string? NotifiedUpdateVersion { get; set; }
 

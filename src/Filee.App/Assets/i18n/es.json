@@ -200,6 +200,7 @@
   "general.close.Quit": "Salir de Filee",
   "general.history": "Historial de conversiones",
   "general.no_history": "No guardar un historial de las conversiones recientes",
+  "general.max_history": "Máximo de elementos en el historial",
   "general.clear_history": "Borrar historial",
   "general.history_count": "{0} conversión(es) en el historial",
   "general.history_cleared": "Historial borrado.",

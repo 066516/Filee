@@ -211,6 +211,7 @@
   "general.close.Quit": "退出 Filee",
   "general.history": "转换记录",
   "general.no_history": "不保留最近的转换记录",
+  "general.max_history": "最多保留的历史记录条数",
   "general.clear_history": "清除记录",
   "general.history_count": "共 {0} 条记录",
   "general.history_cleared": "记录已清除。",

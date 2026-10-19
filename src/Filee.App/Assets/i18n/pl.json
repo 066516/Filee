@@ -211,6 +211,7 @@
   "general.close.Quit": "Zakończ Filee",
   "general.history": "Historia konwersji",
   "general.no_history": "Nie zapisuj historii ostatnich konwersji",
+  "general.max_history": "Maksymalna liczba wpisów w historii",
   "general.clear_history": "Wyczyść historię",
   "general.history_count": "Konwersje w historii: {0}",
   "general.history_cleared": "Historia wyczyszczona.",

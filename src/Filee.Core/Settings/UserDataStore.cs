@@ -16,7 +16,6 @@ namespace Filee.Core.Settings;
 /// </summary>
 public sealed class UserDataStore
 {
-    private const int MaxHistory = 200;
     private readonly ILogger _log;
     private readonly object _saveLock = new();
 
@@ -110,11 +109,12 @@ public sealed class UserDataStore
     {
         if (!Settings.KeepHistory)
             return;
+        var maxHistory = Math.Clamp(Settings.MaxHistory, 50, 2000);
         lock (_saveLock)
         {
             History.Insert(0, entry);
-            if (History.Count > MaxHistory)
-                History.RemoveRange(MaxHistory, History.Count - MaxHistory);
+            if (History.Count > maxHistory)
+                History.RemoveRange(maxHistory, History.Count - maxHistory);
         }
         Write(HistoryPath, History, FileeJsonContext.Default.ListHistoryEntry);
         HistoryChanged?.Invoke(this, EventArgs.Empty);

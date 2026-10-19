@@ -211,6 +211,7 @@
   "general.close.Quit": "Filee 종료",
   "general.history": "변환 기록",
   "general.no_history": "최근 변환 기록 남기지 않기",
+  "general.max_history": "보관할 최대 기록 수",
   "general.clear_history": "기록 지우기",
   "general.history_count": "기록 {0}개",
   "general.history_cleared": "기록을 지웠어요.",
