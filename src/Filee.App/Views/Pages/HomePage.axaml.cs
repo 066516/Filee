@@ -3,7 +3,6 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Platform.Storage;
 using Filee.App.Services;
 using Microsoft.Extensions.Logging;
 
@@ -37,11 +36,7 @@ public partial class HomePage : UserControl
     private void OnDrop(object? sender, DragEventArgs e)
     {
         DropZone.Classes.Remove("over");
-        var files = (e.DataTransfer.TryGetFiles() ?? [])
-            .Select(f => f.TryGetLocalPath())
-            .OfType<string>()
-            .Where(File.Exists)
-            .ToList();
+        var files = RadialWindow.LocalFiles(e);
         if (files.Count == 0)
             return;
 

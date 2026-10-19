@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Filee.App.Controls;
 using Filee.App.Services;
+using Filee.Core.Platform;
 
 namespace Filee.App.Views;
 
@@ -118,11 +119,15 @@ public partial class RadialWindow : Window
             Donut.CollapseGroup();
     }
 
-    /// <summary>Local file paths in the drag data (folders and virtual items are ignored).</summary>
-    private static IReadOnlyList<string> LocalFiles(DragEventArgs e) =>
-        (e.DataTransfer.TryGetFiles() ?? [])
-            .Select(item => item.TryGetLocalPath())
-            .OfType<string>()
+    /// <summary>
+    /// Local file paths in the drag data (folders and virtual items are ignored). A shortcut counts as the file it
+    /// points to; one to a folder is ignored like the folder.
+    /// </summary>
+    internal static IReadOnlyList<string> LocalFiles(DragEventArgs e) =>
+        AppHost.Get<IPlatformServices>().ResolveShortcuts((e.DataTransfer.TryGetFiles() ?? [])
+                .Select(item => item.TryGetLocalPath())
+                .OfType<string>()
+                .ToList())
             .Where(File.Exists)
             .ToList();
 }

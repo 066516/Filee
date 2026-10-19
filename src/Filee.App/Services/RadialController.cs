@@ -90,9 +90,10 @@ public sealed class RadialController(
         }, EmptyDragLimit);
     }
 
-    /// <summary>Opens the donut for known files (click mode).</summary>
+    /// <summary>Opens the donut for known files (click mode). Shortcuts among them stand for the files they point to.</summary>
     public void ShowForFiles(int x, int y, IReadOnlyList<string> files)
     {
+        files = platform.ResolveShortcuts(files);
         if (files.Count == 0)
             return;
         ReleaseProgressToToast();
