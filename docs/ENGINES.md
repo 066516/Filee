@@ -784,6 +784,9 @@ bundled with the installer), never a 7-Zip installed on the PC. It runs as a sep
   fails when two conversions share a profile).
 - HWP/HWPX import comes from the H2Orestart extension, which is written in Java; Filee points LibreOffice at the
   downloaded JRE (`-env:UNO_JAVA_JFW_JREHOME`).
+- When LibreOffice can't load an Office Open XML or OpenDocument file ("source file could not be loaded"), Filee
+  converts once more from a copy in the job folder with the same parts in a plainly written ZIP (`PackageRepacker`):
+  LibreOffice 26.2 refuses some valid containers, e.g. uncompressed entries with data descriptors (Tencent Docs, #141).
 - It is the only reader of rarer formats, converted to PDF and to the editable formats of their kind: DOT, Works /
   WPS Writer, WordPerfect, Lotus Word Pro, AbiWord, Apple Pages, StarWriter, ClarisWorks / AppleWorks (`.cwk`),
   MacWrite (`.mcw`), T602 (`.602`) and Pocket Word (`.psw`) (→ DOCX, ODT, FODT, OTT, DOC, RTF, TXT, HTML); WPS
