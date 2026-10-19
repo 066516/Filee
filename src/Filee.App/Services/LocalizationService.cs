@@ -19,6 +19,7 @@ public sealed class LocalizationService : ILocalizer
     public static readonly IReadOnlyList<(string Code, string NativeName)> Languages =
     [
         ("en", "English"),
+        ("es", "Español"),
         ("ko", "한국어"),
         ("zh-CN", "简体中文"),
         ("pl", "Polski"),
@@ -100,6 +101,8 @@ public sealed class LocalizationService : ILocalizer
             return "zh-CN";
         if (ui.StartsWith("pl", StringComparison.OrdinalIgnoreCase))
             return "pl";
+        if (ui.StartsWith("es", StringComparison.OrdinalIgnoreCase))
+            return "es";
         return "en";
     }
 
