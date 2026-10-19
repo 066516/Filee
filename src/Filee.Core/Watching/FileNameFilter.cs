@@ -60,6 +60,8 @@ public sealed class FileNameFilter
     {
         if (patterns is null || patterns.Count == 0)
             return All;
+        if (Cache.Count > 256)
+            Cache.Clear();
         return Cache.GetOrAdd(string.Join('\n', patterns), _ =>
         {
             var regexes = new List<Regex>();

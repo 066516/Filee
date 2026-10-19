@@ -146,6 +146,8 @@ public sealed class FolderWatcher : IAsyncDisposable
                     continue;
                 _pending.TryRemove(path, out _);
                 // A file that was converted before (same size and time) is not converted again.
+                if (_handled.Count > 10_000)
+                    _handled.Clear();
                 if (_handled.Add(current.Key(path)))
                     ready.Add(path);
             }
@@ -230,9 +232,23 @@ public sealed class FolderWatcher : IAsyncDisposable
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             var name = Path.GetFileNameWithoutExtension(target);
             var extension = Path.GetExtension(target);
-            for (var n = 2; File.Exists(target); n++)
-                target = Path.Combine(Path.GetDirectoryName(target)!, $"{name} ({n}){extension}");
-            File.Move(source, target);
+            for (var n = 2; ; n++)
+            {
+                if (File.Exists(target))
+                {
+                    target = Path.Combine(Path.GetDirectoryName(target)!, $"{name} ({n}){extension}");
+                    continue;
+                }
+                try
+                {
+                    File.Move(source, target);
+                    break;
+                }
+                catch (IOException) when (File.Exists(target) && n < 100)
+                {
+                    target = Path.Combine(Path.GetDirectoryName(target)!, $"{name} ({n}){extension}");
+                }
+            }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

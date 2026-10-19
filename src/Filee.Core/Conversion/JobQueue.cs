@@ -514,6 +514,9 @@ public sealed class JobQueue : IAsyncDisposable
     {
         await foreach (var job in _channel.Reader.ReadAllAsync())
         {
+            // NOTE: _busy was incremented by Enqueue before the job was written to the channel.
+            // Do NOT call RunAsync here — it has its own increment/decrement for external callers
+            // (tests, CLI). Calling it would double-increment and triple-decrement _busy.
             try
             {
                 if (job.CancellationToken.IsCancellationRequested)
@@ -523,7 +526,7 @@ public sealed class JobQueue : IAsyncDisposable
                     JobFinished?.Invoke(this, job);
                     continue;
                 }
-                await RunAsync(job);
+                await RunJobAsync(job);
             }
             finally
             {

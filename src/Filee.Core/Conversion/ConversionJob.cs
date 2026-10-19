@@ -66,8 +66,18 @@ public sealed class ConversionJob
     public IReadOnlyList<FileResult> Files { get; }
     public JobState State { get; internal set; } = JobState.Queued;
 
-    /// <summary>Overall progress 0..1.</summary>
-    public double Progress => Files.Count == 0 ? 1 : Files.Average(f => f.Progress);
+    /// <summary>Overall progress 0..1: counts completed files as full and sums partial progress of running ones,
+    /// so files still waiting at 0 don't dilute the displayed percentage.</summary>
+    public double Progress
+    {
+        get
+        {
+            if (Files.Count == 0) return 1;
+            var done = Files.Count(f => f.State is FileState.Done or FileState.Skipped or FileState.Failed or FileState.Cancelled);
+            var partialSum = Files.Where(f => f.State == FileState.Running).Sum(f => f.Progress);
+            return (done + partialSum) / Files.Count;
+        }
+    }
 
     /// <summary>Every file written by the job.</summary>
     public IEnumerable<string> Outputs => Files.SelectMany(f => f.Outputs);
