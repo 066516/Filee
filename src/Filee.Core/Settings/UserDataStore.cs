@@ -563,6 +563,9 @@ internal static class SettingsMigrations
         //      takes it. Other extensions the user removed from a built-in donut stay removed.
         if (from < 22)
             changed |= LearnExtensions(profiles, out _, ["fbx"]);
+        // v23: "Combine into one ZIP" on the archives donut after "extract".
+        if (from < 23)
+            changed |= Offer(presets, profiles, "archives", "zip-all", "extract");
         return changed;
     }
 

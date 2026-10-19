@@ -578,6 +578,22 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_22_libraries_get_zip_all_on_the_archives_donut_after_extract()
+    {
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var archives = profiles.Single(p => p.Id == "archives");
+        archives.PresetIds.Remove("zip-all");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(22, presets, profiles));
+        Assert.Contains("zip-all", archives.PresetIds);
+        var extractIndex = archives.PresetIds.IndexOf("extract");
+        var zipAllIndex = archives.PresetIds.IndexOf("zip-all");
+        Assert.Equal(extractIndex + 1, zipAllIndex);
+        Assert.False(SettingsMigrations.ApplyToLibrary(23, presets, profiles)); // once only
+    }
+
+    [Fact]
     public void Version_15_libraries_get_the_tracing_presets_on_the_images_donut_after_pdf()
     {
         // As written before tracing: no trace presets, and the images donut without them.
