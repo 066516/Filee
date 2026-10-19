@@ -20,7 +20,7 @@ public sealed class ThemeService(IPlatformServices platform)
     private const string Latin = "fonts:Filee#Noto Sans";
     private const string Korean = "fonts:Filee#Noto Sans KR";
     private const string Chinese = "fonts:Filee#Noto Sans SC";
-    private const string SystemFallbacks = "Segoe UI, Malgun Gothic, Microsoft YaHei, PingFang SC, Apple SD Gothic Neo, sans-serif";
+    private const string SystemFallbacks = "-apple-system, BlinkMacSystemFont, \"SF Pro Text\", \"SF Pro Display\", Helvetica Neue, Segoe UI, Malgun Gothic, Microsoft YaHei, PingFang SC, Apple SD Gothic Neo, sans-serif";
 
     public void Apply(ThemeSettings theme, string language)
     {

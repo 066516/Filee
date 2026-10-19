@@ -27,7 +27,27 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
     internal FormatRequestNoticeWindow? FormatRequestNotice => _formatRequestNotice;
 
+    private CropOverlayWindow? _cropOverlay;
+
     public MainWindow? Main => _main;
+
+    /// <summary>Opens the zero-window interactive Crop overlay HUD.</summary>
+    public void ShowCropOverlay(IReadOnlyList<string> files, Preset preset)
+    {
+        if (files.Count == 0)
+            return;
+        _cropOverlay?.Close();
+        var vm = new CropOverlayViewModel(files, preset, loc);
+        var win = new CropOverlayWindow { DataContext = vm };
+        win.Closed += (_, _) =>
+        {
+            if (_cropOverlay == win)
+                _cropOverlay = null;
+        };
+        _cropOverlay = win;
+        win.Show();
+        win.Activate();
+    }
 
     /// <summary>
     /// Shows (or brings to front) the main window, optionally on a page. Going to the tray closes it

@@ -43,6 +43,11 @@ public static class BuiltInData
             Id = "remove-background", NameKey = "preset.remove_background", TargetFormat = "png",
             Image = { RemoveBackground = true }, Output = { FileNamePattern = "{name}_transparent" },
         },
+        new()
+        {
+            Id = "tool-crop", NameKey = "preset.crop", TargetFormat = SameAsSource,
+            Kind = PresetKind.Tool, Output = { FileNamePattern = "{name}_cropped" },
+        },
         .. ImageToolPresets(),
         new()
         {
@@ -344,6 +349,7 @@ public static class BuiltInData
         .. WithSubtitleProfile(CatalogProfiles()),
         DataProfile(),
         ModelProfile(),
+
         new()
         {
             Id = "mixed", NameKey = "profile.mixed", IsFallback = true,

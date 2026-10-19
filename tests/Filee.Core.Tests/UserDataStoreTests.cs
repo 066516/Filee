@@ -732,6 +732,22 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_20_libraries_get_crop_tool_preset_after_remove_background_on_no_donut()
+    {
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "tool-crop");
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(20, presets, profiles));
+
+        var crop = presets.Single(p => p.Id == "tool-crop");
+        Assert.Equal(PresetKind.Tool, crop.Kind);
+        Assert.Equal("remove-background", presets[presets.IndexOf(crop) - 1].Id);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("tool-crop"));
+        Assert.False(SettingsMigrations.ApplyToLibrary(20, presets, profiles)); // once only
+    }
+
+    [Fact]
     public void Back_from_an_older_Filee_compress_pdf_compresses_again_and_keeps_the_users_changes()
     {
         // What a Filee before 20 leaves after saving: the compression level dropped, the rest as it was.

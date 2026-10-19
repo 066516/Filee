@@ -549,6 +549,17 @@ internal static class SettingsMigrations
                 changed = true;
             }
         }
+
+        // v21: interactive "Crop" tool, after "Remove background" as in a new library, on no donut: users add it in Settings → Toolbar.
+        if (from < 21)
+        {
+            if (presets.All(p => p.Id != "tool-crop") && BuiltInData.CreatePresets().FirstOrDefault(p => p.Id == "tool-crop") is { } crop)
+            {
+                var at = presets.FindIndex(p => p.Id == "remove-background");
+                presets.Insert(at < 0 ? presets.Count : at + 1, crop);
+                changed = true;
+            }
+        }
         return changed;
     }
 

@@ -289,10 +289,8 @@ public sealed partial class DonutMenu
                 using (context.PushOpacity(1 - c))
                 {
                     var wedge = CreateWedge(center, r1, r2, i, n);
-                    context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity), BorderPen(), wedge);
                     var hot = i == ActiveIndex;
-                    if (hot)
-                        context.DrawGeometry(WithOpacity(AccentBrush, 0.8), null, wedge);
+                    DrawGlassSlice(context, wedge, Items![i], center, r1, r2, DonutGeometry.MidAngle(i, n), DonutGeometry.Span(n), hot ? 1.0 : 0, false);
                     // Labels shrink with their slice instead of vanishing when the collapse starts.
                     DrawLabel(context, Items![i], center, (r1 + r2) / 2, DonutGeometry.MidAngle(i, n),
                         DonutGeometry.Span(n) * (r1 + r2) / 2 - 10, r2 - r1 - 16, bold, regular, hot);
@@ -302,7 +300,8 @@ public sealed partial class DonutMenu
             // The hole shrinks to the size of the ring's plate.
             var plate = RingRadius + RingStroke + 2;
             var holeRadius = Lerp(r1 - 6, plate, EaseInCubic(collapseAll));
-            context.DrawEllipse(CenterBrush, BorderPen(), center, holeRadius, holeRadius);
+            var isDarkHole = CenterBrush is ISolidColorBrush scHole ? ThemeService.Luminance(scHole.Color) < 0.5 : true;
+            DrawCenterDisc(context, center, holeRadius, isDarkHole);
             return;
         }
 
@@ -320,8 +319,9 @@ public sealed partial class DonutMenu
         using var __ = context.PushOpacity(opacity);
 
         var plateRadius = RingRadius + RingStroke + 2;
+        var isDarkPlate = CenterBrush is ISolidColorBrush scPlate ? ThemeService.Luminance(scPlate.Color) < 0.5 : true;
         DrawPlateShadow(context, center, plateRadius);
-        context.DrawEllipse(CenterBrush, BorderPen(), center, plateRadius, plateRadius);
+        DrawCenterDisc(context, center, plateRadius, isDarkPlate);
         context.DrawEllipse(null, new Pen(WithOpacity(SecondaryForeground, 0.22), RingStroke), center, RingRadius, RingRadius);
 
         var arcBrush = _outcome switch

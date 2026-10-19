@@ -57,6 +57,9 @@
   "donut.empty": "把预设拖到这里",
   "donut.same_format": "同格式",
   "donut.group_caption": "组 · {0} 项",
+  "donut.more": "更多 →",
+  "donut.back": "← 返回",
+  "donut.nav_hint": "第 {0}/{1} 页",
 
   "toast.converting": "{0} → {1}",
   "toast.done": "完成",
@@ -129,7 +132,17 @@
   "profile.fonts": "字体",
   "profile.data": "数据",
   "profile.models": "3D 模型",
+  "profile.utility": "快捷工具",
   "profile.mixed": "混合文件",
+
+  "preset.crop": "裁剪",
+  "crop.title": "裁剪",
+  "crop.save": "裁剪并保存",
+  "crop.reset": "重置",
+  "crop.aspect_title": "比例:",
+  "crop.aspect_free": "自由",
+  "crop.aspect_original": "原始比例",
+  "crop.page_counter": "{0}/{1}",
 
   "preset.half_size": "缩小 50%",
   "preset.grayscale": "灰度",

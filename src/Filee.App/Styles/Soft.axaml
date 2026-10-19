@@ -45,7 +45,7 @@
       <CornerRadius x:Key="SoftRadius">16</CornerRadius>
       <CornerRadius x:Key="SoftRadiusSmall">9</CornerRadius>
       <CornerRadius x:Key="SoftRadiusLarge">22</CornerRadius>
-      <FontFamily x:Key="AppFontFamily">Segoe UI, Malgun Gothic, Microsoft YaHei, sans-serif</FontFamily>
+      <FontFamily x:Key="AppFontFamily">-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Segoe UI, Malgun Gothic, Microsoft YaHei, sans-serif</FontFamily>
 
       <!-- Springy easing used by press/hover transitions ("말랑말랑"). -->
       <BackEaseOut x:Key="SoftEase" />

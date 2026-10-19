@@ -19,6 +19,7 @@ using Filee.App.ViewModels;
 using Filee.App.Views;
 using Filee.Core.Conversion;
 using Filee.Core.Platform;
+using Filee.Core.Presets;
 using Filee.Core.Profiles;
 using Filee.Core.Settings;
 using Microsoft.Extensions.Logging;
@@ -53,6 +54,7 @@ public sealed class RadialController(
     private static readonly LogThrottle Throttle = new(TimeSpan.FromMinutes(1));
     private bool _converted;   // a conversion started from the files on the donut now
     private readonly HashSet<string> _formatRequestsOffered = new(StringComparer.OrdinalIgnoreCase);
+    private TriggerGesture? _activeGesture;
 
     /// <summary>
     /// How long a drag that never brought files may keep the invisible window up, in case the button release is
@@ -69,8 +71,9 @@ public sealed class RadialController(
     /// invisible until files are dragged into it (FilesEntered); a gesture without files (text, a rubber-band
     /// selection, nothing at all) never shows anything and closes when the button is released.
     /// </summary>
-    public void ShowForDrag(int x, int y)
+    public void ShowForDrag(int x, int y, TriggerGesture? gesture = null)
     {
+        _activeGesture = gesture;
         ReleaseProgressToToast();
         var window = EnsureWindow();
         // A ring from an earlier conversion (finished or handed to the toast) must not keep this gesture's window up.
@@ -191,12 +194,19 @@ public sealed class RadialController(
         {
             if (viewModel.IsClickMode || SameFiles(files, viewModel.Files))
                 return;
-            viewModel.Load(files, clickMode: false);
+            viewModel.Load(files, clickMode: false, profileId: _activeGesture?.TargetProfileId);
             donut.PlayOpenAnimation();
         };
         window.Dropped += (hit, files) =>
         {
             _dropped = true;
+            if (hit.Kind is DonutHitKind.Segment && viewModel.IsNavigationAt(hit.Index))
+            {
+                viewModel.NavigateAt(hit.Index);
+                donut.PlayOpenAnimation();
+                _dropped = false;
+                return;
+            }
             if (hit.Kind is DonutHitKind.Segment or DonutHitKind.SubSegment)
                 Convert(hit.Index, hit.Sub, files.Count > 0 ? files : viewModel.Files);
             else
@@ -215,7 +225,21 @@ public sealed class RadialController(
         };
 
         donut.ActiveIndexChanged += (_, index) => viewModel.ShowHint(index, donut.ActiveSubIndex, donut.IsCenterHot);
-        donut.SegmentInvoked += (_, index) => Convert(index, -1, viewModel.Files);
+        donut.SegmentInvoked += (_, index) =>
+        {
+            if (viewModel.IsNavigationAt(index))
+            {
+                viewModel.NavigateAt(index);
+                donut.PlayOpenAnimation();
+                return;
+            }
+            Convert(index, -1, viewModel.Files);
+        };
+        donut.NavigationRequested += (_, delta) =>
+        {
+            viewModel.CyclePage(delta);
+            donut.PlayOpenAnimation();
+        };
         donut.SubSegmentInvoked += (_, hit) => Convert(hit.Group, hit.Sub, viewModel.Files);
         donut.CenterInvoked += (_, _) => Close();
         donut.SegmentContextRequested += async (_, index) => await EditPresetAsync(index);
@@ -237,6 +261,13 @@ public sealed class RadialController(
         if (viewModel.PresetAt(index, sub) is not { } preset || files.Count == 0)
         {
             Close();
+            return;
+        }
+
+        if (preset.Kind == PresetKind.Tool && preset.Id == "tool-crop")
+        {
+            Close(animate: false);
+            windows.ShowCropOverlay(files, preset);
             return;
         }
 

@@ -57,6 +57,9 @@
   "donut.empty": "Przeciągnij tu ustawienia",
   "donut.same_format": "Ten sam format",
   "donut.group_caption": "Grupa: {0}",
+  "donut.more": "Więcej →",
+  "donut.back": "← Wstecz",
+  "donut.nav_hint": "Strona {0} z {1}",
 
   "toast.converting": "{0} → {1}",
   "toast.done": "Gotowe",
@@ -129,7 +132,17 @@
   "profile.fonts": "Czcionki",
   "profile.data": "Dane",
   "profile.models": "Modele 3D",
+  "profile.utility": "Szybkie narzędzia",
   "profile.mixed": "Różne pliki",
+
+  "preset.crop": "Kadruj",
+  "crop.title": "Kadrowanie",
+  "crop.save": "Kadruj i zapisz",
+  "crop.reset": "Resetuj",
+  "crop.aspect_title": "Proporcje:",
+  "crop.aspect_free": "Dowolne",
+  "crop.aspect_original": "Oryginalne",
+  "crop.page_counter": "{0} z {1}",
 
   "preset.half_size": "Połowa rozmiaru",
   "preset.grayscale": "Skala szarości",

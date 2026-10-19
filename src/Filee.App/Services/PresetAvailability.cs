@@ -15,6 +15,13 @@ public sealed class PresetAvailability(ConverterCatalog catalog, ILocalizer loc,
     /// </summary>
     public string? Check(Preset preset, IReadOnlyList<FileFormat> formats)
     {
+        if (preset.Kind == PresetKind.Tool)
+        {
+            if (preset.Id == "tool-crop")
+                return formats.Any(f => f.Category == FormatCategory.Image || f.Id == "pdf") ? null : loc["error.unsupported_source"];
+            return null;
+        }
+
         // "Compress into one archive" packs the files as they are, so any file works, even of an unknown type.
         if (preset.Archive.CombineIntoOne
             && FormatRegistry.FindById(preset.TargetFormat) is { Category: FormatCategory.Archive } archive

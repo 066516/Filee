@@ -72,6 +72,9 @@ public sealed class TriggerGesture
 
     public TriggerScope Scope { get; set; } = TriggerScope.FileManager;
 
+    /// <summary>Optional profile id to open when triggered (e.g. "utility" for the quick tools wheel).</summary>
+    public string? TargetProfileId { get; set; }
+
     public TriggerGesture Clone() => (TriggerGesture)MemberwiseClone();
 
     /// <summary>Default gestures for the current OS.</summary>
@@ -79,9 +82,11 @@ public sealed class TriggerGesture
     {
         // On macOS Ctrl+click means right-click, and Option already means "copy" in Finder.
         var dragModifier = OperatingSystem.IsMacOS() ? ModifierKeys.Alt : ModifierKeys.Ctrl;
+        var utilityModifier = dragModifier | ModifierKeys.Shift;
         return
         [
             new() { Kind = TriggerKind.Drag, Modifiers = dragModifier, Button = TriggerMouseButton.Left },
+            new() { Kind = TriggerKind.Drag, Modifiers = utilityModifier, Button = TriggerMouseButton.Left, TargetProfileId = "utility" },
             new() { Kind = TriggerKind.KeyChord, Modifiers = ModifierKeys.Ctrl | ModifierKeys.Alt, Button = TriggerMouseButton.None, Key = "Space" },
         ];
     }

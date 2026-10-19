@@ -57,6 +57,9 @@
   "donut.empty": "프리셋을 끌어다 놓으세요",
   "donut.same_format": "같은 형식",
   "donut.group_caption": "묶음 · {0}개",
+  "donut.more": "더보기 →",
+  "donut.back": "← 이전",
+  "donut.nav_hint": "페이지 {0}/{1}",
 
   "toast.converting": "{0} → {1}",
   "toast.done": "완료",
@@ -129,7 +132,17 @@
   "profile.fonts": "글꼴",
   "profile.data": "데이터",
   "profile.models": "3D 모델",
+  "profile.utility": "빠른 도구",
   "profile.mixed": "혼합 파일",
+
+  "preset.crop": "자르기",
+  "crop.title": "자르기",
+  "crop.save": "자르기 및 저장",
+  "crop.reset": "초기화",
+  "crop.aspect_title": "비율:",
+  "crop.aspect_free": "자유",
+  "crop.aspect_original": "원본",
+  "crop.page_counter": "{0}/{1}",
 
   "preset.half_size": "50% 축소",
   "preset.grayscale": "흑백",

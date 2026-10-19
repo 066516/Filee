@@ -1,0 +1,116 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Filee.App.ViewModels"
+        xmlns:c="using:Filee.App.Controls"
+        x:Class="Filee.App.Views.CropOverlayWindow"
+        x:DataType="vm:CropOverlayViewModel"
+        Title="Filee — Crop"
+        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Width="960" Height="680" MinWidth="680" MinHeight="500"
+        WindowStartupLocation="CenterScreen"
+        WindowDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        Topmost="True"
+        CanResize="True">
+  
+  <Window.Styles>
+    <Style Selector="Button.aspect">
+      <Setter Property="Padding" Value="10,5" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Background" Value="#22FFFFFF" />
+      <Setter Property="Foreground" Value="#EEEEEE" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="#22FFFFFF" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.aspect:pointerover">
+      <Setter Property="Background" Value="#44FFFFFF" />
+    </Style>
+    <Style Selector="Button.aspect.active">
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    </Style>
+    <Style Selector="Button.aspect.active:pointerover">
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Opacity" Value="0.9" />
+    </Style>
+  </Window.Styles>
+
+  <!-- Dark translucent overlay card with rounded corners and drop shadow -->
+  <Border Margin="16" CornerRadius="14"
+          Background="#E61A1A1E"
+          BorderBrush="#33FFFFFF" BorderThickness="1"
+          ClipToBounds="True"
+          BoxShadow="0 10 32 0 #80000000">
+    <DockPanel>
+      <!-- Top header bar -->
+      <Border DockPanel.Dock="Top" Height="48" Padding="16,0" BorderBrush="#22FFFFFF" BorderThickness="0,0,0,1"
+              Background="#26000000">
+        <DockPanel VerticalAlignment="Center">
+          <Button DockPanel.Dock="Right" Classes="icon" Command="{Binding CancelCommand}"
+                  ToolTip.Tip="{DynamicResource common.cancel}" Margin="4,0,0,0">
+            <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Close}" Foreground="#AAAAAA" />
+          </Button>
+
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <PathIcon Width="16" Height="16" Data="{StaticResource Icon.Crop}" Foreground="{DynamicResource AccentBrush}" />
+            <TextBlock Text="{DynamicResource preset.crop}" FontWeight="SemiBold" FontSize="14" Foreground="#FFFFFF" />
+            <TextBlock Text="—" Foreground="#666666" />
+            <TextBlock Text="{Binding CurrentFileName}" FontSize="13" Foreground="#CCCCCC" TextTrimming="CharacterEllipsis" MaxWidth="360" />
+            
+            <Border IsVisible="{Binding HasMultipleFiles}" Background="#33FFFFFF" CornerRadius="10" Padding="8,2">
+              <TextBlock Text="{Binding CounterText}" FontSize="11" Foreground="#EEEEEE" />
+            </Border>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <!-- Bottom toolbar HUD -->
+      <Border DockPanel.Dock="Bottom" Padding="16,12" BorderBrush="#22FFFFFF" BorderThickness="0,1,0,0"
+              Background="#26000000">
+        <DockPanel>
+          <!-- Action Buttons on the Right -->
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button Content="{DynamicResource crop.reset}" Command="{Binding ResetCommand}"
+                    Classes="aspect" />
+            <Button Content="{DynamicResource common.cancel}" Command="{Binding CancelCommand}"
+                    IsCancel="True" Classes="aspect" />
+            <Button Content="{DynamicResource crop.save}" Command="{Binding CropAndSaveCommand}"
+                    IsDefault="True" Classes="accent" FontWeight="SemiBold" Padding="14,6" CornerRadius="6" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <TextBlock Text="{DynamicResource crop.aspect_title}" VerticalAlignment="Center" FontSize="12" Foreground="#888888" Margin="0,0,2,0" />
+            <Button Classes="aspect" Classes.active="{Binding IsAspectFree}" Content="{DynamicResource crop.aspect_free}" Command="{Binding SetAspectCommand}" CommandParameter="free" ToolTip.Tip="Free-form selection" />
+            <Button Classes="aspect" Classes.active="{Binding IsAspectSquare}" Content="1:1" Command="{Binding SetAspectCommand}" CommandParameter="1:1" ToolTip.Tip="1:1 Square (Instagram post)" />
+            <Button Classes="aspect" Classes.active="{Binding IsAspect45}" Content="4:5" Command="{Binding SetAspectCommand}" CommandParameter="4:5" ToolTip.Tip="4:5 Portrait (Instagram feed)" />
+            <Button Classes="aspect" Classes.active="{Binding IsAspect916}" Content="9:16" Command="{Binding SetAspectCommand}" CommandParameter="9:16" ToolTip.Tip="9:16 Vertical (Stories / Reels)" />
+            <Button Classes="aspect" Classes.active="{Binding IsAspect169}" Content="16:9" Command="{Binding SetAspectCommand}" CommandParameter="16:9" ToolTip.Tip="16:9 Widescreen" />
+            <Button Classes="aspect" Classes.active="{Binding IsAspectOriginal}" Content="{DynamicResource crop.aspect_original}" Command="{Binding SetAspectCommand}" CommandParameter="original" ToolTip.Tip="Original photo aspect ratio" />
+
+            <Border Background="#22000000" BorderBrush="#33FFFFFF" BorderThickness="1" CornerRadius="6" Padding="8,4" Margin="6,0,0,0">
+              <TextBlock Text="{Binding DimensionsText}" FontSize="11" FontFamily="Consolas, monospace" Foreground="#DDDDDD" />
+            </Border>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <!-- Center image viewport and interactive crop canvas -->
+      <Grid Background="#11000000">
+        <c:CropCanvas x:Name="Canvas"
+                      SourceImage="{Binding PreviewImage}"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch" />
+
+        <!-- Loading spinner / busy indicator -->
+        <Border IsVisible="{Binding IsBusy}" Background="#66000000" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+          <ProgressBar IsIndeterminate="True" Width="80" Height="4" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+      </Grid>
+    </DockPanel>
+  </Border>
+</Window>
