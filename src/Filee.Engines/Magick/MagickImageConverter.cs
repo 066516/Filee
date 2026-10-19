@@ -72,20 +72,31 @@ public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransf
             // Animated PNGs are often saved as .png: read them as APNG, so they stay animated as GIF or WebP.
             var from = step.From == "png" && Apng.IsAnimated(step.InputPath) ? "apng" : step.From;
             using var images = ImageReader.Read(step.InputPath, from, step.Preset);
-            cancellationToken.ThrowIfCancellationRequested();
-            progress?.Report(0.3);
-
-            var frames = ImageEncoder.SelectFrames(images, from, step.To);
-            foreach (var frame in frames)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                ImageEncoder.ApplyOptions(frame, step.Preset.Image, step.To);
-            }
-            progress?.Report(0.7);
-
-            var written = ImageEncoder.Write(frames, step.To, step.Output, step.Preset.Image, step.InputPath,
-                ImageEncoder.KeepsAnimation(from, step.To));
-            progress?.Report(1);
-            return written;
+            return Write(images, from, step, progress, cancellationToken);
         }, cancellationToken);
+
+    /// <summary>
+    /// The rest of a conversion once the picture is read (also for pictures another engine decoded, see
+    /// Wic/WicImageConverter): the frames kept for the target, the preset's options, the files.
+    /// </summary>
+    /// <param name="from">Format the frames were read from (animations and icons keep different frames).</param>
+    internal static IReadOnlyList<string> Write(MagickImageCollection images, string from, ConversionStep step,
+        IProgress<double>? progress, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        progress?.Report(0.3);
+
+        var frames = ImageEncoder.SelectFrames(images, from, step.To);
+        foreach (var frame in frames)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ImageEncoder.ApplyOptions(frame, step.Preset.Image, step.To);
+        }
+        progress?.Report(0.7);
+
+        var written = ImageEncoder.Write(frames, step.To, step.Output, step.Preset.Image, step.InputPath,
+            ImageEncoder.KeepsAnimation(from, step.To));
+        progress?.Report(1);
+        return written;
+    }
 }

@@ -85,6 +85,7 @@
   "engine.reason.unsupported_platform": "이 플랫폼에서는 사용할 수 없음",
   "engine.reason.needs_package": "{0} 필요 (설정 → 변환 엔진에서 설치)",
   "engine.magick.description": "JPG, PNG, WEBP, AVIF, HEIC, TIFF, GIF, APNG, PSD, 카메라 RAW 등 이미지를 변환해요.\n품질·크기·DPI는 프리셋대로 맞춰요.",
+  "engine.wic.description": "JPEG XR 이미지(.jxr, .wdp, .hdp), 예를 들어 Windows HDR 스크린샷을 Windows 내장 코덱으로 PNG, JPG 등으로 바꿔요.\nHDR은 톤 매핑해서 밝은 부분의 디테일을 살려요.",
   "engine.pdfium.description": "PDF 페이지를 PNG, JPG, TIFF(여러 페이지 TIFF·GIF 포함)로 프리셋 해상도에 맞춰 그려요.",
   "engine.pdfsharp.description": "이미지로 PDF를 만들고, PDF를 합치거나 나누거나 원하는 페이지만 잘라내요.\nPDF 속 이미지를 줄여 파일을 작게 만들기도 해요.",
   "engine.rhwp.description": "HWP/HWPX를 PDF로 그리고, HWP ↔ HWPX를 바꿔요.\nHWPX를 거쳐 PDF가 되는 문서(DOCX, XLSX, PPTX, 전자책 등)도 그려요.",
