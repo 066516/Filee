@@ -18,6 +18,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using Filee.Engines.Hwp.Hwpx;
+using Filee.Engines.Infrastructure;
 using PDFtoImage;
 using SkiaSharp;
 using UglyToad.PdfPig;
@@ -67,7 +68,36 @@ internal sealed partial class PdfDocumentReader
         ["ComicSansMS"] = "Comic Sans MS",
         ["LucidaConsole"] = "Lucida Console",
         ["PalatinoLinotype"] = "Palatino Linotype",
+        ["MicrosoftSansSerif"] = "Microsoft Sans Serif",
+        // Fonts for scripts that need shaping, as Word and LibreOffice name them in PDFs.
+        ["ArialUnicodeMS"] = "Arial Unicode MS",
+        ["NirmalaUI"] = "Nirmala UI",
+        ["NirmalaText"] = "Nirmala Text",
+        ["LeelawadeeUI"] = "Leelawadee UI",
+        ["KhmerUI"] = "Khmer UI",
+        ["LaoUI"] = "Lao UI",
+        ["MyanmarText"] = "Myanmar Text",
+        ["IskoolaPota"] = "Iskoola Pota",
+        ["TraditionalArabic"] = "Traditional Arabic",
+        ["SimplifiedArabic"] = "Simplified Arabic",
+        ["SimplifiedArabicFixed"] = "Simplified Arabic Fixed",
+        ["ArabicTypesetting"] = "Arabic Typesetting",
+        ["SakkalMajalla"] = "Sakkal Majalla",
+        ["UrduTypesetting"] = "Urdu Typesetting",
+        ["AngsanaNew"] = "Angsana New",
+        ["AngsanaUPC"] = "AngsanaUPC",
+        ["BrowalliaNew"] = "Browallia New",
+        ["CordiaNew"] = "Cordia New",
     };
+
+    /// <summary>
+    /// Families whose PostScript names are the family name without spaces ("NotoSansGujarati", "LiberationSerif",
+    /// "DejaVuSans"): split again before each capital ("Noto Sans Gujarati").
+    /// </summary>
+    private static readonly Regex SpacedFamily = new("^(Noto|Liberation|DejaVu)[A-Z]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    /// <summary>Where a space goes in such a name: before a capital that follows a small letter or a digit, and between "UI" and a word.</summary>
+    private static readonly Regex WordStart = new("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private readonly string _path;
     private readonly string _mediaFolder;
@@ -113,6 +143,17 @@ internal sealed partial class PdfDocumentReader
         public double Baseline => Words[0].Baseline;
         public double Size => Words.Max(w => w.Size);
         public string Text => string.Join(' ', Words.Select(w => w.Text));
+
+        private bool? _rightToLeft;
+
+        /// <summary>Mostly Arabic or Hebrew: read from right to left, so its first word is the rightmost one.</summary>
+        public bool RightToLeft => _rightToLeft ??= ComplexScripts.Direction(string.Concat(Words.Select(w => w.Text))) < 0;
+
+        /// <summary>The word the line starts with in reading order.</summary>
+        public TextWord First => RightToLeft ? Words[^1] : Words[0];
+
+        /// <summary>The word the line ends with in reading order.</summary>
+        public TextWord Last => RightToLeft ? Words[0] : Words[^1];
     }
 
     /// <summary>A paragraph, a picture or a ruled table on a page, the unit of reading order.</summary>
@@ -138,6 +179,9 @@ internal sealed partial class PdfDocumentReader
             .OrderByDescending(g => g.Sum(w => w.Text.Length)).Select(g => g.Key).FirstOrDefault(10);
 
         public string Text => Table?.Text ?? string.Join(' ', Lines.Select(l => l.Text));
+
+        /// <summary>A paragraph of mostly right-to-left lines.</summary>
+        public bool RightToLeft => !IsPicture && !IsTable && Lines.Count(l => l.RightToLeft) * 2 > Lines.Count;
 
         /// <summary>Left and right edges of the column (or the text area) the item sits in, set by the reading order.</summary>
         public double ContainerLeft { get; set; }
@@ -236,10 +280,18 @@ internal sealed partial class PdfDocumentReader
             .Select(h => (Bounds: Shift(h.Bounds, crop), Uri: h.Uri!))
             .ToList();
 
+        // Text that needs shaping (Arabic, Indic, ...) is read in content-stream order (PdfDocumentReader.ComplexText).
+        var pageLetters = ContentLetters(page);
+        var pageWords = HasComplexText(pageLetters)
+            ? ComplexWords(pageLetters)
+            : NearestNeighbourWordExtractor.Instance.GetWords(pageLetters.Where(l => l.Value.Length > 0).ToList())
+                .Where(w => w.TextOrientation == TextOrientation.Horizontal && w.Letters.Count > 0)
+                .Select(w => new PageWord(w.Text, w.BoundingBox, w.Letters, w.Letters[0]));
+
         var words = new List<TextWord>();
-        foreach (var word in page.GetWords(NearestNeighbourWordExtractor.Instance))
+        foreach (var word in pageWords)
         {
-            if (word.TextOrientation != TextOrientation.Horizontal || string.IsNullOrWhiteSpace(word.Text))
+            if (string.IsNullOrWhiteSpace(word.Text))
                 continue;
             var letters = word.Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToList();
             if (letters.Count == 0)
@@ -247,12 +299,13 @@ internal sealed partial class PdfDocumentReader
             // Invisible text is the OCR layer of a scan: part of the text, not of the page's look.
             if (!_textOnly && letters.All(l => l.RenderingMode == TextRenderingMode.Neither))
                 continue;
-            var box = Shift(word.BoundingBox, crop);
-            var size = Median(letters.Select(l => l.PointSize > 0 ? l.PointSize : l.FontSize));
+            var lead = string.IsNullOrWhiteSpace(word.Lead.Value) ? letters[0] : word.Lead;
+            var box = Shift(word.Box, crop);
+            var size = Median(letters.Select(LetterSize));
             var center = new PdfPoint((box.Left + box.Right) / 2, (box.Top + box.Bottom) / 2);
             var link = links.FirstOrDefault(l => Inside(l.Bounds, center)).Uri;
             words.Add(new TextWord(CleanText(word.Text), box.Left, box.Right, box.Top, box.Bottom,
-                letters[0].StartBaseLine.Y - crop.Bottom, Math.Max(1, size), Format(letters[0], size), link));
+                lead.StartBaseLine.Y - crop.Bottom, Math.Max(1, size), Format(lead, size), link));
         }
 
         if (words.Count == 0 || (rotated && !_textOnly))
@@ -323,6 +376,13 @@ internal sealed partial class PdfDocumentReader
         }
         if (KnownFonts.TryGetValue(name, out var known))
             return known;
+        if (SpacedFamily.IsMatch(name))
+        {
+            // "NotoSansCJKkr" → "Noto Sans CJK KR"
+            var cjk = Regex.Match(name, "CJK(kr|jp|sc|tc|hk)$", RegexOptions.CultureInvariant);
+            var spaced = WordStart.Replace(cjk.Success ? name[..cjk.Index] : name, " ").Replace("Deja Vu", "DejaVu", StringComparison.Ordinal);
+            return cjk.Success ? $"{spaced} CJK {cjk.Groups[1].Value.ToUpperInvariant()}" : spaced;
+        }
         return name.Length < 3 || Regex.IsMatch(name, "^(F|T3Font_?|Font)\\d+$", RegexOptions.CultureInvariant) ? null : name;
     }
 
@@ -680,48 +740,52 @@ internal sealed partial class PdfDocumentReader
         if (headingLevels.TryGetValue(Math.Round(size), out var level) && item.Lines.Count <= 3 && item.Text.Length <= 200)
             paragraph.HeadingLevel = level;
 
-        // Alignment and indents relative to the column (or text area) the paragraph is in.
+        // Alignment and indents relative to the column (or text area) the paragraph is in. A right-to-left paragraph
+        // starts at the right: its alignment and indents are measured from that side (HParaFormat.RightToLeft).
+        var rightToLeft = item.RightToLeft;
         var containerWidth = Math.Max(1, item.ContainerRight - item.ContainerLeft);
         var lefts = item.Lines.Select(l => l.Left - item.ContainerLeft).ToList();
         var rights = item.Lines.Select(l => item.ContainerRight - l.Right).ToList();
+        var (starts, ends) = rightToLeft ? (rights, lefts) : (lefts, rights);
         var tolerance = Math.Max(3, containerWidth * 0.03);
         HAlign align;
         if (item.Lines.All(l => Math.Abs((l.Left - item.ContainerLeft) - (item.ContainerRight - l.Right)) < tolerance) && lefts.Min() > containerWidth * 0.04)
             align = HAlign.Center;
-        else if (rights.All(r => r < 3) && lefts.Min() > containerWidth * 0.15)
+        else if (ends.All(r => r < 3) && starts.Min() > containerWidth * 0.15)
             align = HAlign.Right;
-        else if (item.Lines.Count >= 2 && rights.Take(rights.Count - 1).All(r => r < 2.5) && item.Width > containerWidth * 0.5)
+        else if (item.Lines.Count >= 2 && ends.Take(ends.Count - 1).All(r => r < 2.5) && item.Width > containerWidth * 0.5)
             align = HAlign.Justify;
         else
             align = HAlign.Left;
 
-        int? left = null, firstLine = null;
+        int? start = null, firstLine = null;
         if (align is HAlign.Left or HAlign.Justify)
         {
-            var body = item.Lines.Count > 1 ? lefts.Skip(1).Min() : lefts[0];
+            var body = item.Lines.Count > 1 ? starts.Skip(1).Min() : starts[0];
             if (body > 2)
-                left = Hwp(body);
-            var first = lefts[0] - Math.Max(0, body);
+                start = Hwp(body);
+            var first = starts[0] - Math.Max(0, body);
             if (Math.Abs(first) > 2)
                 firstLine = Hwp(first);
         }
 
         // A tabbed row: a left tab stop where each part starts in the PDF.
-        var tabs = item.Lines.SelectMany(l => l.Tabs.Select(t => Hwp(l.Words[t].Left - item.ContainerLeft))).Distinct().Order()
+        var tabs = rightToLeft ? [] : item.Lines.SelectMany(l => l.Tabs.Select(t => Hwp(l.Words[t].Left - item.ContainerLeft))).Distinct().Order()
             .Select(position => new HTabStop(position, HTabKind.Left, "NONE")).ToList();
 
         var pitch = item.Lines.Count >= 2 ? Pitch(item) : size * lineRatio;
         paragraph.Format = new HParaFormat(
             Align: align,
-            Left: left,
+            Left: start,
             FirstLine: firstLine,
             Tabs: tabs.Count > 0 ? tabs : null,
             Before: SpaceBefore(item, previous, lineRatio),
             After: 0,
             // "At least" the PDF's line distance: close to the original and never cuts off a larger font.
-            LineSpacing: new HLineSpacing(HLineSpacingKind.AtLeast, Hwp(Math.Clamp(pitch, size, size * 3))));
+            LineSpacing: new HLineSpacing(HLineSpacingKind.AtLeast, Hwp(Math.Clamp(pitch, size, size * 3))),
+            RightToLeft: rightToLeft ? true : null);
         paragraph.MarkFormat = new HCharFormat(Size: (int)(Math.Round(size * 2) * 50));
-        Runs(item, paragraph.Inlines);
+        Runs(item, paragraph.Inlines, rightToLeft);
         return paragraph;
     }
 
@@ -745,15 +809,17 @@ internal sealed partial class PdfDocumentReader
     /// Words joined into runs of equal formatting; line ends become spaces (not inside CJK text or after a hyphen), or
     /// line breaks where the line ended early on purpose. Tabs of a tabbed row stay tabs.
     /// </summary>
-    private static void Runs(Item item, List<HInline> output)
+    private static void Runs(Item item, List<HInline> output, bool rightToLeft)
     {
         var pieces = new List<(string Text, HCharFormat Format, string? Link)>();
         for (var l = 0; l < item.Lines.Count; l++)
         {
             var line = item.Lines[l];
-            for (var w = 0; w < line.Words.Count; w++)
+            // Words in reading order: a tabbed row keeps its parts where they are.
+            var words = line.Tabs.Count > 0 ? line.Words : InReadingOrder(line.Words, rightToLeft);
+            for (var w = 0; w < words.Count; w++)
             {
-                var word = line.Words[w];
+                var word = words[w];
                 var text = word.Text;
                 if (pieces.Count > 0)
                 {
@@ -770,7 +836,7 @@ internal sealed partial class PdfDocumentReader
                     {
                         pieces[^1] = (previousText[..^1], previousFormat, previousLink); // hyphenated at the line end
                     }
-                    else if (EndedEarly(item, l))
+                    else if (EndedEarly(item, l, rightToLeft))
                     {
                         pieces.Add(("\n", word.Format, null));
                     }
@@ -816,19 +882,56 @@ internal sealed partial class PdfDocumentReader
     /// that within its own width; past it only when the paragraph is clearly narrower than its column (an indented
     /// block of short lines), not a quote with a right indent.
     /// </summary>
-    private static bool EndedEarly(Item item, int l)
+    private static bool EndedEarly(Item item, int l, bool rightToLeft)
     {
         var previous = item.Lines[l - 1];
         var line = item.Lines[l];
-        if (previous.Words[^1].Text.EndsWith('-'))
+        if (previous.Last.Text.EndsWith('-'))
             return false;
         var em = line.Size;
-        var end = previous.Right + 0.3 * em + (line.Words[0].Right - line.Words[0].Left);
+        var column = item.ContainerRight - item.ContainerLeft;
+        var firstWord = line.First.Right - line.First.Left;
+        if (rightToLeft)
+        {
+            // Mirrored: right-to-left lines end at the left.
+            var start = previous.Left - 0.3 * em - firstWord;
+            if (start > item.Left + 0.5 * em)
+                return true;
+            return start > item.ContainerLeft + 0.5 * em && item.Left - item.ContainerLeft > 0.25 * column;
+        }
+        var end = previous.Right + 0.3 * em + firstWord;
         if (end < item.Right - 0.5 * em)
             return true;
-        var column = item.ContainerRight - item.ContainerLeft;
         return end < item.ContainerRight - 0.5 * em && item.ContainerRight - item.Right > 0.25 * column;
     }
+
+    /// <summary>
+    /// A line's words (left to right) in reading order: from right to left in a right-to-left paragraph, with numbers
+    /// and Latin words in it kept left to right, and Arabic or Hebrew words in a left-to-right line turned around.
+    /// </summary>
+    private static List<TextWord> InReadingOrder(List<TextWord> words, bool rightToLeft)
+    {
+        if (!rightToLeft && !words.Any(w => ComplexScripts.Direction(w.Text) < 0))
+            return words;
+        var ordered = rightToLeft
+            ? LogicalOrder(Enumerable.Reverse(words).ToList(), w => ComplexScripts.Direction(w.Text), rightToLeft: true)
+            : LogicalOrder(words, w => ComplexScripts.Direction(w.Text), rightToLeft: false);
+        // A full stop or comma after a word of the other direction is drawn on that word's far side ("2024." at the end
+        // of an Arabic sentence shows as ".2024"): it comes first in the word's letters and goes back to the end.
+        var other = rightToLeft ? 1 : -1;
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            var text = ordered[i].Text;
+            var lead = 0;
+            while (lead < text.Length - 1 && SentencePunctuation.Contains(text[lead]))
+                lead++;
+            if (lead > 0 && ComplexScripts.Direction(text) == other)
+                ordered[i] = ordered[i] with { Text = text[lead..] + text[..lead] };
+        }
+        return ordered;
+    }
+
+    private const string SentencePunctuation = ".,:;!?،؛؟";
 
     private static IEnumerable<(string Text, HCharFormat Format, string? Link)> Merge(List<(string Text, HCharFormat Format, string? Link)> pieces)
     {

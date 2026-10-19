@@ -38,6 +38,19 @@ DOCX, XLSX, XLS, ODS and PPTX → PDF need neither Microsoft Office nor LibreOff
 and rendered by rhwp. Anything the built-in readers understand (including PDF) is written as DOCX by the DOCX writer.
 LibreOffice's and Pandoc's costs are set so the built-in route always wins where one exists.
 
+Except for text that needs shaping. rhwp draws one glyph per character from left to right without OpenType shaping,
+so Arabic and Hebrew come out unjoined and in the wrong order, and Indic vowel signs and conjuncts as separate glyphs
+with dotted circles (#185 Gujarati, #202 Arabic). Its PDF edges are marked `Unshaped`, and rhwp tells
+(`ITextShapingCheck`) whether a source has such text: `Infrastructure/ComplexScripts.cs` scans the text parts of the
+file without reading it into the document model (DOCX `word/document.xml`, headers, footers and notes, PPTX slides,
+XLSX shared strings and sheets, HWPX sections, EPUB chapters, or a text file with its HTML / RTF character
+references) for the Hebrew, Arabic, Syriac, Thaana, N'Ko, Indic, Sinhala, Thai, Lao, Tibetan, Myanmar, Khmer,
+Mongolian and other South / Southeast Asian blocks. For such a file `JobQueue` plans again without unshaped edges: DOCX,
+TXT, Markdown, HTML, XLSX, PPTX and HWPX → PDF (and → images through PDF) go through LibreOffice even when Settings →
+*Engines* doesn't choose it for documents. Without LibreOffice the file fails with "This script needs LibreOffice to
+convert correctly" and the script's name instead of becoming a broken PDF. Latin, Greek, Cyrillic, CJK and Korean
+documents keep the built-in route; a binary HWP is not scanned and stays with rhwp.
+
 All built-in document readers are registered in one place, `Hwp/Hwpx/DocumentReaders.cs` (format id → reader, and
 which formats need Pandoc). The HWPX writer and the DOCX writer take their input formats from it: adding a reader
 there is one line and makes both writers (and every route through them) accept the format.
@@ -431,6 +444,19 @@ it. DOCX → DOCX is no edge; the Word variants are the Office Open XML engine's
   line's first word would have fitted keeps its line break;
 - reading order: gutters between columns are found where no narrow paragraph crosses; paragraphs that span the
   columns (titles, figures, closing text) split the page into bands, read column by column;
+- text that needs shaping (`PdfDocumentReader.ComplexText.cs`): an `/ActualText` of marked content replaces the
+  glyphs it covers on every page (LibreOffice writes one for each cluster whose glyphs don't map to its characters
+  one to one: conjuncts, vowel signs drawn before their consonant, ligatures). On a page with Arabic, Hebrew, Indic,
+  Thai, ... text, words are built from the glyphs in content-stream order instead of by position, because marks
+  have no width and overlap their letter: a mark joins the letter before it, a vowel sign drawn before its consonant
+  (Word's PDFs keep that visual order) joins the consonant after it, and the dotted circles of PDFs made by rhwp
+  (mapped to U+0002 or to a vowel sign, wider than any mark) are left out. Right-to-left words are read from the
+  right, with numbers and Latin words in them left to right, a line's words likewise; a paragraph of mostly
+  right-to-left lines is marked right to left (`HParaFormat.RightToLeft`), its alignment and indents measured from
+  the right, and DOCX gets `w:bidi` on it and `w:rtl` on its Arabic or Hebrew runs (HWPX has no right-to-left
+  paragraphs). Fonts keep their family names (`ArialUnicodeMS` → Arial Unicode MS, `NirmalaUI` → Nirmala UI,
+  `NotoSansGujarati` → Noto Sans Gujarati). Not recovered: a cluster drawn as one glyph whose ToUnicode entry is
+  wrong, in a PDF without ActualText (some Word PDFs), and the word spacing of rhwp's broken layouts;
 - headings from font sizes (short paragraphs clearly larger than the body text, the largest size is level 1), bold
   and italic from the fonts, colours, links from link annotations, alignment, indents, spacing and line pitch;
 - pictures: JPEG streams are kept as they are, others are decoded to PNG, and what PdfPig cannot decode is cut out
@@ -816,6 +842,9 @@ table is not drawn over the paragraphs below it (#49). Paragraphs without stored
 HWPX writer) get room for their equations: rhwp puts a line's baseline at 85 % of its tallest equation and the
 equation's own baseline on it, so a fraction, matrix or sum hangs below the line; that overhang is added as space
 after the paragraph (#143).
+
+An HWPX with text that needs shaping (Arabic, Hindi, Thai, ...) goes to LibreOffice with H2Orestart instead, like the
+documents above; an HWP is not scanned and stays with rhwp.
 
 rhwp renders text slowly: about 1 s per KB of section XML, some 4 s per page of a novel (rhwp 0.8.7 on an
 i7-1185G7, pictures cost little). So each rhwp run's time limit follows the document's text: 2 minutes + 30 minutes
