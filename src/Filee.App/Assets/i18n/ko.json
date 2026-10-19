@@ -278,7 +278,7 @@
   "triggers.threshold_system": "시스템 기본값",
   "triggers.hold_ms": "누르는 시간",
   "triggers.scope": "동작 범위",
-  "triggers.scope.FileManager": "탐색기와 바탕화면",
+  "triggers.scope.FileManager": "파일 관리자와 바탕화면",
   "triggers.scope.FileManager_macos": "Finder와 데스크탑",
   "triggers.scope.FileManager_linux": "파일 관리자와 바탕화면",
   "triggers.scope.Anywhere": "모든 곳",
