@@ -21,6 +21,7 @@ public sealed class LocalizationService : ILocalizer
         ("en", "English"),
         ("ko", "한국어"),
         ("zh-CN", "简体中文"),
+        ("pl", "Polski"),
     ];
 
     private readonly ResourceDictionary _resources = new();
@@ -97,6 +98,8 @@ public sealed class LocalizationService : ILocalizer
             return "ko";
         if (ui.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
             return "zh-CN";
+        if (ui.StartsWith("pl", StringComparison.OrdinalIgnoreCase))
+            return "pl";
         return "en";
     }
 
