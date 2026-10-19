@@ -1033,6 +1033,37 @@ public class RenderTests
         Assert.Equal((Filee.Core.Presets.TracingMode.BlackAndWhite, 64, 80), (preset.Trace.Mode, preset.Trace.Colors, preset.Trace.Detail));
     }
 
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    [InlineData("zh-CN")]
+    public void Preset_editor_offers_markdown_without_pictures(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var store = AppHost.Get<UserDataStore>();
+        var preset = store.FindPreset("to-md")!.Clone();
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowLeaveOutPictures);
+        Assert.False(vm.LeaveOutPictures);
+
+        var window = new PresetEditorWindow { DataContext = vm, Height = 760 };
+        window.Show();
+        Pump();
+        Assert.True(window.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "DocumentCard").IsVisible);
+        Save(window, $"preset-markdown-{language}.png");
+        window.Close();
+
+        vm.LeaveOutPictures = true;
+        Assert.True(vm.Apply());
+        Assert.True(preset.Document.LeaveOutPictures);
+
+        // Other targets don't show it, and don't keep it.
+        vm.Target = vm.Targets.Single(t => t.Value == "docx");
+        Assert.False(vm.ShowLeaveOutPictures);
+        Assert.True(vm.Apply());
+        Assert.False(preset.Document.LeaveOutPictures);
+    }
+
     [AvaloniaFact]
     public void Preset_editor_saves_media_and_archive_options()
     {

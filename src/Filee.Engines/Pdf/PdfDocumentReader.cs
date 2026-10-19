@@ -2,9 +2,10 @@
 //
 // Every page's words (with their positions, fonts, sizes and colours) become lines, lines become paragraphs, and the
 // paragraphs and pictures are put in reading order, also on two-column pages (PdfDocumentReader.Layout). Headings
-// come from font sizes, bold / italic from the fonts, page size and margins from the page. Headers and footers that
-// repeat on the pages (and bare page numbers) are left out. A page without text (a scan) becomes the rendered page as
-// a picture (PDFium via PDFtoImage), so the result is complete; there is no OCR.
+// come from font sizes, bold / italic from the fonts, page size and margins from the page. Running headers and
+// footers (also those that change with the chapter), page numbers and a logo repeated at the top or bottom of the
+// pages are left out. A page without text (a scan) becomes the rendered page as a picture (PDFium via PDFtoImage), so
+// the result is complete; there is no OCR.
 //
 // Rows laid out with tab stops (a number, a label and a date far to the right) stay one line with tabs at the PDF's
 // positions, and a line that ends early although the next line's first word would have fitted (an address) keeps its
@@ -456,9 +457,21 @@ internal sealed partial class PdfDocumentReader
         "^[\\s\\-–—(\\[]*(page|p\\.|페이지|第)?\\s*\\d+\\s*(/|of|페이지|쪽|页)?\\s*\\d*[\\s\\-–—)\\]]*$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    /// <summary>Page numbers in roman numerals ("iv", "- XII -"), as front matter is often numbered.</summary>
+    private static readonly Regex RomanPageNumber = new(
+        "^[\\s\\-–—(\\[]*(?=[ivxlcdm])m{0,3}(cm|cd|d?c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})[\\s\\-–—)\\]]*$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     /// <summary>
-    /// Leaves out paragraphs at the top or bottom edge that repeat on most pages (running heads, footers; digits are
-    /// ignored so "Page 3" matches "Page 4") and bare page numbers there.
+    /// Leaves out what sits at the top or bottom edge of the pages only because it is a page (running heads, footers,
+    /// page numbers), so text exports read on without it:
+    /// <list type="bullet">
+    /// <item>paragraphs that repeat on most pages (digits are ignored, so "Page 3" matches "Page 4");</item>
+    /// <item>running heads that change with the chapter: the same text at the same height on three pages or more,
+    /// no larger than the body text (a heading that starts several pages is larger, and stays);</item>
+    /// <item>bare page numbers ("12", "- 12 -", "Page 3 of 10", "iv");</item>
+    /// <item>the same picture (a logo) at the same place on most pages.</item>
+    /// </list>
     /// </summary>
     private static void RemoveRepeatedHeadersAndFooters(List<PageContent> pages)
     {
@@ -467,17 +480,45 @@ internal sealed partial class PdfDocumentReader
             return;
         bool AtEdge(Item item, PageContent page) => item.Top > page.Height * 0.9 || item.Bottom < page.Height * 0.1;
         static string Key(Item item) => Regex.Replace(item.Text, "\\d+", "#").Trim();
+        static (string Key, long Top) Place(Item item) => (Key(item), (long)Math.Round(item.Top / 2));
 
-        var counts = textPages
-            .SelectMany(p => p.Items.Where(i => !i.IsPicture && AtEdge(i, p)).Select(i => (Page: p.Index, Key: Key(i))).Distinct())
+        var edgeText = textPages.SelectMany(p => p.Items.Where(i => !i.IsPicture && AtEdge(i, p)).Select(i => (Page: p.Index, Item: i))).ToList();
+        var counts = edgeText.Select(x => (x.Page, Key: Key(x.Item))).Distinct()
             .GroupBy(x => x.Key)
             .ToDictionary(g => g.Key, g => g.Count());
+        var placeCounts = edgeText.Select(x => (x.Page, Place: Place(x.Item))).Distinct()
+            .GroupBy(x => x.Place)
+            .ToDictionary(g => g.Key, g => g.Count());
+        var bodySize = BodySize([.. textPages.SelectMany(p => p.Items.Where(i => !i.IsPicture))]);
         var needed = Math.Max(2, (int)Math.Ceiling(textPages.Count * 0.5));
+
+        bool RunningText(Item item) =>
+            item.Lines.Count <= 2
+            && (counts.GetValueOrDefault(Key(item)) >= needed
+                || (placeCounts.GetValueOrDefault(Place(item)) >= 3 && item.Size <= bodySize + 0.5)
+                || PageNumber.IsMatch(item.Text) || RomanPageNumber.IsMatch(item.Text));
+
+        var pictureKeys = textPages.SelectMany(p => p.Items.Where(i => i.IsPicture && AtEdge(i, p))).ToDictionary(i => i, PictureKey);
+        var pictureCounts = textPages
+            .SelectMany(p => p.Items.Where(pictureKeys.ContainsKey).Select(i => (Page: p.Index, Key: pictureKeys[i])).Distinct())
+            .GroupBy(x => x.Key)
+            .ToDictionary(g => g.Key, g => g.Count());
+
         foreach (var page in textPages)
         {
-            page.Items.RemoveAll(i => !i.IsPicture && AtEdge(i, page) && i.Lines.Count <= 2
-                                      && (counts.GetValueOrDefault(Key(i)) >= needed || PageNumber.IsMatch(i.Text)));
+            page.Items.RemoveAll(i => AtEdge(i, page) && (i.IsPicture
+                ? pictureCounts.GetValueOrDefault(pictureKeys[i]) >= needed
+                : RunningText(i)));
         }
+    }
+
+    /// <summary>A picture's place (to 2 points) and content: the same logo on every page has the same key.</summary>
+    private static string PictureKey(Item item)
+    {
+        var bounds = item.PictureBounds!.Value;
+        var bytes = File.ReadAllBytes(item.PicturePath!);
+        return FormattableString.Invariant($"{Math.Round(bounds.Left / 2)},{Math.Round(bounds.Top / 2)},{Math.Round(bounds.Width / 2)},{Math.Round(bounds.Height / 2)}:")
+               + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes));
     }
 
     // ───────────────────────── Building the document ─────────────────────────
