@@ -409,6 +409,8 @@
     "presets.split_tall_image_hint": "बंद: लंबी इमेज को फ़ॉर्मैट की सीमा तक छोटा कर दिया जाता है (JPG 65,500 px, WebP 16,383 px)।\nचालू: वह अपना आकार रखती है और पेजों के बीच से कई फ़ाइलों में बाँट दी जाती है (name_1, name_2, …)।",
     "presets.group.document": "दस्तावेज़",
     "presets.pdfa": "PDF/A (अभिलेखीय)",
+    "presets.leave_out_pictures": "तस्वीरें छोड़ दें (केवल टेक्स्ट)",
+    "presets.leave_out_pictures_hint": "बंद: तस्वीरें Markdown फ़ाइल के बगल में \"name_files\" फ़ोल्डर में सहेजी जाती हैं और उसी से लिंक होती हैं।\nचालू: केवल टेक्स्ट, कोई फ़ोल्डर नहीं।",
     "presets.target_folder": "फ़ोल्डर (आर्काइव निकालने के लिए)",
     "presets.group.media": "वीडियो और ऑडियो",
     "presets.media_quality": "क्वालिटी",
