@@ -31,7 +31,10 @@ public static class EngineRegistry
     /// AppSettings.EnginePriority: built-in engines first, the optional downloads last. Software installed on the
     /// system (Microsoft Office, a system-wide LibreOffice) is never used.
     /// </summary>
-    /// <param name="loggers">The app's log; FFmpeg writes which hardware encoders work and when one failed.</param>
+    /// <param name="loggers">
+    /// The app's log; FFmpeg writes which hardware encoders work and when one failed, LibreOffice when a file needed
+    /// its container repacked.
+    /// </param>
     public static IReadOnlyList<IConverter> CreateAll(EngineEnvironment env, ILoggerFactory? loggers = null) =>
     [
         new MagickImageConverter(),
@@ -60,7 +63,7 @@ public static class EngineRegistry
         new PandocConverter(),
         new GhostscriptConverter(),
         new CalibreConverter(),
-        new LibreOfficeConverter(env),
+        new LibreOfficeConverter(env, loggers?.CreateLogger<LibreOfficeConverter>()),
     ];
 
     /// <summary>Finds the PDF merger among the converters.</summary>
