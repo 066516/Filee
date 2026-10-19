@@ -50,7 +50,9 @@ public class EmlTests(EngineFixture fx) : IClassFixture<EngineFixture>
         using var logo = new MagickImage(MagickColors.Teal, 16, 16);
         var png = logo.ToByteArray(MagickFormat.Png);
         const string Html = "<html><head><style>p { color: #C00000; }</style></head><body><p>안녕하세요. 자료를 보냅니다.</p>" +
-                            "<img src=\"cid:logo@filee\" alt=\"logo\"><script>alert('x')</script></body></html>";
+                            "<img src=\"cid:logo@filee\" alt=\"logo\"><script>alert('x')</script>" +
+                            "<img src=\"https://tracker.example/pixel\" onerror=\"alert('x')\">" +
+                            "<a href=\"javascript:alert('x')\">bad link</a><svg onload=\"alert('x')\"></svg></body></html>";
         var eml = string.Join("\r\n",
             $"From: {EncodedWord("보낸이", "EUC-KR")} <sender@example.com>",
             "To: receiver@example.com, \"Second\" <second@example.com>",
@@ -125,6 +127,12 @@ public class EmlTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Contains("src=\"data:image/png;base64,", html);
         Assert.DoesNotContain("cid:", html);
         Assert.DoesNotContain("<script", html);
+        Assert.DoesNotContain("onerror", html);
+        Assert.DoesNotContain("onload", html);
+        Assert.DoesNotContain("tracker.example", html);
+        Assert.DoesNotContain("javascript:", html);
+        Assert.DoesNotContain("<svg", html);
+        Assert.Contains("Content-Security-Policy", html);
     }
 
     [Fact]
