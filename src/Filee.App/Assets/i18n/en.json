@@ -300,6 +300,8 @@
   "toolbar.add_profile": "New profile",
   "toolbar.profile_new": "New profile",
   "toolbar.delete_profile": "Delete profile",
+  "toolbar.reset_profile": "Reset to default",
+  "toolbar.reset_profile_confirm": "Reset “{0}” to its default presets and extensions? Your other profiles and presets stay as they are.",
   "toolbar.name": "Name",
   "toolbar.extensions": "Used for these extensions",
   "toolbar.extensions_hint": "Add an extension, e.g. jpg",

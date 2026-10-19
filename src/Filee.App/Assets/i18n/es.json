@@ -287,6 +287,8 @@
   "toolbar.add_profile": "Nuevo perfil",
   "toolbar.profile_new": "Nuevo perfil",
   "toolbar.delete_profile": "Eliminar perfil",
+  "toolbar.reset_profile": "Restablecer perfil",
+  "toolbar.reset_profile_confirm": "¿Restablecer «{0}» con sus ajustes preestablecidos y extensiones predeterminados? Los demás perfiles y ajustes preestablecidos no cambian.",
   "toolbar.name": "Nombre",
   "toolbar.extensions": "Usar para estas extensiones",
   "toolbar.extensions_hint": "Añade una extensión, p. ej. jpg",

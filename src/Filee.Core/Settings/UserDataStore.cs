@@ -136,6 +136,66 @@ public sealed class UserDataStore
         SaveLibrary();
     }
 
+    /// <summary>
+    /// Whether <see cref="ResetProfile"/> can put <paramref name="profile"/> back: only a built-in donut has a default
+    /// state, and not when the reset would leave no profile for mixed selections (a built-in normal donut the user made
+    /// the only mixed one).
+    /// </summary>
+    public bool CanResetProfile(ToolbarProfile profile) =>
+        Profiles.Contains(profile)
+        && BuiltInData.CreateProfiles().FirstOrDefault(p => p.Id == profile.Id) is { } builtIn
+        && (builtIn.IsFallback || !profile.IsFallback || Profiles.Count(p => p.IsFallback) > 1);
+
+    /// <summary>
+    /// Puts one built-in donut back as a new library has it (name, slices and their order, extensions, normal or mixed)
+    /// and leaves the other donuts alone. So no file type opens two donuts, an extension another normal donut takes
+    /// now stays there. Presets are shared by every donut: the ones this donut drops stay in the library, edited ones
+    /// keep their settings, and a built-in preset of its default slices that the user deleted comes back. A donut that
+    /// changes kind moves to the border between the normal profiles and the mixed ones, the built-in mixed donut back
+    /// to the head of the mixed ones (the catch-all).
+    /// </summary>
+    /// <returns>False when the profile can't be reset (<see cref="CanResetProfile"/>).</returns>
+    public bool ResetProfile(ToolbarProfile profile)
+    {
+        if (!CanResetProfile(profile))
+            return false;
+        var builtIn = BuiltInData.CreateProfiles().Single(p => p.Id == profile.Id);
+        RestoreBuiltInPresets(builtIn.PresetIds);
+
+        // Extensions checked on a mixed-selection profile only limit that profile; they don't claim files.
+        var claimed = Profiles.Where(p => p != profile && !p.IsFallback)
+            .SelectMany(p => p.Extensions)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        profile.Name = "";
+        profile.NameKey = builtIn.NameKey;
+        profile.Extensions = builtIn.IsFallback ? builtIn.Extensions : builtIn.Extensions.Where(e => !claimed.Contains(e)).ToList();
+        profile.PresetIds = builtIn.PresetIds;
+        if (profile.IsFallback != builtIn.IsFallback)
+        {
+            profile.IsFallback = builtIn.IsFallback;
+            Profiles.Remove(profile);
+            var index = Profiles.FindIndex(p => p.IsFallback);
+            Profiles.Insert(index < 0 ? Profiles.Count : index, profile);
+        }
+        SaveLibrary();
+        return true;
+    }
+
+    /// <summary>Adds back the built-in presets among <paramref name="ids"/> that the library no longer has, each after
+    /// the built-in preset before it (as a new library orders them).</summary>
+    private void RestoreBuiltInPresets(IEnumerable<string> ids)
+    {
+        var defaults = BuiltInData.CreatePresets();
+        foreach (var id in ids.Where(id => FindPreset(id) is null))
+        {
+            var at = defaults.FindIndex(p => p.Id == id);
+            if (at < 0)
+                continue;
+            var after = defaults.Take(at).Select(p => Presets.FindIndex(existing => existing.Id == p.Id)).LastOrDefault(i => i >= 0, -1);
+            Presets.Insert(after + 1, defaults[at]);
+        }
+    }
+
     public Preset? FindPreset(string id) => Presets.FirstOrDefault(p => p.Id == id);
 
     /// <summary>The preset <paramref name="id"/> when it converts (a group doesn't), for every place that runs one.</summary>

@@ -300,6 +300,8 @@
   "toolbar.add_profile": "新建配置",
   "toolbar.profile_new": "新配置",
   "toolbar.delete_profile": "删除配置",
+  "toolbar.reset_profile": "恢复默认",
+  "toolbar.reset_profile_confirm": "要将“{0}”的预设和扩展名恢复为默认吗？其他配置和预设保持不变。",
   "toolbar.name": "名称",
   "toolbar.extensions": "适用的扩展名",
   "toolbar.extensions_hint": "添加扩展名，例如 jpg",
