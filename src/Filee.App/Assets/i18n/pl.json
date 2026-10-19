@@ -78,6 +78,7 @@
   "error.not_enough_space": "Za mało wolnego miejsca na dysku na obrazy",
   "error.rhwp_timeout": "rhwp nie zdążył przetworzyć tego długiego dokumentu",
   "error.rhwp_timeout_calibre": "rhwp nie zdążył przetworzyć tego długiego dokumentu. Dla e-booka przenieś Calibre nad HWPX writer w Ustawienia → Silniki, a Calibre zrobi PDF znacznie szybciej",
+  "error.needs_shaping": "To pismo wymaga LibreOffice do poprawnej konwersji. Zainstaluj go w Ustawienia → Silniki",
   "error.conversion_failed": "Silnik zgłosił błąd",
   "notice.pdf_not_smaller": "Nie udało się zmniejszyć pliku, więc skopiowano go bez zmian",
 

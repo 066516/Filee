@@ -346,6 +346,11 @@ internal readonly record struct HLineSpacing(HLineSpacingKind Kind, int Value);
 
 /// <summary>Paragraph formatting; null members keep the 한글 style's value.</summary>
 /// <param name="FirstLine">First line indent relative to <paramref name="Left"/>; negative = hanging indent.</param>
+/// <param name="RightToLeft">
+/// A right-to-left paragraph (Arabic, Hebrew): its lines start at the right. <paramref name="Align"/>,
+/// <paramref name="Left"/> and <paramref name="Right"/> then name the start and the end side, as Word's w:bidi
+/// paragraphs do (Left aligns to the right edge). Written to DOCX only; HWPX has no right-to-left paragraphs.
+/// </param>
 internal readonly record struct HParaFormat(
     HAlign? Align = null,
     int? Left = null,
@@ -357,7 +362,8 @@ internal readonly record struct HParaFormat(
     bool? KeepWithNext = null,
     bool? KeepLines = null,
     bool? WidowOrphan = null,
-    IReadOnlyList<HTabStop>? Tabs = null)
+    IReadOnlyList<HTabStop>? Tabs = null,
+    bool? RightToLeft = null)
 {
     public bool IsEmpty => this == default;
 
@@ -366,10 +372,10 @@ internal readonly record struct HParaFormat(
         Align == other.Align && Left == other.Left && Right == other.Right && FirstLine == other.FirstLine &&
         Before == other.Before && After == other.After && LineSpacing == other.LineSpacing &&
         KeepWithNext == other.KeepWithNext && KeepLines == other.KeepLines && WidowOrphan == other.WidowOrphan &&
-        (Tabs ?? []).SequenceEqual(other.Tabs ?? []);
+        RightToLeft == other.RightToLeft && (Tabs ?? []).SequenceEqual(other.Tabs ?? []);
 
     public override int GetHashCode() =>
-        HashCode.Combine(Align, Left, Right, FirstLine, Before, After, LineSpacing, HashCode.Combine(KeepWithNext, KeepLines, WidowOrphan, Tabs?.Count ?? 0));
+        HashCode.Combine(Align, Left, Right, FirstLine, Before, After, LineSpacing, HashCode.Combine(KeepWithNext, KeepLines, WidowOrphan, RightToLeft, Tabs?.Count ?? 0));
 }
 
 internal enum HTabKind

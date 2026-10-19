@@ -72,6 +72,7 @@
   "error.not_enough_space": "Espacio libre en disco insuficiente para las imágenes",
   "error.rhwp_timeout": "rhwp no pudo terminar este documento largo a tiempo",
   "error.rhwp_timeout_calibre": "rhwp no pudo terminar este documento largo a tiempo. Para un libro electrónico, mueve Calibre por encima del escritor HWPX en Ajustes → Motores; Calibre genera el PDF mucho más rápido",
+  "error.needs_shaping": "Este sistema de escritura necesita LibreOffice para convertirse bien. Instálalo en Ajustes → Motores",
   "error.conversion_failed": "El motor devolvió un error",
   "notice.pdf_not_smaller": "No se pudo reducir su tamaño, por lo que se copió tal cual",
   "engine.reason.not_installed": "No instalado",

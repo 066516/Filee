@@ -52,6 +52,22 @@ public class RoutePlannerTests
     }
 
     [Fact]
+    public void Unshaped_edges_are_left_out_for_text_that_needs_shaping()
+    {
+        // rhwp draws Arabic and Indic text unshaped: such a document goes through LibreOffice, though it costs more.
+        var writer = new FakeConverter("hwpx-writer", new ConversionEdge("docx", "hwpx"));
+        var rhwp = new FakeConverter("rhwp", new ConversionEdge("hwpx", "pdf", Unshaped: true));
+        var office = new FakeConverter("libreoffice", new ConversionEdge("docx", "pdf", 25));
+        var planner = new RoutePlanner([writer, rhwp, office]);
+
+        var usual = planner.Plan("docx", "pdf")!;
+        Assert.Equal(["hwpx-writer", "rhwp"], usual.Steps.Select(s => s.Converter.Id));
+        Assert.Equal([false, true], usual.Steps.Select(s => s.Unshaped));
+        Assert.Equal(["libreoffice"], planner.Plan("docx", "pdf", shaping: true)!.Steps.Select(s => s.Converter.Id));
+        Assert.Null(new RoutePlanner([writer, rhwp]).Plan("docx", "pdf", shaping: true));
+    }
+
+    [Fact]
     public void Direct_only_edges_are_never_a_step_of_a_longer_route()
     {
         // PDF → PPTX puts pictures of the pages on slides: only for a PDF the user asked to turn into PPTX.
