@@ -97,7 +97,7 @@
   "engine.icns.description": "इमेज से और इमेज में macOS ऐप आइकन (ICNS)।",
   "engine.font.description": "फ़ॉन्ट: TTF, OTF, WOFF, WOFF2 और EOT एक-दूसरे में।",
   "engine.cad.description": "AutoCAD ड्रॉइंग: DWG ↔ DXF, और दोनों से PDF, SVG और PNG।",
-  "engine.model3d.description": "3D मॉडल: GLB, glTF, STL, OBJ, 3MF और PLY एक-दूसरे में, और PNG प्रीव्यू।",
+  "engine.model3d.description": "3D मॉडल: GLB, glTF, STL, OBJ, 3MF और PLY एक-दूसरे में, FBX इनमें से किसी में भी, और PNG प्रीव्यू।",
   "engine.archive.description": "ZIP, 7Z, RAR, TAR, ISO और अन्य को खोलता है, और ZIP, 7Z या TAR.GZ में पैक करता है (7-Zip)।",
   "engine.ebook.description": "EPUB, MOBI, AZW3, FB2 और कॉमिक्स (CBZ, CBR) से PDF, EPUB, DOCX और टेक्स्ट।\nदस्तावेज़ों से EPUB, Kobo के लिए EPUB से KEPUB और PDF से CBZ भी।",
   "engine.subtitle.description": "सबटाइटल: SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD और SCC एक-दूसरे में, UTF-8 में सहेजे जाते हैं।\nCP949 / EUC-KR में कोरियाई SMI और SRT फ़ाइलें सही पढ़ी जाती हैं।",
