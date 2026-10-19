@@ -223,6 +223,10 @@ internal sealed partial class HwpxWriter
         {
             switch (inline)
             {
+                case HEquation equation:
+                    runs.Control(CharPr(charPrBase, equation.Format, link), Equation(equation, charPrBase), isObject: true);
+                    _plainText.Append(equation.Text);
+                    break;
                 case HText text:
                     runs.Text(CharPr(charPrBase, text.Format, link), Escape(text.Text));
                     _plainText.Append(text.Text);
