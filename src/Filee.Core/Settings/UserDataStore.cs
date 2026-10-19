@@ -556,9 +556,13 @@ internal static class SettingsMigrations
             }
         }
         // v21: JPEG XR (.jxr, .wdp, .hdp; HDR screenshots of Windows): the images donut learns the extensions unless
-        //      another donut already has them. (Schema 21 may be renumbered if another change takes it first.)
+        //      another donut already has them.
         if (from < 21)
             changed |= LearnExtensions(profiles, out _, ["jxr", "wdp", "hdp"]);
+        // v22: FBX models (read only) open from the 3D donut: it learns ".fbx" unless a donut of the user already
+        //      takes it. Other extensions the user removed from a built-in donut stay removed.
+        if (from < 22)
+            changed |= LearnExtensions(profiles, out _, ["fbx"]);
         return changed;
     }
 

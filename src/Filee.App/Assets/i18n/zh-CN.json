@@ -104,7 +104,7 @@
   "engine.icns.description": "macOS 应用图标（ICNS）与图片互转。",
   "engine.font.description": "字体：TTF、OTF、WOFF、WOFF2 和 EOT 互相转换。",
   "engine.cad.description": "AutoCAD 图纸：DWG ↔ DXF，并可转为 PDF、SVG 和 PNG。",
-  "engine.model3d.description": "GLB、glTF、STL、OBJ、3MF 和 PLY 3D 模型互相转换，并可生成 PNG 预览。",
+  "engine.model3d.description": "GLB、glTF、STL、OBJ、3MF 和 PLY 3D 模型互相转换，FBX 可转换为其中任意格式，并可生成 PNG 预览。",
   "engine.archive.description": "解压 ZIP、7Z、RAR、TAR、ISO 等，并打包为 ZIP、7Z 或 TAR.GZ（7-Zip）。",
   "engine.ebook.description": "EPUB、MOBI、AZW3、FB2 和漫画（CBZ、CBR）转为 PDF、EPUB、DOCX 和文本。\n也能把文档转为 EPUB、把 EPUB 转为 Kobo 用的 KEPUB、把 PDF 转为 CBZ。",
   "engine.subtitle.description": "SRT、ASS/SSA、WebVTT、SAMI（SMI）、LRC、TTML、MicroDVD、SCC 字幕互转，保存为 UTF-8。\n也能正确读取 CP949/EUC-KR 编码的韩文字幕。",
