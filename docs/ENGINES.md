@@ -238,6 +238,7 @@ Readers turn the source into a small document model (`Hwp/Hwpx/HwpxModel.cs`) an
   - tables with merged cells, column widths, borders and shading from the table style and cells, repeated header rows;
   - pictures inline and floating, text boxes, rectangles/ellipses/lines with solid or gradient fills, groups;
   - footnotes, endnotes, bookmarks, hyperlinks (web and within the document, e.g. a table of contents);
+  - equations (Word's equation editor, Office Math) as 한글 equations, see *Equations* below;
   - Word's document grid ("lines"), which 한글 does not have, as an "at least" line spacing.
 - **XLSX, XLS, ODS, CSV and TSV** (`Office/Sheets`, see [Spreadsheets](#spreadsheets)): every visible sheet becomes a section with one table. Cells show what Excel
   shows (number formats via ExcelNumberFormat, dates, percentages, cached formula results), with fonts, fills,
@@ -280,7 +281,29 @@ Every generated file is checked in the tests with three independent readers: rhw
 text) and LibreOffice + H2Orestart (opens it), see `tests/Filee.Engines.Tests/DocxToHwpxTests.cs` and
 `OfficeTests.cs`.
 
-Not converted: Word charts, SmartArt, equations (kept as text), free-form shapes, tracked changes and comments.
+Not converted: Word charts, SmartArt, free-form shapes, tracked changes and comments.
+
+### Equations
+
+Word equations (`m:oMath`, `m:oMathPara`) become 한글 equation objects (`hp:equation`) with an equation script
+(`Hwp/Hwpx/Docx/OmmlReader.cs` reads them into a small math tree, `Hwp/Hwpx/EquationScript.cs` writes the script),
+so DOCX → HWPX and HWP keep editable equations and DOCX → PDF draws them with rhwp (#143):
+
+- fractions (`{a} over {b}`, also without bar or written linear `a/b`), sub- and superscripts and scripts before the
+  base, square roots and roots with an index, sums, products, unions and integrals with their limits, brackets that
+  grow (`LEFT ( … RIGHT )`), matrices (`pmatrix`, `bmatrix`, `dmatrix`), cases, equation arrays (`pile`), function
+  names and `lim` with what goes under it, accents (hat, bar, vec, dot, tilde …), over- and underlines;
+- Greek letters, operators and arrows as 한글's commands (`omega`, `TIMES`, `LEQ`, `INF`, `rarrow` …), upright text
+  (`m:sty="p"`, normal text) in `rm`, bold in `bold`; a display equation alone in its paragraph is centred;
+- variables are written letter by letter when they read like a command (`x _{i n}`, not `in` = ∈);
+- boxes, phantoms and group characters (braces above or below) keep only their content; other characters are
+  written as they are.
+
+The box an equation is stored with (`hp:sz`) is measured like rhwp lays the script out (estimated character
+widths, script scale 0.7, fraction and root spacing, from rhwp's `equation/layout.rs`): rhwp stretches an equation to
+its stored width, so a wrong box would distort it. 한글 lays the script out again when the equation is edited.
+The model's other writers (HTML, EPUB, Markdown, TXT …) write a linear form instead, `(a+b)/(2c)`, `x_i^2`, `√(x)`,
+which is also the equation's alternative text in HWPX.
 
 ## Spreadsheets
 
@@ -725,7 +748,10 @@ For HWP / HWPX → PDF, rhwp renders a copy of the HWPX (an HWP is exported with
 change something for it (`Hwp/RhwpInput.cs`): fonts that are installed, the laid-out size of boxes sized relative to
 the column, spaced equation commands, and, in an HWPX exported from an HWP (rhwp's `META-INF/rhwp-hwp5-origin`
 marker), the stored line of a cell paragraph that holds only a floating table moved up to the paragraph's top, so the
-table is not drawn over the paragraphs below it (#49).
+table is not drawn over the paragraphs below it (#49). Paragraphs without stored lines (Word equations written by the
+HWPX writer) get room for their equations: rhwp puts a line's baseline at 85 % of its tallest equation and the
+equation's own baseline on it, so a fraction, matrix or sum hangs below the line; that overhang is added as space
+after the paragraph (#143).
 
 rhwp renders text slowly: about 1 s per KB of section XML, some 4 s per page of a novel (rhwp 0.8.7 on an
 i7-1185G7, pictures cost little). So each rhwp run's time limit follows the document's text: 2 minutes + 30 minutes
