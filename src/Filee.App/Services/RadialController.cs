@@ -94,11 +94,13 @@ public sealed class RadialController(
     }
 
     /// <summary>
-    /// Opens the donut for known files (click mode). <paramref name="forAnotherProcess"/>: the files came from a later
-    /// launch or the Services menu, so on macOS the donut may lose focus once while Filee becomes the active app.
+    /// Opens the donut for known files (click mode). Shortcuts among them stand for the files they point to.
+    /// <paramref name="forAnotherProcess"/>: the files came from a later launch or the Services menu, so on macOS the
+    /// donut may lose focus once while Filee becomes the active app.
     /// </summary>
     public void ShowForFiles(int x, int y, IReadOnlyList<string> files, bool forAnotherProcess = false)
     {
+        files = platform.ResolveShortcuts(files);
         if (files.Count == 0)
             return;
         ReleaseProgressToToast();

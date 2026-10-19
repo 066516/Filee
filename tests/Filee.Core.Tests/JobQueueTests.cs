@@ -242,6 +242,57 @@ public class JobQueueTests
     }
 
     [Fact]
+    public async Task An_empty_file_fails_as_empty_before_any_engine_sees_it()
+    {
+        // A DOCX made with "New" in Explorer is 0 bytes until Word saves it (#157).
+        using var dir = new TempDir();
+        var empty = dir.File("new.docx", "");
+        var ok = dir.File("a.jpg");
+        var converter = new FakeConverter("docx-writer", new ConversionEdge("docx", "pdf"), new ConversionEdge("jpg", "pdf"));
+        await using var queue = new JobQueue(new ConverterCatalog([converter]));
+
+        var job = await Run(queue, [empty, ok], new Preset { TargetFormat = "pdf" });
+
+        Assert.Equal(JobState.CompletedWithErrors, job.State);
+        Assert.Equal(FileState.Failed, job.Files[0].State);
+        Assert.Equal("error.empty_file", job.Files[0].ErrorKey);
+        Assert.Null(job.Files[0].ErrorDetail);
+        Assert.False(File.Exists(Path.Combine(dir.Path, "new.pdf")));
+        Assert.Equal(FileState.Done, job.Files[1].State);
+    }
+
+    [Fact]
+    public async Task An_empty_pdf_fails_as_empty_instead_of_breaking_the_merge()
+    {
+        using var dir = new TempDir();
+        var photo = dir.File("1.jpg");
+        var empty = dir.File("2.pdf", "");
+        var merger = new FakeMerger();
+        await using var queue = new JobQueue(new ConverterCatalog([new FakeConverter("pdfsharp", new ConversionEdge("jpg", "pdf"))]), merger);
+
+        var job = await Run(queue, [photo, empty], new Preset { TargetFormat = "pdf", Pdf = { MergeIntoSingle = true } });
+
+        Assert.Equal("error.empty_file", job.Files[1].ErrorKey);
+        Assert.Equal(["1.pdf"], merger.Inputs.Select(Path.GetFileName));
+    }
+
+    [Fact]
+    public async Task Combine_still_packs_empty_files_and_folders()
+    {
+        // Packing changes nothing: an empty file goes into the archive as it is.
+        using var dir = new TempDir();
+        var empty = dir.File("empty.txt", "");
+        var folder = Directory.CreateDirectory(Path.Combine(dir.Path, "folder")).FullName;
+        var combiner = new FakeCombiner();
+        await using var queue = new JobQueue(new ConverterCatalog([]), combiner: combiner);
+
+        var job = await Run(queue, [empty, folder], new Preset { TargetFormat = "zip", Archive = { CombineIntoOne = true } });
+
+        Assert.Equal(JobState.Completed, job.State);
+        Assert.Equal([empty, folder], combiner.Inputs);
+    }
+
+    [Fact]
     public async Task No_route_is_reported()
     {
         using var dir = new TempDir();

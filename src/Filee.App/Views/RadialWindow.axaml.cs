@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Filee.App.Controls;
 using Filee.App.Services;
+using Filee.Core.Platform;
 
 namespace Filee.App.Views;
 

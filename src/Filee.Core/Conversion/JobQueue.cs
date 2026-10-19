@@ -139,7 +139,8 @@ public sealed class JobQueue : IAsyncDisposable
             async (i, _) =>
             {
                 var file = job.Files[i];
-                if (FormatRegistry.Detect(file.SourcePath)?.Id == "pdf")
+                // An empty PDF goes the long way, where it fails as empty instead of breaking the whole merge.
+                if (FormatRegistry.Detect(file.SourcePath)?.Id == "pdf" && !IsEmptyFile(file.SourcePath))
                 {
                     // Already a PDF, merged as it is: its pages can't be turned (only images going into it can).
                     if (job.Preset.Image.TurnsOrMirrors)
@@ -189,6 +190,7 @@ public sealed class JobQueue : IAsyncDisposable
                 var file = job.Files[i];
                 // A TIFF joins as it is, unless it is to be turned: then it goes through the engine like the rest.
                 parts[i] = FormatRegistry.Detect(file.SourcePath)?.Id == "tiff" && !job.Preset.Image.TurnsOrMirrors
+                           && !IsEmptyFile(file.SourcePath)
                     ? [file.SourcePath]
                     : await RunFileAsync(job, file, i + 1, planner, workDir, finalOutput: false, intermediate: "tiff");
             });
@@ -303,6 +305,20 @@ public sealed class JobQueue : IAsyncDisposable
         }
     }
 
+    /// <summary>A file (not a folder) with nothing in it. Combining still packs such a file as it is.</summary>
+    private static bool IsEmptyFile(string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            return info.Exists && info.Length == 0;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>Gives the outputs the creation and modification dates of the source (<see cref="OutputRule.KeepDates"/>).</summary>
     private void CopyDates(string source, IEnumerable<string> outputs)
     {
@@ -344,6 +360,10 @@ public sealed class JobQueue : IAsyncDisposable
         var source = FormatRegistry.Detect(file.SourcePath);
         if (source is null)
             return Fail(file, "error.unsupported_source", "." + FormatRegistry.ExtensionOf(file.SourcePath));
+        // A file just made with "New" in the file manager stays 0 bytes until its app saves it: no engine can read it,
+        // and their errors ("Central Directory corrupt") don't say why.
+        if (IsEmptyFile(file.SourcePath))
+            return Fail(file, "error.empty_file", null);
 
         var target = !finalOutput ? intermediate
             : job.Preset.TargetFormat == BuiltInData.SameAsSource ? source.Id

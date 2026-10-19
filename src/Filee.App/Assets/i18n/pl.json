@@ -68,6 +68,7 @@
   "toast.cancel": "Anuluj",
 
   "error.unsupported_source": "Ten typ pliku nie jest obsługiwany",
+  "error.empty_file": "Plik jest pusty (0 bajtów). Plik utworzony przez „Nowy” w menu kontekstowym pozostaje pusty, dopóki nie otworzysz go w jego aplikacji i nie zapiszesz",
   "format_request.request": "Poproś o ten format",
   "format_request.notice_title": "Filee nie potrafi jeszcze konwertować plików {0}",
   "format_request.notice_text": "Napisz, jakiego formatu potrzebujesz.\nNa podstawie próśb wybieramy kolejne obsługiwane formaty.\nPlików zaszyfrowanych lub chronionych przed kopiowaniem (DRM) nie da się konwertować, niezależnie od formatu.",

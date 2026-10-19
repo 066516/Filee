@@ -15,17 +15,21 @@ internal static class DraggedFiles
     public static bool Offered(IDataTransfer data) =>
         data.Contains(DataFormat.File) || data.Items.Any(item => item.Formats.Any(IsFilenames));
 
-    /// <summary>Local file paths in the drag (folders and virtual items are ignored).</summary>
-    public static IReadOnlyList<string> Local(IDataTransfer data) => Local(data, File.Exists);
+    /// <summary>
+    /// Local file paths in the drag (folders and virtual items are ignored). A shortcut counts as the file it points
+    /// to; one to a folder is ignored like the folder.
+    /// </summary>
+    public static IReadOnlyList<string> Local(IDataTransfer data) =>
+        Local(data, File.Exists, AppHost.Get<IPlatformServices>().ResolveShortcuts);
 
-    internal static IReadOnlyList<string> Local(IDataTransfer data, Func<string, bool> fileExists)
+    internal static IReadOnlyList<string> Local(IDataTransfer data, Func<string, bool> fileExists,
+        Func<IReadOnlyList<string>, IReadOnlyList<string>>? resolveShortcuts = null)
     {
-        var files = (data.TryGetFiles() ?? [])
-            .Select(item => item.TryGetLocalPath())
-            .OfType<string>()
-            .Where(fileExists)
-            .ToList();
-        return files.Count > 0 ? files : Filenames(data).Where(fileExists).Distinct(FileSystemPaths.Comparer).ToList();
+        IReadOnlyList<string> Usable(IReadOnlyList<string> paths) =>
+            (resolveShortcuts?.Invoke(paths) ?? paths).Where(fileExists).Distinct(FileSystemPaths.Comparer).ToList();
+
+        var files = Usable((data.TryGetFiles() ?? []).Select(item => item.TryGetLocalPath()).OfType<string>().ToList());
+        return files.Count > 0 ? files : Usable(Filenames(data).ToList());
     }
 
     /// <summary>The formats a drag offers, for the log when Filee finds no files in it.</summary>

@@ -34,6 +34,29 @@ public interface IPlatformServices
             .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase)];
     }
 
+    /// <summary>
+    /// The existing file or folder the shortcut at <paramref name="path"/> points to (a .lnk on Windows); null for
+    /// anything else, a broken shortcut, or a platform whose shortcuts Filee doesn't follow (macOS aliases and Linux
+    /// .desktop links aren't followed yet).
+    /// </summary>
+    string? ShortcutTarget(string path) => null;
+
+    /// <summary>
+    /// <paramref name="paths"/> with every shortcut replaced by what it points to, for files that come into Filee
+    /// (drops, the file manager's menu and selection). A broken shortcut stays, so it is reported as unsupported.
+    /// </summary>
+    IReadOnlyList<string> ResolveShortcuts(IReadOnlyList<string> paths) => ResolveShortcuts(paths, ShortcutTarget);
+
+    /// <summary>
+    /// Replaces each path by <paramref name="target"/>'s answer, if any, keeping the order. A shortcut and its target
+    /// brought in together, or two shortcuts to one file, give that file once.
+    /// </summary>
+    static IReadOnlyList<string> ResolveShortcuts(IReadOnlyList<string> paths, Func<string, string?> target)
+    {
+        var resolved = paths.Select(p => target(p) ?? p).ToList();
+        return resolved.SequenceEqual(paths) ? paths : [.. resolved.Distinct(FileSystemPaths.Comparer)];
+    }
+
     /// <summary>Files currently selected in the foreground file manager window (empty if none).</summary>
     IReadOnlyList<string> GetFileManagerSelection();
 
