@@ -6,6 +6,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | Engine | How it gets there | Handles |
 |---|---|---|
 | ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, MNG, QOI, DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster, MIFF ↔ each other, and **APNG** (Filee's own reader and writer); HEIC (written with FFmpeg), XCF, camera RAW (LibRaw), DICOM (uncompressed ones by Filee's own reader), Photo CD, OpenEXR, Radiance HDR and EMF/WMF (Windows) read |
+| Windows Imaging Component | part of Windows (Windows only) | **JPEG XR** (JXR, WDP, HDP; HDR screenshots of Windows) → the images ImageMagick writes, and PDF, ICNS, HEIC and SVG through PNG; HDR tone-mapped to SDR |
 | Vector graphics | built in (Svg.Skia, SkiaSharp, ACadSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, **SVG → DXF** (→ DWG with the CAD engine), **raster images → SVG (tracing)**, PDF-compatible AI → PDF |
 | ICNS | built in | images → ICNS (16–1024 px), ICNS → images |
 | PDFsharp | built in (library) | images → PDF, merge, split, page ranges, **compression** (smaller PDFs, see below) |
@@ -24,7 +25,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | **E-books** | built in | **EPUB, MOBI/AZW/AZW3/PRC, FB2, HTMLZ, TXTZ → EPUB, HWPX (→ PDF), TXT, HTML, Markdown, FB2, HTMLZ, TXTZ**; HTML, Markdown, TXT, DOCX → EPUB/FB2/HTMLZ/TXTZ; HTML → TXT; comics CBZ/CBR/CB7/CBT/CBC → PDF, EPUB, CBZ; PDF → CBZ; AZW4 → PDF; **EPUB ↔ KEPUB** (Kobo) |
 | CAD (ACadSharp + built-in renderer) | built in (library) | **DWG ↔ DXF**; DWG/DXF → **PDF** (vector), **SVG**, PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF |
 | **Subtitles** | built in | **SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD, SCC → SRT, ASS, WebVTT, SAMI, LRC, TTML, MicroDVD**, always UTF-8 (Korean CP949 / EUC-KR files read correctly) |
-| 3D models (SharpGLTF for glTF) | built in (library) | **GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY ↔ each other**; → PNG, JPG, … (an isometric preview) |
+| 3D models (SharpGLTF for glTF) | built in (library) | **GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY ↔ each other**; FBX → each of them; → PNG, JPG, … (an isometric preview) |
 | rhwp | bundled with the installer (`engines/rhwp`) | HWP/HWPX → PDF, **HWP → HWPX, HWPX → HWP** |
 | Archives (7-Zip) | bundled with the installer (`engines/7zip`, ~2.5 MB) + built-in readers | ZIP, 7Z, RAR, TAR (+ GZ/BZ2/XZ/Z/7Z/LZ), CAB, ISO, DMG, … **→ folder, ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ**; ALZ, EGG, lzip read in-process; "Compress into one archive" for any files |
 | LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats; FODT, OpenDocument templates (OTT, OTS, OTP) and XLT out; SVG → EMF/WMF/ODG, a PDF page → SVG |
@@ -106,6 +107,16 @@ pinned source in `build/build-linux-native.py` like rhwp (PR #113 did this for S
 - **Animations.** An animated GIF, WebP, APNG or MNG keeps every frame and its timing when converted to one of these
   (animated GIF ↔ animated WebP ↔ APNG ↔ MNG, WebP lossy or lossless as the preset says) and becomes a multi-page TIFF;
   other targets get the first frame. Multi-page TIFFs and PDFs stay one image per page in WebP.
+- **Playback speed** (preset option *Playback speed*, `ImageOptions.AnimationSpeed`: 0.25×, 0.5×, 0.75×, 1×, 1.5×,
+  2×, 4×; shown for GIF, WebP, APNG, MNG and "same as source") rewrites the frame delays of an animation that stays
+  animated (`Magick/AnimationTiming.cs`). Delays are divided by the speed in the target's own units (hundredths of a
+  second for GIF and MNG, milliseconds for WebP and APNG) and rounded on the running total, so the whole animation
+  keeps its new length. Players show a frame of 10 ms or less for 100 ms, so no delay goes below 20 ms (50 frames a
+  second): a frame that would start sooner than that after the one before is dropped and its time goes to that one,
+  which leaves frames out evenly. Source delays of 10 ms or less count as the 100 ms players show. Loop count and
+  disposal stay; 1× (also every preset saved before the option) leaves the timing untouched. Video → GIF / APNG
+  (FFmpeg) puts `setpts=PTS/<speed>` before the `fps` filter, so the frame rate limits stay. The speed changes only in
+  the step that writes the output (`JobQueue`), never twice on a longer route.
 - **APNG** (`Magick/Apng.cs`) is Filee's own code, written from the APNG specification: ImageMagick reads only an
   APNG's default image and writes APNG through an external FFmpeg. Every frame is an ordinary PNG decoded or encoded by
   ImageMagick; Filee handles the chunks around them.
@@ -133,6 +144,20 @@ pinned source in `build/build-linux-native.py` like rhwp (PR #113 did this for S
   (Q8) build without HDRI, so high-dynamic-range values are clipped to the displayable range and stored with 8 bits per
   channel; there is no tone mapping. Writing EXR or HDR from 8-bit pictures would only make larger files, so they are
   not targets.
+- **JPEG XR** (`.jxr`, `.wdp`, `.hdp`, read only, Windows only; `Wic/`). ImageMagick has no JPEG XR coder in any build,
+  so the picture is decoded by Windows' own codec (WIC's JPEG XR decoder, in every Windows 10 and 11) and handed to
+  ImageMagick for the preset's options and the output format. Elsewhere the engine reports "not available on this
+  platform". 8- and 16-bit pictures are converted to 8-bit sRGB by WIC. Fixed-point and float ones are linear scRGB
+  (1.0 = SDR white at 80 nits), like the 64-bit half-float screenshots Windows saves on an HDR display (Xbox Game Bar,
+  Win + Alt + PrtScn, Snipping Tool), and are tone-mapped (`Wic/HdrToneMap.cs`) instead of clipped:
+  - the reference white is the luminance 99 % of the pixels stay below, between 1.0 and 4.0 (80–320 nits). Windows
+    draws SDR content at the display's "SDR content brightness", so the white of a desktop screenshot lands there and
+    its SDR parts come out as they were drawn; small highlights don't darken the picture;
+  - values up to 80 % of that white are kept; above, an extended Reinhard shoulder takes everything up to the brightest
+    pixel into the last 20 %, on the largest of R, G and B so colours keep their hue. A picture with nothing brighter
+    than white is left as it is;
+  - colours outside the sRGB gamut are clipped, then the sRGB transfer curve and 8 bits. An alpha channel that is
+    opaque everywhere (HDR screenshots have one) is dropped.
 - **DICOM** (`.dcm`, `.dicom`, read only). The Q8 build reads only 8-bit DICOM, while CT, MR and X-ray scanners store
   12 or 16 bits, so `Magick/Dicom.cs` (written from the DICOM standard, PS3.5 and PS3.3 C.7.6.3 / C.11.2) reads
   uncompressed files itself: implicit and explicit VR little endian, explicit VR big endian and deflated files, with or
@@ -631,17 +656,21 @@ and writes the files; Filee's own renderer draws them with SkiaSharp (one drawin
 
 ## 3D models
 
-`Filee.Engines/Models3D` converts GLB, glTF, STL, OBJ, 3MF and PLY into each other in managed code: every reader
+`Filee.Engines/Models3D` converts GLB, glTF, STL, OBJ, 3MF and PLY into each other, and FBX into any of them, in
+managed code: every reader
 fills one in-memory model (`Model3D`: parts with positions, normals, UVs, vertex colours and triangles; materials
 with a base colour and a base colour texture) and every writer takes it, so each pair is one step. glTF and GLB are
-read and written with [SharpGLTF](https://github.com/vpenades/SharpGLTF) (MIT); STL, OBJ/MTL, PLY and 3MF are Filee's
-own code. No native library (Assimp) and no download.
+read and written with [SharpGLTF](https://github.com/vpenades/SharpGLTF) (MIT); STL, OBJ/MTL, PLY, 3MF and the FBX
+reader are Filee's own code. No native library (Assimp, the FBX SDK) and no download.
 
 - **Units**: STL, OBJ and PLY have none; they are read and written as **millimetres**, as slicers and CAD programs
   treat them. 3MF has a `unit` attribute (micron to metre) and is written in millimetres. glTF is metres. So a 20 mm
-  STL cube is 0.02 m in GLB and 20 mm again in STL. There is no preset option for another unit.
+  STL cube is 0.02 m in GLB and 20 mm again in STL. FBX has `UnitScaleFactor` (centimetres per unit, 1 when
+  missing). There is no preset option for another unit.
 - **Axes** follow Blender's defaults: STL, 3MF and PLY are Z up, OBJ and glTF Y up, so a part standing on a printer's
-  bed stands upright in a glTF viewer and comes back on its base.
+  bed stands upright in a glTF viewer and comes back on its base. FBX says which axis is up (`UpAxis`, `CoordAxis`
+  and their signs in GlobalSettings; the front axis follows, as FBX is right-handed), so 3ds Max's Z-up files stand
+  up too.
 - **Structure**: node hierarchies, 3MF components and build items are flattened: every mesh instance becomes a part in
   world coordinates (one glTF node / OBJ object / 3MF object per part). Polygons are triangulated (ear clipping, so
   concave faces are right). OBJ negative indices, `\` line continuations and 0–255 vertex colours are understood.
@@ -661,6 +690,7 @@ What each format keeps:
 | STL | binary (also with a header starting with "solid") and ASCII (one part per `solid`) | binary, one solid |
 | OBJ + MTL | `o` / `g` / `usemtl` as parts, `v` (+ r g b), `vt`, `vn`, faces of any size; `mtllib` with `Kd`, `d` / `Tr`, `map_Kd` (options skipped) next to the file | **the `.mtl` and the textures are written next to the `.obj`** (`name.obj`, `name.mtl`, `name_texture.png`, named like the output); vertex colours as `v x y z r g b` |
 | 3MF | objects, components (also in other model parts, as Bambu Studio writes them), build transforms, base materials, colour groups (materials extension); `support` / `other` objects skipped | one object per part, base materials from material colours, a colour group from vertex colours |
+| FBX (read only) | binary 6.x–7.x (64-bit records from 7.5, zlib-compressed arrays) and ASCII; mesh geometry with polygons of any size, the first normal, UV, colour and material layer (by polygon vertex, control point or polygon, or all the same; direct or indexed); the model hierarchy from the connections with translation, rotation (every Euler order, pre- / post-rotation, pivots and offsets), scaling and geometric transforms; property templates from Definitions; material `DiffuseColor` and `Opacity`; the diffuse texture embedded (Video `Content`) or named next to the file; animation, skins, blend shapes, NURBS, cameras and lights skipped (the rest pose is read) | — (not written) |
 | PLY | ASCII, binary little / big endian; vertex position, normal, UV (`s`/`t`, `u`/`v`, `texture_u`/`texture_v`), colours of any type; face lists with per-corner `texcoord` and face colours; `comment TextureFile`; other elements skipped | binary little endian, one mesh; material colours become vertex colours |
 
 Lost on the way (no place in the target): **STL** keeps only the triangles (no colours, UVs, normals or materials);
@@ -678,7 +708,10 @@ at 2048 px and scaled down to 1024 px for smooth edges, on a transparent backgro
 Tests (`tests/Filee.Engines.Tests/ModelTests.cs`) build a cube, a sphere and a fan of coloured triangles in code and
 convert each through every format pair, checking triangle counts, bounds, signed volume (winding), normals, UVs,
 colours and materials where both formats keep them; hand-written STL, OBJ, PLY, 3MF and glTF files cover the reading
-details, and a generated 1,000,000-triangle STL the speed.
+details, and a generated 1,000,000-triangle STL the speed. `FbxTests.cs` writes FBX files in code (`FbxBuilder`:
+binary 7.4 and 7.5, plain and compressed arrays, ASCII): a cube under a moved parent, turned and scaled, with a
+templated material and an embedded or neighbouring texture, Z-up files in metres, rotation orders, concave polygons and
+materials by polygon, and every cut or flipped byte of a file, which must read or fail with a clear message.
 
 ## HWPX reader
 
@@ -945,8 +978,8 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   | OGV | Theora + Vorbis |
   | DV | DV25 with the same NTSC/PAL frames as VOB, 48 kHz stereo PCM |
   | MXF | OP1a with long-GOP MPEG-2 + 48 kHz PCM |
-  | GIF | two passes: palettegen over the whole clip, then paletteuse; 15/12/10 fps and at most 640/480/320 px wide (High/Balanced/Small) |
-  | APNG | one pass with the `apng` encoder (24-bit RGB, mixed prediction) and muxer, looping; the same frame rates and widths as GIF |
+  | GIF | two passes: palettegen over the whole clip, then paletteuse; 15/12/10 fps and at most 640/480/320 px wide (High/Balanced/Small); *Playback speed* adds `setpts=PTS/<speed>` before the frame rate |
+  | APNG | one pass with the `apng` encoder (24-bit RGB, mixed prediction) and muxer, looping; the same frame rates, widths and playback speed as GIF |
   | MP4, M4V, MKV with *Video codec* HEVC · MOV with HEVC | x265 (preset medium, `hvc1` tag in MP4/M4V/MOV) + AAC |
   | MP4, M4V, MKV, WEBM with *Video codec* AV1 | SVT-AV1 (preset 8), or libaom-av1 (cpu-used 6, row multithreading) with an FFmpeg that lacks SVT-AV1 |
   | MP3 · M4A/M4B · AAC · OGG · OPUS · WEBA · MKA · WMA · MP2 · AC3 · E-AC3 · AMR | LAME VBR (V0/V2/V5) or CBR · AAC, or ALAC with *Audio codec* ALAC · AAC (ADTS) · Vorbis · Opus · Opus · Opus · WMA 2 · MP2 · AC-3 · E-AC-3 · AMR-NB 12.2k (8 kHz mono) |

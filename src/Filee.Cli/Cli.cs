@@ -317,7 +317,10 @@ internal static class Cli
                 return UsageError;
             }
             var installed = host.Catalog.CreatePlanner();
-            var everything = host.Catalog.CreatePlanner(host.Catalog.All.Select(c => c.Id).ToList());
+            // Engines a download would add, not those this platform lacks (JPEG XR is read with Windows' own codec).
+            var everything = host.Catalog.CreatePlanner(host.Catalog.All
+                .Where(c => host.Catalog.StatusOf(c).ReasonKey != "engine.reason.unsupported_platform")
+                .Select(c => c.Id).ToList());
             var targets = FormatRegistry.Known.Where(t => t.Writable && t.Id != from.Id && t.Id != FormatRegistry.Folder).ToList();
             var now = targets.Where(t => installed.CanConvert(from.Id, t.Id)).Select(t => t.Id).ToList();
             var later = targets.Where(t => !now.Contains(t.Id) && everything.CanConvert(from.Id, t.Id)).Select(t => t.Id).ToList();

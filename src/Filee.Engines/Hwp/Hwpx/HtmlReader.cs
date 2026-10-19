@@ -27,6 +27,9 @@ internal sealed class HtmlReadOptions
     /// <summary>Folder that receives images embedded as data: URIs (created on demand).</summary>
     public required string MediaFolder { get; init; }
 
+    /// <summary>When set, local images and style sheets must be inside this folder (e.g. an unpacked e-book).</summary>
+    public string? ResourceRoot { get; init; }
+
     /// <summary>Maps an href to the link target to write, or null to keep only the link text. Default: unchanged.</summary>
     public Func<string, string?>? MapLink { get; init; }
 
@@ -1058,7 +1061,7 @@ internal sealed partial class HtmlReader
         try
         {
             if (reference.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
-                return new Uri(reference).LocalPath is var local && File.Exists(local) ? local : null;
+                return new Uri(reference).LocalPath is var local && InsideFolder(local, _options.ResourceRoot) && File.Exists(local) ? local : null;
             if (reference.Contains("://", StringComparison.Ordinal) || reference.StartsWith("//", StringComparison.Ordinal)
                 || reference.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
                 return null;
@@ -1067,12 +1070,23 @@ internal sealed partial class HtmlReader
             if (relative.Length == 0)
                 return null;
             var candidate = Path.GetFullPath(Path.Combine(_options.BaseFolder, relative));
-            return File.Exists(candidate) ? candidate : null;
+            return InsideFolder(candidate, _options.ResourceRoot) && File.Exists(candidate) ? candidate : null;
         }
         catch (Exception ex) when (ex is ArgumentException or UriFormatException or NotSupportedException or PathTooLongException)
         {
             return null;
         }
+    }
+
+    /// <summary>Packaged books may only refer to files in their own unpacked folder: true when there is no
+    /// <paramref name="root"/> or <paramref name="path"/> is inside it.</summary>
+    internal static bool InsideFolder(string path, string? root)
+    {
+        if (root is null)
+            return true;
+        root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)) + Path.DirectorySeparatorChar;
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        return Path.GetFullPath(path).StartsWith(root, comparison);
     }
 
     /// <summary>Writes the image of a data: URI to the media folder.</summary>

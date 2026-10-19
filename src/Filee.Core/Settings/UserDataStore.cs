@@ -318,6 +318,12 @@ internal static class SettingsMigrations
                 InsertBefore(settings.EnginePriority, "pdf-slides", "pandoc");
         }
 
+        // v21: built-in "wic" engine (JPEG XR through the Windows Imaging Component), after the other built-in engines:
+        //      no other engine reads JPEG XR, and higher up it would push the HWPX writer out of the ranks that win
+        //      ties. (Schema 21 may be renumbered if another change takes it first.)
+        if (settings.SchemaVersion < 21)
+            InsertBefore(settings.EnginePriority, "wic", settings.EnginePriority.Contains("ffmpeg") ? "ffmpeg" : "pandoc");
+
         if (settings.Triggers.Count == 0)
             settings.Triggers = TriggerGesture.Defaults();
 
@@ -549,12 +555,20 @@ internal static class SettingsMigrations
                 changed = true;
             }
         }
+        // v21: JPEG XR (.jxr, .wdp, .hdp; HDR screenshots of Windows): the images donut learns the extensions unless
+        //      another donut already has them.
+        if (from < 21)
+            changed |= LearnExtensions(profiles, out _, ["jxr", "wdp", "hdp"]);
+        // v22: FBX models (read only) open from the 3D donut: it learns ".fbx" unless a donut of the user already
+        //      takes it. Other extensions the user removed from a built-in donut stay removed.
+        if (from < 22)
+            changed |= LearnExtensions(profiles, out _, ["fbx"]);
 
-        // v21: interactive "Crop" tool, after "Remove background" as in a new library, on no donut: users add it in
-        //      Settings → Toolbar. Present already but saved since by a Filee before 21: that one read the unknown
+        // v23: interactive "Crop" tool, after "Remove background" as in a new library, on no donut: users add it in
+        //      Settings → Toolbar. Present already but saved since by a Filee before 23: that one read the unknown
         //      kind as a Group, dropped the target format and left an empty group. Kind and target format are put back,
         //      the user's own changes (name, file name pattern) stay.
-        if (from < 21)
+        if (from < 23)
         {
             if (BuiltInData.CreatePresets().FirstOrDefault(p => p.Id == "tool-crop") is { } crop)
             {
@@ -657,7 +671,8 @@ internal static class SettingsMigrations
     /// Adds the default extensions of the built-in donuts that no donut of the user takes yet.
     /// </summary>
     /// <param name="claimed">Every extension a donut takes afterwards.</param>
-    private static bool LearnExtensions(List<ToolbarProfile> profiles, out HashSet<string> claimed)
+    /// <param name="only">Learn only these (the ones a version added), not others the user removed from a donut since.</param>
+    private static bool LearnExtensions(List<ToolbarProfile> profiles, out HashSet<string> claimed, IReadOnlyCollection<string>? only = null)
     {
         var changed = false;
         // Extensions checked on a mixed-selection profile only limit that profile; they don't claim files.
@@ -665,7 +680,7 @@ internal static class SettingsMigrations
         var defaults = BuiltInData.CreateProfiles().ToDictionary(p => p.Id);
         foreach (var profile in profiles.Where(p => !p.IsFallback && defaults.ContainsKey(p.Id)))
         {
-            foreach (var extension in defaults[profile.Id].Extensions.Where(claimed.Add))
+            foreach (var extension in defaults[profile.Id].Extensions.Where(e => only is null || only.Contains(e)).Where(claimed.Add))
             {
                 profile.Extensions.Add(extension);
                 changed = true;

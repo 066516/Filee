@@ -68,6 +68,8 @@ public sealed class WindowsPlatformServices : IPlatformServices
         return root == 0 ? null : ProcessNameOf(root);
     }
 
+    public string? ShortcutTarget(string path) => ShellLinks.TargetOf(path);
+
     /// <summary>
     /// Reads the selection of the foreground Explorer window through the Shell automation object.
     /// Must be called on an STA thread (the Avalonia UI thread is STA).

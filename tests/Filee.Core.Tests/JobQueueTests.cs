@@ -116,6 +116,25 @@ public class JobQueueTests
     }
 
     [Fact]
+    public async Task Playback_speed_changes_only_in_the_step_that_writes_the_output()
+    {
+        // MP4 → GIF → WebP: both engines keep the animation, only the last one may change its speed (not 2 × 2 = 4×).
+        using var dir = new TempDir();
+        var video = dir.File("clip.mp4");
+        var ffmpeg = new FakeRecorder("ffmpeg", new ConversionEdge("mp4", "gif"));
+        var magick = new FakeRecorder("magick", new ConversionEdge("gif", "webp"));
+        await using var queue = new JobQueue(new ConverterCatalog([ffmpeg, magick]));
+        var preset = new Preset { TargetFormat = "webp", Image = { AnimationSpeed = 2 } };
+
+        var job = await Run(queue, [video], preset);
+
+        Assert.Equal(JobState.Completed, job.State);
+        Assert.Equal([("gif", 1.0)], ffmpeg.Speeds);
+        Assert.Equal([("webp", 2.0)], magick.Speeds);
+        Assert.Equal(2, preset.Image.AnimationSpeed); // the job's preset itself is left alone
+    }
+
+    [Fact]
     public async Task Keep_dates_gives_outputs_the_dates_of_their_source()
     {
         using var dir = new TempDir();
@@ -220,6 +239,57 @@ public class JobQueueTests
 
         Assert.Equal(JobState.CompletedWithErrors, job.State);
         Assert.Equal("error.unsupported_source", job.Files[1].ErrorKey);
+    }
+
+    [Fact]
+    public async Task An_empty_file_fails_as_empty_before_any_engine_sees_it()
+    {
+        // A DOCX made with "New" in Explorer is 0 bytes until Word saves it (#157).
+        using var dir = new TempDir();
+        var empty = dir.File("new.docx", "");
+        var ok = dir.File("a.jpg");
+        var converter = new FakeConverter("docx-writer", new ConversionEdge("docx", "pdf"), new ConversionEdge("jpg", "pdf"));
+        await using var queue = new JobQueue(new ConverterCatalog([converter]));
+
+        var job = await Run(queue, [empty, ok], new Preset { TargetFormat = "pdf" });
+
+        Assert.Equal(JobState.CompletedWithErrors, job.State);
+        Assert.Equal(FileState.Failed, job.Files[0].State);
+        Assert.Equal("error.empty_file", job.Files[0].ErrorKey);
+        Assert.Null(job.Files[0].ErrorDetail);
+        Assert.False(File.Exists(Path.Combine(dir.Path, "new.pdf")));
+        Assert.Equal(FileState.Done, job.Files[1].State);
+    }
+
+    [Fact]
+    public async Task An_empty_pdf_fails_as_empty_instead_of_breaking_the_merge()
+    {
+        using var dir = new TempDir();
+        var photo = dir.File("1.jpg");
+        var empty = dir.File("2.pdf", "");
+        var merger = new FakeMerger();
+        await using var queue = new JobQueue(new ConverterCatalog([new FakeConverter("pdfsharp", new ConversionEdge("jpg", "pdf"))]), merger);
+
+        var job = await Run(queue, [photo, empty], new Preset { TargetFormat = "pdf", Pdf = { MergeIntoSingle = true } });
+
+        Assert.Equal("error.empty_file", job.Files[1].ErrorKey);
+        Assert.Equal(["1.pdf"], merger.Inputs.Select(Path.GetFileName));
+    }
+
+    [Fact]
+    public async Task Combine_still_packs_empty_files_and_folders()
+    {
+        // Packing changes nothing: an empty file goes into the archive as it is.
+        using var dir = new TempDir();
+        var empty = dir.File("empty.txt", "");
+        var folder = Directory.CreateDirectory(Path.Combine(dir.Path, "folder")).FullName;
+        var combiner = new FakeCombiner();
+        await using var queue = new JobQueue(new ConverterCatalog([]), combiner: combiner);
+
+        var job = await Run(queue, [empty, folder], new Preset { TargetFormat = "zip", Archive = { CombineIntoOne = true } });
+
+        Assert.Equal(JobState.Completed, job.State);
+        Assert.Equal([empty, folder], combiner.Inputs);
     }
 
     [Fact]

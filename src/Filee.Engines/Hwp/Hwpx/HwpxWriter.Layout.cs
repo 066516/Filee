@@ -147,13 +147,14 @@ internal sealed partial class HwpxWriter
             {
                 foreach (var (cell, column) in placed[r])
                 {
+                    var cellMargin = cell.CellMargin ?? margin;
                     if ((pass == 0) != (cell.RowSpan == 1))
                         continue; // single-row cells first, then spans on top of them
                     var width = 0;
                     for (var i = column; i < column + cell.ColSpan && i < widths.Length; i++)
                         width += widths[i];
-                    var needed = EstimateHeight(cell.Blocks.Count > 0 ? cell.Blocks : [new HParagraph()], Math.Max(1000, width - margin.Left - margin.Right))
-                                 + margin.Top + margin.Bottom;
+                    var needed = EstimateHeight(cell.Blocks.Count > 0 ? cell.Blocks : [new HParagraph()], Math.Max(1000, width - cellMargin.Left - cellMargin.Right))
+                                 + cellMargin.Top + cellMargin.Bottom;
                     var last = Math.Min(r + cell.RowSpan, heights.Length) - 1;
                     var have = 0;
                     for (var i = r; i <= last; i++)

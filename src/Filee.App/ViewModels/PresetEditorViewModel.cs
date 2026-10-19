@@ -93,6 +93,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         WavFormats = Enum.GetValues<WavSampleFormat>().Select(v => new Choice<WavSampleFormat>(v, loc[$"presets.wav_format.{v}"])).ToList();
         ArchiveLevels = Enum.GetValues<ArchiveLevel>().Select(v => new Choice<ArchiveLevel>(v, loc[$"presets.archive_level.{v}"])).ToList();
         TraceModes = Enum.GetValues<TracingMode>().Select(v => new Choice<TracingMode>(v, loc[$"presets.trace_mode.{v}"])).ToList();
+        // A speed set outside the editor (a hand-edited preset file) is offered too, instead of being lost.
+        AnimationSpeeds = [.. ImageOptions.AnimationSpeeds.Append(_edit.Image.PlaybackSpeed).Distinct().Order()
+            .Select(s => new Choice<double>(s, s == 1 ? loc["presets.animation_speed.original"] : SpeedLabel(s)))];
 
         _name = string.IsNullOrWhiteSpace(_edit.Name) ? loc.DisplayName(_edit) : _edit.Name;
         _target = Targets.FirstOrDefault(t => t.Value == _edit.TargetFormat) ?? Targets[1];
@@ -120,6 +123,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _saveEveryFrame = _edit.Media.SaveEveryFrame;
         _frameInterval = _edit.Media.FrameInterval > 0 ? _edit.Media.FrameInterval : 1;
         _traceMode = TraceModes.First(m => m.Value == _edit.Trace.Mode);
+        _animationSpeed = AnimationSpeeds.First(s => s.Value == _edit.Image.PlaybackSpeed);
         _traceColors = Math.Clamp(_edit.Trace.Colors, TracingOptions.MinColors, TracingOptions.MaxColors);
         _traceDetail = Math.Clamp(_edit.Trace.Detail, 0, 100);
         _quality = _edit.Image.Quality;
@@ -181,6 +185,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public IReadOnlyList<Choice<ArchiveLevel>> ArchiveLevels { get; }
     public IReadOnlyList<Choice<TracingMode>> TraceModes { get; }
 
+    /// <summary>Playback speeds of animations, 0.25× to 4× (ImageOptions.AnimationSpeed).</summary>
+    public IReadOnlyList<Choice<double>> AnimationSpeeds { get; }
+
     [ObservableProperty, NotifyPropertyChangedFor(nameof(NameError), nameof(IsValid))]
     private string _name;
 
@@ -192,7 +199,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec), nameof(ShowHardwareEncoding),
         nameof(AudioCodecs), nameof(AudioCodecChoice), nameof(ShowAudioCodec),
         nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote),
-        nameof(ShowSaveEveryFrame), nameof(ShowTrace))]
+        nameof(ShowSaveEveryFrame), nameof(ShowAnimationSpeed), nameof(ShowTrace))]
     private Choice<string> _target;
 
     private VideoCodec _videoCodecValue;
@@ -352,6 +359,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty] private int _traceColors;
     [ObservableProperty] private int _traceDetail;
+    [ObservableProperty] private Choice<double> _animationSpeed;
 
     // A combo box that loses its selection sets null: every choice keeps its value (see Choices.Restore).
     partial void OnTargetChanged(Choice<string>? oldValue, Choice<string> newValue) => Choices.Restore(oldValue, newValue, v => Target = v);
@@ -373,6 +381,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     partial void OnTraceModeChanged(Choice<TracingMode>? oldValue, Choice<TracingMode> newValue) => Choices.Restore(oldValue, newValue, v => TraceMode = v);
     partial void OnCompressionLevelChanged(Choice<PdfCompression>? oldValue, Choice<PdfCompression> newValue) =>
         Choices.Restore(oldValue, newValue, v => CompressionLevel = v);
+    partial void OnAnimationSpeedChanged(Choice<double>? oldValue, Choice<double> newValue) =>
+        Choices.Restore(oldValue, newValue, v => AnimationSpeed = v);
 
     private string TargetId => Target.Value;
     private FormatCategory? TargetCategory => FormatRegistry.FindById(TargetId)?.Category;
@@ -430,6 +440,11 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     /// <summary>"Save every frame" of a video: PNG and JPG (format ids, <see cref="MediaOptions.FrameTargets"/>).</summary>
     public bool ShowSaveEveryFrame => !IsTool && MediaOptions.FrameTargets.Contains(TargetId);
     /// <summary>
+    /// Playback speed: for the formats an animation stays animated in (an animated GIF, WebP, APNG or MNG, or a video
+    /// made into a GIF or APNG). Other targets get one frame.
+    /// </summary>
+    public bool ShowAnimationSpeed => TargetId is "gif" or "webp" or "apng" or "mng" or BuiltInData.SameAsSource;
+    /// <summary>
     /// Tracing options: raster images reach SVG (and DXF / DWG through it) only by tracing. For other sources (a
     /// drawing, a CAD file) the options are ignored.
     /// </summary>
@@ -484,6 +499,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
             .ToList();
         if (image.IcoSizes.Count == 0)
             image.IcoSizes = [256, 48, 32, 16];
+        // Only where the option is shown: a speed chosen for GIF and left behind by a JPG target saves nothing.
+        image.AnimationSpeed = ShowAnimationSpeed ? AnimationSpeed.Value : 1;
 
         var pdf = _original.Pdf;
         pdf.MergeIntoSingle = Merge;
@@ -530,6 +547,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         output.KeepDates = KeepDates;
         return true;
     }
+
+    /// <summary>"0.25×", "1.5×", "2×": the same in every language.</summary>
+    private static string SpeedLabel(double speed) => speed.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "×";
 
     /// <summary>Fixed choices plus the preset's own value if it isn't one of them (e.g. edited by hand).</summary>
     private static List<Choice<int>> Steps(int[] steps, int current, Func<int, string> label) =>

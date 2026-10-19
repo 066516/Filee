@@ -10,6 +10,8 @@ using System.IO.Compression;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using AngleSharp.Dom;
+using AngleSharp.Html.Parser;
 using Filee.Core.Conversion;
 using Filee.Engines.Infrastructure;
 using MimeKit;
@@ -119,12 +121,9 @@ public sealed partial class EmlConverter : IConverter
         string body;
         if (message.HtmlBody is { } html)
         {
-            html = RemoveScripts(InlinePictures(html, message));
-            // Keep the style sheets of the message's own <head>, and the content of its <body>.
-            foreach (Match style in StyleBlock().Matches(html))
-                styles.Append(style.Value);
-            var match = BodyContent().Match(html);
-            body = match.Success ? match.Groups[1].Value : HeadBlock().Replace(html, "");
+            var safe = SafeHtml(InlinePictures(html, message));
+            body = safe.Body;
+            styles.Append(safe.Styles);
         }
         else
         {
@@ -133,6 +132,7 @@ public sealed partial class EmlConverter : IConverter
 
         var sb = new StringBuilder();
         sb.Append("<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n");
+        sb.Append("<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\">\n");
         sb.Append($"<title>{WebUtility.HtmlEncode(message.Subject ?? "")}</title>\n");
         sb.Append("<style>\n.filee-mail-headers { border-collapse: collapse; margin: 0 0 12px 0; font-family: sans-serif; font-size: 14px; }\n")
           .Append(".filee-mail-headers th { text-align: left; vertical-align: top; padding: 2px 16px 2px 0; color: #555; font-weight: 600; }\n")
@@ -170,8 +170,55 @@ public sealed partial class EmlConverter : IConverter
         });
     }
 
-    /// <summary>A converted page is opened in a browser: scripts of the message are not carried over.</summary>
-    private static string RemoveScripts(string html) => ScriptBlock().Replace(html, "");
+    /// <summary>Keep readable mail markup while dropping browser-active elements, attributes and remote images.</summary>
+    private static (string Body, string Styles) SafeHtml(string html)
+    {
+        var document = new HtmlParser().ParseDocument(html);
+        // Raw-text elements (noembed, xmp…) and comments go too: browsers read them as text, other HTML readers may not.
+        foreach (var element in document.QuerySelectorAll("script, noscript, iframe, object, embed, applet, frame, frameset, portal, input, button, textarea, select, option, meta, link, base, svg, math, template, video, audio, source, track, noembed, noframes, xmp, plaintext").ToArray())
+            element.Parent?.RemoveChild(element);
+        foreach (var comment in document.Descendants<IComment>().ToArray())
+            comment.Parent?.RemoveChild(comment);
+        // Newsletters wrap whole bodies in forms: keep the content, the controls are gone already.
+        foreach (var form in document.QuerySelectorAll("form").ToArray())
+        {
+            while (form.FirstChild is { } child)
+                form.Parent!.InsertBefore(child, form);
+            form.Parent!.RemoveChild(form);
+        }
+
+        foreach (var element in document.QuerySelectorAll("*").ToArray())
+        {
+            foreach (var attribute in element.Attributes.ToArray())
+            {
+                var name = attribute.Name;
+                if (SafeHtmlAttributes.Contains(name)
+                    || name == "alt" && element.LocalName == "img"
+                    || name == "href" && element.LocalName == "a" && SafeLink(attribute.Value)
+                    || name == "src" && element.LocalName == "img" && SafeInlineImage(attribute.Value))
+                    continue;
+                element.RemoveAttribute(name);
+            }
+        }
+
+        var styles = string.Concat(document.QuerySelectorAll("style").Select(element => element.OuterHtml));
+        foreach (var style in document.Body?.QuerySelectorAll("style").ToArray() ?? [])
+            style.Parent?.RemoveChild(style);
+        return (document.Body?.InnerHtml ?? "", styles);
+    }
+
+    private static readonly HashSet<string> SafeHtmlAttributes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "class", "id", "title", "lang", "dir", "style", "align", "valign", "width", "height", "colspan", "rowspan",
+        "cellpadding", "cellspacing", "border", "bgcolor", "color", "face", "size", "nowrap", "start", "type",
+        "span", "scope", "headers", "abbr", "summary", "hspace", "vspace", "clear", "noshade", "frame", "rules", "open",
+    };
+
+    private static bool SafeLink(string value) => value.StartsWith('#')
+        || Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" or "mailto";
+
+    /// <summary>Any raster data: image (old Outlook writes image/x-png, image/pjpeg…), never SVG, which can carry script.</summary>
+    private static bool SafeInlineImage(string value) => RasterDataImage().IsMatch(value);
 
     // ───────────────────────── Text ─────────────────────────
 
@@ -263,9 +310,6 @@ public sealed partial class EmlConverter : IConverter
 
     // ───────────────────────── Patterns ─────────────────────────
 
-    [GeneratedRegex("<body[^>]*>(.*)</body>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
-    private static partial Regex BodyContent();
-
     [GeneratedRegex("<head[^>]*>.*?</head>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex HeadBlock();
 
@@ -274,6 +318,9 @@ public sealed partial class EmlConverter : IConverter
 
     [GeneratedRegex("<script[^>]*>.*?</script>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex ScriptBlock();
+
+    [GeneratedRegex("^data:image/(?!svg)[a-z0-9.+-]+;base64,", RegexOptions.IgnoreCase)]
+    private static partial Regex RasterDataImage();
 
     [GeneratedRegex("cid:([^\"'\\s)>]+)", RegexOptions.IgnoreCase)]
     private static partial Regex ContentIdReference();

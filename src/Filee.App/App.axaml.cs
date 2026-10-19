@@ -47,12 +47,15 @@ public partial class App : Application
 
     private void Start(IClassicDesktopStyleApplicationLifetime desktop)
     {
-        // macOS: "Convert with Filee" in Finder's right-click menu. Registered first, so a service picked while
-        // Filee wasn't running is delivered as soon as it starts.
-        if (OperatingSystem.IsMacOS())
-            Filee.Platform.MacOS.MacOSServicesProvider.Register(files =>
-                Dispatcher.UIThread.Post(() => HandleCommandLine(CommandLine.Parse(["--convert", .. files]))));
         var log = AppHost.Get<ILogger<App>>();
+        // macOS: "Convert with Filee" in Finder's right-click menu. Registered first, so a service picked while
+        // Filee wasn't running is delivered as soon as it starts. A request without files Filee can find (another
+        // file manager put its selection on the pasteboard in a form Filee doesn't read) is logged with what it held.
+        if (OperatingSystem.IsMacOS())
+            Filee.Platform.MacOS.MacOSServicesProvider.Register(
+                files => Dispatcher.UIThread.Post(() => HandleCommandLine(CommandLine.Parse(["--convert", .. files]))),
+                types => log.LogWarning("Convert with Filee was picked, but the request named no existing file; it held: {Types}",
+                    types.Count == 0 ? "nothing" : string.Join(", ", types)));
         // Exceptions in UI event handlers end Filee; write them down first (they are not marked handled).
         Dispatcher.UIThread.UnhandledException += (_, e) =>
             log.LogCritical(e.Exception, "Unhandled exception on the UI thread");
@@ -303,7 +306,7 @@ public partial class App : Application
         var (x, y) = AppHost.Get<TriggerService>().LastCursor;
         if (x == 0 && y == 0 && AppHost.Get<WindowService>().Main is { } main)
             (x, y) = (main.Position.X + 200, main.Position.Y + 200);
-        AppHost.Get<RadialController>().ShowForFiles(x, y, files);
+        AppHost.Get<RadialController>().ShowForFiles(x, y, files, forAnotherProcess: true);
     }
 
 }

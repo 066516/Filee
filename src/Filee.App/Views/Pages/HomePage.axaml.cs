@@ -3,7 +3,6 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Platform.Storage;
 using Filee.App.Services;
 using Microsoft.Extensions.Logging;
 
@@ -23,13 +22,13 @@ public partial class HomePage : UserControl
         DragDrop.AddDragEnterHandler(DropZone, (_, e) =>
         {
             DropZone.Classes.Add("over");
-            var files = e.DataTransfer.Contains(DataFormat.File);
+            var files = DraggedFiles.Offered(e.DataTransfer);
             e.DragEffects = files ? DragDropEffects.Copy : DragDropEffects.None;
             if (Interlocked.Exchange(ref _dragEnterLogged, 1) == 0)
                 AppHost.Get<ILogger<HomePage>>().LogInformation("First drag over the drop zone (files: {Files})", files);
         });
         DragDrop.AddDragOverHandler(DropZone, (_, e) =>
-            e.DragEffects = e.DataTransfer.Contains(DataFormat.File) ? DragDropEffects.Copy : DragDropEffects.None);
+            e.DragEffects = DraggedFiles.Offered(e.DataTransfer) ? DragDropEffects.Copy : DragDropEffects.None);
         DragDrop.AddDragLeaveHandler(DropZone, (_, _) => DropZone.Classes.Remove("over"));
         DragDrop.AddDropHandler(DropZone, OnDrop);
     }
@@ -37,11 +36,7 @@ public partial class HomePage : UserControl
     private void OnDrop(object? sender, DragEventArgs e)
     {
         DropZone.Classes.Remove("over");
-        var files = (e.DataTransfer.TryGetFiles() ?? [])
-            .Select(f => f.TryGetLocalPath())
-            .OfType<string>()
-            .Where(File.Exists)
-            .ToList();
+        var files = DraggedFiles.Local(e.DataTransfer);
         if (files.Count == 0)
             return;
 

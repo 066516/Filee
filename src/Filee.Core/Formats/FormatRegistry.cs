@@ -47,6 +47,8 @@ public static class FormatRegistry
         new("pcd", "Photo CD", FormatCategory.Image, ["pcd"], Writable: false),
         new("exr", "OpenEXR", FormatCategory.Image, ["exr"], Writable: false),
         new("hdr", "Radiance HDR", FormatCategory.Image, ["hdr"], Writable: false),
+        // Read on Windows only, with its own codec (HDR screenshots of Windows are JPEG XR).
+        new("jxr", "JPEG XR", FormatCategory.Image, ["jxr", "wdp", "hdp"], Writable: false),
         new("xcf", "XCF", FormatCategory.Image, ["xcf"], Writable: false),
         new("raw", "RAW", FormatCategory.Image,
             ["dng", "cr2", "cr3", "crw", "nef", "nrw", "arw", "srf", "sr2", "orf", "rw2", "raf", "pef", "dcr", "kdc",
@@ -296,6 +298,7 @@ public static class FormatRegistry
         new("obj", "OBJ", FormatCategory.Model3D, ["obj"]),
         new("3mf", "3MF", FormatCategory.Model3D, ["3mf"]),
         new("ply", "PLY", FormatCategory.Model3D, ["ply"]),
+        new("fbx", "FBX", FormatCategory.Model3D, ["fbx"], Writable: false),
     ];
 
     private static readonly Dictionary<string, FileFormat> ById =

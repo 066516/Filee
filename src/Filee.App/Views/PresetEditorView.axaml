@@ -115,6 +115,13 @@
               <TextBox Text="{Binding IcoSizes}" PlaceholderText="256, 64, 48, 32, 16" />
             </StackPanel>
           </Grid>
+          <Grid ColumnDefinitions="*,12,*" IsVisible="{Binding ShowAnimationSpeed}">
+            <StackPanel>
+              <TextBlock Classes="label" Text="{DynamicResource presets.animation_speed}" />
+              <ComboBox ItemsSource="{Binding AnimationSpeeds}" SelectedItem="{Binding AnimationSpeed}" HorizontalAlignment="Stretch"
+                        ToolTip.Tip="{DynamicResource presets.animation_speed_hint}" />
+            </StackPanel>
+          </Grid>
           <CheckBox Content="{DynamicResource presets.multipage_tiff}" IsChecked="{Binding MultiPageTiff}" IsVisible="{Binding ShowMultiPageTiff}"
                     ToolTip.Tip="{DynamicResource presets.multipage_tiff_hint}" />
         </StackPanel>

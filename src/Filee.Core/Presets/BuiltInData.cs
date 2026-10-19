@@ -466,7 +466,7 @@ public static class BuiltInData
         return profiles;
     }
 
-    /// <summary>3D models: GLB, glTF, STL, OBJ, 3MF, PLY (added in settings schema 15, after "data").</summary>
+    /// <summary>3D models: GLB, glTF, STL, OBJ, 3MF, PLY (added in settings schema 15, after "data"), FBX (schema 22).</summary>
     public static ToolbarProfile ModelProfile() => new()
     {
         Id = "models",

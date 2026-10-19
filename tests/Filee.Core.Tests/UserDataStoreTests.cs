@@ -147,6 +147,38 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Animation_speed_is_saved_and_is_the_original_speed_for_presets_from_before_it()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        Assert.All(store.Presets, p => Assert.Equal(1, p.Image.AnimationSpeed)); // no built-in preset changes it
+        store.Presets.Add(new Preset { Id = "slow", Name = "Slow", TargetFormat = "gif", Image = { AnimationSpeed = 0.5 } });
+        store.Presets.Add(new Preset { Id = "old", Name = "Old", TargetFormat = "gif" });
+        store.Presets.Add(new Preset { Id = "odd", Name = "Odd", TargetFormat = "gif" });
+        store.SaveLibrary();
+
+        // A Filee from before the option saved no "animationSpeed"; a hand-edited file may hold anything.
+        var path = Path.Combine(dir.Path, "presets.json");
+        var presets = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsArray();
+        Assert.Equal(0.5, (double)presets.Single(p => (string?)p!["id"] == "slow")!["image"]!["animationSpeed"]!);
+        Assert.True(presets.Single(p => (string?)p!["id"] == "old")!["image"]!.AsObject().Remove("animationSpeed"));
+        presets.Single(p => (string?)p!["id"] == "odd")!["image"]!["animationSpeed"] = -3;
+        File.WriteAllText(path, presets.ToJsonString());
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        var slow = reloaded.FindPreset("slow")!;
+        Assert.Equal(0.5, slow.Image.AnimationSpeed);
+        Assert.Equal(0.5, slow.Clone().Image.AnimationSpeed);
+        Assert.True(slow.Image.ChangesSpeed);
+        Assert.Equal(1, reloaded.FindPreset("old")!.Image.AnimationSpeed);
+        Assert.False(reloaded.FindPreset("old")!.Image.ChangesSpeed);
+        Assert.Equal(1, reloaded.FindPreset("odd")!.Image.PlaybackSpeed); // a speed that makes no sense plays as made
+    }
+
+    [Fact]
     public void History_is_kept_until_turned_off_and_can_be_cleared()
     {
         using var dir = new TempDir();
@@ -176,7 +208,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "wic", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
         Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
     }
 
@@ -228,7 +260,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "wic", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
         var ids = store.Profiles.Select(p => p.Id).ToList();
         Assert.Equal(ids.IndexOf("office") + 1, ids.IndexOf("spreadsheets"));
         Assert.Equal(ids.IndexOf("office") + 2, ids.IndexOf("presentations"));
@@ -401,8 +433,8 @@ public class UserDataStoreTests
         store.Load();
 
         // ... and, from schema 15, the 3D model engine before Pandoc (no CAD or archive engine in this list), from
-        // schema 18 the PDF slides engine there too (no PDF text engine).
-        Assert.Equal(["magick", "email", "data", "vector", "model3d", "pdf-slides", "pandoc", "libreoffice"], store.Settings.EnginePriority);
+        // schema 18 the PDF slides engine there too (no PDF text engine), from schema 21 the WIC engine (no FFmpeg).
+        Assert.Equal(["magick", "email", "data", "vector", "model3d", "pdf-slides", "wic", "pandoc", "libreoffice"], store.Settings.EnginePriority);
     }
 
     [Fact]
@@ -506,7 +538,7 @@ public class UserDataStoreTests
         Assert.Equal(ids.IndexOf("data") + 1, ids.IndexOf("models"));
         Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("models"));
         var models = profiles.Single(p => p.Id == "models");
-        Assert.Equal(["glb", "gltf", "stl", "obj", "3mf", "ply"], models.Extensions);
+        Assert.Equal(["glb", "gltf", "stl", "obj", "3mf", "ply", "fbx"], models.Extensions);
         Assert.Equal(BuiltInData.ModelProfile().PresetIds, models.PresetIds);
         Assert.False(SettingsMigrations.ApplyToLibrary(14, presets, profiles)); // once only
     }
@@ -520,7 +552,29 @@ public class UserDataStoreTests
 
         Assert.True(SettingsMigrations.ApplyToLibrary(14, presets, profiles));
 
-        Assert.Equal(["glb", "gltf", "obj", "ply"], profiles.Single(p => p.Id == "models").Extensions);
+        Assert.Equal(["glb", "gltf", "obj", "ply", "fbx"], profiles.Single(p => p.Id == "models").Extensions);
+    }
+
+    [Fact]
+    public void Version_21_libraries_learn_fbx_on_the_3d_donut_and_nothing_else()
+    {
+        // As written with schema 21: no FBX, and the user took PLY off the 3D donut.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var models = profiles.Single(p => p.Id == "models");
+        models.Extensions.RemoveAll(e => e is "fbx" or "ply");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(21, presets, profiles));
+
+        Assert.Equal(["glb", "gltf", "stl", "obj", "3mf", "fbx"], models.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(21, presets, profiles)); // once only
+
+        // A donut of the user that already opens FBX files keeps them.
+        profiles = BuiltInData.CreateProfiles();
+        profiles.Single(p => p.Id == "models").Extensions.Remove("fbx");
+        profiles.Insert(0, new ToolbarProfile { Id = "games", Name = "Games", Extensions = ["fbx"] });
+        Assert.False(SettingsMigrations.ApplyToLibrary(21, presets, profiles));
+        Assert.DoesNotContain("fbx", profiles.Single(p => p.Id == "models").Extensions);
     }
 
     [Fact]
@@ -641,8 +695,42 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "pdfium", "docx-writer", "pdf-text", "pdf-slides", "email", "pandoc", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "pdfium", "docx-writer", "pdf-text", "pdf-slides", "email", "wic", "pandoc", "libreoffice"], store.Settings.EnginePriority);
         Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
+    }
+
+    [Fact]
+    public void Version_20_settings_get_the_wic_engine_after_the_other_built_in_engines()
+    {
+        using var dir = new TempDir();
+        File.WriteAllText(Path.Combine(dir.Path, "settings.json"),
+            """{ "schemaVersion": 20, "enginePriority": ["magick", "pdfium", "hwpx-writer", "subtitle", "ffmpeg", "pandoc", "libreoffice"] }""");
+
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        // Not near the top: the HWPX writer stays among the ranks that win ties (see EbookTests).
+        Assert.Equal(["magick", "pdfium", "hwpx-writer", "subtitle", "wic", "ffmpeg", "pandoc", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
+    }
+
+    [Fact]
+    public void Version_20_libraries_open_jpeg_xr_on_the_images_donut()
+    {
+        // As written with schema 20: no JPEG XR yet; the user took PSD off the images donut and has a donut for .wdp.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var images = profiles.Single(p => p.Id == "images");
+        images.Extensions.RemoveAll(e => e is "jxr" or "wdp" or "hdp" or "psd");
+        profiles.Insert(0, new ToolbarProfile { Id = "photos", Name = "Windows Photo Gallery", Extensions = ["wdp"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(20, presets, profiles));
+
+        Assert.Contains("jxr", images.Extensions);
+        Assert.Contains("hdp", images.Extensions);
+        Assert.DoesNotContain("wdp", images.Extensions);
+        Assert.DoesNotContain("psd", images.Extensions); // only the new extensions are learnt
+        Assert.False(SettingsMigrations.ApplyToLibrary(20, presets, profiles)); // once only
     }
 
     [Fact]
@@ -732,25 +820,25 @@ public class UserDataStoreTests
     }
 
     [Fact]
-    public void Version_20_libraries_get_crop_tool_preset_after_remove_background_on_no_donut()
+    public void Version_22_libraries_get_crop_tool_preset_after_remove_background_on_no_donut()
     {
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id == "tool-crop");
         var profiles = BuiltInData.CreateProfiles();
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(20, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(22, presets, profiles));
 
         var crop = presets.Single(p => p.Id == "tool-crop");
         Assert.Equal(PresetKind.Tool, crop.Kind);
         Assert.Equal("remove-background", presets[presets.IndexOf(crop) - 1].Id);
         Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("tool-crop"));
-        Assert.False(SettingsMigrations.ApplyToLibrary(20, presets, profiles)); // once only
+        Assert.False(SettingsMigrations.ApplyToLibrary(22, presets, profiles)); // once only
     }
 
     [Fact]
     public void Back_from_an_older_Filee_tool_crop_works_again_and_keeps_the_users_changes()
     {
-        // What a Filee before 21 leaves after saving: kind read as Group, TargetFormat dropped, SubPresetIds empty, the rest as it was.
+        // What a Filee before 23 leaves after saving: kind read as Group, TargetFormat dropped, SubPresetIds empty, the rest as it was.
         var presets = BuiltInData.CreatePresets();
         var crop = presets.Single(p => p.Id == "tool-crop");
         crop.Kind = PresetKind.Group;
@@ -758,7 +846,7 @@ public class UserDataStoreTests
         crop.SubPresetIds = [];
         crop.Name = "Trim";
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(20, presets, BuiltInData.CreateProfiles()));
+        Assert.True(SettingsMigrations.ApplyToLibrary(22, presets, BuiltInData.CreateProfiles()));
 
         Assert.Equal(PresetKind.Tool, crop.Kind);
         Assert.Equal(BuiltInData.SameAsSource, crop.TargetFormat);
