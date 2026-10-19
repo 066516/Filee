@@ -22,7 +22,19 @@ libicu). Other distributions use different package names. The desktop needs an
 X11 server (or XWayland), fontconfig, FreeType and the X11 libraries above.
 X11 supports the global gesture toolbar; it needs libXtst and libXt (libxtst6,
 libxt6). A native Wayland session has additional input restrictions; use the
-drop window and file-manager actions if needed.
+drop window and file-manager actions, or the experimental setup below.
+
+Wayland gesture (experimental, KDE Plasma): Filee reads the mouse and keyboard
+from /dev/input, which needs the input group, and a KWin script moves the donut
+to the cursor because Wayland apps cannot place windows. Members of the input
+group can read all keyboard and mouse input, so enable this only if you accept
+that. Add yourself, then sign out and in:
+  sudo usermod -aG input "$USER"
+Then load the script (it lasts until you sign out):
+  qdbus6 org.kde.KWin /Scripting loadScript "$HOME/.local/share/filee/application/filee-donut.js" filee-donut
+  qdbus6 org.kde.KWin /Scripting start
+Wayland cannot say which window is under the cursor, so any Ctrl+drag opens the
+invisible donut window; it only shows when files are dragged onto it.
 Packages are built and smoke-tested on Ubuntu 24.04 and started on Ubuntu 22.04
 by the automated builds.
 

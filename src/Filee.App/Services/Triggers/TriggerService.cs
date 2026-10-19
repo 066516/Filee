@@ -113,11 +113,14 @@ public sealed class TriggerService : IDisposable
             {
                 if (Trace)
                     _log.LogInformation("Trace: press {Button} at {X},{Y}, mask {Mask} = {Modifiers}", e.Data.Button, e.Data.X, e.Data.Y, e.RawEvent.Mask, Map(e.RawEvent.Mask));
+                _relX = _relY = 0; // Wayland reports presses at (0, 0), so relative motion is counted from the press
                 _detector.MouseDown(Map(e.Data.Button), e.Data.X, e.Data.Y, Map(e.RawEvent.Mask));
             };
             _hook.MouseReleased += (_, e) => _detector.MouseUp(Map(e.Data.Button), e.Data.X, e.Data.Y);
             _hook.MouseDragged += (_, e) => OnMove(e);
             _hook.MouseMoved += (_, e) => OnMove(e);
+            _hook.MouseDraggedRelative += (_, e) => OnRelativeMove(e);
+            _hook.MouseMovedRelative += (_, e) => OnRelativeMove(e);
             _hook.KeyPressed += (_, e) => _detector.KeyDown(KeyName(e.Data.KeyCode), Map(e.RawEvent.Mask));
             // Own the actual Run thread. SharpHook's RunAsync task completes BEFORE its finally
             // clears the native callback, so awaiting that task alone is not a safe restart barrier.
@@ -168,6 +171,21 @@ public sealed class TriggerService : IDisposable
     {
         LastCursor = (e.Data.X, e.Data.Y);
         _detector.MouseMove(e.Data.X, e.Data.Y, Map(e.RawEvent.Mask), HeldButton(e.RawEvent.Mask));
+    }
+
+    // Wayland (experimental). A mouse only gives relative motion there, so the detector gets the distance
+    // moved since the last press (enough for the drag threshold). Placing the donut at the real cursor is a KWin
+    // script's job (installer/linux/kwin/filee-donut.js), and a long hover drifts until the next press resets it.
+    private int _relX, _relY;
+
+    private void OnRelativeMove(MouseHookEventArgs e)
+    {
+        _relX += e.Data.X;
+        _relY += e.Data.Y;
+        if (Trace && HeldButton(e.RawEvent.Mask) != TriggerMouseButton.None)
+            _log.LogInformation("Trace: relative move {Dx},{Dy} -> {X},{Y}, mask {Mask}", e.Data.X, e.Data.Y, _relX, _relY, e.RawEvent.Mask);
+        LastCursor = (_relX, _relY);
+        _detector.MouseMove(_relX, _relY, Map(e.RawEvent.Mask), HeldButton(e.RawEvent.Mask));
     }
 
     private bool InScope(TriggerGesture gesture, int x, int y)

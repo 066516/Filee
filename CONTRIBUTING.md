@@ -49,7 +49,9 @@ machine that built it. Check a package with
   Xrandr, Xi, Xtst, Xt, XkbCommon, ICE and SM) and CJK fonts for document comparisons. File actions are installed for
   Thunar, Nautilus, Nemo and Dolphin. The first enabled keyboard shortcut uses Thunar's native custom action;
   close Thunar before changing or pausing that shortcut and reopen it afterwards. Global selected-file queries
-  and hold gestures are not supported. Wayland can use file actions, the drop zone, watch folders and CLI.
+  and hold gestures are not supported. Wayland can use file actions, the drop zone, watch folders and CLI. On KDE Plasma the drag gesture also runs
+  there when the user is in the `input` group (libuiohook's libinput back end) and `installer/linux/kwin/filee-donut.js`
+  is loaded (it moves the donut window, titled "Filee Donut", to the cursor); see `installer/linux/INSTALL.txt`.
 - **macOS:** grant Filee Accessibility permission for gestures and Finder Automation permission for selection.
   Keep the development `.app` at a stable path while testing these permissions. Finder integration is a Quick
   Action under Services; auto-start uses a per-user LaunchAgent.

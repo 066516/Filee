@@ -1,8 +1,11 @@
-// Verifies that retrying gestures waits for the previous native hook to release its shared callback.
+// Verifies that retrying gestures waits for the previous native hook to release its shared callback, and that
+// Wayland's relative mouse motion still starts a drag gesture.
 
 using Avalonia.Headless.XUnit;
+using Avalonia.Threading;
 using Filee.App.Services.Triggers;
 using Filee.Core.Platform;
+using Filee.Core.Settings;
 using Microsoft.Extensions.Logging.Abstractions;
 using SharpHook;
 using SharpHook.Data;
@@ -82,6 +85,29 @@ public sealed class TriggerServiceLifecycleTests
         }
     }
 
+    [AvaloniaFact]
+    public void Relative_motion_since_the_press_starts_a_drag_gesture()
+    {
+        // Wayland reports presses at (0, 0) and mouse motion only as deltas, so the drag distance is summed from the press.
+        var provider = new DelayedProvider();
+        provider.AllowExit.Set();
+        using var service = Create(provider, () => { });
+        service.Apply(new AppSettings());
+        GestureEventArgs? started = null;
+        service.DragStarted += (_, e) => started = e;
+        service.Start();
+        Assert.True(SpinWait.SpinUntil(() => provider.Runs == 1, 2000));
+
+        const EventMask held = EventMask.LeftCtrl | EventMask.Button1;
+        provider.PostMouse(EventType.MouseMovedRelative, 500, 500, EventMask.None); // before the press: must not count
+        provider.PostMouse(EventType.MousePressed, 0, 0, held);
+        provider.PostMouse(EventType.MouseDraggedRelative, 3, 0, held); // under the drag threshold
+        provider.PostMouse(EventType.MouseDraggedRelative, 3, 1, held); // 6 in total: over it
+
+        Assert.True(SpinWait.SpinUntil(() => { Dispatcher.UIThread.RunJobs(); return started is not null; }, 2000));
+        Assert.Equal((6, 1), (started!.X, started.Y));
+    }
+
     private static TriggerService Create(DelayedProvider provider, Action key) =>
         new(new NullPlatformServicesForHooks(), NullLogger<TriggerService>.Instance, () =>
         {
@@ -124,6 +150,20 @@ public sealed class TriggerServiceLifecycleTests
             StopRequested.Set();
             return UioHookResult.Success;
         }
+        public void PostMouse(EventType type, short x, short y, EventMask mask)
+        {
+            lock (_gate)
+            {
+                var e = new UioHookEvent
+                {
+                    Type = type,
+                    Mask = mask,
+                    Mouse = new MouseEventData { Button = MouseButton.Button1, X = x, Y = y },
+                };
+                _callback?.Invoke(ref e, _data);
+            }
+        }
+
         public void PressKey()
         {
             lock (_gate)
