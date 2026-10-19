@@ -6,6 +6,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | Engine | How it gets there | Handles |
 |---|---|---|
 | ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, MNG, QOI, DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster, MIFF ↔ each other, and **APNG** (Filee's own reader and writer); HEIC (written with FFmpeg), XCF, camera RAW (LibRaw), DICOM (uncompressed ones by Filee's own reader), Photo CD, OpenEXR, Radiance HDR and EMF/WMF (Windows) read |
+| Windows Imaging Component | part of Windows (Windows only) | **JPEG XR** (JXR, WDP, HDP; HDR screenshots of Windows) → the images ImageMagick writes, and PDF, ICNS, HEIC and SVG through PNG; HDR tone-mapped to SDR |
 | Vector graphics | built in (Svg.Skia, SkiaSharp, ACadSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, **SVG → DXF** (→ DWG with the CAD engine), **raster images → SVG (tracing)**, PDF-compatible AI → PDF |
 | ICNS | built in | images → ICNS (16–1024 px), ICNS → images |
 | PDFsharp | built in (library) | images → PDF, merge, split, page ranges, **compression** (smaller PDFs, see below) |
@@ -133,6 +134,20 @@ pinned source in `build/build-linux-native.py` like rhwp (PR #113 did this for S
   (Q8) build without HDRI, so high-dynamic-range values are clipped to the displayable range and stored with 8 bits per
   channel; there is no tone mapping. Writing EXR or HDR from 8-bit pictures would only make larger files, so they are
   not targets.
+- **JPEG XR** (`.jxr`, `.wdp`, `.hdp`, read only, Windows only; `Wic/`). ImageMagick has no JPEG XR coder in any build,
+  so the picture is decoded by Windows' own codec (WIC's JPEG XR decoder, in every Windows 10 and 11) and handed to
+  ImageMagick for the preset's options and the output format. Elsewhere the engine reports "not available on this
+  platform". 8- and 16-bit pictures are converted to 8-bit sRGB by WIC. Fixed-point and float ones are linear scRGB
+  (1.0 = SDR white at 80 nits), like the 64-bit half-float screenshots Windows saves on an HDR display (Xbox Game Bar,
+  Win + Alt + PrtScn, Snipping Tool), and are tone-mapped (`Wic/HdrToneMap.cs`) instead of clipped:
+  - the reference white is the luminance 99 % of the pixels stay below, between 1.0 and 4.0 (80–320 nits). Windows
+    draws SDR content at the display's "SDR content brightness", so the white of a desktop screenshot lands there and
+    its SDR parts come out as they were drawn; small highlights don't darken the picture;
+  - values up to 80 % of that white are kept; above, an extended Reinhard shoulder takes everything up to the brightest
+    pixel into the last 20 %, on the largest of R, G and B so colours keep their hue. A picture with nothing brighter
+    than white is left as it is;
+  - colours outside the sRGB gamut are clipped, then the sRGB transfer curve and 8 bits. An alpha channel that is
+    opaque everywhere (HDR screenshots have one) is dropped.
 - **DICOM** (`.dcm`, `.dicom`, read only). The Q8 build reads only 8-bit DICOM, while CT, MR and X-ray scanners store
   12 or 16 bits, so `Magick/Dicom.cs` (written from the DICOM standard, PS3.5 and PS3.3 C.7.6.3 / C.11.2) reads
   uncompressed files itself: implicit and explicit VR little endian, explicit VR big endian and deflated files, with or
