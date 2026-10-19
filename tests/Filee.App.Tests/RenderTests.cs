@@ -602,6 +602,67 @@ public class RenderTests
     }
 
     [AvaloniaFact]
+    public void Custom_theme_colours_replace_the_built_in_ones_and_go_away_with_the_file()
+    {
+        TestServices.EnsureInitialized("en");
+        var service = AppHost.Get<ThemeService>();
+        var dark = new ThemeSettings { Mode = ThemeMode.Dark };
+        var custom = new CustomTheme
+        {
+            Dark = { ["page"] = "#101820", ["surface"] = "#18222C", ["surfaceAlt"] = "#22303C", ["text"] = "#E8E4D8" },
+        };
+        try
+        {
+            service.Apply(dark, "en", custom);
+            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            vm.Navigate("theme");
+            var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+            window.Show();
+            Pump();
+
+            Assert.Equal(Avalonia.Media.Color.Parse("#101820"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(window.Background).Color);
+            Assert.Equal(Avalonia.Media.Color.Parse("#E8E4D8"), BrushColor(window, "TextPrimaryBrush"));
+            // Colours the file does not set, and the other variant, keep Filee's own.
+            Assert.Equal(Avalonia.Media.Color.Parse("#AEACA4"), BrushColor(window, "TextSecondaryBrush"));
+            Assert.Equal(Avalonia.Media.Color.Parse("#F6F5F1"), BrushColor(window, "PageBrush", Avalonia.Styling.ThemeVariant.Light));
+            Save(window, "page-theme-custom.png");
+
+            // Applying without a theme file (deleted, or emptied) restores the built-in colours on the open window.
+            service.Apply(dark, "en");
+            Pump();
+            Assert.Equal(Avalonia.Media.Color.Parse("#1B1B19"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(window.Background).Color);
+            window.Close();
+
+            service.Apply(dark, "en", custom);
+            var radial = AppHost.Get<RadialViewModel>();
+            radial.Load([@"C:\photos\a.jpg"], clickMode: true);
+            var donut = new RadialWindow { DataContext = radial };
+            donut.Show();
+            donut.DonutControl.SetExternalHighlight(1);
+            Pump();
+            Assert.Equal(Avalonia.Media.Color.Parse("#18222C"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(donut.DonutControl.SliceBrush).Color);
+            Save(donut, "donut-custom-theme.png");
+            donut.Close();
+        }
+        finally
+        {
+            service.Apply(new ThemeSettings(), "en");
+        }
+    }
+
+    [Fact]
+    public void Every_custom_theme_name_maps_to_a_brush()
+    {
+        Assert.Equal(CustomTheme.Keys.Order(), ThemeService.CustomBrushKeys.Keys.Order());
+    }
+
+    private static Avalonia.Media.Color BrushColor(Window window, string key, Avalonia.Styling.ThemeVariant? variant = null)
+    {
+        Assert.True(window.TryFindResource(key, variant ?? window.ActualThemeVariant, out var value), key);
+        return Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(value).Color;
+    }
+
+    [AvaloniaFact]
     public void Preset_popup_renders()
     {
         TestServices.EnsureInitialized("ko");
