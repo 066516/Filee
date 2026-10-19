@@ -410,14 +410,30 @@ it. DOCX → DOCX is no edge; the Word variants are the Office Open XML engine's
   and italic from the fonts, colours, links from link annotations, alignment, indents, spacing and line pitch;
 - pictures: JPEG streams are kept as they are, others are decoded to PNG, and what PdfPig cannot decode is cut out
   of the rendered page; a picture covering the page behind text (the scan under an OCR layer) is skipped;
+- ruled tables (`PdfDocumentReader.Tables.cs`): tables drawn with lines become real tables in their place in the
+  reading order. The rules come from the page's vector paths: stroked straight lines and rectangle edges, and thin
+  filled rectangles (up to 4 pt, the way Word and many generators draw borders). Rules on one line (within 1.5 pt)
+  that overlap or leave a gap of at most 2.5 pt are joined; horizontal and vertical rules that meet or cross form a
+  grid, and grid lines closer than 3 pt are one edge. The edges give the columns and rows (the column widths and
+  minimum row heights of the result); where a rule covers less than half of the edge between two grid units, the
+  units are one merged cell (column and row spans). A table without side or bottom rules still reaches as far as
+  most of its rules do. Words go into the cell under their centre and are read like the rest of the page
+  (paragraphs, line breaks, alignment within the cell, fonts, sizes, bold / italic, colours); each cell gets the
+  borders that are drawn around it (weight, colour, dashed or solid), shading from a filled rectangle under it, and
+  a vertical alignment from where its text sits. Only clear tables are rebuilt: at least 2 rows and 2 columns,
+  every merged cell a rectangle, no rule through the middle of a word, and text in at least two cells. A box around
+  a note, underlines, separators and empty grids (a chart's frame) stay as they were. Not rebuilt: tables without
+  rules (aligned by white space only, or with only horizontal rules), nested tables (their text stays in the outer
+  cell), rotated pages; a table running over several pages becomes one table per page. PDF → TXT keeps the cell
+  text in reading order;
 - page size per page and margins shared by the document; running headers and footers that repeat on most pages
   (and bare page numbers) are left out;
 - a page without text (a scan, a page of drawings, a turned page) becomes the rendered page (PDFium, 150 dpi JPEG)
   as a picture behind the text of an empty page, so nothing is lost; there is no OCR. PDF → TXT includes the
   invisible OCR text layer of scanned PDFs that have one.
 
-Password-protected PDFs fail with a clear message. Not converted: tables (their cells come out as paragraphs in
-reading order), vector drawings on text pages, form fields and annotations other than links.
+Password-protected PDFs fail with a clear message. Not converted: tables without rules (their cells come out as
+paragraphs in reading order), other vector drawings on text pages, form fields and annotations other than links.
 
 ## PDF → PPTX
 
