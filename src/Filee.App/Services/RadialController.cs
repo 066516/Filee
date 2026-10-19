@@ -48,6 +48,8 @@ public sealed class RadialController(
     private IDisposable? _handOffTimer;
     private int _dragGeneration;
     private bool _dragReachedDonut;
+    private bool _fileDragsAccepted;
+    private readonly ActivationGrace _grace = new();
 
     /// <summary>A gesture over something that isn't a file drag (a rubber-band selection) is common: a line now and then.</summary>
     private static readonly LogThrottle Throttle = new(TimeSpan.FromMinutes(1));
@@ -72,6 +74,7 @@ public sealed class RadialController(
     public void ShowForDrag(int x, int y)
     {
         ReleaseProgressToToast();
+        _grace.Cancel();
         var window = EnsureWindow();
         // A ring from an earlier conversion (finished or handed to the toast) must not keep this gesture's window up.
         window.DonutControl.LeaveProgressMode();
@@ -90,12 +93,21 @@ public sealed class RadialController(
         }, EmptyDragLimit);
     }
 
-    /// <summary>Opens the donut for known files (click mode).</summary>
-    public void ShowForFiles(int x, int y, IReadOnlyList<string> files)
+    /// <summary>
+    /// Opens the donut for known files (click mode). Shortcuts among them stand for the files they point to.
+    /// <paramref name="forAnotherProcess"/>: the files came from a later launch or the Services menu, so on macOS the
+    /// donut may lose focus once while Filee becomes the active app.
+    /// </summary>
+    public void ShowForFiles(int x, int y, IReadOnlyList<string> files, bool forAnotherProcess = false)
     {
+        files = platform.ResolveShortcuts(files);
         if (files.Count == 0)
             return;
         ReleaseProgressToToast();
+        if (forAnotherProcess && OperatingSystem.IsMacOS())
+            _grace.Start();
+        else
+            _grace.Cancel();
         var window = EnsureWindow();
         _dropped = false;
         _converted = false;
@@ -149,6 +161,7 @@ public sealed class RadialController(
             _window.DonutControl.LeaveProgressMode();
         }
         _visible = false;
+        _grace.Cancel();
         var window = _window;
         // A group about to open (its dwell timer running) must not open on a closing donut.
         window.DonutControl.CollapseGroup();
@@ -187,6 +200,13 @@ public sealed class RadialController(
         var donut = window.DonutControl;
 
         window.DragEntered += () => _dragReachedDonut = true;
+        // Tells "the drag reached the donut but brought no files" apart, with what it brought (file promises, say).
+        window.DragWithoutFiles += formats =>
+        {
+            if (Throttle.TryEnter("drag-without-files", out var held))
+                log.LogInformation("A drag without files Filee reads entered the donut; it offered: {Formats}{Held}",
+                    formats, LogThrottle.HeldText(held));
+        };
         window.FilesEntered += files =>
         {
             if (viewModel.IsClickMode || SameFiles(files, viewModel.Files))
@@ -210,8 +230,19 @@ public sealed class RadialController(
         window.EscapePressed += () => Close();
         window.Deactivated += (_, _) =>
         {
-            if (viewModel.IsClickMode && !_editing)
-                Close();
+            if (!viewModel.IsClickMode || _editing)
+                return;
+            if (_grace.Forgives())
+            {
+                log.LogInformation("The donut lost focus as it opened for another app's request; it stays open");
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (_visible && viewModel.IsClickMode && !window.IsActive)
+                        window.Activate();
+                });
+                return;
+            }
+            Close();
         };
 
         donut.ActiveIndexChanged += (_, index) => viewModel.ShowHint(index, donut.ActiveSubIndex, donut.IsCenterHot);
@@ -381,7 +412,14 @@ public sealed class RadialController(
         // below normal windows while it keeps the mark (after the Photos app opened, for one). Then Explorer stays on
         // top of the donut and the drop never reaches it, so put it back on top every time.
         if (window.TryGetPlatformHandle()?.Handle is { } handle)
+        {
             platform.RaiseTopmost(handle);
+            if (!_fileDragsAccepted && OperatingSystem.IsMacOS() && platform is Filee.Platform.MacOS.MacOSPlatformServices mac)
+            {
+                mac.AcceptFileDrags(handle);
+                _fileDragsAccepted = true;
+            }
+        }
         _visible = true;
         if (activate)
             window.Activate();

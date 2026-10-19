@@ -145,14 +145,15 @@ internal static class MediaEncoding
     /// The hardware encoder that passed its probe for <see cref="HardwareCodec"/> of this file; null encodes with x264 /
     /// x265 (also the retry after a hardware encode failed).
     /// </param>
+    /// <param name="animationSpeed">Playback speed of an animated GIF or APNG (ImageOptions.PlaybackSpeed); 1 keeps the video's.</param>
     /// <exception cref="InvalidOperationException">The file lacks the stream the target needs (e.g. no audio track).</exception>
     public static IReadOnlyList<FfmpegPass> Plan(string input, string output, string target, MediaOptions options, MediaInfo info, string workDirectory,
-        CoverExtras? cover = null, IReadOnlySet<string>? encoders = null, HardwareEncoder? hardware = null)
+        CoverExtras? cover = null, IReadOnlySet<string>? encoders = null, HardwareEncoder? hardware = null, double animationSpeed = 1)
     {
         if (target == "gif")
-            return AnimatedGif(input, output, options, info, workDirectory);
+            return AnimatedGif(input, output, options, info, workDirectory, animationSpeed);
         if (target == "apng")
-            return [new FfmpegPass(AnimatedPng(input, output, options, info), 1)];
+            return [new FfmpegPass(AnimatedPng(input, output, options, info, animationSpeed), 1)];
         if (target == "png")
             return [new FfmpegPass(PosterFrame(input, output, info), 1)];
         if (VideoTargets.TryGetValue(target, out var video))
@@ -702,11 +703,11 @@ internal static class MediaEncoding
     /// the palette in the same run would keep every frame in memory until the end. Frame rate and width are limited
     /// by the quality setting because GIF stores every frame uncompressed-ish and grows fast.
     /// </summary>
-    private static List<FfmpegPass> AnimatedGif(string input, string output, MediaOptions options, MediaInfo info, string workDirectory)
+    private static List<FfmpegPass> AnimatedGif(string input, string output, MediaOptions options, MediaInfo info, string workDirectory, double speed)
     {
         var video = info.Video ?? throw new InvalidOperationException("The file has no video stream.");
         var quality = options.Quality;
-        var chain = GifFrames(video, options.MaxHeight, fps: Choose(quality, 15, 12, 10), maxWidth: Choose(quality, 640, 480, 320));
+        var chain = GifFrames(video, options.MaxHeight, fps: Choose(quality, 15, 12, 10), maxWidth: Choose(quality, 640, 480, 320), speed);
         var palette = Path.Combine(workDirectory, $"palette-{Guid.NewGuid():N}.png");
         var colors = Choose(quality, 256, 256, 128);
         // Error diffusion looks best; ordered (Bayer) dithering compresses much better because it does not flicker.
@@ -734,11 +735,11 @@ internal static class MediaEncoding
     /// Animated PNG with FFmpeg's APNG encoder and muxer: full colour (24-bit RGB, no palette pass), looping, with the
     /// frame rate and width limits of GIF, since every frame is stored losslessly.
     /// </summary>
-    private static List<string> AnimatedPng(string input, string output, MediaOptions options, MediaInfo info)
+    private static List<string> AnimatedPng(string input, string output, MediaOptions options, MediaInfo info, double speed)
     {
         var video = info.Video ?? throw new InvalidOperationException("The file has no video stream.");
         var quality = options.Quality;
-        var chain = GifFrames(video, options.MaxHeight, fps: Choose(quality, 15, 12, 10), maxWidth: Choose(quality, 640, 480, 320));
+        var chain = GifFrames(video, options.MaxHeight, fps: Choose(quality, 15, 12, 10), maxWidth: Choose(quality, 640, 480, 320), speed);
         return
         [
             .. Common, "-i", input, "-map", "0:V:0", "-vf", chain, "-an",
@@ -746,11 +747,18 @@ internal static class MediaEncoding
         ];
     }
 
-    /// <summary>Frame rate, square pixels and size of the GIF frames (never upscaled).</summary>
-    private static string GifFrames(VideoStreamInfo video, int maxHeight, int fps, int maxWidth)
+    /// <summary>
+    /// Playback speed, frame rate, square pixels and size of the GIF frames (never upscaled). The speed changes the
+    /// timestamps before the frame rate is taken, so a faster clip keeps the frame rate by leaving frames out, and a
+    /// slower one repeats frames where the video has too few.
+    /// </summary>
+    private static string GifFrames(VideoStreamInfo video, int maxHeight, int fps, int maxWidth, double speed)
     {
         var height = maxHeight > 0 ? $"'min(ih,{Math.Max(16, maxHeight)})'" : "ih";
-        return $"fps={fps},{SquarePixels(video)}scale=w='min(iw,{maxWidth})':h={height}:force_original_aspect_ratio=decrease:flags=lanczos";
+        var timing = double.IsFinite(speed) && speed is > 0 and not 1
+            ? $"setpts=PTS/{speed.ToString("0.###", CultureInfo.InvariantCulture)},"
+            : "";
+        return $"{timing}fps={fps},{SquarePixels(video)}scale=w='min(iw,{maxWidth})':h={height}:force_original_aspect_ratio=decrease:flags=lanczos";
     }
 
     /// <summary>Images have no pixel aspect ratio: anamorphic video (DV, DVD) is stretched to square pixels first.</summary>

@@ -147,6 +147,38 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Animation_speed_is_saved_and_is_the_original_speed_for_presets_from_before_it()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        Assert.All(store.Presets, p => Assert.Equal(1, p.Image.AnimationSpeed)); // no built-in preset changes it
+        store.Presets.Add(new Preset { Id = "slow", Name = "Slow", TargetFormat = "gif", Image = { AnimationSpeed = 0.5 } });
+        store.Presets.Add(new Preset { Id = "old", Name = "Old", TargetFormat = "gif" });
+        store.Presets.Add(new Preset { Id = "odd", Name = "Odd", TargetFormat = "gif" });
+        store.SaveLibrary();
+
+        // A Filee from before the option saved no "animationSpeed"; a hand-edited file may hold anything.
+        var path = Path.Combine(dir.Path, "presets.json");
+        var presets = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsArray();
+        Assert.Equal(0.5, (double)presets.Single(p => (string?)p!["id"] == "slow")!["image"]!["animationSpeed"]!);
+        Assert.True(presets.Single(p => (string?)p!["id"] == "old")!["image"]!.AsObject().Remove("animationSpeed"));
+        presets.Single(p => (string?)p!["id"] == "odd")!["image"]!["animationSpeed"] = -3;
+        File.WriteAllText(path, presets.ToJsonString());
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        var slow = reloaded.FindPreset("slow")!;
+        Assert.Equal(0.5, slow.Image.AnimationSpeed);
+        Assert.Equal(0.5, slow.Clone().Image.AnimationSpeed);
+        Assert.True(slow.Image.ChangesSpeed);
+        Assert.Equal(1, reloaded.FindPreset("old")!.Image.AnimationSpeed);
+        Assert.False(reloaded.FindPreset("old")!.Image.ChangesSpeed);
+        Assert.Equal(1, reloaded.FindPreset("odd")!.Image.PlaybackSpeed); // a speed that makes no sense plays as made
+    }
+
+    [Fact]
     public void History_is_kept_until_turned_off_and_can_be_cleared()
     {
         using var dir = new TempDir();
@@ -176,7 +208,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "wic", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
         Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
     }
 
@@ -228,7 +260,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "wic", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
         var ids = store.Profiles.Select(p => p.Id).ToList();
         Assert.Equal(ids.IndexOf("office") + 1, ids.IndexOf("spreadsheets"));
         Assert.Equal(ids.IndexOf("office") + 2, ids.IndexOf("presentations"));
@@ -401,8 +433,8 @@ public class UserDataStoreTests
         store.Load();
 
         // ... and, from schema 15, the 3D model engine before Pandoc (no CAD or archive engine in this list), from
-        // schema 18 the PDF slides engine there too (no PDF text engine).
-        Assert.Equal(["magick", "email", "data", "vector", "model3d", "pdf-slides", "pandoc", "libreoffice"], store.Settings.EnginePriority);
+        // schema 18 the PDF slides engine there too (no PDF text engine), from schema 21 the WIC engine (no FFmpeg).
+        Assert.Equal(["magick", "email", "data", "vector", "model3d", "pdf-slides", "wic", "pandoc", "libreoffice"], store.Settings.EnginePriority);
     }
 
     [Fact]
@@ -641,8 +673,42 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "pdfium", "docx-writer", "pdf-text", "pdf-slides", "email", "pandoc", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "pdfium", "docx-writer", "pdf-text", "pdf-slides", "email", "wic", "pandoc", "libreoffice"], store.Settings.EnginePriority);
         Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
+    }
+
+    [Fact]
+    public void Version_20_settings_get_the_wic_engine_after_the_other_built_in_engines()
+    {
+        using var dir = new TempDir();
+        File.WriteAllText(Path.Combine(dir.Path, "settings.json"),
+            """{ "schemaVersion": 20, "enginePriority": ["magick", "pdfium", "hwpx-writer", "subtitle", "ffmpeg", "pandoc", "libreoffice"] }""");
+
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        // Not near the top: the HWPX writer stays among the ranks that win ties (see EbookTests).
+        Assert.Equal(["magick", "pdfium", "hwpx-writer", "subtitle", "wic", "ffmpeg", "pandoc", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
+    }
+
+    [Fact]
+    public void Version_20_libraries_open_jpeg_xr_on_the_images_donut()
+    {
+        // As written with schema 20: no JPEG XR yet; the user took PSD off the images donut and has a donut for .wdp.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var images = profiles.Single(p => p.Id == "images");
+        images.Extensions.RemoveAll(e => e is "jxr" or "wdp" or "hdp" or "psd");
+        profiles.Insert(0, new ToolbarProfile { Id = "photos", Name = "Windows Photo Gallery", Extensions = ["wdp"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(20, presets, profiles));
+
+        Assert.Contains("jxr", images.Extensions);
+        Assert.Contains("hdp", images.Extensions);
+        Assert.DoesNotContain("wdp", images.Extensions);
+        Assert.DoesNotContain("psd", images.Extensions); // only the new extensions are learnt
+        Assert.False(SettingsMigrations.ApplyToLibrary(20, presets, profiles)); // once only
     }
 
     [Fact]

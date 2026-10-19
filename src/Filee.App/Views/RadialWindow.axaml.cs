@@ -3,9 +3,9 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Platform.Storage;
 using Filee.App.Controls;
 using Filee.App.Services;
+using Filee.Core.Platform;
 
 namespace Filee.App.Views;
 
@@ -30,6 +30,9 @@ public partial class RadialWindow : Window
     /// <summary>Files entered the window during a drag.</summary>
     public event Action<IReadOnlyList<string>>? FilesEntered;
 
+    /// <summary>A drag without files Filee reads entered the window: the formats it offered (for the log).</summary>
+    public event Action<string>? DragWithoutFiles;
+
     /// <summary>A drop landed on the donut: (hit, files).</summary>
     public event Action<DonutHit, IReadOnlyList<string>>? Dropped;
 
@@ -42,15 +45,18 @@ public partial class RadialWindow : Window
     public event Action<int, DonutHit, double>? DragSummary;
 
     private int _dragOverEvents;
+    private bool _dragOffersFiles;
     private DonutHit _lastDragHit;
     private Point? _lastDragAt;
 
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
         DragEntered?.Invoke();
-        var files = LocalFiles(e);
+        var files = DraggedFiles.Local(e.DataTransfer);
+        _dragOffersFiles = DraggedFiles.Offered(e.DataTransfer);
         if (files.Count == 0)
         {
+            DragWithoutFiles?.Invoke(DraggedFiles.Describe(e.DataTransfer));
             e.DragEffects = DragDropEffects.None;
             return;
         }
@@ -67,11 +73,10 @@ public partial class RadialWindow : Window
         _dragOverEvents++;
         _lastDragHit = hit;
         _lastDragAt = at;
-        var files = e.DataTransfer.Contains(DataFormat.File);
         Donut.SetExternalHit(hit, at);
 
         // Always COPY. Reporting MOVE would make Explorer delete the source files after the drop.
-        e.DragEffects = files && Donut.Converts(hit) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.DragEffects = _dragOffersFiles && Donut.Converts(hit) ? DragDropEffects.Copy : DragDropEffects.None;
         e.Handled = true;
     }
 
@@ -89,7 +94,7 @@ public partial class RadialWindow : Window
         Donut.CollapseGroup();
         Donut.SetExternalHighlight(-1);
         e.DragEffects = Donut.Converts(hit) ? DragDropEffects.Copy : DragDropEffects.None;
-        Dropped?.Invoke(hit, LocalFiles(e));
+        Dropped?.Invoke(hit, DraggedFiles.Local(e.DataTransfer));
         e.Handled = true;
     }
 
@@ -117,12 +122,4 @@ public partial class RadialWindow : Window
         if (change.Property == IsVisibleProperty && !change.GetNewValue<bool>())
             Donut.CollapseGroup();
     }
-
-    /// <summary>Local file paths in the drag data (folders and virtual items are ignored).</summary>
-    private static IReadOnlyList<string> LocalFiles(DragEventArgs e) =>
-        (e.DataTransfer.TryGetFiles() ?? [])
-            .Select(item => item.TryGetLocalPath())
-            .OfType<string>()
-            .Where(File.Exists)
-            .ToList();
 }

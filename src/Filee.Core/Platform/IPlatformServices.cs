@@ -6,6 +6,12 @@ public interface IPlatformServices
     bool SupportsGlobalPointerGestures => true;
     bool SupportsSelectionShortcut => true;
 
+    /// <summary>
+    /// False where mouse presses arrive without a position (Wayland reports them at (0, 0)), so the gesture has to
+    /// start from the last known cursor estimate instead.
+    /// </summary>
+    bool PressCarriesPosition => true;
+
     /// <summary>True if the window at the screen point belongs to the file manager or desktop. Coordinates are pixels on Windows/Linux and desktop points on macOS.</summary>
     bool IsFileManagerAt(int x, int y);
 
@@ -26,6 +32,29 @@ public interface IPlatformServices
         var own = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
         return [.. names.OfType<string>().Where(n => n.Length > 0 && !n.Equals(own, StringComparison.OrdinalIgnoreCase))
             .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase)];
+    }
+
+    /// <summary>
+    /// The existing file or folder the shortcut at <paramref name="path"/> points to (a .lnk on Windows); null for
+    /// anything else, a broken shortcut, or a platform whose shortcuts Filee doesn't follow (macOS aliases and Linux
+    /// .desktop links aren't followed yet).
+    /// </summary>
+    string? ShortcutTarget(string path) => null;
+
+    /// <summary>
+    /// <paramref name="paths"/> with every shortcut replaced by what it points to, for files that come into Filee
+    /// (drops, the file manager's menu and selection). A broken shortcut stays, so it is reported as unsupported.
+    /// </summary>
+    IReadOnlyList<string> ResolveShortcuts(IReadOnlyList<string> paths) => ResolveShortcuts(paths, ShortcutTarget);
+
+    /// <summary>
+    /// Replaces each path by <paramref name="target"/>'s answer, if any, keeping the order. A shortcut and its target
+    /// brought in together, or two shortcuts to one file, give that file once.
+    /// </summary>
+    static IReadOnlyList<string> ResolveShortcuts(IReadOnlyList<string> paths, Func<string, string?> target)
+    {
+        var resolved = paths.Select(p => target(p) ?? p).ToList();
+        return resolved.SequenceEqual(paths) ? paths : [.. resolved.Distinct(FileSystemPaths.Comparer)];
     }
 
     /// <summary>Files currently selected in the foreground file manager window (empty if none).</summary>

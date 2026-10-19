@@ -692,6 +692,51 @@ public class RenderTests
     }
 
     [AvaloniaFact]
+    public void Preset_editor_shows_playback_speed_only_for_targets_that_keep_animations()
+    {
+        TestServices.EnsureInitialized("ko");
+        var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "gif", Name = "Slow GIF" };
+        var vm = new PresetEditorViewModel(preset, loc);
+        Assert.True(vm.ShowAnimationSpeed);
+        Assert.Equal(1, vm.AnimationSpeed.Value);
+        Assert.Equal(["0.25×", "0.5×", "0.75×", "1× (원본)", "1.5×", "2×", "4×"], vm.AnimationSpeeds.Select(s => s.Label));
+        vm.AnimationSpeed = vm.AnimationSpeeds.Single(s => s.Value == 0.5);
+        var window = new PresetEditorWindow { DataContext = vm, Height = 900 };
+        window.Show();
+        Pump();
+        Save(window, "preset-animation-speed-ko.png");
+        window.Close();
+
+        foreach (var target in new[] { "webp", "apng", "mng", Filee.Core.Presets.BuiltInData.SameAsSource })
+        {
+            vm.Target = vm.Targets.Single(t => t.Value == target);
+            Assert.True(vm.ShowAnimationSpeed, target);
+        }
+        vm.Target = vm.Targets.Single(t => t.Value == "gif");
+        vm.AnimationSpeed = null!; // the combo box clearing its selection keeps the value
+        Assert.Equal(0.5, vm.AnimationSpeed.Value);
+        Assert.True(vm.Apply());
+        Assert.Equal(0.5, preset.Image.AnimationSpeed);
+
+        // A speed set for GIF and left behind by a still target isn't saved: nothing on screen would say so.
+        vm = new PresetEditorViewModel(preset, loc);
+        Assert.Equal(0.5, vm.AnimationSpeed.Value);
+        foreach (var target in new[] { "png", "jpg", "mp4", "pdf" })
+        {
+            vm.Target = vm.Targets.Single(t => t.Value == target);
+            Assert.False(vm.ShowAnimationSpeed, target);
+        }
+        Assert.True(vm.Apply());
+        Assert.Equal(1, preset.Image.AnimationSpeed);
+
+        // A speed set outside the editor is offered instead of being lost.
+        preset.TargetFormat = "webp";
+        preset.Image.AnimationSpeed = 3;
+        Assert.Equal("3×", new PresetEditorViewModel(preset, loc).AnimationSpeed.Label);
+    }
+
+    [AvaloniaFact]
     public void Preset_editor_shows_and_saves_background_removal()
     {
         TestServices.EnsureInitialized("ko");
