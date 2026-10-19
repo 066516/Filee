@@ -137,7 +137,8 @@ public sealed class TriggerServiceLifecycleTests
         var provider = new DelayedProvider();
         provider.AllowExit.Set();
         var service = Create(provider, () => { }, wayland);
-        service.Apply(new AppSettings());
+        // Ctrl + left drag on every OS: the default drag gesture uses Option on macOS, which these presses don't hold.
+        service.Apply(new AppSettings { Triggers = [new TriggerGesture { Modifiers = ModifierKeys.Ctrl }] });
         GestureEventArgs? started = null;
         service.DragStarted += (_, e) => started = e;
         service.Start();
