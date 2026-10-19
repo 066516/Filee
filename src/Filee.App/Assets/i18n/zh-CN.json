@@ -323,6 +323,7 @@
   "toolbar.size": "大小",
   "toolbar.hole": "内圈",
   "toolbar.opacity": "不透明度",
+  "toolbar.max_slices_page": "每页项目数",
   "toolbar.new_preset": "新预设",
   "toolbar.new_group": "新建组",
   "group.editor_title": "组",

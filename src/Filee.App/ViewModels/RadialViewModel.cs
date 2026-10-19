@@ -44,7 +44,9 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
     [ObservableProperty] private int _totalPages = 1;
 
     /// <summary>Maximum number of slices shown on one page of the donut.</summary>
-    public const int MaxPageSlices = ToolbarProfile.MaxSlices;
+    public int MaxPageSlices => store.Settings.Donut.MaxPageSlices is >= 4 and <= ToolbarProfile.MaxSlices
+        ? store.Settings.Donut.MaxPageSlices
+        : ToolbarProfile.MaxSlices;
 
     /// <summary>Files the donut will convert (empty while waiting for a drag to enter).</summary>
     public IReadOnlyList<string> Files { get; private set; } = [];

@@ -323,6 +323,7 @@
   "toolbar.size": "Rozmiar",
   "toolbar.hole": "Otwór",
   "toolbar.opacity": "Krycie",
+  "toolbar.max_slices_page": "Wycinki/stronę",
   "toolbar.new_preset": "Nowe ustawienie",
   "toolbar.new_group": "Nowa grupa",
   "group.editor_title": "Grupa",

@@ -323,6 +323,7 @@
   "toolbar.size": "Size",
   "toolbar.hole": "Hole",
   "toolbar.opacity": "Opacity",
+  "toolbar.max_slices_page": "Slices/page",
   "toolbar.new_preset": "New preset",
   "toolbar.new_group": "New group",
   "group.editor_title": "Group",

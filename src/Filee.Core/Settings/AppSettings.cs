@@ -57,6 +57,9 @@ public sealed class DonutSettings
     /// <summary>Background opacity of the slices (0.5 - 1).</summary>
     public double Opacity { get; set; } = 0.96;
 
+    /// <summary>Maximum slices per page before paginating (6 - 12, default 12).</summary>
+    public int MaxPageSlices { get; set; } = 12;
+
     public DonutSettings Clone() => (DonutSettings)MemberwiseClone();
 }
 

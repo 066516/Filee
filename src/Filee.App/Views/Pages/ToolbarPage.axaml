@@ -263,6 +263,10 @@
               <TextBlock Classes="label" VerticalAlignment="Center" Text="{DynamicResource toolbar.opacity}" />
               <Slider Grid.Column="1" Minimum="50" Maximum="100" Value="{Binding SliceOpacity}" />
             </Grid>
+            <Grid ColumnDefinitions="90,*">
+              <TextBlock Classes="label" VerticalAlignment="Center" Text="{DynamicResource toolbar.max_slices_page}" />
+              <Slider Grid.Column="1" Minimum="6" Maximum="12" Value="{Binding MaxPageSlices}" />
+            </Grid>
           </StackPanel>
         </Border>
       </StackPanel>
