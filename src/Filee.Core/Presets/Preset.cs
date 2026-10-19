@@ -369,6 +369,11 @@ public sealed class DocumentOptions
     /// <summary>Export PDF/A (archival) when producing PDF from documents.</summary>
     public bool PdfA { get; set; }
 
+    /// <summary>
+    /// Markdown output: the text only, without the document's pictures (no "&lt;name&gt;_files" folder next to it).
+    /// </summary>
+    public bool LeaveOutPictures { get; set; }
+
     public DocumentOptions Clone() => (DocumentOptions)MemberwiseClone();
 }
 

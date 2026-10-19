@@ -432,6 +432,8 @@
   "presets.split_tall_image_hint": "Wyłączone: długi obraz jest zmniejszany do limitu formatu (JPG 65 500 px, WebP 16 383 px).\nWłączone: zachowuje rozmiar i jest dzielony między stronami na kilka plików (nazwa_1, nazwa_2, …).",
   "presets.group.document": "Dokumenty",
   "presets.pdfa": "PDF/A (archiwalny)",
+  "presets.leave_out_pictures": "Pomiń obrazy (tylko tekst)",
+  "presets.leave_out_pictures_hint": "Wyłączone: obrazy trafiają do folderu „nazwa_files” obok pliku Markdown, który do nich linkuje.\nWłączone: tylko tekst, bez folderu.",
   "presets.target_folder": "Folder (rozpakuj archiwa)",
   "presets.group.media": "Wideo i audio",
   "presets.media_quality": "Jakość",

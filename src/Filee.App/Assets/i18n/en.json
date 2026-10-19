@@ -432,6 +432,8 @@
   "presets.split_tall_image_hint": "Off: a long image is scaled down to the format's limit (JPG 65,500 px, WebP 16,383 px).\nOn: it keeps its size and is split between pages into several files (name_1, name_2, …).",
   "presets.group.document": "Documents",
   "presets.pdfa": "PDF/A (archival)",
+  "presets.leave_out_pictures": "Leave out pictures (text only)",
+  "presets.leave_out_pictures_hint": "Off: the pictures are saved in a \"name_files\" folder next to the Markdown file and linked from it.\nOn: only the text, no folder.",
   "presets.target_folder": "Folder (extract archives)",
   "presets.group.media": "Video & audio",
   "presets.media_quality": "Quality",
