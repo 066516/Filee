@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Filee.App.Tests;
 
-/// <summary>Keeps en / es / ko / zh-CN / hi in sync so no language silently falls back to English.</summary>
+/// <summary>Keeps en / es / ko / zh-CN / pl / hi in sync so no language silently falls back to English.</summary>
 public partial class LocalizationTests
 {
     private static string I18nDirectory
