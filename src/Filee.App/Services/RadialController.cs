@@ -294,6 +294,17 @@ public sealed class RadialController(
             return;
         }
 
+        if (preset.IsTool)
+        {
+            var near = _window?.Position;
+            Close(animate: false);
+            if (web is null)
+                windows.ShowCropOverlay(files, preset, near);
+            else
+                _ = ShowToolForBrowserFilesAsync(web, preset, near);
+            return;
+        }
+
         log.LogInformation("Converting {Count} file(s) with preset {Preset}{Web}", files.Count, preset.Id,
             web is null ? "" : " (from a browser)");
         var job = conversions.Start(files, preset, showInToast: false, web);
@@ -304,6 +315,15 @@ public sealed class RadialController(
         }
         _converted = true;
         ShowProgress(job);
+    }
+
+    /// <summary>The crop tool on files from a browser: they are saved first, then it opens on them.</summary>
+    private async Task ShowToolForBrowserFilesAsync(WebDrop web, Filee.Core.Presets.Preset preset, PixelPoint? near)
+    {
+        var files = await conversions.SaveBrowserFilesAsync(web, (placeholder, ex) =>
+            log.LogWarning(ex, "Saving {File} from a browser for {Preset} failed", Path.GetFileName(placeholder), preset.Id));
+        if (files.Count > 0)
+            windows.ShowCropOverlay(files, preset, near);
     }
 
     // ───────── Progress ring ─────────

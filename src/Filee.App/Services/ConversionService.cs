@@ -68,7 +68,7 @@ public sealed class ConversionService
     /// <returns>The job's view model, or null when there was nothing to convert.</returns>
     public JobViewModel? Start(IReadOnlyList<string> files, Preset preset, bool showInToast = true, WebDrop? web = null)
     {
-        if (files.Count == 0 || preset.IsGroup)
+        if (files.Count == 0 || preset.IsGroup || preset.IsTool)
         {
             web?.Dispose();
             return null;
@@ -113,6 +113,36 @@ public sealed class ConversionService
             return null;
         }
         return Start(files, preset);
+    }
+
+    /// <summary>
+    /// Saves a browser drop's files for a tool (the crop overlay), which needs them on disk before anything else
+    /// happens: always into the download folder, as the tool shows and keeps working on the original. Files that can't
+    /// be saved are left out (<paramref name="failed"/> hears why). The drop is done afterwards.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> SaveBrowserFilesAsync(WebDrop web, Action<string, Exception> failed)
+    {
+        try
+        {
+            var fetcher = web.CreateFetcher(BrowserDropOptions() with { SaveOnlyConverted = false }, _downloader);
+            var saved = new List<string>();
+            foreach (var placeholder in web.Placeholders)
+            {
+                try
+                {
+                    saved.Add(await fetcher.FetchAsync(placeholder, new Progress<double>(), CancellationToken.None));
+                }
+                catch (Exception ex) when (ex is not OutOfMemoryException)
+                {
+                    failed(placeholder, ex);
+                }
+            }
+            return saved;
+        }
+        finally
+        {
+            web.Dispose();
+        }
     }
 
     /// <summary>Where files dragged from a browser are saved, as Settings › General says now.</summary>

@@ -39,6 +39,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         _showMenuBarIcon = store.Settings.ShowMenuBarIcon;
         _contextMenu = store.Settings.ContextMenuEnabled;
         _noHistory = !store.Settings.KeepHistory;
+        _historyLimit = store.Settings.EffectiveHistoryLimit;
         OutputLocations = new[] { OutputLocation.SameFolder, OutputLocation.Subfolder, OutputLocation.CustomFolder }
             .Select(v => new Choice<OutputLocation>(v, loc[$"presets.location.{v}"])).ToList();
         var output = store.Settings.DefaultOutput;
@@ -238,7 +239,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         }];
     }
 
-    // Conversion history (home page): don't record it, or clear what is there.
+    // Conversion history (home page): don't record it, how much of it to keep, or clear what is there.
     [ObservableProperty] private bool _noHistory;
 
     [ObservableProperty]
@@ -251,6 +252,12 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     public string HistoryText => HistoryCleared ? _loc["general.history_cleared"] : _loc.Format("general.history_count", HistoryCount);
 
     partial void OnNoHistoryChanged(bool value) => Save(s => s.KeepHistory = !value);
+
+    /// <summary>How many conversions the history keeps (<see cref="AppSettings.HistoryLimit"/>).</summary>
+    [ObservableProperty] private int _historyLimit;
+
+    partial void OnHistoryLimitChanged(int value) =>
+        Save(s => s.HistoryLimit = Math.Clamp(value, AppSettings.MinHistoryLimit, AppSettings.MaxHistoryLimit));
 
     partial void OnHistoryClearedChanged(bool value) => OnPropertyChanged(nameof(HistoryText));
 

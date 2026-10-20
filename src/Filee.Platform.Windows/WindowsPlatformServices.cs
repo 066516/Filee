@@ -80,9 +80,12 @@ public sealed class WindowsPlatformServices : IPlatformServices
     public IReadOnlyList<string> GetFileManagerSelection()
     {
         var foreground = NativeMethods.GetForegroundWindow();
-        if (foreground == 0)
-            return [];
+        return foreground == 0 ? [] : SelectionOf(foreground);
+    }
 
+    /// <summary>The selected files of an Explorer window; with tabs, of its active tab (see <see cref="ExplorerTabs"/>).</summary>
+    internal static IReadOnlyList<string> SelectionOf(nint foreground)
+    {
         var type = Type.GetTypeFromProgID("Shell.Application");
         if (type is null)
             return [];
@@ -94,17 +97,37 @@ public sealed class WindowsPlatformServices : IPlatformServices
             dynamic windows = shell.Windows();
             int count = windows.Count;
 
-            // With Explorer tabs (Windows 11) several entries share one HWND. The active tab is the one
-            // that has a selection in practice, so take the first matching window with selected items.
+            // With Explorer tabs (Windows 11) every tab is an entry with the window's HWND: find the active one.
+            var activeTab = ExplorerTabs.ActiveTabOf(foreground);
+            var found = new List<object?>(count);
+            var entries = new List<ShellWindowEntry>(count);
             for (var i = 0; i < count; i++)
             {
-                dynamic? window = windows.Item(i);
+                object? window = null;
+                nint topLevel = 0, tab = 0;
+                try
+                {
+                    window = windows.Item(i);
+                    if (window is not null)
+                    {
+                        topLevel = (nint)(long)((dynamic)window).HWND;
+                        if (topLevel == foreground && activeTab != 0)
+                            tab = ExplorerTabs.TabOf(window);
+                    }
+                }
+                catch (COMException) { }
+                catch (Microsoft.CSharp.RuntimeBinder.RuntimeBinderException) { } // e.g. Internet Explorer windows
+                found.Add(window);
+                entries.Add(new ShellWindowEntry(topLevel, tab));
+            }
+
+            foreach (var i in ExplorerTabs.Candidates(entries, foreground, activeTab))
+            {
+                dynamic? window = found[i];
                 if (window is null)
                     continue;
                 try
                 {
-                    if ((nint)(long)window.HWND != foreground)
-                        continue;
                     dynamic items = window.Document.SelectedItems();
                     var paths = new List<string>();
                     foreach (dynamic item in items)
