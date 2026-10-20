@@ -21,6 +21,7 @@ using Filee.App.ViewModels;
 using Filee.App.Views;
 using Filee.Core.Conversion;
 using Filee.Core.Platform;
+using Filee.Core.Presets;
 using Filee.Core.Profiles;
 using Filee.Core.Settings;
 using Filee.Core.Web;
@@ -287,7 +288,7 @@ public sealed class RadialController(
     {
         // Placeholders whose drop is gone (the drag listed files it didn't hand over in the end) can't be converted.
         var orphaned = web is null && files.Any(WebDrop.IsPlaceholder);
-        if (viewModel.PresetAt(index, sub) is not { } preset || files.Count == 0 || orphaned)
+        if (viewModel.PresetAt(index, sub) is not { } preset || SourcesFor(preset, files) is not { Count: > 0 } sources || orphaned)
         {
             web?.Dispose();
             Close();
@@ -299,15 +300,15 @@ public sealed class RadialController(
             var near = _window?.Position;
             Close(animate: false);
             if (web is null)
-                windows.ShowCropOverlay(files, preset, near);
+                windows.ShowCropOverlay(sources, preset, near);
             else
                 _ = ShowToolForBrowserFilesAsync(web, preset, near);
             return;
         }
 
-        log.LogInformation("Converting {Count} file(s) with preset {Preset}{Web}", files.Count, preset.Id,
+        log.LogInformation("Converting {Count} file(s) with preset {Preset}{Web}", sources.Count, preset.Id,
             web is null ? "" : " (from a browser)");
-        var job = conversions.Start(files, preset, showInToast: false, web);
+        var job = conversions.Start(sources, preset, showInToast: false, web);
         if (job is null || _window is null)
         {
             Close();
@@ -325,6 +326,13 @@ public sealed class RadialController(
         if (files.Count > 0)
             windows.ShowCropOverlay(files, preset, near);
     }
+
+    /// <summary>
+    /// What <paramref name="preset"/> converts of <paramref name="files"/>: folders only go into "Compress into one
+    /// archive"; any other preset converts the files beside them (issue #186).
+    /// </summary>
+    internal static IReadOnlyList<string> SourcesFor(Preset preset, IReadOnlyList<string> files) =>
+        preset.PacksIntoOneArchive ? files : [.. files.Where(path => !Directory.Exists(path))];
 
     // ───────── Progress ring ─────────
 

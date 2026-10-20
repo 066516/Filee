@@ -49,6 +49,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         _keepFileDates = store.Settings.KeepFileDates;
         _browserFolder = store.Settings.BrowserDrops.Folder;
         _saveOnlyConverted = store.Settings.BrowserDrops.SaveOnlyConverted;
+        _zipGeoResults = store.Settings.ZipGeoResults;
         CloseChoices = Enum.GetValues<CloseAction>().Select(v => new Choice<CloseAction>(v, loc[$"general.close.{v}"])).ToList();
         _closeChoice = CloseChoices.First(c => c.Value == store.Settings.CloseAction);
         store.SettingsChanged += OnSettingsChanged;
@@ -91,6 +92,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     partial void OnDefaultFolderChanged(string value) => Save(s => s.DefaultOutput.CustomFolder = value.Trim());
 
     [ObservableProperty] private bool _keepFileDates;
+    [ObservableProperty] private bool _zipGeoResults;
 
     /// <summary>Where files dragged from a browser are saved; empty for the Downloads folder.</summary>
     [ObservableProperty] private string _browserFolder;
@@ -128,6 +130,8 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     public void Dispose() => _store.SettingsChanged -= OnSettingsChanged;
 
     partial void OnKeepFileDatesChanged(bool value) => Save(s => s.KeepFileDates = value);
+
+    partial void OnZipGeoResultsChanged(bool value) => Save(s => s.ZipGeoResults = value);
 
     [ObservableProperty] private Choice<string> _language;
     [ObservableProperty] private bool _startWithSystem;

@@ -72,6 +72,12 @@ public sealed class OutputRule
     [System.Text.Json.Serialization.JsonIgnore]
     public string? SourceFolder { get; set; }
 
+    /// <summary>
+    /// Pack what a conversion writes for one file (a Shapefile's .shp, .shx, .dbf, .prj and .cpg, or a single file)
+    /// into one ZIP named by the rule, instead of leaving the files themselves. The ZIP is the only output.
+    /// </summary>
+    public bool ZipResult { get; set; }
+
     public OutputRule Clone()
     {
         var clone = (OutputRule)MemberwiseClone();
