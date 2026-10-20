@@ -1830,6 +1830,7 @@ public class RenderTests
     [InlineData("ja")]
     [InlineData("zh-CN")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void Live_photo_options_render_for_jpg_and_heic_and_save_only_there(string language)
     {
         TestServices.EnsureInitialized(language);

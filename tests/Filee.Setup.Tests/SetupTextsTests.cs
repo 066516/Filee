@@ -27,10 +27,14 @@ public partial class SetupTextsTests
     {
         Assert.Equal(LocalizationService.Languages.Select(l => (l.Code, l.NativeName)), SetupTexts.Languages);
         Assert.Contains(SetupTexts.Languages, l => l.Code == "ja");
+        Assert.Contains(("ar", "العربية"), SetupTexts.Languages);
     }
 
     [Theory]
     [InlineData("ko", "en-US", "ko")]
+    [InlineData("ar-IQ", "en-US", "ar")]
+    [InlineData("AR_sa", "en-US", "ar")]
+    [InlineData("auto", "ar-IQ", "ar")]
     [InlineData("zhcn", "en-US", "zh-CN")]
     [InlineData("ZH-cn", "en-US", "zh-CN")]
     [InlineData("auto", "ko-KR", "ko")]
