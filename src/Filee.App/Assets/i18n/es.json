@@ -62,6 +62,8 @@
   "toast.skipped": "Omitido (el archivo ya existe)",
   "toast.open_folder": "Mostrar",
   "toast.cancel": "Cancelar",
+  "download.badge": "{0}/s · {1}",
+  "download.badge_files": "{0} · {1} de {2} archivos",
   "error.unsupported_source": "Este tipo de archivo no es compatible",
   "error.empty_file": "El archivo está vacío (0 bytes). Un archivo creado con «Nuevo» en el menú contextual sigue vacío hasta que lo abres en su aplicación y lo guardas",
   "format_request.request": "Solicitar este formato",

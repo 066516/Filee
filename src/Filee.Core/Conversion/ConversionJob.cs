@@ -39,6 +39,15 @@ public sealed class FileResult
     /// <summary>Localization key of the error (e.g. <c>error.no_route</c>), if any.</summary>
     public string? ErrorKey { get; set; }
 
+    /// <summary>The job's fetcher saves this source first (a file from a browser).</summary>
+    public bool NeedsFetch { get; init; }
+
+    /// <summary>The fetcher has saved it (<see cref="SourcePath"/> is the saved file now).</summary>
+    public bool Saved { get; set; }
+
+    /// <summary>Bytes saved so far by the fetcher (the last count once it is saved); null before it starts.</summary>
+    public TransferProgress? Transfer { get; set; }
+
     /// <summary>Raw error detail for logs / tooltips.</summary>
     public string? ErrorDetail { get; set; }
 
@@ -60,7 +69,7 @@ public sealed class ConversionJob
         Preset = preset.Clone(); // later edits of the preset must not affect a running job
         PresetDisplayName = presetDisplayName;
         Fetcher = fetcher;
-        Files = sources.Select(s => new FileResult { SourcePath = s }).ToList();
+        Files = sources.Select(s => new FileResult { SourcePath = s, NeedsFetch = fetcher?.Fetches(s) ?? false }).ToList();
     }
 
     public string Id { get; } = Guid.NewGuid().ToString("N")[..10];
@@ -84,6 +93,24 @@ public sealed class ConversionJob
 
     public CancellationToken CancellationToken => _cts.Token;
 
+    /// <summary>
+    /// What the job's fetcher is saving now, summed over the files being saved (several download at once), or null
+    /// when none is. The total is known only when every one of them says its size.
+    /// </summary>
+    public JobTransfer? Transfer()
+    {
+        var fetched = Files.Where(f => f.NeedsFetch)
+            // Read once: the queue's threads replace these values while the UI reads them.
+            .Select(f => (f.Transfer, f.Saved, Active: f.State == FileState.Running && !f.Saved))
+            .ToList();
+        var active = fetched.Where(f => f.Active).Select(f => f.Transfer).OfType<TransferProgress>().ToList();
+        if (active.Count == 0)
+            return null;
+        long? total = active.All(t => t.Total is not null) ? active.Sum(t => t.Total!.Value) : null;
+        return new JobTransfer(active.Sum(t => t.Bytes), total, fetched.Count(f => f.Saved), fetched.Count,
+            fetched.Sum(f => f.Transfer?.Bytes ?? 0));
+    }
+
     /// <summary>Requests cancellation. Running engines stop as soon as they can.</summary>
     public void Cancel() => _cts.Cancel();
 }
@@ -99,7 +126,7 @@ public interface ISourceFetcher
 
     /// <summary>Saves the file <paramref name="source"/> stands for and returns its path.</summary>
     /// <exception cref="ConversionRefusedException">A reason the user can act on (a web page instead of a file, …).</exception>
-    Task<string> FetchAsync(string source, IProgress<double> progress, CancellationToken cancellationToken);
+    Task<string> FetchAsync(string source, IProgress<TransferProgress> progress, CancellationToken cancellationToken);
 
     /// <summary>
     /// The job is over (finished, failed or cancelled before it ran): delete what only the conversion needed. Called
@@ -107,3 +134,18 @@ public interface ISourceFetcher
     /// </summary>
     void Release(ConversionJob job);
 }
+
+/// <summary>How far saving one source has come: bytes so far, and the size when the source says it.</summary>
+public readonly record struct TransferProgress(long Bytes, long? Total)
+{
+    /// <summary>0..1, or null when the size isn't known.</summary>
+    public double? Fraction => Total is > 0 ? Math.Clamp((double)Bytes / Total.Value, 0, 1) : null;
+}
+
+/// <summary>What a job is saving now (see <see cref="ConversionJob.Transfer"/>).</summary>
+/// <param name="Bytes">Bytes saved so far by the files being saved.</param>
+/// <param name="Total">Their size together, or null when one of them doesn't say.</param>
+/// <param name="Saved">Files of the job already saved.</param>
+/// <param name="Count">Files of the job that are saved first.</param>
+/// <param name="Received">Every byte saved so far, finished files included: it only grows, for the speed.</param>
+public readonly record struct JobTransfer(long Bytes, long? Total, int Saved, int Count, long Received);

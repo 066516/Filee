@@ -141,22 +141,26 @@ public sealed class JobQueue : IAsyncDisposable
     /// </summary>
     private async Task FetchSourcesAsync(ConversionJob job, ISourceFetcher fetcher)
     {
-        var files = job.Files.Where(f => fetcher.Fetches(f.SourcePath)).ToList();
+        var files = job.Files.Where(f => f.NeedsFetch).ToList();
         await Parallel.ForEachAsync(files, new ParallelOptions { MaxDegreeOfParallelism = 4 }, async (file, _) =>
         {
             file.State = FileState.Running;
+            file.Transfer = new TransferProgress(0, null);
             Notify(job);
-            var progress = new Progress<double>(p =>
+            var progress = new SyncProgress<TransferProgress>(p =>
             {
-                var value = Math.Clamp(p, 0, 1) * FetchShare;
-                if (value <= file.Progress || file.State != FileState.Running)
+                if (file.State != FileState.Running || file.Saved)
                     return;
-                file.Progress = value;
+                file.Transfer = p;
+                var value = (p.Fraction ?? 0) * FetchShare;
+                if (value > file.Progress)
+                    file.Progress = value;
                 Notify(job);
             });
             try
             {
                 file.SourcePath = await fetcher.FetchAsync(file.SourcePath, progress, job.CancellationToken);
+                file.Saved = true;
                 file.State = FileState.Pending;
                 file.Progress = FetchShare;
             }
@@ -184,6 +188,15 @@ public sealed class JobQueue : IAsyncDisposable
             file.ErrorDetail = detail;
             file.Progress = 1;
         }
+    }
+
+    /// <summary>
+    /// Reports on the reporting thread, in order: Progress&lt;T&gt; posts to the thread pool, where a late byte count could
+    /// land after the file was saved.
+    /// </summary>
+    private sealed class SyncProgress<T>(Action<T> report) : IProgress<T>
+    {
+        public void Report(T value) => report(value);
     }
 
     /// <summary>A file that didn't get as far as being converted (saving it failed or was cancelled).</summary>

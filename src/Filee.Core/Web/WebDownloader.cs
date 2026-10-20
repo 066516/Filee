@@ -39,6 +39,9 @@ public sealed class WebDownloader : IDisposable
 
     public int MaxRedirects { get; init; } = 5;
 
+    /// <summary>Least time between two progress reports while bytes arrive.</summary>
+    public TimeSpan ReportInterval { get; init; } = TimeSpan.FromMilliseconds(100);
+
     /// <summary>How long the server may take to start answering.</summary>
     public TimeSpan ResponseTimeout { get; init; } = TimeSpan.FromSeconds(30);
 
@@ -51,7 +54,7 @@ public sealed class WebDownloader : IDisposable
     /// from the first bytes when they say what the file is.
     /// </summary>
     /// <exception cref="ConversionRefusedException">With the reason to show (<c>error.web_*</c>).</exception>
-    public async Task<string> DownloadAsync(Uri url, string folder, string? suggestedName, IProgress<double>? progress,
+    public async Task<string> DownloadAsync(Uri url, string folder, string? suggestedName, IProgress<TransferProgress>? progress,
         CancellationToken cancellationToken)
     {
         if (!IsWebAddress(url))
@@ -88,8 +91,19 @@ public sealed class WebDownloader : IDisposable
     /// </param>
     /// <exception cref="ConversionRefusedException">A program, a web page or a file over <see cref="MaxBytes"/>.</exception>
     public async Task<string> SaveAsync(Stream source, string folder, string name, string? mime, long? length,
-        IProgress<double>? progress, CancellationToken cancellationToken, bool refusePages = false)
+        IProgress<TransferProgress>? progress, CancellationToken cancellationToken, bool refusePages = false)
     {
+        // Every chunk would flood the UI: a report at most every ReportInterval, and the last one always.
+        TimeSpan? lastReport = null;
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        void Report(long bytes, bool final = false)
+        {
+            if (progress is null || (!final && lastReport is { } last && clock.Elapsed - last < ReportInterval))
+                return;
+            lastReport = clock.Elapsed;
+            progress.Report(new TransferProgress(bytes, length is > 0 ? length : null));
+        }
+
         var head = new byte[WebFormats.SniffLength];
         var headLength = await ReadAtLeastAsync(source, head, cancellationToken);
         if (WebFormats.LooksLikeProgram(head.AsSpan(0, headLength)))
@@ -108,6 +122,7 @@ public sealed class WebDownloader : IDisposable
             {
                 await file.WriteAsync(head.AsMemory(0, headLength), cancellationToken);
                 long total = headLength;
+                Report(total);
                 var buffer = new byte[1 << 16];
                 while (true)
                 {
@@ -118,11 +133,10 @@ public sealed class WebDownloader : IDisposable
                     if (total > MaxBytes)
                         throw new ConversionRefusedException("error.web_too_large", Megabytes(total));
                     await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
-                    if (length is > 0)
-                        progress?.Report(Math.Min(1, (double)total / length.Value));
+                    Report(total);
                 }
+                Report(total, final: true);
             }
-            progress?.Report(1);
             return path;
         }
         catch

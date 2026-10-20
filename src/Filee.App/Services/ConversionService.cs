@@ -130,7 +130,7 @@ public sealed class ConversionService
             {
                 try
                 {
-                    saved.Add(await fetcher.FetchAsync(placeholder, new Progress<double>(), CancellationToken.None));
+                    saved.Add(await fetcher.FetchAsync(placeholder, new Progress<TransferProgress>(), CancellationToken.None));
                 }
                 catch (Exception ex) when (ex is not OutOfMemoryException)
                 {

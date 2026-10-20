@@ -156,6 +156,75 @@ public class WebDropJobTests
         Assert.True(Directory.Exists(fresh));
     }
 
+    /// <summary>Saves each source halfway, waits for the test, then finishes it.</summary>
+    private sealed class HalfwayFetcher(IReadOnlyDictionary<string, long?> sizes) : ISourceFetcher
+    {
+        public TaskCompletionSource Halfway { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Go { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _waiting;
+
+        public bool Fetches(string source) => sizes.ContainsKey(source);
+
+        public async Task<string> FetchAsync(string source, IProgress<TransferProgress> progress, CancellationToken cancellationToken)
+        {
+            var size = sizes[source];
+            progress.Report(new TransferProgress(1000, size));
+            if (Interlocked.Increment(ref _waiting) == sizes.Count)
+                Halfway.TrySetResult();
+            await Go.Task.WaitAsync(cancellationToken);
+            progress.Report(new TransferProgress(size ?? 2000, size));
+            var path = Path.Combine(Path.GetTempPath(), "filee-tests", Guid.NewGuid().ToString("N")[..8], Path.GetFileName(source));
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            await File.WriteAllBytesAsync(path, Png, cancellationToken);
+            return path;
+        }
+
+        public void Release(ConversionJob job)
+        {
+        }
+    }
+
+    [Fact]
+    public async Task A_job_tells_what_it_is_saving_summed_over_its_downloads()
+    {
+        using var dir = new TempDir();
+        var local = dir.File("local.png");
+        var fetcher = new HalfwayFetcher(new Dictionary<string, long?> { ["web/a.png"] = 4000, ["web/b.png"] = 6000 });
+        await using var queue = Queue();
+        var job = new ConversionJob(["web/a.png", local, "web/b.png"], new Preset { TargetFormat = "jpg" }, "Test", fetcher);
+        Assert.Null(job.Transfer()); // nothing is being saved yet
+
+        var run = queue.RunAsync(job);
+        await fetcher.Halfway.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        Assert.Equal(new JobTransfer(2000, 10_000, 0, 2, 2000), job.Transfer());
+        Assert.Equal(0.125, job.Files[0].Progress, 3); // 1000 of 4000, saving being the first half of a file's progress
+        fetcher.Go.SetResult();
+        await run;
+
+        Assert.Null(job.Transfer());
+        Assert.All(job.Files.Where(f => f.NeedsFetch), f => Assert.True(f.Saved));
+        Assert.False(job.Files[1].NeedsFetch);
+        Assert.Equal(JobState.Completed, job.State);
+    }
+
+    [Fact]
+    public void A_total_is_only_given_when_every_download_says_its_size()
+    {
+        var fetcher = new HalfwayFetcher(new Dictionary<string, long?> { ["web/a.png"] = 4000, ["web/b.png"] = null });
+        var job = new ConversionJob(["web/a.png", "web/b.png"], new Preset { TargetFormat = "jpg" }, "Test", fetcher);
+        foreach (var file in job.Files)
+            file.State = FileState.Running;
+        job.Files[0].Transfer = new TransferProgress(1000, 4000);
+        job.Files[1].Transfer = new TransferProgress(500, null);
+        Assert.Equal(new JobTransfer(1500, null, 0, 2, 1500), job.Transfer());
+
+        // The second one is saved: what is left to show is the first, the speed still counts both.
+        job.Files[1].Transfer = new TransferProgress(900, null);
+        job.Files[1].Saved = true;
+        Assert.Equal(new JobTransfer(1000, 4000, 1, 2, 1900), job.Transfer());
+    }
+
     private sealed class Disposer(Action action) : IDisposable
     {
         public void Dispose() => action();

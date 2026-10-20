@@ -72,6 +72,10 @@ named like the file will be, so the donut picks the profile by extension without
 is made: a picture without an extension stands as `.jpg` and a link without one isn't offered. `ConversionService.Start`
 gives the job a `WebDropFetcher` (`ISourceFetcher`): `JobQueue` saves every source first (half of its progress), then
 converts. Failures are per file (`error.web_*`), cancelling stops a download, and the job toast/ring shows both phases.
+While files are saved, a badge pops up above the donut's progress ring and above the toast's progress bar with the
+speed and the amounts ("2.4 MB/s · 12.3 / 48.0 MB", "· 2 of 3 files" for several): `FileResult.Transfer` holds each
+file's byte count, `ConversionJob.Transfer()` sums them, and `DownloadBadge` (App) averages the speed over the last
+second with the Engines page's `TransferRate` and units, rewritten four times a second and shown after 300 ms.
 
 - **Where**: Settings → General → "Files dragged from a browser" (`AppSettings.BrowserDrops`): the user's Downloads
   folder (`IPlatformServices.DownloadsFolder`: the shell's known folder on Windows, `XDG_DOWNLOAD_DIR` on Linux,

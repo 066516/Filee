@@ -16,6 +16,9 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
     [ObservableProperty] private IReadOnlyList<DonutItem> _items = [];
     [ObservableProperty] private string _centerTitle = "";
     [ObservableProperty] private string? _centerSubtitle;
+
+    /// <summary>The job the progress ring shows, for the download badge above it; null when the ring shows none.</summary>
+    [ObservableProperty] private JobViewModel? _progressJob;
     [ObservableProperty] private double _outerRadius = 150;
     [ObservableProperty] private double _holeRatio = 0.42;
     [ObservableProperty] private double _sliceOpacity = 0.96;

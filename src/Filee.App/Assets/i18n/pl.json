@@ -67,6 +67,8 @@
   "toast.skipped": "Pominięto (plik istnieje)",
   "toast.open_folder": "Pokaż",
   "toast.cancel": "Anuluj",
+  "download.badge": "{0}/s · {1}",
+  "download.badge_files": "{0} · plik {1} z {2}",
 
   "error.unsupported_source": "Ten typ pliku nie jest obsługiwany",
   "error.empty_file": "Plik jest pusty (0 bajtów). Plik utworzony przez „Nowy” w menu kontekstowym pozostaje pusty, dopóki nie otworzysz go w jego aplikacji i nie zapiszesz",

@@ -341,6 +341,7 @@ public sealed class RadialController(
         var donut = _window!.DonutControl;
         _dropped = true;
         _progressJob = job;
+        viewModel.ProgressJob = job;
         _lastRingJob = job;
         donut.BeginProgress();
         donut.SetProgress(job.Progress / 100);
@@ -398,6 +399,7 @@ public sealed class RadialController(
         if (_progressJob is not null)
             _progressJob.PropertyChanged -= OnProgressJobChanged;
         _progressJob = null;
+        viewModel.ProgressJob = null;
     }
 
     private void HideWindow()

@@ -19,7 +19,7 @@ public abstract class WebDropItem : IDisposable
     public string Name { get; }
 
     /// <summary>Writes the file into <paramref name="folder"/> and returns its path.</summary>
-    public abstract Task<string> SaveAsync(string folder, WebDownloader downloader, IProgress<double>? progress,
+    public abstract Task<string> SaveAsync(string folder, WebDownloader downloader, IProgress<TransferProgress>? progress,
         CancellationToken cancellationToken);
 
     public virtual void Dispose() => GC.SuppressFinalize(this);
@@ -40,7 +40,19 @@ public abstract class WebDropItem : IDisposable
     public static WebDropItem FromTemporaryFile(string path) =>
         new StreamItem(Path.GetFileName(path),
             _ => Task.FromResult<Stream>(new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1 << 16, useAsync: true)),
-            null, null, null);
+            SizeOf(path), null, null);
+
+    private static long? SizeOf(string path)
+    {
+        try
+        {
+            return new FileInfo(path).Length;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>An address Filee downloads itself (without the browser's sign-in).</summary>
     public static WebDropItem FromAddress(string name, Uri url) => new AddressItem(name, url);
@@ -48,7 +60,7 @@ public abstract class WebDropItem : IDisposable
     private sealed class StreamItem(string name, Func<CancellationToken, Task<Stream>> open, long? size, string? mime, IDisposable? owner)
         : WebDropItem(name)
     {
-        public override async Task<string> SaveAsync(string folder, WebDownloader downloader, IProgress<double>? progress,
+        public override async Task<string> SaveAsync(string folder, WebDownloader downloader, IProgress<TransferProgress>? progress,
             CancellationToken cancellationToken)
         {
             await using var stream = await open(cancellationToken);
@@ -66,7 +78,7 @@ public abstract class WebDropItem : IDisposable
     {
         public Uri Url { get; } = url;
 
-        public override Task<string> SaveAsync(string folder, WebDownloader downloader, IProgress<double>? progress,
+        public override Task<string> SaveAsync(string folder, WebDownloader downloader, IProgress<TransferProgress>? progress,
             CancellationToken cancellationToken) =>
             // A name the server sends wins; a guessed extension (".jpg" for a picture address without one) is
             // corrected from the bytes.
@@ -209,7 +221,7 @@ public sealed class WebDropFetcher(WebDrop drop, WebDropOptions options, WebDown
 
     public bool Fetches(string path) => drop.Holds(path);
 
-    public Task<string> FetchAsync(string placeholder, IProgress<double> progress, CancellationToken cancellationToken) =>
+    public Task<string> FetchAsync(string placeholder, IProgress<TransferProgress> progress, CancellationToken cancellationToken) =>
         drop.ItemFor(placeholder).SaveAsync(SaveFolder, downloader, progress, cancellationToken);
 
     public void Release(ConversionJob job)

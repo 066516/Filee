@@ -232,7 +232,7 @@ public sealed class WebDownloaderTests : IDisposable
         };
         using var downloader = Downloader();
         using var cancel = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        var progress = new List<double>();
+        var progress = new List<TransferProgress>();
 
         var download = downloader.DownloadAsync(Url("/slow.png"), _dir.Path, null, new SyncProgress(progress), cancel.Token);
         await started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
@@ -241,6 +241,44 @@ public sealed class WebDownloaderTests : IDisposable
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => download);
         Assert.Empty(Directory.GetFiles(_dir.Path));
+    }
+
+    [Fact]
+    public async Task Reports_the_bytes_so_far_and_the_size_when_the_server_says_it()
+    {
+        var body = new byte[300_000];
+        Png.CopyTo(body, 0);
+        Serve("/sized.png", body, "image/png");
+        Serve("/unsized.png", body, "image/png", chunked: true);
+        using var downloader = new WebDownloader { ReportInterval = TimeSpan.Zero };
+        var sized = new List<TransferProgress>();
+        var unsized = new List<TransferProgress>();
+
+        await downloader.DownloadAsync(Url("/sized.png"), _dir.Path, null, new SyncProgress(sized), TestContext.Current.CancellationToken);
+        await downloader.DownloadAsync(Url("/unsized.png"), _dir.Path, null, new SyncProgress(unsized), TestContext.Current.CancellationToken);
+
+        Assert.True(sized.Count >= 2);
+        Assert.All(sized, p => Assert.Equal(body.Length, p.Total));
+        Assert.Equal(sized.Select(p => p.Bytes).Order(), sized.Select(p => p.Bytes)); // only forward
+        Assert.Equal(new TransferProgress(body.Length, body.Length), sized[^1]);
+        Assert.Equal(1, sized[^1].Fraction);
+        Assert.All(unsized, p => Assert.Null(p.Total));
+        Assert.Equal(body.Length, unsized[^1].Bytes);
+        Assert.Null(unsized[^1].Fraction);
+    }
+
+    [Fact]
+    public async Task Reports_are_spaced_out_but_the_last_one_always_comes()
+    {
+        var body = new byte[400_000];
+        Png.CopyTo(body, 0);
+        Serve("/many.png", body, "image/png");
+        using var downloader = new WebDownloader { ReportInterval = TimeSpan.FromHours(1) };
+        var reports = new List<TransferProgress>();
+
+        await downloader.DownloadAsync(Url("/many.png"), _dir.Path, null, new SyncProgress(reports), TestContext.Current.CancellationToken);
+
+        Assert.Equal([new TransferProgress(WebFormats.SniffLength, body.Length), new TransferProgress(body.Length, body.Length)], reports);
     }
 
     [Fact]
@@ -264,9 +302,9 @@ public sealed class WebDownloaderTests : IDisposable
             await Task.Delay(10);
     }
 
-    private sealed class SyncProgress(List<double> values) : IProgress<double>
+    private sealed class SyncProgress(List<TransferProgress> values) : IProgress<TransferProgress>
     {
-        public void Report(double value)
+        public void Report(TransferProgress value)
         {
             lock (values)
                 values.Add(value);
