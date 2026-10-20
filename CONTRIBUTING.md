@@ -113,6 +113,35 @@ Explorer and startup entries), adds the Explorer menu extension and the bundled 
 `src/Filee.Setup` (Filee's own installer) and appends the app to it, and uploads `Filee-X.Y.Z-win-Setup.exe`, the portable zip and
 their SHA-256 sums with release notes generated from the merged pull requests.
 
+### "What's new" slides for a release
+
+A release with features worth showing gets slides, which Filee shows once after updating to it (see
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#whats-new-slides)). A release without slides shows nothing.
+
+1. Write the CHANGELOG section with its `<!-- update -->` lines first: the slides are the visual version of it.
+   Pick 5–7 features; put the small ones together on a last "And more" slide.
+2. Add `src/Filee.App/Assets/WhatsNew/<version>/slides.json` (copy the previous one): per slide an `id`, the
+   `media` file and the i18n keys `whats_new.<version with _>.<id>.title` / `.text`.
+3. Add the keys to **every** `src/Filee.App/Assets/i18n/*.json` (a title and one or two short sentences; Chinese
+   without fullwidth `；` / `：`).
+4. Add a `Generate_<version>` method to `tests/Filee.App.Tests/WhatsNewMedia.cs` with a scene per slide (real
+   windows driven frame by frame; start each clip on a frame that explains the slide on its own, since reduced
+   motion shows only that one) and run it:
+
+   ```
+   dotnet build tests/Filee.App.Tests
+   tests/Filee.App.Tests/bin/Debug/net10.0/Filee.App.Tests.exe -method "Filee.App.Tests.WhatsNewMedia.*" -explicit only
+   ```
+
+   `FILEE_WHATSNEW_ONLY=crop,theme` renders only those clips. Each file must stay under 400 KB (the test checks it,
+   and `WhatsNewTests` checks all of them together stay under 2 MB); look at the first frames in
+   `bin/.../screenshots/whatsnew-*.png` and at the window in `whatsnew-window-*.png`.
+5. Run `dotnet test`: `WhatsNewTests` checks that every slide's media and keys exist.
+
+To try it in the app, build with the new version (`dotnet run --project src/Filee.App -p:Version=X.Y.Z`) against a
+data folder whose settings say an older version was seen (`"whatsNewSeenVersion": "1.0.0"`, `FILEE_DATA_DIR`), or
+open About → "What's new".
+
 To try the installer locally run `pwsh build/build-installer.ps1` (output in `Releases/`; it fetches the bundled
 engines, the C++ runtime and the Zig toolchain for the Explorer menu into `build/.cache`; run `build/fetch-fonts.ps1`
 first). `pwsh build/build-installer.ps1 -CheckOnly` builds Setup around a stub app and installs, updates and

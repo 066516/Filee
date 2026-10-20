@@ -127,6 +127,8 @@ public partial class App : Application
         AppHost.Get<WindowService>().EnsureToast();
         AppHost.Get<ConversionService>().FeedbackDue += (_, _) => AppHost.Get<WindowService>().ShowFeedbackNotice();
         AppHost.Get<WatchFolderService>().Start();
+        // Originals of files from a browser that a crash kept from being deleted ("Save only the converted file").
+        _ = Task.Run(() => Filee.Core.Web.WebDrop.DeleteStale(Filee.Core.Web.WebDrop.DefaultWorkRoot, TimeSpan.FromDays(1)));
         // Once LibreOffice is installed: prepare its profiles while the user isn't converting yet.
         AppHost.Get<EngineDownloadService>().WarmUpInBackground(TimeSpan.FromSeconds(10));
 
@@ -144,6 +146,11 @@ public partial class App : Application
             AppHost.Get<WatchFolderService>().DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
         };
 
+        // Before HandleCommandLine marks the first run complete: a fresh install gets no slides. Without the main
+        // window (sign-in, the Explorer menu) they wait until the user opens Filee, unless the installer asked for them.
+        AppHost.Get<WhatsNewService>().CheckAtStartup(
+            background: Program.Options.Background && !Program.Options.ShowSettings && !Program.Options.WhatsNew
+                        || Program.Options.ConvertFiles.Count > 0);
         HandleCommandLine(Program.Options, firstLaunch: true);
         if (OperatingSystem.IsMacOS())
             this.TryGetFeature<IActivatableLifetime>()?.Activated += (_, e) =>
