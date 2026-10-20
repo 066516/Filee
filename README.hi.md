@@ -20,7 +20,8 @@
   <a href="https://github.com/KnifeLemon/Filee/releases/latest"><img src="https://img.shields.io/github/v/release/KnifeLemon/Filee?color=7F77DD&label=release" alt="नवीनतम रिलीज़"></a>
   <a href="https://github.com/KnifeLemon/Filee/releases"><img src="https://img.shields.io/github/downloads/KnifeLemon/Filee/total?color=1D9E75" alt="डाउनलोड"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-3C3489" alt="Windows 10 | 11">
-  <img src="https://img.shields.io/badge/macOS%20%7C%20Linux-preview-534AB7" alt="macOS | Linux प्रीव्यू">
+  <img src="https://img.shields.io/badge/Linux-x64%20%7C%20ARM64-3C3489" alt="Linux x64 | ARM64">
+  <img src="https://img.shields.io/badge/macOS-preview-534AB7" alt="macOS प्रीव्यू">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6A62C9" alt="MIT लाइसेंस"></a>
 </p>
 
@@ -29,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.ru.md">Русский</a> · <b>हिन्दी</b> · <a href="README.ja.md">日本語</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <b>हिन्दी</b> · <a href="README.ru.md">Русский</a></p>
 
 <table>
   <tr>
@@ -54,7 +55,7 @@
   सेटअप Explorer मेनू, साइन इन पर Filee शुरू करना, `filee` कमांड और वैकल्पिक इंजन जोड़ सकता है।
 - **macOS 14+** (प्रीव्यू): `osx-arm64` या `osx-x64` पैकेज खोलें और `./install.sh` चलाएँ।
   बिल्ड अभी नोटराइज़ नहीं हुआ है, इसलिए पहली बार चलाने की अनुमति System Settings → Privacy & Security → **Open Anyway** से दें।
-- **Linux x64/ARM64** (प्रीव्यू, Ubuntu 22.04+): पैकेज खोलें और `./install.sh` चलाएँ (root की ज़रूरत नहीं, Python 3 चाहिए)।
+- **Linux x64/ARM64** (Ubuntu 22.04+): पैकेज खोलें और `./install.sh` चलाएँ (root की ज़रूरत नहीं, Python 3 चाहिए)।
   ड्रैग जेस्चर के लिए X11 चाहिए। Wayland पर ड्रॉप ज़ोन और फ़ाइल मैनेजर का राइट-क्लिक मेनू इस्तेमाल करें।
 
 नया संस्करण आने पर Filee उसे अपने मेनू में दिखाता है और आपकी सेटिंग्स और इंजन बनाए रखते हुए खुद को अपडेट कर लेता है।
@@ -67,7 +68,7 @@
 - **एक साथ कई फ़ाइलें**, समानांतर में। कई चरणों वाले कन्वर्ज़न (HWP → HWPX → DOCX) का रास्ता अपने-आप मिल जाता है।
 - **वॉच फ़ोल्डर** में आने वाली हर फ़ाइल अपने-आप कन्वर्ट हो जाती है।
 - **दूसरे तरीके**: राइट-क्लिक मेनू, कीबोर्ड शॉर्टकट, ड्रॉप ज़ोन और [`filee` कमांड](#कमांड-लाइन)।
-- लाइट और डार्क थीम, English, Español, 한국어, 简体中文, Polski, Русский, हिन्दी और 日本語 में।
+- लाइट और डार्क थीम, English, Español, 日本語, 한국어, 简体中文, Polski, हिन्दी और Русский में।
 
 ## स्क्रीनशॉट
 

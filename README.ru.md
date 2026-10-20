@@ -20,7 +20,8 @@
   <a href="https://github.com/KnifeLemon/Filee/releases/latest"><img src="https://img.shields.io/github/v/release/KnifeLemon/Filee?color=7F77DD&label=release" alt="Latest release"></a>
   <a href="https://github.com/KnifeLemon/Filee/releases"><img src="https://img.shields.io/github/downloads/KnifeLemon/Filee/total?color=1D9E75" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-3C3489" alt="Windows 10 | 11">
-  <img src="https://img.shields.io/badge/macOS%20%7C%20Linux-preview-534AB7" alt="macOS | Linux preview">
+  <img src="https://img.shields.io/badge/Linux-x64%20%7C%20ARM64-3C3489" alt="Linux x64 | ARM64">
+  <img src="https://img.shields.io/badge/macOS-preview-534AB7" alt="macOS — предварительная версия">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6A62C9" alt="MIT license"></a>
 </p>
 
@@ -29,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <b>Русский</b> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ja.md">日本語</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <b>Русский</b></p>
 
 <table>
   <tr>
@@ -54,7 +55,7 @@
   Установщик может добавить пункт в меню Проводника, автозапуск при входе в систему, команду `filee` и дополнительные движки.
 - **macOS 14+** (предварительная версия): распакуйте пакет `osx-arm64` или `osx-x64` и запустите `./install.sh`.
   Сборка пока не нотаризована, поэтому при первом запуске разрешите её в Системных настройках → Конфиденциальность и безопасность → **Все равно открыть**.
-- **Linux x64/ARM64** (предварительная версия, Ubuntu 22.04+): распакуйте пакет и запустите `./install.sh` (права root не нужны, требуется Python 3).
+- **Linux x64/ARM64** (Ubuntu 22.04+): распакуйте пакет и запустите `./install.sh` (права root не нужны, требуется Python 3).
   Жесты перетаскивания работают только в X11. В Wayland пользуйтесь зоной перетаскивания и контекстным меню файлового менеджера.
 
 Filee сообщает о новых версиях в своём меню и обновляется сам, сохраняя ваши настройки и движки.
@@ -67,7 +68,7 @@ Filee сообщает о новых версиях в своём меню и о
 - **Много файлов сразу**, параллельно. Конвертации в несколько шагов (HWP → HWPX → DOCX) Filee находит сам.
 - **Папки наблюдения** конвертируют каждый файл, который в них попадает.
 - **Другие способы**: контекстное меню, горячая клавиша, зона перетаскивания и [команда `filee`](#командная-строка).
-- Светлая и тёмная темы, интерфейс на языках English, Español, 한국어, 简体中文, Polski, Русский, हिन्दी и 日本語.
+- Светлая и тёмная темы, интерфейс на языках English, Español, 日本語, 한국어, 简体中文, Polski, हिन्दी и Русский.
 
 ## Скриншоты
 

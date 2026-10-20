@@ -12,6 +12,12 @@ public interface IPlatformServices
     /// </summary>
     bool PressCarriesPosition => true;
 
+    /// <summary>Whether this platform can show or hide Filee in the Dock.</summary>
+    bool SupportsDockVisibility => false;
+
+    /// <summary>Sets whether Filee appears in the Dock, returning whether the platform accepted the change.</summary>
+    bool TrySetShowInDock(bool show) => false;
+
     /// <summary>True if the window at the screen point belongs to the file manager or desktop. Coordinates are pixels on Windows/Linux and desktop points on macOS.</summary>
     bool IsFileManagerAt(int x, int y);
 
@@ -65,6 +71,12 @@ public interface IPlatformServices
     /// ("CabinetWClass / explorer"). Empty where the platform can't tell.
     /// </summary>
     string DescribeForegroundWindow() => "";
+
+    /// <summary>
+    /// The user's Downloads folder, where files dragged from a browser are saved unless Settings says otherwise.
+    /// Windows asks the shell (the folder can be moved); elsewhere ~/Downloads.
+    /// </summary>
+    string DownloadsFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
 
     /// <summary>System drag threshold in the same units as screen coordinates.</summary>
     int SystemDragThreshold { get; }

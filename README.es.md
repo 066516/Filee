@@ -20,7 +20,8 @@
   <a href="https://github.com/KnifeLemon/Filee/releases/latest"><img src="https://img.shields.io/github/v/release/KnifeLemon/Filee?color=7F77DD&label=release" alt="Última versión"></a>
   <a href="https://github.com/KnifeLemon/Filee/releases"><img src="https://img.shields.io/github/downloads/KnifeLemon/Filee/total?color=1D9E75" alt="Descargas"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-3C3489" alt="Windows 10 | 11">
-  <img src="https://img.shields.io/badge/macOS%20%7C%20Linux-preview-534AB7" alt="macOS | Linux en versión preliminar">
+  <img src="https://img.shields.io/badge/Linux-x64%20%7C%20ARM64-3C3489" alt="Linux x64 | ARM64">
+  <img src="https://img.shields.io/badge/macOS-preview-534AB7" alt="macOS en versión preliminar">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6A62C9" alt="Licencia MIT"></a>
 </p>
 
@@ -29,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <b>Español</b> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.ru.md">Русский</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ja.md">日本語</a></p>
+<p align="center"><a href="README.md">English</a> · <b>Español</b> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a></p>
 
 <table>
   <tr>
@@ -54,7 +55,7 @@ Descárgalo desde [Releases](https://github.com/KnifeLemon/Filee/releases/latest
   El instalador puede añadir el menú del Explorador, el inicio al iniciar sesión, el comando `filee` y motores opcionales.
 - **macOS 14+** (versión preliminar): descomprime el paquete `osx-arm64` u `osx-x64` y ejecuta `./install.sh`.
   Aún no está notarizado, así que la primera vez tendrás que permitir que se abra en Ajustes del Sistema → Privacidad y seguridad → **Abrir igualmente**.
-- **Linux x64/ARM64** (versión preliminar, Ubuntu 22.04+): descomprime el paquete y ejecuta `./install.sh` (no necesita root, sí Python 3).
+- **Linux x64/ARM64** (Ubuntu 22.04+): descomprime el paquete y ejecuta `./install.sh` (no necesita root, sí Python 3).
   Los gestos de arrastre necesitan X11. En Wayland, usa la zona de suelta y el menú contextual del gestor de archivos.
 
 Filee avisa de las versiones nuevas en su menú y se actualiza solo, sin tocar tus ajustes ni tus motores.
@@ -67,7 +68,7 @@ Filee avisa de las versiones nuevas en su menú y se actualiza solo, sin tocar t
 - **Muchos archivos a la vez**, en paralelo. Las conversiones de varios pasos (HWP → HWPX → DOCX) se resuelven solas.
 - **Carpetas supervisadas** que convierten cada archivo que llega a ellas.
 - **Otras formas de usarlo**: el menú contextual, un atajo de teclado, la zona de suelta y el [comando `filee`](#línea-de-comandos).
-- Temas claro y oscuro, en English, Español, 한국어, 简体中文, Polski, Русский, हिन्दी y 日本語.
+- Temas claro y oscuro, en English, Español, 日本語, 한국어, 简体中文, Polski, हिन्दी y Русский.
 
 ## Capturas de pantalla
 

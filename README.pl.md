@@ -20,7 +20,8 @@
   <a href="https://github.com/KnifeLemon/Filee/releases/latest"><img src="https://img.shields.io/github/v/release/KnifeLemon/Filee?color=7F77DD&label=release" alt="Najnowsza wersja"></a>
   <a href="https://github.com/KnifeLemon/Filee/releases"><img src="https://img.shields.io/github/downloads/KnifeLemon/Filee/total?color=1D9E75" alt="Pobrania"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-3C3489" alt="Windows 10 | 11">
-  <img src="https://img.shields.io/badge/macOS%20%7C%20Linux-preview-534AB7" alt="macOS | Linux w wersji zapoznawczej">
+  <img src="https://img.shields.io/badge/Linux-x64%20%7C%20ARM64-3C3489" alt="Linux x64 | ARM64">
+  <img src="https://img.shields.io/badge/macOS-preview-534AB7" alt="macOS w wersji zapoznawczej">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6A62C9" alt="Licencja MIT"></a>
 </p>
 
@@ -29,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <b>Polski</b> · <a href="README.ru.md">Русский</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ja.md">日本語</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <b>Polski</b> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a></p>
 
 <table>
   <tr>
@@ -54,7 +55,7 @@ Pobierz z [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
   Instalator może dodać menu Eksploratora, uruchamianie po zalogowaniu, polecenie `filee` i opcjonalne silniki.
 - **macOS 14+** (wersja zapoznawcza): rozpakuj pakiet `osx-arm64` lub `osx-x64` i uruchom `./install.sh`.
   Aplikacja nie jest jeszcze notaryzowana, więc przy pierwszym uruchomieniu zezwól na nią w Ustawienia systemowe → Prywatność i ochrona → **Otwórz mimo to**.
-- **Linux x64/ARM64** (wersja zapoznawcza, Ubuntu 22.04+): rozpakuj pakiet i uruchom `./install.sh` (bez uprawnień roota, wymaga Pythona 3).
+- **Linux x64/ARM64** (Ubuntu 22.04+): rozpakuj pakiet i uruchom `./install.sh` (bez uprawnień roota, wymaga Pythona 3).
   Gesty przeciągania wymagają X11. W Waylandzie korzystaj ze strefy upuszczania i menu kontekstowego menedżera plików.
 
 Filee pokazuje nowe wersje w swoim menu i sam się aktualizuje, zachowując Twoje ustawienia i silniki.
@@ -67,7 +68,7 @@ Filee pokazuje nowe wersje w swoim menu i sam się aktualizuje, zachowując Twoj
 - **Wiele plików naraz**, równolegle. Konwersje wymagające kilku kroków (HWP → HWPX → DOCX) Filee znajduje sam.
 - **Obserwowane foldery** konwertują każdy plik, który do nich trafi.
 - **Inne sposoby**: menu kontekstowe, skrót klawiszowy, strefa upuszczania i [polecenie `filee`](#wiersz-poleceń).
-- Jasny i ciemny motyw, w językach English, Español, 한국어, 简体中文, Polski, Русский, हिन्दी i 日本語.
+- Jasny i ciemny motyw, w językach English, Español, 日本語, 한국어, 简体中文, Polski, हिन्दी i Русский.
 
 ## Zrzuty ekranu
 

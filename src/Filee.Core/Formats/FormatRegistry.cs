@@ -50,6 +50,8 @@ public static class FormatRegistry
         // Read on Windows only, with its own codec (HDR screenshots of Windows are JPEG XR).
         new("jxr", "JPEG XR", FormatCategory.Image, ["jxr", "wdp", "hdp"], Writable: false),
         new("xcf", "XCF", FormatCategory.Image, ["xcf"], Writable: false),
+        // iPhone Live Photo as one ZIP (iCloud downloads): the photo, or its video with FFmpeg.
+        new("livp", "Live Photo (LIVP)", FormatCategory.Image, ["livp"], Writable: false),
         new("raw", "RAW", FormatCategory.Image,
             ["dng", "cr2", "cr3", "crw", "nef", "nrw", "arw", "srf", "sr2", "orf", "rw2", "raf", "pef", "dcr", "kdc",
              "erf", "mos", "mrw", "x3f", "3fr", "fff", "iiq", "mef", "rwl", "srw", "raw"], Writable: false),
@@ -83,6 +85,8 @@ public static class FormatRegistry
         new("ott", "OTT", FormatCategory.Document, ["ott"]),
         new("rtf", "RTF", FormatCategory.Document, ["rtf"]),
         new("wps", "WPS", FormatCategory.Document, ["wps"], Writable: false),
+        // The Chinese fixed-layout standard (GB/T 33190): e-invoices, official documents; read by the built-in OFD reader.
+        new("ofd", "OFD", FormatCategory.Document, ["ofd"], Writable: false),
         new("wpd", "WPD", FormatCategory.Document, ["wpd"], Writable: false),
         new("lwp", "LWP", FormatCategory.Document, ["lwp"], Writable: false),
         new("abw", "ABW", FormatCategory.Document, ["abw", "zabw"], Writable: false),
@@ -119,6 +123,7 @@ public static class FormatRegistry
         new("pptx", "PPTX", FormatCategory.Presentation, ["pptx"]),
         new("pptm", "PPTM", FormatCategory.Presentation, ["pptm"]),
         new("potx", "POTX", FormatCategory.Presentation, ["potx"]),
+        new("potm", "POTM", FormatCategory.Presentation, ["potm"]),
         new("ppsx", "PPSX", FormatCategory.Presentation, ["ppsx"]),
         new("ppt", "PPT", FormatCategory.Presentation, ["ppt", "pps", "pot"]),
         new("odp", "ODP", FormatCategory.Presentation, ["odp"]),
@@ -301,6 +306,13 @@ public static class FormatRegistry
         new("3mf", "3MF", FormatCategory.Model3D, ["3mf"]),
         new("ply", "PLY", FormatCategory.Model3D, ["ply"]),
         new("fbx", "FBX", FormatCategory.Model3D, ["fbx"], Writable: false),
+
+        // Geospatial vector data (CSV with coordinates is a Data format and reaches these through the geo engine)
+        new("geojson", "GeoJSON", FormatCategory.Geo, ["geojson"]),
+        new("kml", "KML", FormatCategory.Geo, ["kml"]),
+        new("kmz", "KMZ", FormatCategory.Geo, ["kmz"]),
+        new("gpx", "GPX", FormatCategory.Geo, ["gpx"]),
+        new("shp", "Shapefile", FormatCategory.Geo, ["shp"]),
     ];
 
     private static readonly Dictionary<string, FileFormat> ById =

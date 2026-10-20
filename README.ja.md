@@ -20,7 +20,8 @@
   <a href="https://github.com/KnifeLemon/Filee/releases/latest"><img src="https://img.shields.io/github/v/release/KnifeLemon/Filee?color=7F77DD&label=release" alt="最新リリース"></a>
   <a href="https://github.com/KnifeLemon/Filee/releases"><img src="https://img.shields.io/github/downloads/KnifeLemon/Filee/total?color=1D9E75" alt="ダウンロード数"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-3C3489" alt="Windows 10 | 11">
-  <img src="https://img.shields.io/badge/macOS%20%7C%20Linux-preview-534AB7" alt="macOS | Linux プレビュー版">
+  <img src="https://img.shields.io/badge/Linux-x64%20%7C%20ARM64-3C3489" alt="Linux x64 | ARM64">
+  <img src="https://img.shields.io/badge/macOS-preview-534AB7" alt="macOS プレビュー版">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6A62C9" alt="MITライセンス"></a>
 </p>
 
@@ -29,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.ru.md">Русский</a> · <a href="README.hi.md">हिन्दी</a> · <b>日本語</b></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <b>日本語</b> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a></p>
 
 <table>
   <tr>
@@ -54,7 +55,7 @@
   セットアップでは、エクスプローラーのメニュー、サインイン時の起動、`filee`コマンド、追加の変換エンジンを選べます。
 - **macOS 14以降**（プレビュー版）：`osx-arm64`または`osx-x64`のパッケージを展開し、`./install.sh`を実行します。
   まだ公証を受けていないため、初回起動時は「システム設定」→「プライバシーとセキュリティ」→「**このまま開く**」で許可してください。
-- **Linux x64/ARM64**（プレビュー版、Ubuntu 22.04以降）：パッケージを展開して`./install.sh`を実行します（root権限は不要、Python 3が必要）。
+- **Linux x64/ARM64**（Ubuntu 22.04以降）：パッケージを展開して`./install.sh`を実行します（root権限は不要、Python 3が必要）。
   ドラッグ操作にはX11が必要です。Waylandでは、ドロップ領域とファイルマネージャーの右クリックメニューを使ってください。
 
 新しいバージョンが出るとメニューでお知らせし、設定とエンジンはそのままでFilee自身が更新します。
@@ -66,7 +67,7 @@
 - **複数のファイルをまとめて**並列で変換します。複数の手順が必要な変換（HWP → HWPX → DOCX）も、経路を自動で見つけます。
 - **監視フォルダー**に入ったファイルを、すべて自動で変換します。
 - **ほかの使い方**：右クリックメニュー、キーボードショートカット、ドロップ領域、[`filee`コマンド](#コマンドライン)。
-- ライトテーマとダークテーマ。English、Español、한국어、简体中文、Polski、Русский、हिन्दी、日本語に対応。
+- ライトテーマとダークテーマ。English、Español、日本語、한국어、简体中文、Polski、हिन्दी、Русскийに対応。
 
 ## スクリーンショット
 
