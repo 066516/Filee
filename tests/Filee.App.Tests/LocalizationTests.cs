@@ -1,9 +1,10 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Filee.App.Services;
 
 namespace Filee.App.Tests;
 
-/// <summary>Keeps en / es / ko / zh-CN / pl / hi in sync so no language silently falls back to English.</summary>
+/// <summary>Keeps en / es / ko / zh-CN / pl / hi / ru in sync so no language silently falls back to English.</summary>
 public partial class LocalizationTests
 {
     private static string I18nDirectory
@@ -20,7 +21,7 @@ public partial class LocalizationTests
     private static Dictionary<string, string> Load(string code) =>
         JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(I18nDirectory, code + ".json")))!;
 
-    public static TheoryData<string> Languages => new() { "es", "ko", "zh-CN", "pl", "hi" };
+    public static TheoryData<string> Languages => new() { "es", "ko", "zh-CN", "pl", "hi", "ru" };
 
     [Theory]
     [MemberData(nameof(Languages))]
@@ -57,6 +58,13 @@ public partial class LocalizationTests
             .ToList();
 
         Assert.Empty(missing);
+    }
+
+    [Fact]
+    public void Russian_is_offered_under_its_own_name()
+    {
+        Assert.Contains(("ru", "Русский"), LocalizationService.Languages);
+        Assert.Equal("ru", LocalizationService.Resolve("RU"));
     }
 
     private static HashSet<string> Placeholders(string text) =>

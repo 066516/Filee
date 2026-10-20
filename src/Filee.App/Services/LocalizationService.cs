@@ -23,6 +23,7 @@ public sealed class LocalizationService : ILocalizer
         ("ko", "한국어"),
         ("zh-CN", "简体中文"),
         ("pl", "Polski"),
+        ("ru", "Русский"),
         ("hi", "हिन्दी"),
     ];
 
@@ -106,6 +107,8 @@ public sealed class LocalizationService : ILocalizer
             return "es";
         if (ui.StartsWith("hi", StringComparison.OrdinalIgnoreCase))
             return "hi";
+        if (ui.StartsWith("ru", StringComparison.OrdinalIgnoreCase))
+            return "ru";
         return "en";
     }
 
