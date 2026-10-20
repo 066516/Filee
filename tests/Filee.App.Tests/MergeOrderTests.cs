@@ -1,4 +1,4 @@
-// Issue #268: interact with the real order chooser, then inspect the actual merged PDF's pages.
+// Merge order (issue #268): the real chooser opened from the donut, then the pages of the merged PDF.
 
 using Avalonia;
 using Avalonia.Controls;
@@ -67,6 +67,7 @@ public class MergeOrderTests
             RenderTests.Pump();
 
             var dialog = Assert.IsType<MergeOrderWindow>(windows.MergeOrder);
+            // Sorted by name, then folder: 200, 300, 400.
             var vm = Assert.IsType<MergeOrderViewModel>(dialog.DataContext);
             Assert.False(radial.IsVisible);
             Assert.DoesNotContain(conversions.Jobs, j => !before.Contains(j.Job.Id));
@@ -125,7 +126,7 @@ public class MergeOrderTests
     [InlineData("pl")]
     [InlineData("hi")]
     [InlineData("ru")]
-    public void Chooser_renders_long_paths_at_its_minimum_width(string language)
+    public void Chooser_fits_long_paths_at_its_minimum_width(string language)
     {
         TestServices.EnsureInitialized(language);
         var vm = new MergeOrderViewModel([
@@ -137,14 +138,39 @@ public class MergeOrderTests
         {
             window.Show();
             RenderTests.Pump();
-            var merge = window.FindControl<Button>("StartMerge")!;
-            var cancel = window.FindControl<Button>("CancelMerge")!;
-            var down = window.FindControl<Button>("MoveDown")!;
-            Assert.True(merge.TranslatePoint(default, window)!.Value.X > down.TranslatePoint(default, window)!.Value.X + down.Bounds.Width);
-            Assert.True(cancel.TranslatePoint(default, window)!.Value.X + cancel.Bounds.Width <= merge.TranslatePoint(default, window)!.Value.X);
+            Rect Box(string name)
+            {
+                var control = window.FindControl<Control>(name)!;
+                return new Rect(control.Bounds.Size).TransformToAABB(control.TransformToVisual(window)!.Value);
+            }
+            var (merge, cancel, down) = (Box("StartMerge"), Box("CancelMerge"), Box("MoveDown"));
+            // Arabic mirrors the row: the arrows go to the right, Merge to the left edge.
+            if (language == "ar")
+            {
+                Assert.True(merge.Right < down.Left);
+                Assert.True(cancel.Left >= merge.Right);
+            }
+            else
+            {
+                Assert.True(merge.Left > down.Right);
+                Assert.True(cancel.Right <= merge.Left);
+            }
+            Assert.True(merge.Right <= window.Bounds.Width && merge.Left >= 0);
             Assert.True(window.FindControl<ListBox>("FileOrder")!.Bounds.Height > 80);
-            RenderTests.Save(window, $"issue268-merge-order-{language}.png");
+            RenderTests.Save(window, $"merge-order-{language}.png");
         }
         finally { window.Close(); }
+    }
+
+    [Fact]
+    public void Files_start_in_name_order_counting_numbers_and_browser_files_show_no_folder()
+    {
+        var browser = Path.Combine(Filee.Core.Web.WebDrop.DefaultWorkRoot, "abc", "drop", "1", "page 1.pdf");
+        var vm = new MergeOrderViewModel([@"C:\b\page 10.pdf", @"C:\a\page 2.pdf", browser, @"C:\a\page 10.pdf"]);
+        Assert.Equal([browser, @"C:\a\page 2.pdf", @"C:\a\page 10.pdf", @"C:\b\page 10.pdf"], vm.OrderedFiles);
+        Assert.Equal("", vm.Files[0].Folder);
+        Assert.Equal(Path.GetDirectoryName(@"C:\a\page 2.pdf"), vm.Files[1].Folder);
+        Assert.False(vm.MoveUpCommand.CanExecute(null));
+        Assert.True(vm.MoveDownCommand.CanExecute(null));
     }
 }
