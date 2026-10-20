@@ -104,7 +104,9 @@ public sealed class ThemeService(IPlatformServices platform)
             language.StartsWith("ja", StringComparison.OrdinalIgnoreCase) ? [Japanese, Korean, Chinese]
             : language.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? [Chinese, Korean, Japanese]
             : [Korean, Chinese, Japanese];
-        var primary = language.StartsWith("ar", StringComparison.OrdinalIgnoreCase) ? $"{Arabic}, {Latin}" : $"{Latin}, {Arabic}";
+        // The primary face supplies trimming symbols without fallback. Noto Sans Arabic lacks the ellipsis, so
+        // keep Noto Sans first and let Arabic runs use the embedded Arabic face, just like the Indic/CJK runs.
+        var primary = $"{Latin}, {Arabic}";
         return $"{primary}, {Devanagari}, {string.Join(", ", cjk.Select(f => f.Embedded))}, Segoe UI, Nirmala UI, Tahoma, Geeza Pro, "
             + $"{string.Join(", ", cjk.Select(f => f.System))}, Kohinoor Devanagari, sans-serif";
     }

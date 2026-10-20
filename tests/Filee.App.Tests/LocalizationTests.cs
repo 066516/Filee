@@ -32,7 +32,7 @@ public partial class LocalizationTests
     {
         Assert.Contains(("ar", "العربية"), LocalizationService.Languages);
         Assert.Equal("ar", LocalizationService.Resolve(culture));
-        Assert.StartsWith("fonts:Filee#Noto Sans Arabic,", ThemeService.FontFamilies(culture));
+        Assert.Contains("fonts:Filee#Noto Sans Arabic", ThemeService.FontFamilies(culture));
     }
 
     [Theory]

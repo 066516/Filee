@@ -14,6 +14,22 @@ namespace Filee.App.Tests;
 public class LocalizationResourceTests
 {
     [AvaloniaFact]
+    public void Arabic_font_chain_draws_trimming_ellipsis_and_matches_arabic_letters()
+    {
+        TestServices.EnsureInitialized("ar");
+        try
+        {
+            var family = FontFamily.Parse(ThemeService.FontFamilies("ar"));
+            // Avalonia takes the trimming symbol from the primary typeface rather than applying character fallback.
+            Assert.NotEqual((ushort)0, new Typeface(family).GlyphTypeface.CharacterToGlyphMap.GetGlyph(0x2026));
+            Assert.True(FontManager.Current.TryMatchCharacter(0x0645, FontStyle.Normal, FontWeight.Normal,
+                FontStretch.Normal, family, System.Globalization.CultureInfo.GetCultureInfo("ar"), out var arabic));
+            Assert.NotEqual((ushort)0, arabic.GlyphTypeface.CharacterToGlyphMap.GetGlyph(0x0645));
+        }
+        finally { TestServices.EnsureInitialized("en"); }
+    }
+
+    [AvaloniaFact]
     public void Switching_to_arabic_keeps_navigation_and_page_in_the_same_positions()
     {
         TestServices.EnsureInitialized("en");
