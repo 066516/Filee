@@ -119,6 +119,138 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Dock_and_menu_bar_preferences_round_trip_independently()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        Assert.True(store.Settings.ShowInDock);
+        Assert.True(store.Settings.ShowMenuBarIcon);
+
+        store.Settings.ShowInDock = false;
+        store.SaveSettings();
+        var dockOff = new UserDataStore(dir.Path);
+        dockOff.Load();
+        Assert.False(dockOff.Settings.ShowInDock);
+        Assert.True(dockOff.Settings.ShowMenuBarIcon);
+
+        dockOff.Settings.ShowInDock = true;
+        dockOff.Settings.ShowMenuBarIcon = false;
+        dockOff.SaveSettings();
+        var menuBarOff = new UserDataStore(dir.Path);
+        menuBarOff.Load();
+        Assert.True(menuBarOff.Settings.ShowInDock);
+        Assert.False(menuBarOff.Settings.ShowMenuBarIcon);
+
+        menuBarOff.Settings.ShowInDock = false;
+        menuBarOff.SaveSettings();
+        var bothOff = new UserDataStore(dir.Path);
+        bothOff.Load();
+        Assert.False(bothOff.Settings.ShowInDock);
+        Assert.False(bothOff.Settings.ShowMenuBarIcon);
+    }
+
+    [Fact]
+    public void Version_20_settings_upgrade_preserves_other_values_and_icon_defaults()
+    {
+        using var dir = new TempDir();
+        var path = Path.Combine(dir.Path, "settings.json");
+        File.WriteAllText(path, """{ "schemaVersion": 20, "language": "ko" }""");
+
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
+        Assert.Equal("ko", store.Settings.Language);
+        Assert.True(store.Settings.ShowInDock);
+        Assert.True(store.Settings.ShowMenuBarIcon);
+        var rewritten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        Assert.Equal(AppSettings.CurrentSchemaVersion, (int?)rewritten["schemaVersion"]);
+        Assert.True((bool?)rewritten["showInDock"]);
+        Assert.True((bool?)rewritten["showMenuBarIcon"]);
+        Assert.Equal("ko", (string?)rewritten["language"]);
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        Assert.Equal(AppSettings.CurrentSchemaVersion, reloaded.Settings.SchemaVersion);
+        Assert.Equal("ko", reloaded.Settings.Language);
+        Assert.True(reloaded.Settings.ShowInDock);
+        Assert.True(reloaded.Settings.ShowMenuBarIcon);
+    }
+
+    [Fact]
+    public void Older_Filee_round_trip_restores_missing_icon_defaults()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Settings.Language = "ko";
+        store.Settings.ShowInDock = false;
+        store.Settings.ShowMenuBarIcon = false;
+        store.SaveSettings();
+
+        var path = Path.Combine(dir.Path, "settings.json");
+        var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        json["schemaVersion"] = 20;
+        Assert.True(json.Remove("showInDock"));
+        Assert.True(json.Remove("showMenuBarIcon"));
+        File.WriteAllText(path, json.ToJsonString());
+
+        var migrated = new UserDataStore(dir.Path);
+        migrated.Load();
+
+        Assert.Equal(AppSettings.CurrentSchemaVersion, migrated.Settings.SchemaVersion);
+        Assert.True(migrated.Settings.ShowInDock);
+        Assert.True(migrated.Settings.ShowMenuBarIcon);
+        Assert.Equal("ko", migrated.Settings.Language);
+        Assert.False(File.Exists(path + ".broken"));
+
+        var rewritten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        Assert.Equal(AppSettings.CurrentSchemaVersion, (int?)rewritten["schemaVersion"]);
+        Assert.True((bool?)rewritten["showInDock"]);
+        Assert.True((bool?)rewritten["showMenuBarIcon"]);
+        Assert.Equal("ko", (string?)rewritten["language"]);
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        Assert.Equal(AppSettings.CurrentSchemaVersion, reloaded.Settings.SchemaVersion);
+        Assert.Equal("ko", reloaded.Settings.Language);
+        Assert.True(reloaded.Settings.ShowInDock);
+        Assert.True(reloaded.Settings.ShowMenuBarIcon);
+    }
+
+    [Theory]
+    [InlineData("showInDock", "null")]
+    [InlineData("showInDock", "\"future\"")]
+    [InlineData("showInDock", "42")]
+    [InlineData("showMenuBarIcon", "null")]
+    [InlineData("showMenuBarIcon", "\"future\"")]
+    [InlineData("showMenuBarIcon", "42")]
+    public void Unexpected_icon_preference_values_default_on_without_losing_settings(string field, string value)
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Settings.Language = "ko";
+        store.Settings.ShowInDock = field == "showInDock";
+        store.Settings.ShowMenuBarIcon = field == "showMenuBarIcon";
+        store.SaveSettings();
+
+        var path = Path.Combine(dir.Path, "settings.json");
+        var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        json[field] = System.Text.Json.Nodes.JsonNode.Parse(value);
+        File.WriteAllText(path, json.ToJsonString());
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        Assert.Equal("ko", reloaded.Settings.Language);
+        Assert.True(field == "showInDock" ? reloaded.Settings.ShowInDock : reloaded.Settings.ShowMenuBarIcon);
+        Assert.False(field == "showInDock" ? reloaded.Settings.ShowMenuBarIcon : reloaded.Settings.ShowInDock);
+        Assert.False(File.Exists(path + ".broken"));
+    }
+
+    [Fact]
     public void Hardware_encoding_is_saved_and_stays_off_for_presets_from_before_it()
     {
         using var dir = new TempDir();
@@ -602,6 +734,29 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_23_libraries_learn_potm_on_the_presentation_donut_and_nothing_else()
+    {
+        // As written with schema 23: no POTM, and the user took ODP off the presentation donut.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var slides = profiles.Single(p => p.Id == "presentations");
+        slides.Extensions.RemoveAll(e => e is "potm" or "odp");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(23, presets, profiles));
+
+        Assert.Contains("potm", slides.Extensions);
+        Assert.DoesNotContain("odp", slides.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(23, presets, profiles)); // once only
+
+        // A donut of the user that already opens .potm files keeps them.
+        profiles = BuiltInData.CreateProfiles();
+        profiles.Single(p => p.Id == "presentations").Extensions.Remove("potm");
+        profiles.Insert(0, new ToolbarProfile { Id = "templates", Name = "Templates", Extensions = ["potm"] });
+        Assert.False(SettingsMigrations.ApplyToLibrary(23, presets, profiles));
+        Assert.DoesNotContain("potm", profiles.Single(p => p.Id == "presentations").Extensions);
+    }
+
+    [Fact]
     public void Version_15_libraries_get_the_tracing_presets_on_the_images_donut_after_pdf()
     {
         // As written before tracing: no trace presets, and the images donut without them.
@@ -844,6 +999,42 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_25_libraries_get_crop_tool_preset_after_remove_background_on_no_donut()
+    {
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "tool-crop");
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(25, presets, profiles));
+
+        var crop = presets.Single(p => p.Id == "tool-crop");
+        Assert.Equal(PresetKind.Tool, crop.Kind);
+        Assert.Equal("remove-background", presets[presets.IndexOf(crop) - 1].Id);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("tool-crop"));
+        Assert.False(SettingsMigrations.ApplyToLibrary(25, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Back_from_an_older_Filee_tool_crop_works_again_and_keeps_the_users_changes()
+    {
+        // What a Filee before 26 leaves after saving: kind read as Group, TargetFormat dropped, SubPresetIds empty, the rest as it was.
+        var presets = BuiltInData.CreatePresets();
+        var crop = presets.Single(p => p.Id == "tool-crop");
+        crop.Kind = PresetKind.Group;
+        crop.TargetFormat = Preset.GroupTarget;
+        crop.SubPresetIds = [];
+        crop.Name = "Trim";
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(25, presets, BuiltInData.CreateProfiles()));
+
+        Assert.Equal(PresetKind.Tool, crop.Kind);
+        Assert.Equal(BuiltInData.SameAsSource, crop.TargetFormat);
+        Assert.Empty(crop.SubPresetIds);
+        Assert.Equal("Trim", crop.Name);
+        Assert.Single(presets, p => p.Id == "tool-crop");
+    }
+
+    [Fact]
     public void Back_from_an_older_Filee_compress_pdf_compresses_again_and_keeps_the_users_changes()
     {
         // What a Filee before 20 leaves after saving: the compression level dropped, the rest as it was.
@@ -980,12 +1171,16 @@ public class UserDataStoreTests
     {
         using var dir = new TempDir();
         File.WriteAllText(Path.Combine(dir.Path, "presets.json"), "{ not json");
+        File.WriteAllText(Path.Combine(dir.Path, "settings.json"), "{ not json");
 
         var store = new UserDataStore(dir.Path);
         store.Load();
 
         Assert.NotEmpty(store.Presets);
+        Assert.True(store.Settings.ShowInDock);
+        Assert.True(store.Settings.ShowMenuBarIcon);
         Assert.True(File.Exists(Path.Combine(dir.Path, "presets.json.broken")));
+        Assert.True(File.Exists(Path.Combine(dir.Path, "settings.json.broken")));
     }
 
     [Fact]
