@@ -19,6 +19,7 @@ using Filee.App.ViewModels;
 using Filee.App.Views;
 using Filee.Core.Conversion;
 using Filee.Core.Platform;
+using Filee.Core.Presets;
 using Filee.Core.Profiles;
 using Filee.Core.Settings;
 using Microsoft.Extensions.Logging;
@@ -265,18 +266,14 @@ public sealed class RadialController(
     /// <summary>Converts with slice <paramref name="index"/>, or with slice <paramref name="sub"/> of that group's ring.</summary>
     private void Convert(int index, int sub, IReadOnlyList<string> files)
     {
-        var preset = viewModel.PresetAt(index, sub);
-        // Folders only go into "Compress into one archive"; any other preset converts the files beside them (#186).
-        if (preset is { PacksIntoOneArchive: false })
-            files = files.Where(path => !Directory.Exists(path)).ToList();
-        if (preset is null || files.Count == 0)
+        if (viewModel.PresetAt(index, sub) is not { } preset || SourcesFor(preset, files) is not { Count: > 0 } sources)
         {
             Close();
             return;
         }
 
-        log.LogInformation("Converting {Count} file(s) with preset {Preset}", files.Count, preset.Id);
-        var job = conversions.Start(files, preset, showInToast: false);
+        log.LogInformation("Converting {Count} file(s) with preset {Preset}", sources.Count, preset.Id);
+        var job = conversions.Start(sources, preset, showInToast: false);
         if (job is null || _window is null)
         {
             Close();
@@ -285,6 +282,13 @@ public sealed class RadialController(
         _converted = true;
         ShowProgress(job);
     }
+
+    /// <summary>
+    /// What <paramref name="preset"/> converts of <paramref name="files"/>: folders only go into "Compress into one
+    /// archive"; any other preset converts the files beside them (issue #186).
+    /// </summary>
+    internal static IReadOnlyList<string> SourcesFor(Preset preset, IReadOnlyList<string> files) =>
+        preset.PacksIntoOneArchive ? files : [.. files.Where(path => !Directory.Exists(path))];
 
     // ───────── Progress ring ─────────
 

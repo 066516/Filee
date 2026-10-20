@@ -88,10 +88,7 @@ public sealed class JobQueue : IAsyncDisposable
                         && job.Files.Count > 1
                         && _pdfMerger is not null;
             // Any files, one of them or many, archives or not: they go into the archive as they are.
-            var combine = job.Preset.Archive.CombineIntoOne
-                          && _combiner is not null
-                          && FormatRegistry.FindById(job.Preset.TargetFormat) is { Category: FormatCategory.Archive } archive
-                          && archive.Id != FormatRegistry.Folder;
+            var combine = job.Preset.PacksIntoOneArchive && _combiner is not null;
 
             // One file is enough: a 10-page PDF becomes one 10-page TIFF.
             var multiPageTiff = job.Preset.Image.MultiPageTiff && job.Preset.TargetFormat == "tiff" && _tiffMerger is not null;
@@ -234,7 +231,7 @@ public sealed class JobQueue : IAsyncDisposable
         var inputs = new List<FileResult>();
         foreach (var file in job.Files)
         {
-            // Folders (from the command line; drops deliver files) are packed with their content.
+            // Folders are packed with their content.
             if (File.Exists(file.SourcePath) || Directory.Exists(file.SourcePath))
                 inputs.Add(file);
             else

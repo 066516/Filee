@@ -21,10 +21,7 @@ internal static class DraggedFiles
     /// leave them out. A trailing separator is removed, and a drive or the file system root is ignored.
     /// </summary>
     public static IReadOnlyList<string> Local(IDataTransfer data) =>
-        Local(data, IsFileOrFolder, AppHost.Get<IPlatformServices>().ResolveShortcuts);
-
-    /// <summary>Whether <paramref name="path"/> is a file or a folder that exists.</summary>
-    internal static bool IsFileOrFolder(string path) => File.Exists(path) || Directory.Exists(path);
+        Local(data, ConversionService.Exists, AppHost.Get<IPlatformServices>().ResolveShortcuts);
 
     internal static IReadOnlyList<string> Local(IDataTransfer data, Func<string, bool> exists,
         Func<IReadOnlyList<string>, IReadOnlyList<string>>? resolveShortcuts = null)

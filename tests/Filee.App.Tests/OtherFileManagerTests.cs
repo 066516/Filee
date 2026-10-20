@@ -44,9 +44,9 @@ public class OtherFileManagerTests
         File.WriteAllBytes(file, [1]);
         try
         {
-            Assert.True(DraggedFiles.IsFileOrFolder(file));
-            Assert.True(DraggedFiles.IsFileOrFolder(folder));
-            Assert.False(DraggedFiles.IsFileOrFolder(Path.Combine(folder, "missing.png")));
+            Assert.True(ConversionService.Exists(file));
+            Assert.True(ConversionService.Exists(folder));
+            Assert.False(ConversionService.Exists(Path.Combine(folder, "missing.png")));
         }
         finally
         {
