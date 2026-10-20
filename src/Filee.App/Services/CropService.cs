@@ -134,9 +134,6 @@ public static class CropService
                     image.SetProfile(exif);
                 }
 
-                if (appliedPreset.Image.Quality is > 0 and <= 100)
-                    image.Quality = (uint)appliedPreset.Image.Quality;
-
                 image.Write(outputPath);
 
                 if (appliedPreset.Output.KeepDates || store.Settings.KeepFileDates)
@@ -153,6 +150,11 @@ public static class CropService
                 }
 
                 return new CropResult(CropStatus.Success, outputPath, null, null);
+            }
+            catch (NotSupportedException ex)
+            {
+                log?.LogInformation(ex, "Not cropping {File}", inputPath);
+                return new CropResult(CropStatus.Failed, null, "error.unsupported_source", null);
             }
             catch (Exception ex)
             {

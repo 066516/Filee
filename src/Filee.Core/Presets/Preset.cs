@@ -18,7 +18,8 @@ public enum PresetKind
     Group,
 
     /// <summary>
-    /// An interactive zero-window desktop tool (such as Crop) that opens an on-screen HUD upon drop.
+    /// Opens its own window on the dropped files instead of converting them (the interactive Crop). Like a group,
+    /// never offered where a conversion is picked.
     /// </summary>
     Tool,
 }

@@ -58,15 +58,17 @@
           <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
             <PathIcon Width="16" Height="16" Data="{StaticResource Icon.Crop}" Foreground="{DynamicResource AccentBrush}" />
             <TextBlock Text="{DynamicResource preset.crop}" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextPrimaryBrush}" />
-            <TextBlock Text="—" Foreground="{DynamicResource TextSecondaryBrush}" />
-            <TextBlock Text="{Binding CurrentFileName}" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" MaxWidth="360" />
+            <TextBlock Text="—" Foreground="{DynamicResource TextSecondaryBrush}" IsVisible="{Binding IsEditing}" />
+            <TextBlock Text="{Binding CurrentFileName}" IsVisible="{Binding IsEditing}" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" MaxWidth="360" />
             
             <Border IsVisible="{Binding HasMultipleFiles}" Background="{DynamicResource AccentSoftBrush}" CornerRadius="10" Padding="8,2">
               <TextBlock Text="{Binding CounterText}" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" />
             </Border>
 
-            <Border IsVisible="{Binding HasStatusNotice}" Background="{DynamicResource CardShadow}" CornerRadius="10" Padding="8,2">
-              <TextBlock Text="{Binding StatusNotice}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+            <Border IsVisible="{Binding HasStatusNotice}" Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="8,2">
+              <TextBlock Text="{Binding StatusNotice}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                         TextTrimming="CharacterEllipsis" MaxWidth="320" />
             </Border>
           </StackPanel>
         </DockPanel>
@@ -77,7 +79,9 @@
               Background="{DynamicResource SurfaceAltBrush}">
         <DockPanel>
           <!-- Action Buttons on the Right -->
-          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button DockPanel.Dock="Right" Content="{DynamicResource common.close}" Command="{Binding CancelCommand}"
+                  IsVisible="{Binding IsFinished}" IsDefault="{Binding IsFinished}" Classes="accent" FontWeight="SemiBold" Padding="14,6" CornerRadius="6" />
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding IsEditing}">
             <Button Content="{DynamicResource crop.reset}" Command="{Binding ResetCommand}"
                     Classes="aspect" />
             <Button Content="{DynamicResource crop.skip}" Command="{Binding SkipCommand}"
@@ -85,11 +89,11 @@
             <Button Content="{DynamicResource common.cancel}" Command="{Binding CancelCommand}"
                     IsCancel="True" Classes="aspect" />
             <Button Content="{DynamicResource crop.save}" Command="{Binding CropAndSaveCommand}"
-                    IsDefault="True" Classes="accent" FontWeight="SemiBold" Padding="14,6" CornerRadius="6" />
+                    IsDefault="{Binding IsEditing}" Classes="accent" FontWeight="SemiBold" Padding="14,6" CornerRadius="6" />
           </StackPanel>
 
           <!-- Aspect ratio selector on the Left -->
-          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" IsVisible="{Binding IsEditing}">
             <TextBlock Text="{DynamicResource crop.aspect_title}" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,2,0" />
             <Button Classes="aspect" Classes.active="{Binding IsAspectFree}" Content="{DynamicResource crop.aspect_free}" Command="{Binding SetAspectCommand}" CommandParameter="free" />
             <Button Classes="aspect" Classes.active="{Binding IsAspectSquare}" Content="1:1" Command="{Binding SetAspectCommand}" CommandParameter="1:1" />
@@ -109,7 +113,25 @@
         <c:CropCanvas x:Name="Canvas"
                       SourceImage="{Binding PreviewImage}"
                       HorizontalAlignment="Stretch"
-                      VerticalAlignment="Stretch" />
+                      VerticalAlignment="Stretch" IsVisible="{Binding IsEditing}" />
+
+        <!-- After the last file, when files failed or were skipped -->
+        <Border IsVisible="{Binding IsFinished}" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="560" Margin="24"
+                Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="1"
+                CornerRadius="{DynamicResource SoftRadius}" Padding="20,16">
+          <StackPanel Spacing="10">
+            <TextBlock Text="{Binding Summary}" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextPrimaryBrush}" />
+            <ScrollViewer MaxHeight="320">
+              <ItemsControl ItemsSource="{Binding Problems}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Text="{Binding}" FontSize="12" Margin="0,2" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </StackPanel>
+        </Border>
 
         <!-- Loading spinner / busy indicator -->
         <Border IsVisible="{Binding IsBusy}" Background="#44000000" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">

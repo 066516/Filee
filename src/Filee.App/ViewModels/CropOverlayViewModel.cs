@@ -1,5 +1,6 @@
 // State of the interactive crop overlay.
 
+using System.Collections.ObjectModel;
 using System.IO;
 using Avalonia;
 using Avalonia.Media.Imaging;
@@ -28,6 +29,10 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
     private readonly List<HistoryFailure> _failures = [];
     private bool _historyRecorded;
 
+    // Set when the window closes. A crop or preview load still running then finishes without touching the closed
+    // view (its bitmap disposed, no next file) and records the history with its output.
+    private bool _closed;
+
     [ObservableProperty] private int _currentIndex;
     [ObservableProperty] private string _currentFileName = "";
     [ObservableProperty] private string _counterText = "";
@@ -51,6 +56,21 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
     private string _statusNotice = "";
 
     public bool HasStatusNotice => !string.IsNullOrWhiteSpace(StatusNotice);
+
+    /// <summary>
+    /// All files are done and some failed or were skipped: the overlay stays open on <see cref="Summary"/> and
+    /// <see cref="Problems"/> until the user closes it, so a problem with the last (or only) file is seen too.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsEditing))]
+    private bool _isFinished;
+
+    public bool IsEditing => !IsFinished;
+
+    [ObservableProperty] private string _summary = "";
+
+    /// <summary>"file: reason" for each file that failed or was skipped.</summary>
+    public ObservableCollection<string> Problems { get; } = [];
 
     public bool IsAspectFree => SelectedAspect == "free";
     public bool IsAspectOriginal => SelectedAspect == "original";
@@ -93,6 +113,12 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
         try
         {
             var (bitmap, origW, origH) = await CropService.LoadPreviewAsync(path);
+            if (_closed)
+            {
+                bitmap.Dispose();
+                RecordHistoryOnce();
+                return;
+            }
             var old = PreviewImage;
             PreviewImage = bitmap;
             old?.Dispose();
@@ -109,15 +135,15 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             _log?.LogError(ex, "Failed to load preview for {File}", path);
-            _processedSources.Add(path);
-            var errKey = ex is NotSupportedException ? "error.unsupported_source" : "error.conversion_failed";
-            _failures.Add(new HistoryFailure
+            if (_closed)
             {
-                Source = path,
-                ErrorKey = errKey,
-                ErrorDetail = ex.Message,
-            });
-            StatusNotice = $"{Path.GetFileName(path)}: {_loc[errKey]}";
+                RecordHistoryOnce();
+                return;
+            }
+            _processedSources.Add(path);
+            // The animated / multi-frame check throws NotSupportedException: its English message stays in the log.
+            var unsupported = ex is NotSupportedException;
+            AddFailure(path, unsupported ? "error.unsupported_source" : "error.conversion_failed", unsupported ? null : ex.Message);
 
             if (index < _files.Count - 1)
                 await LoadFileAsync(index + 1);
@@ -141,7 +167,7 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public async Task CropAndSaveAsync()
     {
-        if (IsBusy || CurrentIndex >= _files.Count)
+        if (IsBusy || IsFinished || _closed || CurrentIndex >= _files.Count)
             return;
 
         IsBusy = true;
@@ -157,46 +183,27 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
         {
             var result = await CropService.CropFileAsync(path, x, y, w, h, _preset, _store, _loc, _log);
             if (result.Status == CropStatus.Success && result.OutputPath is not null)
-            {
                 _outputs.Add(result.OutputPath);
-            }
             else if (result.Status == CropStatus.SkippedExists)
-            {
-                _failures.Add(new HistoryFailure
-                {
-                    Source = path,
-                    ErrorKey = result.ErrorKey,
-                    ErrorDetail = result.ErrorDetail,
-                });
-                StatusNotice = $"{Path.GetFileName(path)}: {_loc["toast.skipped"]}";
-            }
+                AddProblem(path, "toast.skipped"); // as in the job queue: skipped counts as done, not as a failure
             else
-            {
-                _failures.Add(new HistoryFailure
-                {
-                    Source = path,
-                    ErrorKey = result.ErrorKey ?? "error.conversion_failed",
-                    ErrorDetail = result.ErrorDetail,
-                });
-                StatusNotice = $"{Path.GetFileName(path)}: {_loc["error.conversion_failed"]}";
-            }
+                AddFailure(path, result.ErrorKey ?? "error.conversion_failed", result.ErrorDetail);
         }
         catch (Exception ex)
         {
             _log?.LogError(ex, "Failed to crop {File}", path);
-            _failures.Add(new HistoryFailure
-            {
-                Source = path,
-                ErrorKey = "error.conversion_failed",
-                ErrorDetail = ex.Message,
-            });
-            StatusNotice = $"{Path.GetFileName(path)}: {_loc["error.conversion_failed"]}";
+            AddFailure(path, "error.conversion_failed", ex.Message);
         }
         finally
         {
             IsBusy = false;
         }
 
+        if (_closed)
+        {
+            RecordHistoryOnce();
+            return;
+        }
         if (CurrentIndex < _files.Count - 1)
         {
             await LoadFileAsync(CurrentIndex + 1);
@@ -210,7 +217,7 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public async Task SkipAsync()
     {
-        if (IsBusy)
+        if (IsBusy || IsFinished || _closed)
             return;
 
         if (CurrentIndex < _files.Count - 1)
@@ -228,10 +235,12 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
         ResetRequested?.Invoke();
     }
 
+    /// <summary>Cancel, or Close once finished. A crop still saving finishes and goes into the history.</summary>
     [RelayCommand]
     public void Cancel()
     {
-        FinishAndClose();
+        Shutdown();
+        CloseRequested?.Invoke();
     }
 
     [RelayCommand]
@@ -251,10 +260,44 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
         AspectRatioChanged?.Invoke(ratio);
     }
 
+    private void AddFailure(string path, string errorKey, string? detail)
+    {
+        _failures.Add(new HistoryFailure { Source = path, ErrorKey = errorKey, ErrorDetail = detail });
+        AddProblem(path, errorKey);
+    }
+
+    private void AddProblem(string path, string key)
+    {
+        var line = $"{Path.GetFileName(path)}: {_loc[key]}";
+        Problems.Add(line);
+        StatusNotice = line;
+    }
+
+    /// <summary>Closes after the last file, or stays open on the summary when a file failed or was skipped.</summary>
     private void FinishAndClose()
     {
         RecordHistoryOnce();
-        CloseRequested?.Invoke();
+        if (Problems.Count == 0)
+        {
+            CloseRequested?.Invoke();
+            return;
+        }
+        Summary = _failures.Count > 0
+            ? _loc.Format("toast.done_errors", _failures.Count, _processedSources.Count)
+            : _loc["toast.done"];
+        StatusNotice = "";
+        HasMultipleFiles = false;
+        var old = PreviewImage;
+        PreviewImage = null;
+        old?.Dispose();
+        IsFinished = true;
+    }
+
+    private void Shutdown()
+    {
+        _closed = true;
+        if (!IsBusy)
+            RecordHistoryOnce();
     }
 
     private void RecordHistoryOnce()
@@ -277,13 +320,14 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
             Sources = [.. _processedSources],
             Outputs = [.. _outputs],
             Failures = [.. _failures],
-            Preset = _failures.Count > 0 ? _preset.Clone() : null,
+            // No Retry on Home: it would run the preset through ConversionService, which doesn't run tools.
+            Preset = null,
         });
     }
 
     public void Dispose()
     {
-        RecordHistoryOnce();
+        Shutdown();
         PreviewImage?.Dispose();
         PreviewImage = null;
     }

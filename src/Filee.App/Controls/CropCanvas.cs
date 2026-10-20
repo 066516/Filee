@@ -225,7 +225,7 @@ public sealed class CropCanvas : Control
         // 4. Draw Crop Rectangle Border
         context.DrawRectangle(null, CropBorderPen, crop);
 
-        // 5. Draw macOS Native Style Corner Brackets and Edge Bars
+        // 5. Corner brackets and edge bars
         DrawCornerBracket(context, crop.TopLeft, 1, 1);
         DrawCornerBracket(context, crop.TopRight, -1, 1);
         DrawCornerBracket(context, crop.BottomLeft, 1, -1);

@@ -161,7 +161,6 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public string PresetId => _original.Id;
     public bool IsTool => _original.IsTool;
     public bool CanChangeTarget => !IsTool;
-    public bool ShowImageTools => !IsTool;
 
     public IReadOnlyList<Choice<string>> Targets { get; }
     public IReadOnlyList<Choice<ResizeMode>> ResizeModes { get; }
@@ -392,12 +391,13 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     private bool TargetIsLossyMedia => TargetIsVideo
         || (TargetIsAudio && !LosslessAudioTargets.Contains(TargetId) && MediaCodecs.Effective(TargetId, _audioCodecValue) != AudioCodec.Alac);
 
-    public bool ShowImage => TargetIsImage;
+    /// <summary>A tool (Crop) keeps the source as it is: none of the image options apply.</summary>
+    public bool ShowImage => !IsTool && TargetIsImage;
     /// <summary>Images and PDFs (pictures placed on pages) can be turned and flipped.</summary>
     private bool CanTurn => TargetIsImage || TargetId == "pdf";
     /// <summary>Rotate and flip for a PDF target, which has no image card to show them in.</summary>
     public bool ShowTurnForPdf => TargetId == "pdf";
-    public bool ShowQuality => TargetId == BuiltInData.SameAsSource || LossyTargets.Contains(TargetId);
+    public bool ShowQuality => !IsTool && (TargetId == BuiltInData.SameAsSource || LossyTargets.Contains(TargetId));
     public bool ShowTiff => TargetId is "tiff" or BuiltInData.SameAsSource;
     public bool ShowWebp => TargetId is "webp" or BuiltInData.SameAsSource;
     public bool ShowMultiPageTiff => TargetId is "tiff";
