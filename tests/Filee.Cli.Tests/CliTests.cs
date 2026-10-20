@@ -49,6 +49,20 @@ public sealed class CliTests : IDisposable
     }
 
     [Fact]
+    public async Task Zip_saves_the_result_of_each_file_as_one_zip()
+    {
+        var geojson = Path.Combine(_folder, "places.geojson");
+        File.WriteAllText(geojson, """{"type":"Feature","properties":{"n":1},"geometry":{"type":"Point","coordinates":[1,2]}}""");
+
+        var (code, _, _) = await Run("convert", geojson, "--to", "shp", "--zip");
+
+        Assert.Equal(Cli.Success, code);
+        using var zip = System.IO.Compression.ZipFile.OpenRead(Path.Combine(_folder, "places.zip"));
+        Assert.Equal(["places.cpg", "places.dbf", "places.prj", "places.shp", "places.shx"], zip.Entries.Select(e => e.Name).Order().ToArray());
+        Assert.False(File.Exists(Path.Combine(_folder, "places.shp")));
+    }
+
+    [Fact]
     public async Task Keep_dates_copies_the_dates_of_the_originals()
     {
         var source = Png("old.png");

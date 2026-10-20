@@ -729,6 +729,11 @@ also reaches the spreadsheet and data engines (Shapefile → XLSX, GeoJSON → J
   as `name.shp`, `.shx`, `.dbf`, `.prj` and `.cpg`; the engine returns all of them. The file names always match: when
   the `.shp` name is taken, the next free name is used for the whole set, and a leftover file of the same name (a lone
   `.dbf`) is never written over.
+- **Save as ZIP.** A geospatial preset can pack its result into one ZIP (Settings → Presets → *Save the result as a ZIP*,
+  or Settings → General to do it for every geospatial result, or `--zip` on the command line): a Shapefile's five files
+  travel together, and the ZIP, named by the preset's file name pattern and conflict policy, is the only output. The
+  step that writes the files runs in the job's work folder and `JobQueue` packs it afterwards, so the option works for
+  any engine and any number of steps.
 - **Same format again** (`shp → shp`, `geojson → geojson`) rewrites the file in WGS 84, which is how a projected
   Shapefile is reprojected, and splits mixed geometries (below).
 

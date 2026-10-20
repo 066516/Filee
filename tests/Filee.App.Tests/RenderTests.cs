@@ -1111,6 +1111,26 @@ public class RenderTests
     }
 
     [AvaloniaFact]
+    public void Preset_editor_offers_save_as_zip_for_geospatial_targets_only()
+    {
+        TestServices.EnsureInitialized("en");
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "shp", Name = "Shapefile" };
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowZipResult);
+        Assert.Equal("Geospatial", vm.Target.Detail);
+
+        vm.ZipResult = true;
+        Assert.True(vm.Apply());
+        Assert.True(preset.Output.ZipResult);
+
+        vm.Target = vm.Targets.Single(t => t.Value == "kml");
+        Assert.True(vm.ShowZipResult);
+        vm.Target = vm.Targets.Single(t => t.Value == "png");
+        Assert.False(vm.ShowZipResult);
+        Assert.False(vm.ShowPdf && vm.Target.Value == "shp");
+    }
+
+    [AvaloniaFact]
     public void Preset_editor_saves_media_and_archive_options()
     {
         TestServices.EnsureInitialized("en");

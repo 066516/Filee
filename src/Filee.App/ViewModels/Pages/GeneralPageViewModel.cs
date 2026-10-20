@@ -40,6 +40,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         _defaultSubfolder = output.SubfolderName;
         _defaultFolder = output.CustomFolder;
         _keepFileDates = store.Settings.KeepFileDates;
+        _zipGeoResults = store.Settings.ZipGeoResults;
         CloseChoices = Enum.GetValues<CloseAction>().Select(v => new Choice<CloseAction>(v, loc[$"general.close.{v}"])).ToList();
         _closeChoice = CloseChoices.First(c => c.Value == store.Settings.CloseAction);
         store.SettingsChanged += OnSettingsChanged;
@@ -80,6 +81,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     partial void OnDefaultFolderChanged(string value) => Save(s => s.DefaultOutput.CustomFolder = value.Trim());
 
     [ObservableProperty] private bool _keepFileDates;
+    [ObservableProperty] private bool _zipGeoResults;
 
     /// <summary>What closing the main window does; its "Don't ask again" also sets it.</summary>
     public IReadOnlyList<Choice<CloseAction>> CloseChoices { get; }
@@ -102,6 +104,8 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     public void Dispose() => _store.SettingsChanged -= OnSettingsChanged;
 
     partial void OnKeepFileDatesChanged(bool value) => Save(s => s.KeepFileDates = value);
+
+    partial void OnZipGeoResultsChanged(bool value) => Save(s => s.ZipGeoResults = value);
 
     [ObservableProperty] private Choice<string> _language;
     [ObservableProperty] private bool _startWithSystem;

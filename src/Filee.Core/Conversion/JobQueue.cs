@@ -388,11 +388,13 @@ public sealed class JobQueue : IAsyncDisposable
         try
         {
             IReadOnlyList<string> inputs = [file.SourcePath];
+            // "Save as ZIP": the last step writes into the work folder and the files are packed into one ZIP afterwards.
+            var zipResult = finalOutput && job.Preset.Output.ZipResult;
             for (var s = 0; s < route.Steps.Count; s++)
             {
                 var step = route.Steps[s];
                 var isLast = s == route.Steps.Count - 1;
-                IOutputAllocator allocator = isLast && finalOutput
+                IOutputAllocator allocator = isLast && finalOutput && !zipResult
                     ? CreateFinalAllocator(job, file.SourcePath, index)
                     : new TempAllocator(workDir, FormatRegistry.NameWithoutExtension(file.SourcePath));
 
@@ -433,6 +435,9 @@ public sealed class JobQueue : IAsyncDisposable
                 }
                 inputs = outputs;
             }
+
+            if (zipResult && inputs.Count > 0)
+                inputs = PackZip(job, file, index, inputs, ct);
 
             if (finalOutput)
             {
@@ -486,6 +491,43 @@ public sealed class JobQueue : IAsyncDisposable
             Notify(job);
             return [];
         }
+    }
+
+    /// <summary>
+    /// Packs the files one source was converted to into one ZIP (named by the preset's output rule, so the conflict
+    /// policy applies to it) and returns it; empty when the rule says to skip an existing ZIP. Files keep their names
+    /// inside, a clash gets "name (2).ext", and a ZIP that can't be completed is deleted.
+    /// </summary>
+    private IReadOnlyList<string> PackZip(ConversionJob job, FileResult file, int index, IReadOnlyList<string> files, CancellationToken ct)
+    {
+        if (CreateFinalAllocator(job, file.SourcePath, index).Allocate("zip") is not { } zipPath)
+            return [];
+        try
+        {
+            using (var stream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16))
+            using (var archive = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Create))
+            {
+                var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var path in files)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var name = Path.GetFileName(path);
+                    for (var n = 2; !used.Add(name); n++)
+                        name = $"{Path.GetFileNameWithoutExtension(path)} ({n}){Path.GetExtension(path)}";
+                    System.IO.Compression.ZipFileExtensions.CreateEntryFromFile(archive, path, name, System.IO.Compression.CompressionLevel.Optimal);
+                }
+            }
+        }
+        catch
+        {
+            try
+            {
+                File.Delete(zipPath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            throw;
+        }
+        return [zipPath];
     }
 
     private SemaphoreSlim GateFor(IConverter converter) =>

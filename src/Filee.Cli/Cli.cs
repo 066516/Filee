@@ -256,6 +256,8 @@ internal static class Cli
             preset.Output.Conflict = conflict;
         if (options.KeepDates)
             preset.Output.KeepDates = true;
+        if (options.Zip)
+            preset.Output.ZipResult = true;
         return preset;
     }
 

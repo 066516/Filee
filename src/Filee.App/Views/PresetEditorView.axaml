@@ -340,6 +340,8 @@
         </StackPanel>
         <CheckBox Content="{DynamicResource presets.keep_dates}" IsChecked="{Binding KeepDates}"
                   ToolTip.Tip="{DynamicResource presets.keep_dates_hint}" />
+        <CheckBox Content="{DynamicResource presets.zip_result}" IsChecked="{Binding ZipResult}" IsVisible="{Binding ShowZipResult}"
+                  ToolTip.Tip="{DynamicResource presets.zip_result_hint}" />
       </StackPanel>
     </Border>
   </StackPanel>

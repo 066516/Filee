@@ -156,6 +156,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _customFolder = _edit.Output.CustomFolder;
         _pattern = _edit.Output.FileNamePattern;
         _keepDates = _edit.Output.KeepDates;
+        _zipResult = _edit.Output.ZipResult;
     }
 
     public string PresetId => _original.Id;
@@ -190,7 +191,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowImage), nameof(ShowTurnForPdf), nameof(ShowQuality), nameof(ShowTiff), nameof(ShowMultiPageTiff), nameof(ShowWebp), nameof(ShowIco),
-        nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowLeaveOutPictures), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
+        nameof(ShowZipResult), nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowLeaveOutPictures), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
         nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions),
         nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec), nameof(ShowHardwareEncoding),
@@ -330,6 +331,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private string _customFolder;
     [ObservableProperty] private string _pattern;
     [ObservableProperty] private bool _keepDates;
+    /// <summary>Geospatial targets: the result is saved as one ZIP (OutputRule.ZipResult).</summary>
+    [ObservableProperty] private bool _zipResult;
     [ObservableProperty] private Choice<MediaQuality> _mediaQuality;
     [ObservableProperty] private Choice<int> _maxHeight;
     [ObservableProperty] private Choice<int> _audioBitrate;
@@ -402,6 +405,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     /// <summary>PDF options (also used when a PDF source becomes images) mean nothing for media, archive, font, subtitle, data, e-mail, 3D and geospatial targets.</summary>
     public bool ShowPdf => TargetCategory is not (FormatCategory.Video or FormatCategory.Audio or FormatCategory.Archive or FormatCategory.Font
         or FormatCategory.Subtitle or FormatCategory.Data or FormatCategory.Model3D or FormatCategory.Geo) && TargetId != "eml";
+    /// <summary>"Save as ZIP" is offered for geospatial targets, whose results are several files (a Shapefile) or travel zipped.</summary>
+    public bool ShowZipResult => TargetCategory == FormatCategory.Geo;
     public bool ShowPdfBuild => TargetId == "pdf";
     public bool ShowPdfSplit => TargetId == "pdf";
 
@@ -542,6 +547,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         output.FileNamePattern = string.IsNullOrWhiteSpace(Pattern) ? "{name}" : Pattern.Trim();
         output.Conflict = Conflict.Value;
         output.KeepDates = KeepDates;
+        output.ZipResult = ZipResult;
         return true;
     }
 
