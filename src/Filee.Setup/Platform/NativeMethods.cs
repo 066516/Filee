@@ -34,6 +34,15 @@ internal static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool MoveFileEx(string existing, string? replacement, uint flags);
 
+    private const uint SEM_FAILCRITICALERRORS = 0x0001;
+    private const uint SEM_NOOPENFILEERRORBOX = 0x8000;
+
+    [LibraryImport("kernel32.dll")]
+    private static partial uint SetErrorMode(uint mode);
+
+    /// <summary>No system error boxes (a missing drive, a program that can't start): Setup reports problems itself.</summary>
+    public static void QuietErrors() => SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX);
+
     [LibraryImport("kernel32.dll", SetLastError = true)]
     private static partial nint OpenProcess(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, uint processId);
 

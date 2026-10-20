@@ -74,7 +74,9 @@ public class SetupOptionsTests
     [Fact]
     public void Filee_switches_and_unknown_arguments()
     {
-        var options = SetupOptions.Parse(["/NOLAUNCH", "/UNINSTALL", "/SANDBOX=D:\\scratch", "/LAUNCHFILE=C:\\t\\x.launch", "--weird", "/WHAT", "file.txt"]);
+        var options = SetupOptions.Parse(["/NOLAUNCH", "/UNINSTALL", "/SANDBOX=D:\\scratch", "/LAUNCHFILE=C:\\t\\x.launch", "/FIRSTPHASE=4242", "--weird", "/WHAT", "file.txt"]);
+        Assert.Equal(4242, options.FirstPhase);
+        Assert.Null(SetupOptions.Parse(["/FIRSTPHASE=-1"]).FirstPhase);
         Assert.True(options.NoLaunch);
         Assert.True(options.Uninstall);
         Assert.Equal(@"D:\scratch", options.Sandbox);

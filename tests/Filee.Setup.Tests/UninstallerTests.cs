@@ -91,6 +91,24 @@ public class UninstallerTests
     }
 
     [Fact]
+    public void The_waiting_uninstaller_is_released_last_before_its_file_goes()
+    {
+        var (bench, record) = Installed();
+        using var _ = bench;
+        var uninstaller = Path.Combine(bench.InstallFolder, "uninstall.exe");
+        var seen = new List<string>();
+        new Uninstaller(bench.Context).Run(bench.InstallFolder, record, deleteSettings: false, bench.Temp.Sub("trash"),
+            releaseUninstaller: () =>
+            {
+                // Everything else is gone by now, the uninstall entry too; only the uninstaller is left.
+                seen.AddRange(Directory.EnumerateFiles(bench.InstallFolder, "*", SearchOption.AllDirectories));
+                Assert.False(bench.Registry.KeyExists(Hive.LocalMachine, SetupNames.UninstallKey));
+            });
+        Assert.Equal([uninstaller], seen);
+        Assert.False(Directory.Exists(bench.InstallFolder));
+    }
+
+    [Fact]
     public void Programs_left_running_are_ended_but_not_the_uninstaller_that_waits()
     {
         var (bench, record) = Installed();

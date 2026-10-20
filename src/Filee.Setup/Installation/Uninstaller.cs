@@ -21,9 +21,14 @@ public sealed class Uninstaller(SetupContext context)
     public static TimeSpan CleanupTimeout { get; } = TimeSpan.FromSeconds(90);
 
     /// <param name="trash">A folder outside the install folder (same volume if possible) for files still in use.</param>
+    /// <param name="releaseUninstaller">
+    /// Called when only uninstall.exe and the folder are left: the uninstaller that started this one from the install
+    /// folder is told it worked and ends, so its uninstall.exe can be deleted (a single-file program loads parts of
+    /// itself from its file while it runs: that file must not move away under it).
+    /// </param>
     /// <returns>Files and folders that are deleted at the next restart.</returns>
     public IReadOnlyList<string> Run(string folder, InstallRecord record, bool deleteSettings, string trash,
-        IProgress<SetupProgress>? progress = null)
+        IProgress<SetupProgress>? progress = null, Action? releaseUninstaller = null)
     {
         folder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder));
         Log.Info($"Uninstalling Filee {record.Version} from {folder} ({record.Scope}); delete settings: {deleteSettings}");
@@ -55,7 +60,8 @@ public sealed class Uninstaller(SetupContext context)
         }
 
         progress?.Report(new SetupProgress(SetupStep.Removing, 0.5));
-        var files = record.Files.Concat([SetupNames.InstallRecordFile, SetupNames.UninstallerExe]).Concat(SetupNames.InnoUninstallerFiles)
+        var files = record.Files.Concat([SetupNames.InstallRecordFile]).Concat(SetupNames.InnoUninstallerFiles)
+            .Where(f => !f.Equals(SetupNames.UninstallerExe, StringComparison.OrdinalIgnoreCase))
             .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         for (var i = 0; i < files.Count; i++)
         {
@@ -68,6 +74,17 @@ public sealed class Uninstaller(SetupContext context)
             foreach (var work in Directory.EnumerateDirectories(folder, FileSwap.WorkFolderPrefix + "*"))
                 FileSwap.DeleteTree(work, System, Log);
         }
+
+        Registry.DeleteKey(hive, SetupNames.UninstallKey);
+        progress?.Report(new SetupProgress(SetupStep.Removing, 0.95));
+        if (deleteSettings)
+        {
+            Log.Info($"Deleting the settings in {context.Paths.SettingsFolder}");
+            FileSwap.DeleteTree(context.Paths.SettingsFolder, System, Log);
+        }
+
+        releaseUninstaller?.Invoke();
+        DeleteFile(Path.Combine(folder, SetupNames.UninstallerExe), trash, later);
         FileSwap.RemoveEmptyFolders(folder);
         try
         {
@@ -83,14 +100,6 @@ public sealed class Uninstaller(SetupContext context)
                 System.DeleteAtRestart(folder);
                 later.Add(folder);
             }
-        }
-
-        Registry.DeleteKey(hive, SetupNames.UninstallKey);
-        progress?.Report(new SetupProgress(SetupStep.Removing, 0.95));
-        if (deleteSettings)
-        {
-            Log.Info($"Deleting the settings in {context.Paths.SettingsFolder}");
-            FileSwap.DeleteTree(context.Paths.SettingsFolder, System, Log);
         }
         progress?.Report(new SetupProgress(SetupStep.Removing, 1));
         Log.Info("Uninstalled");

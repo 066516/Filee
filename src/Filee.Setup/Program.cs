@@ -36,6 +36,7 @@ internal static class Program
             return ExitInitFailed;
         // Never hold a folder Setup may delete (the install folder) as the current directory.
         Environment.CurrentDirectory = Environment.SystemDirectory;
+        NativeMethods.QuietErrors();
         var options = SetupOptions.Parse(args);
         var exe = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "uninstall.exe");
         var sandbox = options.Sandbox is { } root ? Path.GetFullPath(root) : null;
@@ -219,10 +220,12 @@ internal static class Program
             Directory.CreateDirectory(temp);
             var copy = Path.Combine(temp, SetupNames.UninstallerExe);
             File.Copy(exe, copy);
-            var childArgs = args.Where(a => !HasName(a, "/DIR") && !HasName(a, "/LOG") && !HasName(a, "/UNINSTALL"))
-                .Concat(["/UNINSTALL", $"/DIR={folder}", $"/LOG={log.File}"]);
+            var childArgs = args.Where(a => !HasName(a, "/DIR") && !HasName(a, "/LOG") && !HasName(a, "/UNINSTALL") && !HasName(a, "/FIRSTPHASE"))
+                .Concat(["/UNINSTALL", $"/DIR={folder}", $"/LOG={log.File}", $"/FIRSTPHASE={Environment.ProcessId}"]);
             log.Info($"Continuing from {copy}");
-            var code = RunAndWait(copy, childArgs, elevated: needsAdmin, log);
+            // Waits for the copy, or for its word that only this uninstall.exe is left (it then deletes it).
+            var released = Path.Combine(temp, ReleasedFile);
+            var code = RunAndWait(copy, childArgs, elevated: needsAdmin, log, until: () => File.Exists(released));
             if (code == ExitCancelled)
                 TryDeleteFolder(temp);
             return code;
@@ -233,7 +236,10 @@ internal static class Program
         // Phase 2: from a copy in %TEMP%.
         var fromTemp = Path.GetFileName(exeFolder).StartsWith("Filee-Uninstall-", StringComparison.OrdinalIgnoreCase);
         var trash = fromTemp ? Path.Combine(exeFolder, "trash") : Path.Combine(paths.Temp, $"Filee-Uninstall-{Guid.NewGuid():N}");
-        var runner = new SetupRunner(context, null, null, folder, record, trash);
+        var runner = new SetupRunner(context, null, null, folder, record, trash)
+        {
+            ReleaseFirstPhase = options.FirstPhase is { } first && fromTemp ? () => ReleaseFirstPhase(exeFolder, first, log) : null,
+        };
         int exitCode;
         if (options.Ui == SetupUi.VerySilent)
         {
@@ -263,6 +269,29 @@ internal static class Program
         {
             Tell(options, SetupMessages.Error(texts, error), NativeMethods.MB_ICONERROR);
             return ExitInitFailed;
+        }
+    }
+
+    /// <summary>Written by the uninstaller's copy when only uninstall.exe is left (see <see cref="Uninstaller.Run"/>).</summary>
+    private const string ReleasedFile = "released";
+
+    /// <summary>Tells the uninstaller in the install folder that it may end, and waits until it has.</summary>
+    private static void ReleaseFirstPhase(string temp, int processId, SetupLog log)
+    {
+        try
+        {
+            using var first = Process.GetProcessById(processId);
+            File.WriteAllText(Path.Combine(temp, ReleasedFile), "0");
+            if (!first.WaitForExit(TimeSpan.FromSeconds(30)))
+                log.Warn("The first uninstaller did not end");
+        }
+        catch (ArgumentException)
+        {
+            // Ended already.
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or Win32Exception or InvalidOperationException)
+        {
+            log.Warn($"Could not release the first uninstaller: {ex.Message}");
         }
     }
 
@@ -320,7 +349,8 @@ internal static class Program
         return code;
     }
 
-    private static int RunAndWait(string exe, IEnumerable<string> args, bool elevated, SetupLog log)
+    /// <param name="until">Stops waiting early when true (checked every 100 ms); the exit code is then 0.</param>
+    private static int RunAndWait(string exe, IEnumerable<string> args, bool elevated, SetupLog log, Func<bool>? until = null)
     {
         var info = new ProcessStartInfo(exe, SetupOptions.Join(args))
         {
@@ -334,7 +364,14 @@ internal static class Program
             using var child = Process.Start(info);
             if (child is null)
                 return ExitInitFailed;
-            child.WaitForExit();
+            while (!child.WaitForExit(100))
+            {
+                if (until?.Invoke() == true)
+                {
+                    log.Info($"{Path.GetFileName(exe)} is done with this one");
+                    return ExitOk;
+                }
+            }
             log.Info($"{Path.GetFileName(exe)} ended with exit code {child.ExitCode}");
             return child.ExitCode;
         }
@@ -453,11 +490,14 @@ internal sealed class SetupRunner(SetupContext context, SetupPayload? payload, P
     public InstallResult Install(InstallChoices choices, IProgress<SetupProgress> progress) =>
         new Installer(context, payload ?? throw new InvalidOperationException("No payload.")).Run(choices, previous, progress);
 
+    /// <summary>Lets the uninstaller in the install folder end before its file is deleted.</summary>
+    public Action? ReleaseFirstPhase { get; init; }
+
     public Exception? Uninstall(bool deleteSettings, IProgress<SetupProgress> progress)
     {
         try
         {
-            new Uninstaller(context).Run(folder!, record!, deleteSettings, trash!, progress);
+            new Uninstaller(context).Run(folder!, record!, deleteSettings, trash!, progress, ReleaseFirstPhase);
             return null;
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)

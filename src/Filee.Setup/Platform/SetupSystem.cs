@@ -111,6 +111,13 @@ public class WindowsSetupSystem(SetupLog log) : ISetupSystem
 
     public virtual int RunAndWait(string executable, string arguments, TimeSpan timeout)
     {
+        // Something that isn't a program (a damaged or half-written Filee.exe) makes Windows show "This app can't run
+        // on your PC" and wait for an answer, even with Setup's error mode: never start one.
+        if (!IsProgram(executable))
+        {
+            Log.Warn($"Not running {executable}: it is not a Windows program");
+            return -1;
+        }
         try
         {
             using var process = Process.Start(CreateStartInfo(executable, arguments));
@@ -126,6 +133,20 @@ public class WindowsSetupSystem(SetupLog log) : ISetupSystem
         {
             Log.Warn($"Could not run {executable} {arguments}: {ex.Message}");
             return -1;
+        }
+    }
+
+    private static bool IsProgram(string path)
+    {
+        try
+        {
+            using var file = File.OpenRead(path);
+            Span<byte> header = stackalloc byte[2];
+            return file.Read(header) == 2 && header[0] == 'M' && header[1] == 'Z';
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
         }
     }
 

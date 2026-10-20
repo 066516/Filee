@@ -28,6 +28,8 @@
 //   /UNINSTALL              uninstall (uninstall.exe, which has no payload, does this without the switch)
 //   /LAUNCHFILE="file"      internal: the unelevated Setup that asked for administrator rights starts Filee as the
 //                           signed-in user from what the elevated one writes into this file
+//   /FIRSTPHASE=<id>        internal: the uninstaller's copy in %TEMP% lets the uninstaller in the install folder
+//                           (process <id>) end before it deletes its file
 
 namespace Filee.Setup;
 
@@ -72,6 +74,7 @@ public sealed record SetupOptions
     public bool Uninstall { get; init; }
     public string? Sandbox { get; init; }
     public string? LaunchFile { get; init; }
+    public int? FirstPhase { get; init; }
 
     /// <summary>Inno Setup switches that are accepted but change nothing.</summary>
     public IReadOnlyList<string> Ignored { get; init; } = [];
@@ -153,6 +156,9 @@ public sealed record SetupOptions
                     break;
                 case "SANDBOX" when !string.IsNullOrWhiteSpace(value):
                     options = options with { Sandbox = value };
+                    break;
+                case "FIRSTPHASE" when int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var id):
+                    options = options with { FirstPhase = id };
                     break;
                 case "LAUNCHFILE" when !string.IsNullOrWhiteSpace(value):
                     options = options with { LaunchFile = value };
