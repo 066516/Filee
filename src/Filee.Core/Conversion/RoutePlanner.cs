@@ -11,7 +11,8 @@ namespace Filee.Core.Conversion;
 /// <summary>One hop of a route.</summary>
 /// <param name="FrameSequence">The hop saves every frame of a video (<see cref="ConversionEdge.FrameSequence"/>).</param>
 /// <param name="Unshaped">The hop draws text without complex-script shaping (<see cref="ConversionEdge.Unshaped"/>).</param>
-public sealed record RouteStep(IConverter Converter, string From, string To, bool FrameSequence = false, bool Unshaped = false);
+public sealed record RouteStep(IConverter Converter, string From, string To, bool FrameSequence = false, bool Unshaped = false,
+    bool MotionPhoto = false);
 
 /// <summary>A planned conversion from one format to another.</summary>
 public sealed record Route(IReadOnlyList<RouteStep> Steps, int Cost)
@@ -61,27 +62,31 @@ public sealed class RoutePlanner
     /// <param name="shaping">
     /// The source has text that needs complex-script shaping: <see cref="ConversionEdge.Unshaped"/> edges are left out.
     /// </param>
-    public Route? Plan(string from, string to, bool frames = false, bool shaping = false)
+    /// <param name="motionPhoto">
+    /// Take the video of a Live / Motion Photo (<see cref="Presets.Preset.ExtractsMotionOf"/>): the route is one
+    /// <see cref="ConversionEdge.MotionPhoto"/> edge, or none. Without it those edges are never taken.
+    /// </param>
+    public Route? Plan(string from, string to, bool frames = false, bool shaping = false, bool motionPhoto = false)
     {
         from = from.ToLowerInvariant();
         to = to.ToLowerInvariant();
 
-        if (frames)
+        if (frames || motionPhoto)
         {
-            var sequence = EdgesFrom(from)
-                .Where(e => e.Edge.FrameSequence && e.Edge.To == to)
+            var special = EdgesFrom(from)
+                .Where(e => e.Edge.To == to && (frames ? e.Edge.FrameSequence : e.Edge.MotionPhoto))
                 .OrderBy(e => e.Cost)
                 .FirstOrDefault();
-            return sequence.Converter is null
+            return special.Converter is null
                 ? null
-                : new Route([new RouteStep(sequence.Converter, from, to, FrameSequence: true)], sequence.Cost);
+                : new Route([new RouteStep(special.Converter, from, to, FrameSequence: frames, MotionPhoto: !frames)], special.Cost);
         }
 
         // Same-format "conversions" (re-encode, split, compress) must use an explicit self edge.
         if (from == to)
         {
             var best = EdgesFrom(from)
-                .Where(e => e.Edge.To == to && !e.Edge.FrameSequence)
+                .Where(e => e.Edge.To == to && !e.Edge.FrameSequence && !e.Edge.MotionPhoto)
                 .OrderBy(e => e.Cost)
                 .FirstOrDefault();
             return best.Converter is null
@@ -110,7 +115,7 @@ public sealed class RoutePlanner
 
             foreach (var (converter, edge, edgeCost) in EdgesFrom(node))
             {
-                if (edge.To == edge.From || edge.FrameSequence
+                if (edge.To == edge.From || edge.FrameSequence || edge.MotionPhoto
                     || (edge.ImageSourcesOnly && !imageSource) || (edge.NotForImageSources && imageSource)
                     || (edge.Unshaped && shaping)
                     || (edge.DirectOnly && (node != from || edge.To != to)))
@@ -138,7 +143,9 @@ public sealed class RoutePlanner
 
     /// <summary>True if <paramref name="from"/> can be converted to <paramref name="to"/>.</summary>
     /// <param name="frames">Every frame of a video as pictures (see <see cref="Plan"/>).</param>
-    public bool CanConvert(string from, string to, bool frames = false) => Plan(from, to, frames) is not null;
+    /// <param name="motionPhoto">The video of a Live / Motion Photo (see <see cref="Plan"/>).</param>
+    public bool CanConvert(string from, string to, bool frames = false, bool motionPhoto = false) =>
+        Plan(from, to, frames, motionPhoto: motionPhoto) is not null;
 
     private IReadOnlyList<(IConverter Converter, ConversionEdge Edge, int Cost)> EdgesFrom(string format) =>
         _edgesFrom.TryGetValue(format, out var edges) ? edges : [];

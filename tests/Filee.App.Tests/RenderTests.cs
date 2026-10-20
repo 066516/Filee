@@ -1775,6 +1775,35 @@ public class RenderTests
         notice.Close();
     }
 
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    [InlineData("zh-CN")]
+    public void Extract_live_photo_video_option_renders_and_saves_for_mp4_and_mov_only(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var preset = Filee.Core.Presets.BuiltInData.MotionPhotoPresets().Single();
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowExtractMotionPhoto);
+        Assert.True(vm.ExtractMotionPhoto);
+        var window = new PresetEditorWindow { DataContext = vm, Height = 980 };
+        window.Show();
+        Pump();
+        Save(window, $"preset-extract-motion-{language}.png");
+        window.Close();
+
+        vm.Target = vm.Targets.Single(t => t.Value == "mov");
+        Assert.True(vm.ShowExtractMotionPhoto);
+        Assert.True(vm.Apply());
+        Assert.True(preset.Media.ExtractMotionPhoto);
+        // A box ticked for MP4 and left behind by another target saves nothing.
+        var restored = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        restored.Target = restored.Targets.Single(t => t.Value == "webm");
+        Assert.False(restored.ShowExtractMotionPhoto);
+        Assert.True(restored.Apply());
+        Assert.False(preset.Media.ExtractMotionPhoto);
+    }
+
     private static void Pump()
     {
         // Let layout, bindings and a few animation frames run.

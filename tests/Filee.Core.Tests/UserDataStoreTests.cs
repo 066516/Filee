@@ -924,6 +924,37 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_28_libraries_get_extract_live_video_on_no_donut_and_learn_livp()
+    {
+        // As written with schema 28: no "Extract Live Photo video", no .livp on the images donut, and the user took
+        // HEIC off it.
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "extract-motion");
+        var profiles = BuiltInData.CreateProfiles();
+        var images = profiles.Single(p => p.Id == "images");
+        images.Extensions.RemoveAll(e => e is "livp" or "heic");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(28, presets, profiles));
+
+        var motion = presets.Single(p => p.Id == "extract-motion");
+        Assert.True(motion.Media.ExtractMotionPhoto);
+        Assert.Equal("mp4", motion.TargetFormat);
+        Assert.Equal("extract-frames-jpg", presets[presets.IndexOf(motion) - 1].Id);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("extract-motion"));
+        Assert.Contains("livp", images.Extensions);
+        Assert.DoesNotContain("heic", images.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(28, presets, profiles)); // once only
+
+        // Back from an older Filee, which dropped the option it didn't know: the preset extracts again, its name stays.
+        motion.Media.ExtractMotionPhoto = false;
+        motion.Name = "Live video";
+        Assert.True(SettingsMigrations.ApplyToLibrary(28, presets, profiles));
+        Assert.True(motion.Media.ExtractMotionPhoto);
+        Assert.Equal("Live video", motion.Name);
+        Assert.Single(presets, p => p.Id == "extract-motion");
+    }
+
+    [Fact]
     public void Version_15_libraries_get_the_tracing_presets_on_the_images_donut_after_pdf()
     {
         // As written before tracing: no trace presets, and the images donut without them.
