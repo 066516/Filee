@@ -331,6 +331,34 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void History_keeps_the_newest_entries_up_to_the_limit()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        Assert.Equal(200, store.Settings.HistoryLimit);
+
+        store.Settings.HistoryLimit = 60;
+        for (var i = 0; i < 70; i++)
+            store.AddHistory(new Filee.Core.History.HistoryEntry { JobId = $"{i}" });
+        Assert.Equal(60, store.History.Count);
+        Assert.Equal("69", store.History[0].JobId);
+        Assert.Equal("10", store.History[^1].JobId);
+
+        // Lowered below the smallest limit: the oldest go with the next conversion, down to that smallest limit.
+        store.Settings.HistoryLimit = 0;
+        store.SaveSettings();
+        store.AddHistory(new Filee.Core.History.HistoryEntry { JobId = "70" });
+        Assert.Equal(AppSettings.MinHistoryLimit, store.History.Count);
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        Assert.Equal(0, reloaded.Settings.HistoryLimit);
+        Assert.Equal(AppSettings.MinHistoryLimit, reloaded.Settings.EffectiveHistoryLimit);
+        Assert.Equal(AppSettings.MinHistoryLimit, reloaded.History.Count);
+    }
+
+    [Fact]
     public void Version_1_settings_are_upgraded_to_the_current_engine_list()
     {
         using var dir = new TempDir();
@@ -846,6 +874,30 @@ public class UserDataStoreTests
         Assert.All(geo.PresetIds, id => Assert.NotNull(store.FindPreset(id)));
         Assert.Equal("shp", store.FindPreset("to-shp")!.TargetFormat);
         Assert.Equal("csv", store.FindPreset("to-csv")!.TargetFormat);
+    }
+
+    [Fact]
+    public void Version_27_libraries_get_one_zip_on_the_archives_donut_after_extract()
+    {
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var archives = profiles.Single(p => p.Id == "archives");
+        archives.PresetIds.Remove("zip-all");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(27, presets, profiles));
+        Assert.Equal(["extract", "zip-all", "to-zip", "to-7z", "to-tgz", "to-tar"], archives.PresetIds);
+        Assert.False(SettingsMigrations.ApplyToLibrary(27, presets, profiles)); // once only
+
+        // A library without the preset (the user deleted it) doesn't get it back, and a full donut stays full.
+        presets.RemoveAll(p => p.Id == "zip-all");
+        archives.PresetIds.Remove("zip-all");
+        Assert.False(SettingsMigrations.ApplyToLibrary(27, presets, profiles));
+        Assert.DoesNotContain("zip-all", archives.PresetIds);
+
+        presets = BuiltInData.CreatePresets();
+        archives.PresetIds = [.. presets.Where(p => p.Id != "zip-all").Take(ToolbarProfile.MaxSlices).Select(p => p.Id)];
+        Assert.False(SettingsMigrations.ApplyToLibrary(27, presets, profiles));
+        Assert.DoesNotContain("zip-all", archives.PresetIds);
     }
 
     [Fact]

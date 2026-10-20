@@ -16,7 +16,6 @@ namespace Filee.Core.Settings;
 /// </summary>
 public sealed class UserDataStore
 {
-    private const int MaxHistory = 200;
     private readonly ILogger _log;
     private readonly object _saveLock = new();
 
@@ -110,11 +109,13 @@ public sealed class UserDataStore
     {
         if (!Settings.KeepHistory)
             return;
+        // A lowered limit drops the oldest entries here, with the next conversion.
+        var limit = Settings.EffectiveHistoryLimit;
         lock (_saveLock)
         {
             History.Insert(0, entry);
-            if (History.Count > MaxHistory)
-                History.RemoveRange(MaxHistory, History.Count - MaxHistory);
+            if (History.Count > limit)
+                History.RemoveRange(limit, History.Count - limit);
         }
         Write(HistoryPath, History, FileeJsonContext.Default.ListHistoryEntry);
         HistoryChanged?.Invoke(this, EventArgs.Empty);
@@ -669,6 +670,10 @@ internal static class SettingsMigrations
                 }
             }
         }
+        // v28: "One ZIP" on the archives donut after "Extract", to pack several archives into one. A donut
+        //      the user filled up, or a library without the preset, stays as it is.
+        if (from < 28)
+            changed |= Offer(presets, profiles, "archives", "zip-all", "extract");
         return changed;
     }
 
