@@ -320,6 +320,9 @@ public class InstallerTests
         var updated = CommandLine.Parse(Installer.LaunchArguments(fresh, update: true).Split(' '));
         Assert.True(updated.Background);
         Assert.True(updated.WhatsNew);
+        var shown = CommandLine.Parse(Installer.LaunchArguments(fresh, update: true, shown: true).Split(' '));
+        Assert.False(shown.Background);
+        Assert.True(shown.WhatsNew);
         Assert.False(CommandLine.Parse(Installer.LaunchArguments(fresh, update: false).Split(' ')).WhatsNew);
     }
 }

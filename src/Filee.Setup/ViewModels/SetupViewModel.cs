@@ -314,11 +314,13 @@ public sealed partial class SetupViewModel : ObservableObject
     [RelayCommand]
     private Task Uninstall() => UninstallAsync();
 
-    /// <summary>"Launch Filee" on the Done card.</summary>
+    /// <summary>"Launch Filee" on the Done card: after an update the main window, not the tray, so the slides show over it.</summary>
     [RelayCommand]
     private void LaunchAndClose()
     {
-        Launch = _result?.Launch;
+        Launch = IsUpdate && _result?.Launch is { } launch
+            ? launch with { Arguments = Installer.LaunchArguments(_initial, update: true, shown: true) }
+            : _result?.Launch;
         CloseRequested?.Invoke(this, EventArgs.Empty);
     }
 

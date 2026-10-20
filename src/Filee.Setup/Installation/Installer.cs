@@ -169,11 +169,12 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
     }
 
     /// <summary>
-    /// The arguments Filee starts with: the choices of a fresh install, or "back to the tray" after an update, with the
-    /// new version's "What's new" slides.
+    /// The arguments Filee starts with: the choices of a fresh install, or after an update the new version's "What's new"
+    /// slides, back in the tray (/SILENT, the app's own updater) or over the main window (<paramref name="shown"/>: the
+    /// user clicked "Launch Filee").
     /// </summary>
-    public static string LaunchArguments(InstallChoices choices, bool update) => update
-        ? "--background --whats-new"
+    public static string LaunchArguments(InstallChoices choices, bool update, bool shown = false) => update
+        ? shown ? "--whats-new" : "--background --whats-new"
         : $"--install-engines={string.Join(',', choices.Engines)} " +
           $"--start-with-windows={OnOff(choices.Tasks.Startup)} --context-menu={OnOff(choices.Tasks.ContextMenu)}" +
           (choices.LanguagePicked ? $" --language={choices.Language}" : "");
