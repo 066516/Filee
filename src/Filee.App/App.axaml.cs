@@ -109,6 +109,12 @@ public partial class App : Application
         };
         triggers.Start();
         log.LogInformation("Filee {Version} started", UpdateService.CurrentVersion);
+        // Which way the transparent windows (donut, toast) are drawn, for reports of one that isn't see-through (#269).
+        if (OperatingSystem.IsWindows())
+        {
+            log.LogInformation("{Rendering}", WindowsRendering.Describe(Environment.GetEnvironmentVariable(WindowsRendering.Variable)));
+            TransparentWindows.Watch(log);
+        }
         // macOS: ask for Accessibility with the system's own alert when the user opened Filee (not at sign-in) and
         // a drag gesture is on. The home page keeps a reminder until it is given. Asked once the main window is up:
         // asked earlier, the alert ends up behind it.
