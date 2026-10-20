@@ -112,7 +112,7 @@
   "engine.pdfsharp.description": "إنشاء ملفات PDF من الصور ودمج ملفات PDF أو تقسيمها أو استخراج نطاقات صفحات منها.\nويقلّل حجم PDF بتصغير الصور داخله.",
   "engine.rhwp.description": "تحويل HWP/HWPX إلى PDF والتحويل بين HWP وHWPX.\nويعالج أيضًا المستندات التي تمر عبر HWPX للوصول إلى PDF ‏(DOCX وXLSX وPPTX والكتب الإلكترونية…).",
   "engine.unhwp.description": "استخراج النصوص وMarkdown وHTML من HWP وHWPX.",
-  "engine.markdown.description": "تحويل Markdown إلى HTML ونص عادي.",
+  "engine.markdown.description": "تحويل Markdown إلى HTML ونص عادي.\nتحويل ملفات النصوص والشيفرات المصدرية للبرامج النصية إلى TXT بترميز UTF-8، دون تشغيلها.",
   "engine.spreadsheet.description": "التحويل بين XLSX وXLS وODS وCSV وTSV ‏(قراءة XLS فقط).\nملف CSV مستقل لكل ورقة.",
   "engine.ooxml.description": "التحويل بين الملفات والقوالب التي تدعم وحدات الماكرو (DOCM وXLSM وPPTM وDOTX…) وبين DOCX وXLSX وPPTX.\nتُحذف وحدات الماكرو.",
   "engine.hwpx-writer.description": "إنشاء HWPX من Word وExcel وPowerPoint وPDF وOFD وHTML والكتب الإلكترونية وMarkdown.\nالخطوة الأولى لتحويل المستندات إلى PDF دون Office.",
@@ -177,6 +177,9 @@
   "preset.flip_horizontal.short": "أفقي",
   "preset.flip_vertical": "انعكاس عمودي",
   "preset.flip_vertical.short": "عمودي",
+  "merge.order_title": "اختيار ترتيب الدمج",
+  "merge.order_hint": "حدّد ملفًا وانقله إلى أعلى أو أسفل. تُدمج الملفات بالترتيب من الأعلى إلى الأسفل. (Alt+↑ / Alt+↓)",
+
   "preset.merge_pdf": "دمج PDF",
   "preset.split_pdf": "تقسيم PDF",
   "preset.compress_pdf": "ضغط PDF",
@@ -789,7 +792,7 @@
   "whats_new.2_0_0.theme.title": "مظهر أنعم وبألوانك المفضلة",
   "whats_new.2_0_0.theme.text": "يتيح إعداد النعومة تدوير زوايا شرائح القائمة الدائرية، ويمكن تخصيص ألوان Filee بالكامل باستخدام ملف theme.json.",
   "whats_new.2_0_0.languages.title": "لغات إضافية في Filee",
-  "whats_new.2_0_0.languages.text": "أُضيفت الإسبانية والهندية واليابانية والروسية إلى الإنجليزية والكورية والصينية والبولندية.",
+  "whats_new.2_0_0.languages.text": "تتوفر الآن الإسبانية والهندية واليابانية والروسية والعربية، إلى جانب الإنجليزية والكورية والصينية والبولندية.",
   "whats_new.2_0_0.more.title": "والمزيد من التحسينات",
   "whats_new.2_0_0.more.text": "يمكنك إعادة قائمة دائرية واحدة إلى إعداداتها الافتراضية، والبحث في سجل التحويلات بالكامل، وتحويل المستندات الغوجاراتية والهندية والعربية باستخدام LibreOffice."
 }

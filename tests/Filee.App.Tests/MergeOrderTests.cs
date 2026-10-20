@@ -117,6 +117,7 @@ public class MergeOrderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ar")]
     [InlineData("es")]
     [InlineData("ja")]
     [InlineData("ko")]
