@@ -273,8 +273,8 @@ internal static class Program
             .LogToTrace();
 }
 
-/// <summary>Embedded Noto fonts: <c>fonts:Filee#Noto Sans</c>, <c>#Noto Sans KR</c>, <c>#Noto Sans SC</c>,
-/// <c>#Noto Sans Devanagari</c>.</summary>
+/// <summary>Embedded Noto fonts: <c>fonts:Filee#Noto Sans</c>, <c>#Noto Sans JP</c>, <c>#Noto Sans KR</c>,
+/// <c>#Noto Sans SC</c>, <c>#Noto Sans Devanagari</c>.</summary>
 internal sealed class FileeFontCollection() : Avalonia.Media.Fonts.EmbeddedFontCollection(
     new Uri("fonts:Filee", UriKind.Absolute),
     new Uri("avares://Filee/Assets/Fonts", UriKind.Absolute));

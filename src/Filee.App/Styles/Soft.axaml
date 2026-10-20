@@ -52,10 +52,10 @@
     </ResourceDictionary>
   </Styles.Resources>
 
-  <!-- Reuse existing translated state labels instead of ToggleSwitch's English defaults. -->
+  <!-- ToggleSwitch's own On / Off labels are English only. -->
   <Style Selector="ToggleSwitch">
-    <Setter Property="OnContent" Value="{DynamicResource triggers.enabled}" />
-    <Setter Property="OffContent" Value="{DynamicResource watch.status_off}" />
+    <Setter Property="OnContent" Value="{DynamicResource common.on}" />
+    <Setter Property="OffContent" Value="{DynamicResource common.off}" />
   </Style>
 
   <!-- ───────── Windows & typography ───────── -->
