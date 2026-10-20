@@ -34,6 +34,8 @@ public class RenderTests
         { "home", "hi" }, { "general", "hi" }, { "toolbar", "hi" }, { "presets", "hi" }, { "engines", "hi" },
         { "home", "ja" }, { "general", "ja" }, { "triggers", "ja" }, { "toolbar", "ja" },
         { "presets", "ja" }, { "theme", "ja" }, { "engines", "ja" }, { "about", "ja" }, { "watch", "ja" },
+        { "home", "ru" }, { "general", "ru" }, { "triggers", "ru" }, { "toolbar", "ru" }, { "presets", "ru" },
+        { "theme", "ru" }, { "engines", "ru" }, { "about", "ru" }, { "watch", "ru" },
     };
 
     [AvaloniaTheory]
@@ -101,6 +103,7 @@ public class RenderTests
     [InlineData("en")]
     [InlineData("ja")]
     [InlineData("ko")]
+    [InlineData("ru")]
     public void Watch_folders_page_renders_a_rule(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -197,6 +200,7 @@ public class RenderTests
     [InlineData("en")]
     [InlineData("ja")]
     [InlineData("ko")]
+    [InlineData("ru")]
     public void Watch_folder_options_rename_and_filter_with_a_preview(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -286,6 +290,7 @@ public class RenderTests
     [InlineData("en")]
     [InlineData("ja")]
     [InlineData("ko")]
+    [InlineData("ru")]
     public void Home_page_lists_failed_files_with_a_retry_button(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -336,6 +341,7 @@ public class RenderTests
     [InlineData("zh-CN")]
     [InlineData("pl")]
     [InlineData("hi")]
+    [InlineData("ru")]
     public void Home_page_search_finds_old_conversions_in_a_long_history(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -489,6 +495,7 @@ public class RenderTests
     [InlineData("es")]
     [InlineData("ko")]
     [InlineData("hi")]
+    [InlineData("ru")]
     public void Reset_to_default_sits_beside_delete_for_a_built_in_profile_only(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -578,6 +585,7 @@ public class RenderTests
     [InlineData("ko")]
     [InlineData("en")]
     [InlineData("zh-CN")]
+    [InlineData("ru")]
     public void The_rotate_and_flip_groups_fan_out_names_that_fit(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -625,6 +633,7 @@ public class RenderTests
     [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("en")]
+    [InlineData("ru")]
     public void A_group_slice_fans_out_its_presets(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -800,10 +809,12 @@ public class RenderTests
         return DonutGeometry.PointAt(center, radius, DonutGeometry.MidAngle(slot, slots));
     }
 
-    [AvaloniaFact]
-    public void Donut_toolbar_renders_for_images()
+    [AvaloniaTheory]
+    [InlineData("ko", "JPG 3개")]
+    [InlineData("ru", "3 × JPG")]
+    public void Donut_toolbar_renders_for_images(string language, string title)
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized(language);
         var files = new[] { @"C:\photos\a.jpg", @"C:\photos\b.jpg", @"C:\photos\c.jpg" };
         var vm = AppHost.Get<RadialViewModel>();
         vm.Load(files, clickMode: true);
@@ -813,8 +824,8 @@ public class RenderTests
         Pump();
 
         Assert.Equal(10, vm.Items.Count); // with "Trace to SVG" and "Line art to SVG"
-        Assert.Equal("JPG 3개", vm.CenterTitle);
-        Save(window, "donut-images-ko.png");
+        Assert.Equal(title, vm.CenterTitle);
+        Save(window, $"donut-images-{language}.png");
         window.Close();
     }
 
@@ -835,6 +846,7 @@ public class RenderTests
     [InlineData("en")]
     [InlineData("ja")]
     [InlineData("ko")]
+    [InlineData("ru")]
     public void Sponsor_window_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -889,6 +901,7 @@ public class RenderTests
     [InlineData("en")]
     [InlineData("ja")]
     [InlineData("ko")]
+    [InlineData("ru")]
     public void First_run_engine_setup_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1198,6 +1211,7 @@ public class RenderTests
     [InlineData("en")]
     [InlineData("ja")]
     [InlineData("ko")]
+    [InlineData("ru")]
     public void Sidebar_shows_the_version_and_a_new_release(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1287,6 +1301,7 @@ public class RenderTests
     [InlineData("zh-CN", false)]
     [InlineData("en", true)]
     [InlineData("ko", true)]
+    [InlineData("ru", false)]
     public void Toolbar_extension_editor_renders(string language, bool dark)
     {
         var photos = new ToolbarProfile
@@ -1365,6 +1380,7 @@ public class RenderTests
     [InlineData("ko", false)]
     [InlineData("zh-CN", false)]
     [InlineData("ko", true)]
+    [InlineData("ru", false)]
     public void Preset_editor_shows_media_and_archive_options(string language, bool dark)
     {
         TestServices.EnsureInitialized(language);
@@ -1447,6 +1463,7 @@ public class RenderTests
     [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("zh-CN")]
+    [InlineData("ru")]
     public void Preset_editor_shows_tracing_options(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1491,6 +1508,7 @@ public class RenderTests
     [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("zh-CN")]
+    [InlineData("ru")]
     public void Preset_editor_offers_markdown_without_pictures(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1699,6 +1717,7 @@ public class RenderTests
     [InlineData("en")]
     [InlineData("ja")]
     [InlineData("ko")]
+    [InlineData("ru")]
     public void Excluded_apps_render_as_tags(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1728,6 +1747,7 @@ public class RenderTests
     [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("zh-CN")]
+    [InlineData("ru")]
     public void Close_dialog_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1743,6 +1763,7 @@ public class RenderTests
     [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("zh-CN")]
+    [InlineData("ru")]
     public void Format_request_notice_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1752,6 +1773,35 @@ public class RenderTests
         Pump();
         Save(notice, $"window-format-request-{language}.png");
         notice.Close();
+    }
+
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    [InlineData("zh-CN")]
+    public void Extract_live_photo_video_option_renders_and_saves_for_mp4_and_mov_only(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var preset = Filee.Core.Presets.BuiltInData.MotionPhotoPresets().Single();
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowExtractMotionPhoto);
+        Assert.True(vm.ExtractMotionPhoto);
+        var window = new PresetEditorWindow { DataContext = vm, Height = 980 };
+        window.Show();
+        Pump();
+        Save(window, $"preset-extract-motion-{language}.png");
+        window.Close();
+
+        vm.Target = vm.Targets.Single(t => t.Value == "mov");
+        Assert.True(vm.ShowExtractMotionPhoto);
+        Assert.True(vm.Apply());
+        Assert.True(preset.Media.ExtractMotionPhoto);
+        // A box ticked for MP4 and left behind by another target saves nothing.
+        var restored = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        restored.Target = restored.Targets.Single(t => t.Value == "webm");
+        Assert.False(restored.ShowExtractMotionPhoto);
+        Assert.True(restored.Apply());
+        Assert.False(preset.Media.ExtractMotionPhoto);
     }
 
     private static void Pump()

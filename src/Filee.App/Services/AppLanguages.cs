@@ -15,5 +15,6 @@ internal static class AppLanguages
         ("zh-CN", "简体中文"),
         ("pl", "Polski"),
         ("hi", "हिन्दी"),
+        ("ru", "Русский"),
     ];
 }

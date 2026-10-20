@@ -100,6 +100,8 @@ public sealed class LocalizationService : ILocalizer
             return "es";
         if (ui.StartsWith("hi", StringComparison.OrdinalIgnoreCase))
             return "hi";
+        if (ui.StartsWith("ru", StringComparison.OrdinalIgnoreCase))
+            return "ru";
         return "en";
     }
 
