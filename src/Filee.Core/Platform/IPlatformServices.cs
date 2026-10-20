@@ -12,6 +12,12 @@ public interface IPlatformServices
     /// </summary>
     bool PressCarriesPosition => true;
 
+    /// <summary>Whether this platform can show or hide Filee in the Dock.</summary>
+    bool SupportsDockVisibility => false;
+
+    /// <summary>Sets whether Filee appears in the Dock, returning whether the platform accepted the change.</summary>
+    bool TrySetShowInDock(bool show) => false;
+
     /// <summary>True if the window at the screen point belongs to the file manager or desktop. Coordinates are pixels on Windows/Linux and desktop points on macOS.</summary>
     bool IsFileManagerAt(int x, int y);
 

@@ -368,9 +368,9 @@ internal static class SettingsMigrations
                 InsertBefore(settings.EnginePriority, "model3d", settings.EnginePriority.Contains("archive") ? "archive" : "pandoc");
         }
 
-        // v24: built-in "geo" engine (GeoJSON, KML, KMZ, GPX, Shapefile and CSV points), after the 3D models engine (else
+        // v25: built-in "geo" engine (GeoJSON, KML, KMZ, GPX, Shapefile and CSV points), after the 3D models engine (else
         //      before the archive engine, else before Pandoc).
-        if (settings.SchemaVersion < 24 && !settings.EnginePriority.Contains("geo"))
+        if (settings.SchemaVersion < 25 && !settings.EnginePriority.Contains("geo"))
         {
             var models = settings.EnginePriority.IndexOf("model3d");
             if (models >= 0)
@@ -638,9 +638,13 @@ internal static class SettingsMigrations
         //      the user already takes them.
         if (from < 23)
             changed |= LearnExtensions(profiles, out _, ["mhtml", "mht"]);
-        // v24: geospatial vector data (Shapefile, GeoJSON, KML, KMZ, GPX) gets presets and its own donut after "models"
-        //      (else after "data", else after "fonts"), with the extensions no donut of the user takes yet.
+        // v24: macro-enabled PowerPoint templates (.potm) open from the presentation donut next to POTX, unless a donut
+        //      of the user already takes them.
         if (from < 24)
+            changed |= LearnExtensions(profiles, out _, ["potm"]);
+        // v25: geospatial vector data (Shapefile, GeoJSON, KML, KMZ, GPX) gets presets and its own donut after "models"
+        //      (else after "data", else after "fonts"), with the extensions no donut of the user takes yet.
+        if (from < 25)
             changed |= AddGeo(presets, profiles);
         return changed;
     }

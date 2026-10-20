@@ -13,6 +13,12 @@
           <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding Language}" MinWidth="240" />
         </StackPanel>
         <ToggleSwitch Content="{DynamicResource general.start_with_system}" IsChecked="{Binding StartWithSystem}" />
+        <ToggleSwitch x:Name="ShowInDockSwitch" Content="{DynamicResource general.show_in_dock}"
+                      IsChecked="{Binding ShowInDock}" IsVisible="{Binding SupportsDockVisibility}" />
+        <ToggleSwitch x:Name="ShowMenuBarIconSwitch" Content="{DynamicResource general.show_menu_bar_icon}"
+                      IsChecked="{Binding ShowMenuBarIcon}" IsVisible="{Binding SupportsDockVisibility}" />
+        <TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding DockStatus}"
+                   IsVisible="{Binding DockStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <StackPanel>
           <TextBlock Classes="label" Text="{DynamicResource general.close_action}" />
           <ComboBox ItemsSource="{Binding CloseChoices}" SelectedItem="{Binding CloseChoice}" MinWidth="240" />

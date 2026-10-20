@@ -181,7 +181,7 @@ public static class BuiltInData
     ];
 
     /// <summary>
-    /// Geospatial vector targets (added in settings schema 24, see SettingsMigrations). CSV, the sixth slice of the
+    /// Geospatial vector targets (added in settings schema 25, see SettingsMigrations). CSV, the sixth slice of the
     /// donut, is the spreadsheet preset. KMZ is a KML in a ZIP and is on no donut.
     /// </summary>
     public static List<Preset> GeoPresets() =>
@@ -485,7 +485,7 @@ public static class BuiltInData
         PresetIds = ["to-glb", "to-stl", "to-obj", "to-3mf", "to-ply", "to-png"],
     };
 
-    /// <summary>Geospatial vector data: Shapefile, GeoJSON, KML, KMZ, GPX (added in settings schema 24, after "models").</summary>
+    /// <summary>Geospatial vector data: Shapefile, GeoJSON, KML, KMZ, GPX (added in settings schema 25, after "models").</summary>
     public static ToolbarProfile GeoProfile() => new()
     {
         Id = "geo",

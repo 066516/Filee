@@ -43,6 +43,7 @@ internal static class DocumentReaders
         ["pptx"] = PptxReader.Read,
         ["pptm"] = PptxReader.Read,
         ["potx"] = PptxReader.Read,
+        ["potm"] = PptxReader.Read,
         ["ppsx"] = PptxReader.Read,
         ["pdf"] = PdfDocumentReader.Read,
         // HWP comes here as HWPX, converted by rhwp first (the route planner adds that step).
