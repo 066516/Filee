@@ -1147,14 +1147,15 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     {
         SkipUnlessInstalled();
         var folder = fx.NewFolder();
-        // Long enough for several of FFmpeg's half-second progress reports.
-        var source = await MakeClipAsync(folder, "long.mp4", seconds: 40, size: "640x360", extra: ["-c:v", "libx264", "-preset", "ultrafast"]);
+        // Keep real work running across several half-second reports. A fast GPU can encode the old 40 s / 360p
+        // fixture between reports, even though progress is read correctly. Use software encoding at 720p here.
+        var source = await MakeClipAsync(folder, "long.mp4", seconds: 60, size: "1280x720", extra: ["-c:v", "libx264", "-preset", "ultrafast"]);
         var converter = new FfmpegConverter();
         Assert.True(converter.GetStatus().IsAvailable);
 
         var recorder = new Recorder();
         // Small: H.264 + AAC in MKV would otherwise only be rewrapped, which takes too little time to report progress.
-        var outputs = await converter.ConvertAsync(Step(source, "mp4", "mkv", folder, new MediaOptions { Quality = MediaQuality.Small }), recorder, CancellationToken.None);
+        var outputs = await converter.ConvertAsync(Step(source, "mp4", "mkv", folder, new MediaOptions { Quality = MediaQuality.Small, HardwareEncoding = false }), recorder, CancellationToken.None);
 
         Assert.True(File.Exists(Assert.Single(outputs)));
         var values = recorder.Values.ToList();
