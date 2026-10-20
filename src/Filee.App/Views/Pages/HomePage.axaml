@@ -56,7 +56,7 @@
 
     <!-- Drop zone: files dropped here open the donut toolbar at the cursor. -->
     <Border x:Name="DropZone" DragDrop.AllowDrop="True" MinHeight="220"
-            Background="{DynamicResource DropZoneBackgroundBrush}" BorderBrush="{DynamicResource DropZoneBorderBrush}"
+            Background="{DynamicResource AccentFaintBrush}" BorderBrush="{DynamicResource AccentSoftBrush}"
             BorderThickness="2" CornerRadius="{DynamicResource SoftRadiusLarge}" Padding="24">
       <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
         <Border Width="64" Height="64" CornerRadius="999" Background="{DynamicResource AccentSoftBrush}" HorizontalAlignment="Center">
@@ -93,53 +93,60 @@
             <Border Classes="card history-card" Padding="14,10">
               <StackPanel Spacing="8">
                 <DockPanel>
-                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasOutputs}" VerticalAlignment="Center">
-                    <Button Command="{Binding OpenFileCommand}" ToolTip.Tip="{DynamicResource home.open_file}" Padding="9,5">
-                      <StackPanel Orientation="Horizontal" Spacing="5">
-                        <PathIcon Width="12" Height="12" Data="{StaticResource Icon.File}" />
+                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center"
+                              IsVisible="{Binding HasOutputs}">
+                    <Button Command="{Binding OpenFileCommand}" IsVisible="{Binding CanOpen}" Padding="10,5">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Width="13" Height="13" Data="{StaticResource Icon.File}" />
                         <TextBlock Text="{DynamicResource home.open_file}" />
                       </StackPanel>
                     </Button>
-                    <Button Command="{Binding OpenWithCommand}" ToolTip.Tip="{DynamicResource home.open_with}" Padding="9,5">
-                      <StackPanel Orientation="Horizontal" Spacing="5">
-                        <PathIcon Width="12" Height="12" Data="{StaticResource Icon.OpenWith}" />
-                        <TextBlock Text="{DynamicResource home.open_with}" />
-                      </StackPanel>
+                    <!-- Only where the system has an "Open with" dialog (Windows). -->
+                    <Button Command="{Binding OpenWithCommand}" IsVisible="{Binding CanOpenWith}" Padding="8,5"
+                            ToolTip.Tip="{DynamicResource home.open_with}" AutomationProperties.Name="{DynamicResource home.open_with}">
+                      <PathIcon Width="13" Height="13" Data="{StaticResource Icon.OpenWith}" />
                     </Button>
-                    <Button Command="{Binding OpenFolderCommand}" ToolTip.Tip="{DynamicResource home.open_folder}" Padding="9,5">
-                      <StackPanel Orientation="Horizontal" Spacing="5">
-                        <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Folder}" />
+                    <Button Command="{Binding OpenFolderCommand}" Padding="10,5">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Width="13" Height="13" Data="{StaticResource Icon.Folder}" />
                         <TextBlock Text="{DynamicResource home.open_folder}" />
                       </StackPanel>
                     </Button>
                   </StackPanel>
-                  <!-- Dynamic Thumbnail / Format Badge -->
-                  <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Margin="0,0,12,0"
-                          ClipToBounds="True" Background="{DynamicResource SurfaceAltBrush}">
-                    <Panel>
-                      <!-- Render actual decoded thumbnail if file is image and exists -->
-                      <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" IsVisible="{Binding HasThumbnail}" />
-
-                      <!-- Fallback format badge if no thumbnail -->
-                      <Border IsVisible="{Binding !HasThumbnail}" Background="{DynamicResource AccentSoftBrush}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                        <TextBlock Text="{Binding FormatBadge}" FontWeight="Bold" FontSize="11"
-                                   Foreground="{DynamicResource AccentStrongBrush}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                      </Border>
-
-                      <!-- Tiny Status Pill in Corner (Checkmark or Alert) -->
-                      <Border Width="16" Height="16" CornerRadius="999" Margin="0,0,2,2"
-                              HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                              Background="{DynamicResource SurfaceBrush}">
-                        <Panel>
-                          <PathIcon Width="9" Height="9" Data="{StaticResource Icon.Check}" Foreground="{DynamicResource SuccessBrush}" IsVisible="{Binding !HasErrors}" />
-                          <PathIcon Width="9" Height="9" Data="{StaticResource Icon.Alert}" Foreground="{DynamicResource DangerBrush}" IsVisible="{Binding HasErrors}" />
-                        </Panel>
-                      </Border>
-                    </Panel>
-                  </Border>
+                  <!-- The result: its picture, else its format; the corner says whether the job went well. -->
+                  <Panel DockPanel.Dock="Left" Width="42" Height="42" Margin="0,0,12,0">
+                    <Border CornerRadius="{DynamicResource SoftRadiusSmall}" ClipToBounds="True" Background="{DynamicResource AccentSoftBrush}">
+                      <Panel>
+                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" IsVisible="{Binding HasThumbnail}" />
+                        <TextBlock Text="{Binding FormatBadge}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center">
+                          <TextBlock.IsVisible>
+                            <MultiBinding Converter="{x:Static BoolConverters.And}">
+                              <Binding Path="!HasThumbnail" />
+                              <Binding Path="HasFormatBadge" />
+                            </MultiBinding>
+                          </TextBlock.IsVisible>
+                        </TextBlock>
+                        <PathIcon Width="15" Height="15" Data="{StaticResource Icon.Check}" Foreground="{DynamicResource AccentStrongBrush}">
+                          <PathIcon.IsVisible>
+                            <MultiBinding Converter="{x:Static BoolConverters.And}">
+                              <Binding Path="!HasThumbnail" />
+                              <Binding Path="!HasFormatBadge" />
+                            </MultiBinding>
+                          </PathIcon.IsVisible>
+                        </PathIcon>
+                      </Panel>
+                    </Border>
+                    <Border Width="18" Height="18" CornerRadius="999" Margin="0,0,-4,-4" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                            Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="1">
+                      <Panel>
+                        <PathIcon Width="10" Height="10" Data="{StaticResource Icon.Check}" Foreground="{DynamicResource SuccessBrush}" IsVisible="{Binding !HasErrors}" />
+                        <PathIcon Width="10" Height="10" Data="{StaticResource Icon.Alert}" Foreground="{DynamicResource DangerBrush}" IsVisible="{Binding HasErrors}" />
+                      </Panel>
+                    </Border>
+                  </Panel>
                   <StackPanel VerticalAlignment="Center">
-                    <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
+                    <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <TextBlock Classes="caption" Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis" MaxWidth="420" />
                       <TextBlock Classes="caption" Text="·" />
@@ -149,7 +156,7 @@
                 </DockPanel>
 
                 <!-- Failed files: the list on demand, and converting them again -->
-                <DockPanel IsVisible="{Binding HasFailures}" Margin="44,0,0,0">
+                <DockPanel IsVisible="{Binding HasFailures}" Margin="54,0,0,0">
                   <Button DockPanel.Dock="Right" Command="{Binding RetryCommand}" IsVisible="{Binding CanRetry}" Padding="10,5">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                       <PathIcon Width="13" Height="13" Data="{StaticResource Icon.Refresh}" />
@@ -164,7 +171,7 @@
                     </StackPanel>
                   </Button>
                 </DockPanel>
-                <ItemsControl ItemsSource="{Binding Failures}" IsVisible="{Binding ShowFailures}" Margin="50,0,0,2">
+                <ItemsControl ItemsSource="{Binding Failures}" IsVisible="{Binding ShowFailures}" Margin="60,0,0,2">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                       <StackPanel Spacing="4" />
