@@ -4,6 +4,7 @@
 // audio and GIF, APNG or a still picture → video, and images → HEIC (FFmpeg's HEVC encoder, Filee's own container
 // writer). Container and codec choices live in MediaEncoding, the process handling in FfmpegRunner, hardware encoders
 // in HardwareVideo (options) and HardwareProbe (which one works here).
+// Live / Motion Photos (Android, iPhone) give their video when a preset asks for it (LivePhotoSource, MotionPhoto).
 
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
@@ -85,6 +86,9 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
             .. MediaEncoding.PictureToVideoTargets.Select(target => new ConversionEdge("png", target, 11)),
             // HEIC: ImageMagick reads, x265 encodes, Filee writes the container (see Heic/HeicWriter).
             .. ImageEncoder.Sources.Select(source => new ConversionEdge(source, "heic")),
+            // The video of a Live / Motion Photo, only when a preset asks for it (see ConversionEdge.MotionPhoto).
+            .. from source in MediaOptions.MotionPhotoSources from target in MediaOptions.MotionPhotoTargets
+               select new ConversionEdge(source, target, MotionPhoto: true),
         ];
     }
 
@@ -107,6 +111,8 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
     public async Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
     {
         var (ffmpeg, ffprobe) = _tools ?? Locate() ?? throw new InvalidOperationException("FFmpeg was not found.");
+        if (step.MotionPhoto)
+            return await ExtractMotionAsync(step, progress, cancellationToken);
         if (step.To == "heic")
             return await HeicWriter.ConvertAsync(ffmpeg, step, progress, cancellationToken);
         var input = Path.GetFullPath(step.InputPath);
@@ -163,6 +169,52 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
 
         progress?.Report(1);
         return [output];
+    }
+
+    /// <summary>
+    /// The video of a Live / Motion Photo as <see cref="ConversionStep.To"/>: copied out of the photo (or from next to
+    /// it) into the work directory, converted there like any video and moved into place once finished, so a failure
+    /// never touches a file the output would replace.
+    /// </summary>
+    private async Task<IReadOnlyList<string>> ExtractMotionAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
+    {
+        var (video, companion) = await LivePhotoSource.ExtractAsync(step.InputPath, step.From, step.WorkDirectory, _logger, cancellationToken);
+        var staged = new StagedOutput(step.Output, step.WorkDirectory, companion);
+        var written = await ConvertAsync(step with { InputPath = video, From = "mov", MotionPhoto = false, Output = staged },
+            progress, cancellationToken);
+        return staged.Commit(written);
+    }
+
+    /// <summary>
+    /// Hands out paths in the work directory for outputs whose real path comes from <paramref name="final"/>. That one
+    /// is never <paramref name="companion"/>: with "overwrite", IMG_0001.HEIC → MOV would otherwise be written over
+    /// IMG_0001.MOV, the Live Photo's own video, so it gets a numbered name instead.
+    /// </summary>
+    private sealed class StagedOutput(IOutputAllocator final, string workDirectory, string? companion) : IOutputAllocator
+    {
+        private readonly Dictionary<string, string> _paths = [];
+
+        public string? Allocate(string extension, string? suffix = null)
+        {
+            var path = final.Allocate(extension, suffix);
+            for (var n = 2; path is not null && companion is not null && SamePath(path, companion); n++)
+                path = final.Allocate(extension, $"{suffix} ({n})");
+            if (path is null)
+                return null;
+            var temp = Path.Combine(workDirectory, Guid.NewGuid().ToString("N") + "." + extension.TrimStart('.'));
+            _paths[temp] = path;
+            return temp;
+        }
+
+        public IReadOnlyList<string> Commit(IReadOnlyList<string> written) =>
+            written.Select(temp =>
+            {
+                File.Move(temp, _paths[temp], overwrite: true);
+                return _paths[temp];
+            }).ToList();
+
+        private static bool SamePath(string a, string b) =>
+            string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

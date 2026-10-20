@@ -57,15 +57,19 @@ editor on the *Donut toolbar* settings page (drag to reorder, ✎ / right-click 
 Animations are small springs advanced per frame; `Motion.Enabled == false` (*Reduce animations*) snaps them.
 
 Every `ToolbarProfile` has two faces: `PresetIds` (the front) and `BackPresetIds` (the back; the built-in donuts get
-the less common formats and tools of their file type, see `BuiltInData.CreateProfiles`). Tab, or Shift+Tab, flips
-the open donut (`DonutMenu.Flip.cs`): the ring turns about its vertical axis in 200 ms, an open group's ring folding
-first, and halfway, edge-on, `FaceSwapping` has `RadialViewModel` show the other face, so slices, hit tests and
-drops always belong to the face that is drawn. *Reduce animations* swaps the faces at once. `RadialViewModel` builds
-both faces with the same `PresetAvailability` check; a face with no slice for the files (or none at all) isn't
-flipped to, and only then does the hub leave out its "Tab ↻ back" hint. In click mode the focused window gets Tab
-(`DonutMenu.HandleKey`). During a drag the donut's window has no keyboard focus, so `RadialController` turns on
-`TriggerService.WatchFlipKey` while the drag donut shows files and flips on `FlipKeyPressed`: the global hook only
-listens (nothing is swallowed, Explorer and Finder ignore Tab during a drag) and reports one flip per key press.
+the less common formats and tools of their file type, see `BuiltInData.CreateProfiles`). The flip key
+(`DonutSettings.FlipKey`, Tab unless recorded otherwise in Settings → Shortcuts; `EffectiveFlipKey` refuses keys the
+donut or a keyboard shortcut uses) and the mouse wheel (`FlipWithWheel`, one flip per turn of the wheel: notches less
+than `DonutMenu.WheelQuietMs` apart are one turn) flip the open donut (`DonutMenu.Flip.cs`): the ring turns about its
+vertical axis in 200 ms, an open group's ring folding first, and halfway, edge-on, `FaceSwapping` has
+`RadialViewModel` show the other face, so slices, hit tests and drops always belong to the face that is drawn.
+*Reduce animations* swaps the faces at once. `RadialViewModel` builds both faces with the same `PresetAvailability`
+check (the back right after the front is on screen); a face with no slice for the files (or none at all) isn't
+flipped to, and only then does the hub leave out its "Tab ↻ back" hint (a mouse in place of the key when only the
+wheel flips). In click mode the focused window gets the key (`DonutMenu.HandleKey`) and the donut the wheel. During a
+drag the donut's window has no keyboard focus, so `RadialController` turns on `TriggerService.WatchFlipKey` while
+the drag donut shows files and flips on `FlipKeyPressed` / `FlipWheelTurned`: the global hook only listens (it
+can't hold an event back; Explorer and Finder ignore Tab during a drag) and reports one flip per key press.
 The editor's Front / Back switch (`ToolbarPageViewModel.EditingBack`) edits either list with the same drag and drop.
 
 ## Settings and data

@@ -278,7 +278,9 @@ public class DonutFlipTests
         var back = vm.Items.Count;
         var expected = DonutGeometry.HitTest(center, at, vm.OuterRadius * vm.HoleRatio, vm.OuterRadius, back, 7).Index;
         Assert.Equal(expected, donut.ActiveIndex);
-        Assert.Equal(AppHost.Get<ILocalizer>().Format("donut.drop_to", vm.Items[expected].Label), vm.CenterSubtitle);
+        // What that slice does with these files, or why it can't (an engine to download).
+        var there = vm.Items[expected];
+        Assert.Equal(there.IsEnabled ? AppHost.Get<ILocalizer>().Format("donut.drop_to", there.Label) : there.DisabledReason, vm.CenterSubtitle);
         window.Close();
     });
 
@@ -521,7 +523,9 @@ public class DonutFlipTests
 
                 window = new Avalonia.Controls.Window
                 {
-                    Content = new Filee.App.Views.Pages.TriggersPage { DataContext = page }, Width = 820, Height = 1500,
+                    Content = new Filee.App.Views.Pages.TriggersPage { DataContext = page },
+                    Width = 820,
+                    Height = 1500,
                 };
                 window.Show();
                 RenderTests.Pump();

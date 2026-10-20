@@ -39,7 +39,7 @@ public sealed class ToolbarProfile
     /// <summary>
     /// Preset ids of the back face, which Tab flips the open donut to: less common conversions and tools, in the same
     /// order and up to the same <see cref="MaxSlices"/> as <see cref="PresetIds"/>. Empty: the donut doesn't flip.
-    /// Null only as read from a file without back faces (a Filee from before settings schema 29, or one that saved
+    /// Null only as read from a file without back faces (a Filee from before settings schema 30, or one that saved
     /// the library since): loading gives a built-in donut its default back face then, and any other none.
     /// </summary>
     public List<string>? BackPresetIds { get; set; }

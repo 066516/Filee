@@ -685,12 +685,35 @@ internal static class SettingsMigrations
         //      the user filled up, or a library without the preset, stays as it is.
         if (from < 28)
             changed |= Offer(presets, profiles, "archives", "zip-all", "extract");
-        // v29: every donut gets a back face, which Tab flips the open donut to. A built-in donut gets its default one
-        //      (with the presets the library still has), a donut the user made none; no front changes. (Schema 29 may
-        //      be renumbered if another change takes it first.) Also at a later schema when a donut has no
-        //      back face at all, not even an empty one: a Filee before 29 saved the library since and dropped what it
-        //      didn't know, so the built-in back faces come back. One the user emptied is saved empty and stays so.
-        if (from < 29 || profiles.Any(p => p.BackPresetIds is null))
+        // v29: "Extract live video" (the video of a Live / Motion Photo as MP4), after "Extract frames" as in a new
+        //      library, on no donut: the images donut is full. Present already but saved since by a Filee before 29:
+        //      that one dropped the option and left a plain MP4 preset, so it is put back. The images donut learns
+        //      ".livp" (iPhone Live Photos downloaded from iCloud) unless a donut of the user already takes it.
+        if (from < 29)
+        {
+            foreach (var motion in BuiltInData.MotionPhotoPresets())
+            {
+                if (presets.FirstOrDefault(p => p.Id == motion.Id) is { } existing)
+                {
+                    if (!existing.Media.ExtractMotionPhoto && existing.TargetFormat == motion.TargetFormat)
+                    {
+                        existing.Media.ExtractMotionPhoto = true;
+                        changed = true;
+                    }
+                    continue;
+                }
+                var at = presets.FindIndex(p => p.Id == "extract-frames-jpg");
+                presets.Insert(at < 0 ? presets.Count : at + 1, motion);
+                changed = true;
+            }
+            changed |= LearnExtensions(profiles, out _, ["livp"]);
+        }
+        // v30: every donut gets a back face, which Tab (or the mouse wheel) flips the open donut to. A built-in donut
+        //      gets its default one (with the presets the library still has), a donut the user made none; no front
+        //      changes. Also at a later schema when a donut has no back face at all, not even an empty one: a Filee
+        //      before 30 saved the library since and dropped what it didn't know, so the built-in back faces come
+        //      back. One the user emptied is saved empty and stays so.
+        if (from < 30 || profiles.Any(p => p.BackPresetIds is null))
             changed |= AddBackFaces(presets, profiles);
         return changed;
     }

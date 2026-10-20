@@ -1,4 +1,4 @@
-// The back face of a donut (Tab flips the open donut to it): the built-in ones, settings schema 29 that gives existing
+// The back face of a donut (Tab flips the open donut to it): the built-in ones, settings schema 30 that gives existing
 // libraries theirs, a round trip through a Filee from before back faces, "Reset to default" and import.
 
 using System.Text.Json.Nodes;
@@ -85,9 +85,9 @@ public class BackFaceTests
     }
 
     [Fact]
-    public void Version_24_libraries_get_the_built_in_back_faces_and_keep_their_fronts()
+    public void Version_29_libraries_get_the_built_in_back_faces_and_keep_their_fronts()
     {
-        // As written with schema 24: no back faces, the user's own front on the images donut and a donut of their own.
+        // As written with schema 29: no back faces, the user's own front on the images donut and a donut of their own.
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
         foreach (var p in profiles)
@@ -100,7 +100,7 @@ public class BackFaceTests
         presets.RemoveAll(p => p.Id == "to-gif");
         var fronts = profiles.ToDictionary(p => p.Id, p => p.PresetIds.ToList());
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(24, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(29, presets, profiles));
 
         foreach (var profile in profiles.Where(p => p != mine))
         {
@@ -109,7 +109,7 @@ public class BackFaceTests
         }
         Assert.Null(mine.BackPresetIds); // the store gives it an empty one (below)
         Assert.All(profiles, p => Assert.Equal(fronts[p.Id], p.PresetIds));
-        Assert.False(SettingsMigrations.ApplyToLibrary(24, presets, profiles)); // once only
+        Assert.False(SettingsMigrations.ApplyToLibrary(29, presets, profiles)); // once only
         Assert.False(SettingsMigrations.ApplyToLibrary(AppSettings.CurrentSchemaVersion, presets, profiles));
     }
 
@@ -122,7 +122,7 @@ public class BackFaceTests
         store.Profiles.Insert(0, new ToolbarProfile { Id = "mine", Name = "Mine", Extensions = ["xyz"], PresetIds = ["to-pdf"] });
         store.SaveLibrary();
         store.SaveSettings();
-        DropBackFaces(dir, schema: 24);
+        DropBackFaces(dir, schema: 29);
 
         var upgraded = NewStore(dir);
 
@@ -139,8 +139,8 @@ public class BackFaceTests
     }
 
     [Theory]
-    [InlineData(24)]    // the older Filee also saved its settings, with its own schema
-    [InlineData(null)]  // it only saved the library: the settings still say 29
+    [InlineData(29)]    // the older Filee also saved its settings, with its own schema
+    [InlineData(null)]  // it only saved the library: the settings still say 30
     public void Back_from_an_older_Filee_the_built_in_back_faces_return_and_an_emptied_one_stays_empty(int? schema)
     {
         using var dir = new TempDir();

@@ -73,6 +73,7 @@ public static class BuiltInData
         .. PdfCompressionPresets(),
         .. PdfSlidesPresets(),
         .. FramePresets(),
+        .. MotionPhotoPresets(),
         new() { Id = "to-docx", Name = "DOCX", TargetFormat = "docx" },
         new() { Id = "to-hwpx", Name = "HWPX", TargetFormat = "hwpx" },
         .. HwpPresets(),
@@ -88,6 +89,15 @@ public static class BuiltInData
         .. ModelPresets(),
         .. GeoPresets(),
         .. TracePresets(),
+    ];
+
+    /// <summary>
+    /// The video of a Live / Motion Photo as MP4 (added in settings schema 29), on no donut: the images donut is full,
+    /// so users add it in Settings → Toolbar.
+    /// </summary>
+    public static List<Preset> MotionPhotoPresets() =>
+    [
+        new() { Id = "extract-motion", NameKey = "preset.extract_motion", TargetFormat = "mp4", Media = { ExtractMotionPhoto = true } },
     ];
 
     /// <summary>
@@ -331,7 +341,7 @@ public static class BuiltInData
     ];
 
     /// <summary>
-    /// Creates the default toolbar profiles. Each has a back face (Tab flips the open donut to it, settings schema 29)
+    /// Creates the default toolbar profiles. Each has a back face (Tab or the mouse wheel flips the open donut to it, settings schema 30)
     /// with presets for its files that aren't on its front: less common formats and tools (rotate, merge, compress
     /// into one ZIP, ...). The fronts are as they were before back faces.
     /// </summary>
@@ -342,7 +352,7 @@ public static class BuiltInData
             Id = "images", NameKey = "profile.images",
             Extensions = ExtensionsOf(FormatCategory.Image),
             PresetIds = ["to-png", "to-jpg", "to-webp", "to-pdf", "trace-svg", "trace-line-art", "to-tiff", "to-bmp", "to-ico", "half-size"],
-            BackPresetIds = ["tool-crop", "rotate", "flip", "remove-background", "grayscale", "jpg-70", "to-avif", "to-gif", "merge-pdf", "zip-all"],
+            BackPresetIds = ["tool-crop", "rotate", "flip", "remove-background", "grayscale", "extract-motion", "to-avif", "to-gif", "merge-pdf", "zip-all"],
         },
         new()
         {
