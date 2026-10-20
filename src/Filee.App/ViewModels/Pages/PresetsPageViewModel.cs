@@ -117,6 +117,8 @@ public sealed partial class PresetsPageViewModel : ObservableObject, IFitsWindow
         _store.Presets.Add(preset);
         _store.SaveLibrary();
         var item = new PresetListItem(preset, _loc);
+        // Clear the search filter first so the new preset is visible regardless of what was typed.
+        Search = "";
         Presets.Add(item);
         SelectedPreset = item;
     }

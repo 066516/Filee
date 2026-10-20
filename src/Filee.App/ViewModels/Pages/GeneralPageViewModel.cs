@@ -39,6 +39,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         _showMenuBarIcon = store.Settings.ShowMenuBarIcon;
         _contextMenu = store.Settings.ContextMenuEnabled;
         _noHistory = !store.Settings.KeepHistory;
+        _historyLimit = store.Settings.EffectiveHistoryLimit;
         OutputLocations = new[] { OutputLocation.SameFolder, OutputLocation.Subfolder, OutputLocation.CustomFolder }
             .Select(v => new Choice<OutputLocation>(v, loc[$"presets.location.{v}"])).ToList();
         var output = store.Settings.DefaultOutput;
@@ -46,6 +47,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         _defaultSubfolder = output.SubfolderName;
         _defaultFolder = output.CustomFolder;
         _keepFileDates = store.Settings.KeepFileDates;
+        _zipGeoResults = store.Settings.ZipGeoResults;
         CloseChoices = Enum.GetValues<CloseAction>().Select(v => new Choice<CloseAction>(v, loc[$"general.close.{v}"])).ToList();
         _closeChoice = CloseChoices.First(c => c.Value == store.Settings.CloseAction);
         store.SettingsChanged += OnSettingsChanged;
@@ -88,6 +90,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     partial void OnDefaultFolderChanged(string value) => Save(s => s.DefaultOutput.CustomFolder = value.Trim());
 
     [ObservableProperty] private bool _keepFileDates;
+    [ObservableProperty] private bool _zipGeoResults;
 
     /// <summary>What closing the main window does; its "Don't ask again" also sets it.</summary>
     public IReadOnlyList<Choice<CloseAction>> CloseChoices { get; }
@@ -110,6 +113,8 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     public void Dispose() => _store.SettingsChanged -= OnSettingsChanged;
 
     partial void OnKeepFileDatesChanged(bool value) => Save(s => s.KeepFileDates = value);
+
+    partial void OnZipGeoResultsChanged(bool value) => Save(s => s.ZipGeoResults = value);
 
     [ObservableProperty] private Choice<string> _language;
     [ObservableProperty] private bool _startWithSystem;
@@ -221,7 +226,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         }];
     }
 
-    // Conversion history (home page): don't record it, or clear what is there.
+    // Conversion history (home page): don't record it, how much of it to keep, or clear what is there.
     [ObservableProperty] private bool _noHistory;
 
     [ObservableProperty]
@@ -234,6 +239,12 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     public string HistoryText => HistoryCleared ? _loc["general.history_cleared"] : _loc.Format("general.history_count", HistoryCount);
 
     partial void OnNoHistoryChanged(bool value) => Save(s => s.KeepHistory = !value);
+
+    /// <summary>How many conversions the history keeps (<see cref="AppSettings.HistoryLimit"/>).</summary>
+    [ObservableProperty] private int _historyLimit;
+
+    partial void OnHistoryLimitChanged(int value) =>
+        Save(s => s.HistoryLimit = Math.Clamp(value, AppSettings.MinHistoryLimit, AppSettings.MaxHistoryLimit));
 
     partial void OnHistoryClearedChanged(bool value) => OnPropertyChanged(nameof(HistoryText));
 

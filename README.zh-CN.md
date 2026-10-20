@@ -34,7 +34,7 @@
 <table>
   <tr>
     <td width="33%" valign="top"><b>就在光标旁</b><br>无需打开应用窗口。只显示适合当前拖动文件的格式，就在你所在的位置。</td>
-    <td width="33%" valign="top"><b>248 种格式，无需其他软件</b><br>图片、PDF、Word、Excel、PowerPoint、HWP、电子书、压缩包、字体、CAD 和 3D 模型，无需 Office、韩文办公软件或 LibreOffice。</td>
+    <td width="33%" valign="top"><b>253 种格式，无需其他软件</b><br>图片、PDF、Word、Excel、PowerPoint、HWP、电子书、压缩包、字体、CAD、3D 模型和地理信息数据，无需 Office、韩文办公软件或 LibreOffice。</td>
     <td width="33%" valign="top"><b>只在你的电脑上</b><br>不上传任何文件。Filee 离线工作，结果保存在原文件旁边。</td>
   </tr>
 </table>
@@ -102,6 +102,7 @@
 | **字体**：TTF、OTF、WOFF、WOFF2、EOT | 互相转换 |
 | **数据**：JSON、JSON Lines、YAML、TOML、XML · vCard | 互相转换、CSV 和 XLSX（表格数据）、vCard ↔ CSV |
 | **3D 模型**：GLB、glTF、STL、OBJ（+ MTL）、3MF、PLY；FBX 仅读取 | 互相转换、PNG 预览 |
+| **地理信息（矢量）**：Shapefile、GeoJSON、KML、KMZ、GPX · 带坐标的 CSV | 互相转换、CSV / XLSX / JSON；投影坐标系（UTM、Web 墨卡托、兰伯特、阿尔伯斯）会转换为 WGS 84 经纬度 |
 
 未标注的格式装好即用，无需 Office、韩文办公软件或 LibreOffice。
 标注的格式需要可选引擎，只在需要时下载，分别是 ¹ Ghostscript、² LibreOffice、³ Pandoc、⁴ calibre、⁵ FFmpeg

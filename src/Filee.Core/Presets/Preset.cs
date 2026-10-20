@@ -126,6 +126,13 @@ public sealed class Preset
     [JsonIgnore]
     public bool IsGroup => Kind == PresetKind.Group;
 
+    /// <summary>True for "Compress into one archive": files and folders go into one archive as they are.</summary>
+    [JsonIgnore]
+    public bool PacksIntoOneArchive =>
+        Archive.CombineIntoOne
+        && Formats.FormatRegistry.FindById(TargetFormat) is { Category: Formats.FormatCategory.Archive } archive
+        && archive.Id != Formats.FormatRegistry.Folder;
+
     /// <summary>
     /// True if converting a <paramref name="sourceFormat"/> file saves every frame as a picture
     /// (<see cref="MediaOptions.SaveEveryFrame"/>): the file is a video and the target one of

@@ -65,7 +65,7 @@ public sealed class DonutSettings
 public sealed class AppSettings
 {
     /// <summary>Current schema version. Increase when the format changes and add a migration.</summary>
-    public const int CurrentSchemaVersion = 26;
+    public const int CurrentSchemaVersion = 28;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -85,6 +85,20 @@ public sealed class AppSettings
 
     /// <summary>Record finished conversions in the history (home page). Off: nothing new is recorded.</summary>
     public bool KeepHistory { get; set; } = true;
+
+    /// <summary>
+    /// How many finished conversions the history keeps, newest first (<see cref="MinHistoryLimit"/> to
+    /// <see cref="MaxHistoryLimit"/>; a value outside is taken as the nearest end). The home page lists the latest
+    /// ones and searches all of them.
+    /// </summary>
+    public int HistoryLimit { get; set; } = 200;
+
+    public const int MinHistoryLimit = 50;
+    public const int MaxHistoryLimit = 2000;
+
+    /// <summary><see cref="HistoryLimit"/> within its range.</summary>
+    [JsonIgnore]
+    public int EffectiveHistoryLimit => Math.Clamp(HistoryLimit, MinHistoryLimit, MaxHistoryLimit);
 
     /// <summary>Whether the macOS Dock shows Filee.</summary>
     [JsonConverter(typeof(IconPreferenceJsonConverter))]
@@ -116,7 +130,7 @@ public sealed class AppSettings
     public List<string> EnginePriority { get; set; } =
     [
         "magick", "pdfium", "pdfsharp", "rhwp", "unhwp", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer",
-        "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook",
+        "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "geo", "archive", "ebook",
         "subtitle", "wic", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice",
     ];
 
@@ -168,16 +182,21 @@ public sealed class AppSettings
     /// <summary>Every conversion keeps the created and modified dates of the original, whatever the preset says.</summary>
     public bool KeepFileDates { get; set; }
 
+    /// <summary>Every geospatial conversion is saved as a ZIP, whatever the preset says (see <see cref="OutputRule.ZipResult"/>).</summary>
+    public bool ZipGeoResults { get; set; }
+
     /// <summary>
     /// Returns <paramref name="preset"/> itself, or a copy with the app-wide output settings applied: it saves to
     /// <see cref="DefaultOutput"/> when the preset's location is <see cref="OutputLocation.Default"/>, and keeps the
-    /// original dates when <see cref="KeepFileDates"/> is on. Name pattern and conflict handling stay the preset's.
+    /// original dates when <see cref="KeepFileDates"/> is on and is saved as a ZIP when <see cref="ZipGeoResults"/> is on and the
+    /// target is geospatial. Name pattern and conflict handling stay the preset's.
     /// </summary>
     public Preset WithDefaultOutput(Preset preset)
     {
         var location = preset.Output.Location == OutputLocation.Default;
         var dates = KeepFileDates && !preset.Output.KeepDates;
-        if (!location && !dates)
+        var zip = ZipGeoResults && !preset.Output.ZipResult && Formats.FormatRegistry.FindById(preset.TargetFormat)?.Category == Formats.FormatCategory.Geo;
+        if (!location && !dates && !zip)
             return preset;
         var copy = preset.Clone();
         if (location)
@@ -188,6 +207,8 @@ public sealed class AppSettings
         }
         if (dates)
             copy.Output.KeepDates = true;
+        if (zip)
+            copy.Output.ZipResult = true;
         return copy;
     }
 }
