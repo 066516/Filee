@@ -163,8 +163,10 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         }
 
         _log.LogWarning(error, "Could not change Dock visibility to {ShowInDock}", value);
-        DockStatus = _loc.Format("general.dock_failed", error is null ? "" : $": {error.Message}");
-        ShowInDock = _store.Settings.ShowInDock;
+        DockStatus = _loc["general.dock_failed"];
+        // Put back after the switch has finished writing its value: set from inside that write, the switch keeps
+        // showing the refused value.
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowInDock = _store.Settings.ShowInDock);
     }
 
     partial void OnShowMenuBarIconChanged(bool value) => Save(s => s.ShowMenuBarIcon = value);

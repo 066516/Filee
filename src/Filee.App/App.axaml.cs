@@ -151,7 +151,7 @@ public partial class App : Application
                 if (e.Kind == ActivationKind.Reopen)
                     Dispatcher.UIThread.Post(() =>
                     {
-                        if (!store.Settings.ShowInDock && !store.Settings.ShowMenuBarIcon)
+                        if (!store.Settings.ShowMenuBarIcon)
                             AppHost.Get<WindowService>().ShowMain(store.Settings.FirstRunCompleted ? null : "home");
                         if (!store.Settings.ShowInDock && !platform.TrySetShowInDock(false))
                             log.LogWarning("Could not restore the macOS Dock visibility policy after reopening Filee");

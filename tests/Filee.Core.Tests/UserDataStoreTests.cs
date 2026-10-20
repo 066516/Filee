@@ -160,19 +160,19 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(23, store.Settings.SchemaVersion);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
         Assert.Equal("ko", store.Settings.Language);
         Assert.True(store.Settings.ShowInDock);
         Assert.True(store.Settings.ShowMenuBarIcon);
         var rewritten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
-        Assert.Equal(23, (int?)rewritten["schemaVersion"]);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, (int?)rewritten["schemaVersion"]);
         Assert.True((bool?)rewritten["showInDock"]);
         Assert.True((bool?)rewritten["showMenuBarIcon"]);
         Assert.Equal("ko", (string?)rewritten["language"]);
 
         var reloaded = new UserDataStore(dir.Path);
         reloaded.Load();
-        Assert.Equal(23, reloaded.Settings.SchemaVersion);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, reloaded.Settings.SchemaVersion);
         Assert.Equal("ko", reloaded.Settings.Language);
         Assert.True(reloaded.Settings.ShowInDock);
         Assert.True(reloaded.Settings.ShowMenuBarIcon);
@@ -199,21 +199,21 @@ public class UserDataStoreTests
         var migrated = new UserDataStore(dir.Path);
         migrated.Load();
 
-        Assert.Equal(23, migrated.Settings.SchemaVersion);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, migrated.Settings.SchemaVersion);
         Assert.True(migrated.Settings.ShowInDock);
         Assert.True(migrated.Settings.ShowMenuBarIcon);
         Assert.Equal("ko", migrated.Settings.Language);
         Assert.False(File.Exists(path + ".broken"));
 
         var rewritten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
-        Assert.Equal(23, (int?)rewritten["schemaVersion"]);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, (int?)rewritten["schemaVersion"]);
         Assert.True((bool?)rewritten["showInDock"]);
         Assert.True((bool?)rewritten["showMenuBarIcon"]);
         Assert.Equal("ko", (string?)rewritten["language"]);
 
         var reloaded = new UserDataStore(dir.Path);
         reloaded.Load();
-        Assert.Equal(23, reloaded.Settings.SchemaVersion);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, reloaded.Settings.SchemaVersion);
         Assert.Equal("ko", reloaded.Settings.Language);
         Assert.True(reloaded.Settings.ShowInDock);
         Assert.True(reloaded.Settings.ShowMenuBarIcon);
