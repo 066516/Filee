@@ -51,6 +51,7 @@
 从 [Releases](https://github.com/KnifeLemon/Filee/releases/latest) 下载。
 
 - **Windows 10/11** 运行 `Filee-<version>-win-Setup.exe`，或解压 `win-Portable.zip` 后运行 `Filee.exe`。
+  安装程序是 Filee 自己的，使用与 Filee 相同的语言，电脑上无需另外安装任何组件。
   安装时可以添加资源管理器菜单、登录时启动、`filee` 命令和可选引擎。
 - **macOS 14 及以上**（预览）解压 `osx-arm64` 或 `osx-x64` 包并运行 `./install.sh`。
   目前尚未公证，首次启动时请在系统设置 → 隐私与安全性中点 **仍要打开**。
