@@ -631,6 +631,10 @@ internal static class SettingsMigrations
         //      of the user already takes them.
         if (from < 24)
             changed |= LearnExtensions(profiles, out _, ["potm"]);
+        // v27: OFD documents (.ofd; read only: e-invoices, official documents) open from the office donut, unless a
+        //      donut of the user already takes them.
+        if (from < 27)
+            changed |= LearnExtensions(profiles, out _, ["ofd"]);
         return changed;
     }
 

@@ -1,14 +1,23 @@
 // OFD (GB/T 33190-2016, the Chinese standard for fixed-layout documents: e-invoices, contracts, official
 // documents) → HDocument with no external engine, so OFD → DOCX / HWPX / TXT works out of the box.
 //
-// An OFD file is a ZIP package of XML pages. Like a PDF it stores positioned text, so boxes are grouped
-// into lines and lines into paragraphs (the same idea as the PDF reader, smaller scale): a line is a
-// paragraph unless consecutive lines clearly continue one, and every fragment keeps its own size and
-// colour. Pictures (the seals of invoices, often JBIG2 or JPEG-2000) are extracted and kept in reading
-// order; ImageMagick transcodes formats Word cannot embed. Vector drawings and tables are not detected
-// — their text comes out in reading order, as with scanned PDFs.
+// An OFD file is a ZIP package of XML: OFD.xml names the document (Document.xml), which lists the pages, the
+// template pages they are drawn on and the resource files (fonts, pictures, drawing parameters). Like a PDF a page
+// holds positioned text, pictures and vector paths, in millimetres from the top-left corner. Text objects are read
+// with their transformation (CTM), character advances (DeltaX, also the "g" shorthand) and vertical runs (DeltaY);
+// the layout (OfdReader.Layout) groups them into lines and paragraphs, and grids drawn with lines become tables
+// (OfdReader.Tables) — the frame of an e-invoice. Pictures are unpacked and kept in reading order, or float at their
+// place when text sits beside or under them (QR codes, seals).
+//
+// Three writer variants seen in the wild are handled: the standard's own structure, WPS (page size only in
+// Document.xml, a Res.xml next to the pages, bold as Weight=700) and tax invoices (template pages with the labels,
+// DocumentRes, the colour in a layer's DrawParam, item names wrapped onto a second line).
+//
+// Not converted: signatures (seals stored in Signs/ as signed data), annotations, embedded fonts (the font name is
+// kept), composite objects, JBIG2 pictures. Encrypted documents (GM/T 0099 Encryptions.xml) are refused; nothing
+// is decrypted. The package is read defensively (OfdPackage).
 
-using System.IO.Compression;
+using System.Globalization;
 using System.Xml.Linq;
 using Filee.Engines.Hwp.Hwpx;
 using ImageMagick;
@@ -16,537 +25,679 @@ using ImageMagick;
 namespace Filee.Engines.Ofd;
 
 /// <summary>Reads an OFD file into the document model (DOCX / HWPX writers, plain text).</summary>
-internal static class OfdReader
+internal sealed partial class OfdReader
 {
-    /// <summary>Millimetres → HWPUNIT (1/7200 inch).</summary>
-    private const double MmToUnit = 7200.0 / 25.4;
+    /// <summary>Documents with more pages are refused.</summary>
+    private const int MaxPages = 10_000;
 
-    /// <summary>Millimetres → font size in 1/100 pt.</summary>
-    private const double MmToCentiPt = 100.0 * 72.0 / 25.4;
+    /// <summary>Text, picture and path objects of a whole document; more are refused.</summary>
+    private const int MaxObjects = 2_000_000;
 
-    /// <summary>Smallest margin the page allows, so text never touches the paper edge (1 mm).</summary>
-    private const double MinMarginMm = 1.0;
+    /// <summary>Text runs on one page (a dense page drawn character by character has a few thousand); more are refused.</summary>
+    private const int MaxFragmentsPerPage = 50_000;
 
-    /// <summary>Image extensions the writers embed as they are; anything else is transcoded to PNG.</summary>
-    private static readonly HashSet<string> DirectImages = ["png", "jpg", "jpeg", "gif", "bmp", "webp"];
+    /// <summary>Pictures unpacked per document; further ones are left out.</summary>
+    private const int MaxPictures = 2_000;
 
-    /// <summary>Set by <see cref="Read"/>: the package pictures are unpacked from.</summary>
-    private static string? _zipPath;
+    /// <summary>Largest picture decoded (pixels), against images that unpack to gigabytes.</summary>
+    private const long MaxPicturePixels = 100_000_000;
+
+    /// <summary>Nesting of layers and page blocks followed.</summary>
+    private const int MaxDepth = 32;
+
+    /// <summary>Default font size (mm) when a text object names none.</summary>
+    private const double DefaultSize = 3.5;
+
+    private readonly OfdPackage _package;
+    private readonly string _mediaFolder;
+    private readonly Dictionary<string, string?> _extracted = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, (XElement Root, Resources Res)?> _templates = new();
+    private int _objects;
+
+    private OfdReader(OfdPackage package, string mediaFolder)
+    {
+        _package = package;
+        _mediaFolder = mediaFolder;
+    }
 
     public static HDocument Read(string path, string mediaFolder)
     {
-        _zipPath = path;
-        using var zip = ZipFile.OpenRead(path);
-        var entries = zip.Entries.ToDictionary(e => Norm(e.FullName), e => e, StringComparer.OrdinalIgnoreCase);
-
-        var root = LoadXml(entries, "OFD.xml") ?? throw new InvalidDataException("This OFD file has no OFD.xml.");
-        var docRoot = root.Descendants().First(d => d.Name.LocalName == "DocBody")
-                         .Descendants().First(d => d.Name.LocalName == "DocRoot").Value.Trim();
-        var docDir = DirName(docRoot);
-        var document = LoadXml(entries, docRoot) ?? throw new InvalidDataException("This OFD file has no document root.");
-
-        // Default page size from Document.xml/CommonData/PageArea (WPS writes it here, pages have no box of
-        // their own); a page's own PhysicalBox, when present, overrides it.
-        double defaultW = 210, defaultH = 297;
-        var commonData = document.Descendants().FirstOrDefault(d => d.Name.LocalName == "CommonData");
-        if (PageBox(commonData?.Descendants().FirstOrDefault(d => d.Name.LocalName == "PhysicalBox")?.Value) is { } box)
-        {
-            defaultW = box.W;
-            defaultH = box.H;
-        }
-
-        // Fonts and pictures the document itself owns: Res.xml plus the PublicRes and DocumentRes files
-        // CommonData names (tax invoices keep their pictures in DocumentRes); pages fall back to these.
-        var docRes = LoadRes(entries, docDir, "Res.xml");
-        foreach (var name in new[] { "PublicRes", "DocumentRes" })
-            if (commonData?.Descendants().FirstOrDefault(d => d.Name.LocalName == name)?.Value.Trim() is { Length: > 0 } file)
-                docRes = MergeRes(LoadRes(entries, docDir, file), docRes);
-
-        // Template pages (tax invoices): the fixed layout every page is drawn on top of.
-        var templates = new Dictionary<string, (string Path, XElement Root)>();
-        foreach (var tpl in document.Descendants().Where(d => d.Name.LocalName == "TemplatePage"))
-        {
-            if (Attr(tpl, "ID") is not { } id || Attr(tpl, "BaseLoc") is not { Length: > 0 } loc)
-                continue;
-            var templatePath = loc.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)
-                ? Join(docDir, loc)
-                : Join(docDir, loc, "Content.xml");
-            if (LoadXml(entries, templatePath)?.Root is { } templateRoot)
-                templates[id] = (templatePath, templateRoot);
-        }
-
-        var section = new HSection();
-        double pageW = defaultW, pageH = defaultH;
-        var firstPage = true;
-        var allItems = new List<Item>();
-        foreach (var page in document.Descendants().Where(d => d.Name.LocalName == "Page"))
-        {
-            // BaseLoc is a folder (the standard) or the content file itself (WPS writes Pages/Page_0/Content.xml).
-            var loc = Attr(page, "BaseLoc") ?? "";
-            var pagePath = loc.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)
-                ? Join(docDir, loc)
-                : Join(docDir, loc, Attr(page, "PageFile") ?? "Content.xml");
-            var content = LoadXml(entries, pagePath);
-            if (content?.Root is null)
-                continue;
-
-            // Templates the page is drawn on: their labels (发票号码：, 购买方信息) are read together with
-            // the page's own values, so the invoice comes out complete.
-            var usedTemplates = new List<(string Dir, XElement Root)>();
-            foreach (var use in content.Root.Descendants().Where(d => d.Name.LocalName == "Template"))
-                if (Attr(use, "TemplateID") is { } tid && templates.TryGetValue(tid, out var tpl))
-                    usedTemplates.Add((DirName(tpl.Path), tpl.Root));
-
-            pageW = defaultW;
-            pageH = defaultH;
-            if (PageBox(content.Root.Descendants().FirstOrDefault(d => d.Name.LocalName == "PhysicalBox")?.Value) is { } pageBox)
-            {
-                pageW = pageBox.W;
-                pageH = pageBox.H;
-            }
-            else if (usedTemplates.Select(t => PageBox(t.Root.Descendants().FirstOrDefault(d => d.Name.LocalName == "PhysicalBox")?.Value))
-                                   .FirstOrDefault(b => b is not null) is { } templateBox)
-            {
-                pageW = templateBox.W;
-                pageH = templateBox.H;
-            }
-
-            var pageDir = DirName(pagePath);
-            var res = MergeRes(LoadRes(entries, pageDir, "Res.xml"), docRes);
-            var items = new List<Item>();
-            foreach (var (tplDir, tplRoot) in usedTemplates)
-            {
-                var templateRes = MergeRes(LoadRes(entries, tplDir, "Res.xml"), docRes);
-                items.AddRange(MergeVerticalLabels(Collect(tplRoot, tplDir, templateRes, entries)));
-            }
-            items.AddRange(Collect(content.Root, pageDir, res, entries));
-            allItems.AddRange(items);
-
-            var firstBlockOfPage = true;
-            foreach (var block in Layout(items, mediaFolder))
-            {
-                if (!firstPage && firstBlockOfPage && block is HParagraph p)
-                    p.PageBreakBefore = true;
-                firstBlockOfPage = false;
-                section.Blocks.Add(block);
-            }
-            firstPage = false;
-        }
-
-        if (section.Blocks.Count == 0)
-            section.Blocks.Add(new HParagraph());
-        section.Page = PageSetup(allItems, pageW, pageH);
-
-        var doc = new HDocument();
-        doc.Sections.Add(section);
-        return doc;
+        using var package = new OfdPackage(path);
+        return new OfdReader(package, mediaFolder).Read();
     }
 
-    // ───────────────────────── Page items ─────────────────────────
-
-    /// <summary>A text fragment or a picture with its box, in millimetres from the page's top-left.</summary>
-    private abstract class Item
+    private HDocument Read()
     {
+        var ofd = _package.LoadXml("OFD.xml")?.Root;
+        if (ofd is null || ofd.Name.LocalName != "OFD")
+            throw new InvalidDataException("The file is not an OFD document (it has no OFD.xml).");
+        RefuseEncrypted(ofd);
+
+        // A package may hold several documents; the first is read.
+        var docPath = OfdPackage.Resolve("", Child(Child(ofd, "DocBody"), "DocRoot")?.Value)
+                      ?? throw new InvalidDataException("The OFD file names no document (DocRoot).");
+        var document = _package.LoadXml(docPath)?.Root ?? throw new InvalidDataException($"The OFD package has no {docPath}.");
+        var docDir = OfdPackage.DirName(docPath);
+        var common = Child(document, "CommonData");
+        var defaultArea = PageArea(Child(common, "PageArea")) ?? (210, 297);
+
+        // Fonts, pictures and drawing parameters of the whole document; WPS keeps them in a Res.xml it does not name.
+        var docRes = new Resources(null);
+        foreach (var res in Children(common, "PublicRes").Concat(Children(common, "DocumentRes")))
+            LoadRes(docRes, OfdPackage.Resolve(docDir, res.Value), docDir);
+        LoadRes(docRes, OfdPackage.Resolve(docDir, "Res.xml"), docDir);
+
+        var templates = new Dictionary<string, string>();
+        foreach (var template in Children(common, "TemplatePage"))
+        {
+            if (Attr(template, "ID") is { } id && PagePath(docDir, Attr(template, "BaseLoc")) is { } path)
+                templates.TryAdd(id, path);
+        }
+
+        var pages = new List<PageContent>();
+        foreach (var page in Children(Child(document, "Pages"), "Page"))
+        {
+            if (pages.Count == MaxPages)
+                throw new InvalidDataException($"The OFD document has more than {MaxPages:N0} pages; Filee does not read it.");
+            var path = PagePath(docDir, Attr(page, "BaseLoc"));
+            if (_package.LoadXml(path)?.Root is { } content)
+                pages.Add(ReadPage(content, path!, docDir, docRes, templates, defaultArea));
+        }
+        return Build(pages);
+    }
+
+    /// <summary>
+    /// Encrypted OFD (GM/T 0099: an Encryptions.xml entry file, encrypted parts) is refused, never decrypted.
+    /// </summary>
+    private void RefuseEncrypted(XElement ofd)
+    {
+        if (_package.Names.Any(n => n.Equals("Encryptions.xml", StringComparison.OrdinalIgnoreCase)
+                                    || n.EndsWith("/Encryptions.xml", StringComparison.OrdinalIgnoreCase))
+            || ofd.Descendants().Any(e => e.Name.LocalName is "Encryptions" or "Encryption" or "EncryptInfo"))
+        {
+            throw new InvalidDataException("The OFD document is encrypted. Filee does not convert encrypted (DRM-protected) documents.");
+        }
+    }
+
+    /// <summary>A page or template location: the content file itself, or (some writers) its folder.</summary>
+    private static string? PagePath(string docDir, string? baseLoc) =>
+        OfdPackage.Resolve(docDir, baseLoc) is not { } path ? null
+        : path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) ? path
+        : path + "/Content.xml";
+
+    // ───────────────────────── Pages ─────────────────────────
+
+    /// <summary>What a page draws, in millimetres from its top-left corner.</summary>
+    private sealed class PageContent
+    {
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public List<Fragment> Fragments { get; } = [];
+        public List<Picture> Pictures { get; } = [];
+        public List<Rule> Rules { get; } = [];
+        public List<Shade> Shades { get; } = [];
+
+        /// <summary>Straight path segments seen; a page with very many is a drawing, not a form.</summary>
+        public int Segments { get; set; }
+    }
+
+    /// <summary>A run of text on one baseline (or one vertical column of characters).</summary>
+    private sealed class Fragment(string text, HCharFormat format, double size, bool template)
+    {
+        public string Text { get; set; } = text;
+        public HCharFormat Format { get; } = format;
+
+        /// <summary>Font size in millimetres.</summary>
+        public double Size { get; } = size;
+
+        /// <summary>Drawn by a template page (labels of a form), not by the page itself.</summary>
+        public bool Template { get; } = template;
+
         public double X { get; set; }
-        public double Y { get; set; }
-        public double W { get; set; }
-        public double H { get; set; }
+        public double Baseline { get; set; }
+        public double Width { get; set; }
+
+        /// <summary>Vertical text: distance from the first character's baseline to the last one's.</summary>
+        public double Run { get; set; }
+
+        public bool Vertical => Run > 0;
+        public double Left => X;
+        public double Right => X + Width;
+        public double Top => Baseline - 0.88 * Size;
+        public double Bottom => Baseline + Run + 0.12 * Size;
     }
 
-    private sealed class Fragment(string text, double sizeMm, string? color, string? font, bool bold) : Item
+    /// <summary>A picture: the package part and its box.</summary>
+    private sealed record Picture(string Part, double Left, double Top, double Width, double Height)
     {
-        public string Text { get; } = text;
-        public double SizeMm { get; } = sizeMm;
-        public string? Color { get; } = color;
-        public string? Font { get; } = font;
-        public bool Bold { get; } = bold;
+        public double Right => Left + Width;
+        public double Bottom => Top + Height;
     }
 
-    private sealed class Picture(string entry) : Item
+    private PageContent ReadPage(XElement content, string path, string docDir, Resources docRes,
+        Dictionary<string, string> templates, (double W, double H) defaultArea)
     {
-        public string Entry { get; } = entry;
-    }
+        var page = new PageContent();
+        var area = PageArea(Child(content, "Area"));
 
-    /// <summary>Collects the text fragments and pictures of one page's content tree.</summary>
-    private static List<Item> Collect(XElement page, string pageDir, Dictionary<string, string> res,
-        IReadOnlyDictionary<string, ZipArchiveEntry> entries)
-    {
-        var items = new List<Item>();
-        foreach (var el in page.Descendants())
+        // Template pages first (the form behind the values): their labels read together with the page's text.
+        foreach (var id in Children(content, "Template").Select(t => Attr(t, "TemplateID")).OfType<string>().Distinct().Take(8))
         {
-            if (el.Name.LocalName == "TextObject")
-            {
-                var box = BoxWH(Attr(el, "Boundary"));
-                double size = Attr(el, "Size") is { } s && double.TryParse(s, out var mm) && mm > 0 ? mm : 3.5;
-                string? color = Color(Attr(el, "FillColor")) ?? Color(FillValue(el)) ?? Color(LayerColor(el, res));
-                string? font = Attr(el, "Font") is { } id ? res.GetValueOrDefault("font:" + id) : null;
-                bool bold = Attr(el, "Weight") is { } weight && weight == "700";
-                var originX = box?.X ?? 0;
-                var originY = box?.Y ?? 0;
-                foreach (var code in el.Descendants().Where(d => d.Name.LocalName == "TextCode"))
-                {
-                    var text = (code.Value ?? "").Replace("\r\n", "\n");
-                    double x = Parse(Attr(code, "X"));
-                    double y = Parse(Attr(code, "Y"));   // of the baseline, from the object's box
-                    var at = 0;
-                    foreach (var line in text.Split('\n'))
-                    {
-                        var trimmed = line.Trim();
-                        if (trimmed.Length > 0)
-                        {
-                            // Column-wide boxes (the 数量 cell holding one digit) must not swallow the gap to
-                            // the next column: the text's own width, when smaller, wins. DeltaX advances are
-                            // exact; the last character is as wide as the advance before it (half the size for
-                            // digits), not the full size.
-                            var own = DeltaX(code) is { } advances
-                                ? advances.Sum() + (advances.Length > 0 ? advances[^1] : size)
-                                : EstimateWidth(trimmed, size);
-                            var w = at == 0 && box is { W: > 0 } b ? Math.Min(b.W, own) : own;
-                            items.Add(new Fragment(trimmed, size, color, font, bold)
-                                .At(originX + x, originY + y - size * 0.86 + at * size * 1.3,
-                                    w, Math.Max(box?.H ?? 0, size * 1.25)));
-                        }
-                        at++;
-                    }
-                }
-            }
-            else if (el.Name.LocalName == "ImageObject")
-            {
-                if (Attr(el, "ResourceID") is not { } id || !res.TryGetValue("media:" + id, out var entry))
-                    continue;
-                if (BoxWH(Attr(el, "Boundary")) is { } image)
-                    items.Add(new Picture(entry).At(image.X, image.Y, image.W, image.H));
-            }
-        }
-        return items;
-    }
-
-    /// <summary>Position setter: records give positional equality, so boxes are set after construction.</summary>
-    private static T At<T>(this T item, double x, double y, double w, double h) where T : Item
-    {
-        item.X = x; item.Y = y; item.W = w; item.H = h;
-        return item;
-    }
-
-    // ───────────────────────── Layout ─────────────────────────
-
-    /// <summary>Boxes → paragraphs in reading order; fragments that line up share one line.</summary>
-    private static List<HBlock> Layout(List<Item> items, string mediaFolder)
-    {
-        var blocks = new List<(double Y, HBlock Block)>();
-
-        // Fragments into lines: same band of the page, ordered left to right.
-        var lines = new List<List<Fragment>>();
-        foreach (var fragment in items.Where(i => i is Fragment).Cast<Fragment>()
-                                      .OrderBy(f => f.Y + f.H / 2).ThenBy(f => f.X))
-        {
-            var line = lines.LastOrDefault();
-            if (line is not null && Math.Abs((fragment.Y + fragment.H / 2) - LineMid(line)) < 0.6 * Math.Max(fragment.H, 1))
-                line.Add(fragment);
-            else
-                lines.Add([fragment]);
-        }
-
-        // A wrapped item name continues its row (转印组 / 件): a lone CJK fragment under a line that ends in a
-        // number, starting at the same left edge, joins that line — a new row always brings its own columns, so
-        // it has several fragments and never matches.
-        for (var i = 1; i < lines.Count; i++)
-        {
-            var previous = lines[i - 1];
-            var current = lines[i];
-            if (current.Count == 1 && previous.Count > 1
-                && Math.Abs(current[0].X - previous.Min(f => f.X)) < 2
-                && current[0].Y - previous.Max(f => f.Y) is > 0 and < 8
-                && current[0].Text.All(c => c >= 0x2E80)
-                && previous.MaxBy(f => f.X) is { Text.Length: > 0 } last && char.IsAsciiDigit(last.Text[^1]))
-            {
-                previous.Add(current[0]);
-                lines.RemoveAt(i);
-                i--;
-            }
-        }
-
-        foreach (var group in lines)
-        {
-            var paragraph = new HParagraph();
-            var line = group.OrderBy(f => f.X).ToList();
-            for (var i = 0; i < line.Count; i++)
-            {
-                if (i > 0)
-                {
-                    var gap = line[i].X - (line[i - 1].X + line[i - 1].W);
-                    if (gap > 0.5 * line[i].SizeMm)
-                        paragraph.Inlines.Add(new HText(" ", Format(line[i])));
-                }
-                paragraph.Inlines.Add(new HText(line[i].Text, Format(line[i])));
-            }
-            blocks.Add((line.Average(f => f.Y), paragraph));
-        }
-
-        // Pictures: one centred paragraph each (the seal of an invoice), in reading order.
-        foreach (var picture in items.Where(i => i is Picture).Cast<Picture>().OrderBy(p => p.Y + p.H / 2))
-        {
-            if (Extract(picture, mediaFolder) is not { } file)
+            if (!templates.TryGetValue(id, out var templatePath) || Template(templatePath, docDir, docRes) is not { } template)
                 continue;
-            var paragraph = new HParagraph { Format = new(Align: HAlign.Center) };
-            paragraph.Inlines.Add(new HImage(file)
+            area ??= PageArea(Child(template.Root, "Area"));
+            var first = page.Fragments.Count;
+            Collect(Child(template.Root, "Content"), template.Res, page, null, true, 0);
+            if (page.Fragments.Count - first <= 5000)
+                MergeTemplateLabels(page.Fragments, first);
+        }
+
+        Collect(Child(content, "Content"), PageResources(content, path, docDir, docRes), page, null, false, 0);
+        (page.Width, page.Height) = area ?? defaultArea;
+        return page;
+    }
+
+    private (XElement Root, Resources Res)? Template(string path, string docDir, Resources docRes)
+    {
+        if (!_templates.TryGetValue(path, out var template))
+        {
+            template = _package.LoadXml(path)?.Root is { } root ? (root, PageResources(root, path, docDir, docRes)) : null;
+            _templates[path] = template;
+        }
+        return template;
+    }
+
+    /// <summary>The resource files a page names (PageRes), and a Res.xml next to it; the document's behind them.</summary>
+    private Resources PageResources(XElement content, string path, string docDir, Resources docRes)
+    {
+        var pageDir = OfdPackage.DirName(path);
+        var res = new Resources(docRes);
+        foreach (var pageRes in Children(content, "PageRes"))
+            LoadRes(res, OfdPackage.Resolve(pageDir, pageRes.Value) is { } name && _package.Has(name) ? name : OfdPackage.Resolve(docDir, pageRes.Value), docDir);
+        LoadRes(res, OfdPackage.Resolve(pageDir, "Res.xml"), docDir);
+        return res;
+    }
+
+    /// <summary>Page area "x y width height" (PhysicalBox, else ApplicationBox) in millimetres.</summary>
+    private static (double W, double H)? PageArea(XElement? area)
+    {
+        foreach (var name in new[] { "PhysicalBox", "ApplicationBox" })
+        {
+            if (Box(Child(area, name)?.Value) is { Width: >= 1 and <= 5000, Height: >= 1 and <= 5000 } box)
+                return (box.Width, box.Height);
+        }
+        return null;
+    }
+
+    /// <summary>The drawing objects of a content tree (layers, page blocks), with the layer's drawing parameters.</summary>
+    private void Collect(XElement? container, Resources res, PageContent page, string? layerDraw, bool template, int depth)
+    {
+        if (container is null || depth > MaxDepth)
+            return;
+        foreach (var element in container.Elements())
+        {
+            if (Attr(element, "Visible") == "false")
+                continue;
+            switch (element.Name.LocalName)
             {
-                Width = (int)Math.Round(picture.W * MmToUnit),
-                Height = (int)Math.Round(picture.H * MmToUnit),
-            });
-            blocks.Add((picture.Y, paragraph));
+                case "Layer":
+                    Collect(element, res, page, Attr(element, "DrawParam") ?? layerDraw, template, depth + 1);
+                    break;
+                case "PageBlock":
+                    Collect(element, res, page, layerDraw, template, depth + 1);
+                    break;
+                case "TextObject":
+                    Count();
+                    TextObject(element, res, page, layerDraw, template);
+                    break;
+                case "ImageObject":
+                    Count();
+                    ImageObject(element, res, page);
+                    break;
+                case "PathObject":
+                    Count();
+                    PathObject(element, res, page, layerDraw);
+                    break;
+            }
         }
-
-        return blocks.OrderBy(b => b.Y).Select(b => b.Block).ToList();
     }
 
-    /// <summary>One-character labels stacked at the same X (购买方信息, 备注 — the vertical block titles of an
-    /// invoice) become one fragment so they read as a word. Template content only: the page's own single
-    /// characters are table cells that must stay apart (rows sit closer than label characters).</summary>
-    private static List<Item> MergeVerticalLabels(List<Item> items)
+    private void Count()
     {
-        var vertical = items.Where(i => i is Fragment { Text.Length: 1 } f && f.Text[0] >= 0x2E80).Cast<Fragment>()
-                            .OrderBy(f => f.X).ThenBy(f => f.Y).ToList();
-        if (vertical.Count < 2)
-            return items;
-
-        var groups = new List<List<Fragment>>();
-        foreach (var fragment in vertical)
-        {
-            var group = groups.LastOrDefault(g => Math.Abs(g[0].X - fragment.X) < 0.75 && fragment.Y - g[^1].Y is > 0 and < 7.5);
-            if (group is not null && group.Count < 8)
-                group.Add(fragment);
-            else
-                groups.Add([fragment]);
-        }
-
-        var replaced = new HashSet<Fragment>();
-        var result = new List<Item>(items.Count);
-        foreach (var group in groups.Where(g => g.Count >= 2))
-        {
-            var first = group[0];
-            replaced.UnionWith(group);
-            result.Add(new Fragment(string.Concat(group.Select(g => g.Text)), first.SizeMm, first.Color, first.Font, first.Bold)
-                .At(first.X, first.Y, first.W, group[^1].Y + group[^1].H - first.Y));
-        }
-        result.AddRange(items.Where(i => i is not Fragment f || !replaced.Contains(f)));
-        return result;
+        if (++_objects > MaxObjects)
+            throw new InvalidDataException($"The OFD document has more than {MaxObjects:N0} drawing objects; Filee does not read it.");
     }
 
-    private static double LineMid(List<Fragment> line) => line.Average(f => f.Y + f.H / 2);
+    // ───────────────────────── Text ─────────────────────────
 
-    private static HCharFormat Format(Fragment f) => new()
+    private static void TextObject(XElement element, Resources res, PageContent page, string? layerDraw, bool template)
     {
-        Size = (int)Math.Round(f.SizeMm * MmToCentiPt),
-        Color = f.Color,
-        Font = f.Font,
-        EastAsianFont = f.Font,
-        Bold = f.Bold ? true : null,
+        var box = Box(Attr(element, "Boundary")) ?? default;
+        var ctm = Matrix.Parse(Attr(element, "CTM"));
+        var size = Number(Attr(element, "Size")) is { } s and > 0 and < 1000 ? s : DefaultSize;
+        var font = Attr(element, "Font") is { } fontId ? res.Font(fontId) : null;
+        var bold = Number(Attr(element, "Weight")) >= 600 || font?.Bold == true;
+        var italic = Attr(element, "Italic") == "true" || font?.Italic == true;
+
+        // Colour: the object's own (an attribute in some writers, the standard's FillColor element), its drawing
+        // parameter, the layer's. Text drawn as outline only takes the stroke colour.
+        var own = res.Draw(Attr(element, "DrawParam"));
+        var layer = res.Draw(layerDraw);
+        var color = Color(Attr(element, "FillColor")) ?? ColorOf(Child(element, "FillColor")) ?? own.Fill ?? layer.Fill;
+        if (Attr(element, "Fill") == "false" && Attr(element, "Stroke") == "true")
+            color = ColorOf(Child(element, "StrokeColor")) ?? own.Stroke ?? layer.Stroke ?? color;
+
+        var scaleX = ctm.ScaleX;
+        var fontSize = Math.Clamp(size * ctm.ScaleY, 0.1, 1000);
+        var family = FontFamily(font?.Name);
+        var format = new HCharFormat(
+            Bold: bold ? true : null,
+            Italic: italic ? true : null,
+            Size: (int)(Math.Round(fontSize * 72 / 25.4 * 2) * 50),
+            Font: family,
+            EastAsianFont: family,
+            Color: color);
+
+        // A TextCode without X or Y goes on where the one before it ended.
+        double penX = 0, penY = 0;
+        foreach (var code in Children(element, "TextCode"))
+        {
+            var text = string.Concat(code.Value.Select(c => char.IsControl(c) ? ' ' : c));
+            var x = Number(Attr(code, "X")) ?? penX;
+            var y = Number(Attr(code, "Y")) ?? penY;
+            if (text.Length == 0)
+                continue;
+            var dx = Deltas(Attr(code, "DeltaX"), text.Length - 1);
+            var dy = Deltas(Attr(code, "DeltaY"), text.Length - 1);
+            var vertical = dy is not null && dy.Any(d => d != 0) && (dx is null || dx.All(d => d == 0));
+
+            // Offsets of each character from the first, along the line (or down the column).
+            var offsets = new double[text.Length + 1];
+            for (var i = 0; i < text.Length; i++)
+            {
+                var step = vertical ? dy!.ElementAtOrDefault(i) : dx is not null && i < dx.Length ? dx[i] : Advance(text[i], size);
+                offsets[i + 1] = offsets[i] + (vertical && i >= dy!.Length ? size : step);
+            }
+            (penX, penY) = vertical ? (x, y + offsets[^1]) : (x + offsets[^1], y);
+
+            var start = 0;
+            while (start < text.Length && char.IsWhiteSpace(text[start]))
+                start++;
+            var end = text.Length - 1;
+            while (end >= start && char.IsWhiteSpace(text[end]))
+                end--;
+            if (end < start)
+                continue;
+
+            var (originX, originY) = vertical ? (x, y + offsets[start]) : (x + offsets[start], y);
+            var (pageX, pageY) = ctm.Apply(originX, originY);
+            var fragment = new Fragment(text[start..(end + 1)], format, fontSize, template)
+            {
+                X = box.X + pageX,
+                Baseline = box.Y + pageY,
+                Width = (vertical ? size : offsets[end] - offsets[start] + Advance(text[end], size)) * scaleX,
+                Run = vertical ? (offsets[end] - offsets[start]) * ctm.ScaleY : 0,
+            };
+            if (page.Fragments.Count == MaxFragmentsPerPage)
+                throw new InvalidDataException($"An OFD page has more than {MaxFragmentsPerPage:N0} pieces of text; Filee does not read it.");
+            page.Fragments.Add(fragment);
+        }
+    }
+
+    /// <summary>
+    /// DeltaX / DeltaY: the distances between the characters, with "g n d" standing for n times d. At most
+    /// <paramref name="count"/> values are taken (a huge repeat count cannot allocate more than the text needs).
+    /// </summary>
+    private static double[]? Deltas(string? value, int count)
+    {
+        if (value is null || count <= 0)
+            return null;
+        var result = new List<double>();
+        var tokens = value.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        for (var i = 0; i < tokens.Length && result.Count < count; i++)
+        {
+            if (tokens[i] == "g" && i + 2 < tokens.Length
+                && int.TryParse(tokens[i + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var repeat)
+                && Number(tokens[i + 2]) is { } repeated)
+            {
+                for (var k = 0; k < repeat && result.Count < count; k++)
+                    result.Add(repeated);
+                i += 2;
+            }
+            else if (Number(tokens[i]) is { } delta)
+            {
+                result.Add(delta);
+            }
+        }
+        return result.Count > 0 ? [.. result] : null;
+    }
+
+    /// <summary>Advance of a character without DeltaX: full width for CJK, half for the rest (as Chinese fonts draw Latin).</summary>
+    private static double Advance(char c, double size) => IsWide(c) ? size : size * 0.5;
+
+    private static bool IsWide(char c) => c >= 0x2E80 && c is < '｡' or > 'ￜ';
+
+    /// <summary>
+    /// Single characters of a template stacked in one column (购买方信息, 备注 — the block titles of an invoice) or spread
+    /// over one line (合　计) become one fragment, so they read as a word. Template content only: the page's own single
+    /// characters are values in table cells that must stay apart.
+    /// </summary>
+    private static void MergeTemplateLabels(List<Fragment> fragments, int first)
+    {
+        var singles = fragments.Skip(first).Where(f => f.Text.Length == 1 && IsWide(f.Text[0]) && !f.Vertical).ToList();
+        var merged = new HashSet<Fragment>();
+
+        // Stacked: same X, one under the other, at most three lines apart.
+        foreach (var column in singles.GroupBy(f => Math.Round(f.X * 2) / 2))
+        {
+            var stack = new List<Fragment>();
+            foreach (var fragment in column.OrderBy(f => f.Baseline).Append(null))
+            {
+                if (fragment is not null && stack.Count is > 0 and < 8 && Math.Abs(fragment.Size - stack[0].Size) < 0.1
+                    && fragment.Baseline - stack[^1].Baseline > 0 && fragment.Baseline - stack[^1].Baseline < 3 * fragment.Size)
+                {
+                    stack.Add(fragment);
+                    continue;
+                }
+                if (stack.Count >= 2)
+                {
+                    stack[0].Text = string.Concat(stack.Select(f => f.Text));
+                    stack[0].Run = stack[^1].Baseline - stack[0].Baseline;
+                    merged.UnionWith(stack.Skip(1));
+                }
+                stack = fragment is null ? [] : [fragment];
+            }
+        }
+
+        // Spread: a pair of single characters on one baseline with nothing between them.
+        var row = singles.Where(f => !merged.Contains(f) && !f.Vertical).OrderBy(f => f.Baseline).ThenBy(f => f.X).ToList();
+        for (var i = 1; i < row.Count; i++)
+        {
+            var (left, right) = (row[i - 1], row[i]);
+            var gap = right.Left - left.Right;
+            if (left.Text.Length != 1 || Math.Abs(left.Baseline - right.Baseline) > 0.3 || Math.Abs(left.Size - right.Size) > 0.1
+                || gap < -0.1 || gap > 8 * right.Size
+                || fragments.Skip(first).Any(f => f != left && f != right && Math.Abs(f.Baseline - left.Baseline) < 0.5 * f.Size
+                                                  && f.Left >= left.Right - 0.1 && f.Right <= right.Left + 0.1))
+            {
+                continue;
+            }
+            left.Text += right.Text;
+            left.Width = right.Right - left.Left;
+            merged.Add(right);
+            row[i] = left;
+        }
+        fragments.RemoveAll(merged.Contains);
+    }
+
+    /// <summary>English family names of common Chinese fonts, which Word and LibreOffice know on any system.</summary>
+    private static readonly Dictionary<string, string> ChineseFonts = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["宋体"] = "SimSun",
+        ["新宋体"] = "NSimSun",
+        ["黑体"] = "SimHei",
+        ["楷体"] = "KaiTi",
+        ["楷体_GB2312"] = "KaiTi_GB2312",
+        ["仿宋"] = "FangSong",
+        ["仿宋_GB2312"] = "FangSong_GB2312",
+        ["微软雅黑"] = "Microsoft YaHei",
+        ["等线"] = "DengXian",
+        ["隶书"] = "LiSu",
+        ["幼圆"] = "YouYuan",
+        ["华文宋体"] = "STSong",
+        ["华文中宋"] = "STZhongsong",
+        ["华文楷体"] = "STKaiti",
+        ["华文仿宋"] = "STFangsong",
+        ["华文细黑"] = "STXihei",
+        ["方正小标宋简体"] = "FZXiaoBiaoSong-B05S",
     };
 
-    /// <summary>Unpacks a picture; exotic formats (JBIG2, JPEG-2000) are transcoded to PNG, unreadable ones skipped.</summary>
-    private static string? Extract(Picture picture, string mediaFolder)
+    /// <summary>The family to write: subset prefixes ("ABCDEF+") and style suffixes (",Bold") off, Chinese names in English.</summary>
+    private static string? FontFamily(string? name)
     {
-        var name = "ofd-" + Guid.NewGuid().ToString("N")[..8];
-        var ext = Extension(picture.Entry);
-        Directory.CreateDirectory(mediaFolder);
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
+        name = name.Trim();
+        if (name.Length > 7 && name[6] == '+' && name[..6].All(char.IsAsciiLetterUpper))
+            name = name[7..];
+        name = name.Split(',')[0].Trim();
+        return name.Length == 0 ? null : ChineseFonts.GetValueOrDefault(name, name);
+    }
+
+    // ───────────────────────── Pictures ─────────────────────────
+
+    private static void ImageObject(XElement element, Resources res, PageContent page)
+    {
+        if (Attr(element, "ResourceID") is not { } id || res.Media(id) is not { } part)
+            return;
+        if (Box(Attr(element, "Boundary")) is not { } box)
+            return;
+        // The picture fills the unit square, which the CTM scales to its size within the boundary.
+        var ctm = Matrix.Parse(Attr(element, "CTM"));
+        var (left, top, width, height) = ctm != Matrix.Identity ? ctm.Bounds(box.X, box.Y) : box;
+        if (width >= 0.5 && height >= 0.5 && width < 10_000 && height < 10_000)
+            page.Pictures.Add(new Picture(part, left, top, width, height));
+    }
+
+    /// <summary>A picture unpacked into the media folder (once per part), as a format the writers embed; null when
+    /// it cannot be decoded (JBIG2, damaged) or is too large.</summary>
+    private string? Extract(string part)
+    {
+        if (_extracted.TryGetValue(part, out var known))
+            return known;
+        string? file = null;
+        if (_extracted.Count < MaxPictures && _package.Read(part, OfdPackage.MaxPictureBytes) is { } bytes)
+            file = Save(bytes);
+        _extracted[part] = file;
+        return file;
+    }
+
+    private string? Save(byte[] bytes)
+    {
+        // The part name is never used for the file: the format comes from the bytes.
+        var kind = bytes switch
+        {
+            [0x89, 0x50, 0x4E, 0x47, ..] => "png",
+            [0xFF, 0xD8, 0xFF, ..] => "jpg",
+            [0x47, 0x49, 0x46, 0x38, ..] => "gif",
+            [0x42, 0x4D, ..] => "bmp",
+            [0x49, 0x49, 0x2A, 0x00, ..] or [0x4D, 0x4D, 0x00, 0x2A, ..] => "tiff",
+            [0x00, 0x00, 0x00, 0x0C, 0x6A, 0x50, 0x20, 0x20, ..] => "jp2",
+            [0xFF, 0x4F, 0xFF, 0x51, ..] => "j2k",
+            _ => null,
+        };
+        if (kind is null)
+            return null;
+        Directory.CreateDirectory(_mediaFolder);
+        var name = Path.Combine(_mediaFolder, $"ofd-{Guid.NewGuid():N}");
+        if (kind is "png" or "jpg" or "gif" or "bmp")
+        {
+            File.WriteAllBytes($"{name}.{kind}", bytes);
+            return $"{name}.{kind}";
+        }
         try
         {
-            if (DirectImages.Contains(ext))
+            var settings = new MagickReadSettings
             {
-                var file = Path.Combine(mediaFolder, $"{name}.{ext}");
-                File.WriteAllBytes(file, ReadEntry(picture.Entry));
-                return file;
-            }
-            using var image = new MagickImage(ReadEntry(picture.Entry));
-            var png = Path.Combine(mediaFolder, $"{name}.png");
-            image.Write(png);
-            return png;
+                Format = kind switch { "tiff" => MagickFormat.Tiff, "jp2" => MagickFormat.Jp2, _ => MagickFormat.J2k },
+            };
+            var info = new MagickImageInfo(bytes, settings);
+            if ((long)info.Width * info.Height > MaxPicturePixels)
+                return null;
+            using var image = new MagickImage(bytes, settings);
+            image.Write($"{name}.png", MagickFormat.Png);
+            return $"{name}.png";
         }
-        catch
+        catch (MagickException)
         {
-            return null;   // a seal Filee cannot decode is left out; the text of the invoice still converts
+            return null; // a picture Filee cannot decode is left out; the text still converts
         }
     }
 
     // ───────────────────────── Resources ─────────────────────────
 
-    /// <summary>Res file lookup: "media:id" → zip entry, "font:id" → font family name, "draw:id" → the colour
-    /// a DrawParam fills with. The Res element's own BaseLoc ("Res") says where its media files live.</summary>
-    private static Dictionary<string, string> LoadRes(IReadOnlyDictionary<string, ZipArchiveEntry> entries, string dir, string fileName)
+    private sealed record FontInfo(string? Name, bool Bold, bool Italic);
+
+    private sealed record DrawParam(string? Relative, string? Fill, string? Stroke, double? LineWidth);
+
+    /// <summary>Resources by ID; a page's own come first, then the document's (<see cref="Parent"/>).</summary>
+    private sealed class Resources(Resources? parent)
     {
-        var res = new Dictionary<string, string>();
-        var xml = LoadXml(entries, Join(dir, fileName));
-        if (xml?.Root is null)
-            return res;
-        var mediaDir = Attr(xml.Root, "BaseLoc") is { Length: > 0 } baseLoc ? Join(dir, baseLoc) : dir;
-        var drawParams = new List<(string Id, string? Relative, string? Color)>();
-        foreach (var el in xml.Root.Descendants())
+        public Resources? Parent { get; } = parent;
+        public Dictionary<string, FontInfo> Fonts { get; } = [];
+        public Dictionary<string, string> MediaParts { get; } = [];
+        public Dictionary<string, DrawParam> DrawParams { get; } = [];
+
+        public FontInfo? Font(string id) => Fonts.GetValueOrDefault(id) ?? Parent?.Font(id);
+
+        public string? Media(string id) => MediaParts.GetValueOrDefault(id) ?? Parent?.Media(id);
+
+        /// <summary>Fill and stroke colour and line width of a drawing parameter, completed from the ones it is relative to.</summary>
+        public (string? Fill, string? Stroke, double? LineWidth) Draw(string? id)
         {
-            if (el.Name.LocalName == "MultiMedia" && Attr(el, "ID") is { } id)
-                res["media:" + id] = ResolveEntry(entries, mediaDir, MediaFile(el));
-            else if (el.Name.LocalName == "Font" && Attr(el, "ID") is { } fid)
-                res["font:" + fid] = Attr(el, "FontName") ?? Attr(el, "FamilyName") ?? "";
-            else if (el.Name.LocalName == "DrawParam" && Attr(el, "ID") is { } did)
-                drawParams.Add((did, Attr(el, "Relative"), Attr(el, "FillColor") ?? FillValue(el) ?? StrokeValue(el)));
-        }
-        // A DrawParam without its own FillColor inherits from the one it is Relative to.
-        for (var pass = 0; pass < 4 && drawParams.Any(p => !res.ContainsKey("draw:" + p.Id)); pass++)
-            foreach (var (id, relative, colour) in drawParams.Where(p => !res.ContainsKey("draw:" + p.Id)))
+            string? fill = null, stroke = null;
+            double? width = null;
+            for (var hops = 0; id is not null && hops < 8 && Find(id) is { } param; hops++)
             {
-                if (colour is { Length: > 0 })
-                    res["draw:" + id] = colour;
-                else if (relative is { } rel && res.TryGetValue("draw:" + rel, out var inherited))
-                    res["draw:" + id] = inherited;
+                fill ??= param.Fill;
+                stroke ??= param.Stroke;
+                width ??= param.LineWidth;
+                id = param.Relative;
             }
-        return res;
-    }
-
-    private static Dictionary<string, string> MergeRes(Dictionary<string, string> page, Dictionary<string, string> doc)
-    {
-        foreach (var pair in doc.Where(p => !page.ContainsKey(p.Key)))
-            page[pair.Key] = pair.Value;
-        return page;
-    }
-
-    /// <summary>MediaFile is relative to the page (or document) the Res file belongs to; a few writers differ.</summary>
-    private static string ResolveEntry(IReadOnlyDictionary<string, ZipArchiveEntry> entries, string dir, string mediaFile)
-    {
-        foreach (var candidate in new[] { Join(dir, mediaFile), Join(dir, "Res", mediaFile), mediaFile })
-            if (entries.ContainsKey(candidate))
-                return candidate;
-        return Join(dir, mediaFile);
-    }
-
-    // ───────────────────────── Page setup ─────────────────────────
-
-    private static HPage PageSetup(List<Item> items, double pageW, double pageH)
-    {
-        double left = MinMarginMm, top = MinMarginMm, right = MinMarginMm, bottom = MinMarginMm;
-        if (items.Count > 0)
-        {
-            left = Math.Max(MinMarginMm, items.Min(i => i.X));
-            top = Math.Max(MinMarginMm, items.Min(i => i.Y));
-            right = Math.Max(MinMarginMm, pageW - items.Max(i => i.X + i.W));
-            bottom = Math.Max(MinMarginMm, pageH - items.Max(i => i.Y + i.H));
+            return (fill, stroke, width);
         }
-        return new HPage((int)(pageW * MmToUnit), (int)(pageH * MmToUnit),
-            (int)(left * MmToUnit), (int)(right * MmToUnit), (int)(top * MmToUnit), (int)(bottom * MmToUnit), 0, 0, 0);
+
+        private DrawParam? Find(string id) => DrawParams.GetValueOrDefault(id) ?? Parent?.Find(id);
+    }
+
+    /// <summary>Reads a resource file into <paramref name="into"/> (IDs already there are kept).</summary>
+    private void LoadRes(Resources into, string? name, string docDir)
+    {
+        if (_package.LoadXml(name)?.Root is not { } root)
+            return;
+        var resDir = OfdPackage.DirName(name!);
+        // Media files are relative to the folder the Res element names (BaseLoc); writers differ, so the file's own
+        // folder, its Res subfolder, the document and the package root are tried too.
+        var baseDir = OfdPackage.Resolve(resDir, Attr(root, "BaseLoc")) ?? resDir;
+        foreach (var element in root.Descendants())
+        {
+            if (Attr(element, "ID") is not { } id)
+                continue;
+            switch (element.Name.LocalName)
+            {
+                case "Font":
+                    into.Fonts.TryAdd(id, new FontInfo(Attr(element, "FontName") ?? Attr(element, "FamilyName"),
+                        Attr(element, "Bold") == "true", Attr(element, "Italic") == "true"));
+                    break;
+                case "MultiMedia" when Attr(element, "Type") is null || Attr(element, "Type")!.Equals("Image", StringComparison.OrdinalIgnoreCase):
+                    var file = Attr(element, "MediaFile") ?? Child(element, "MediaFile")?.Value;
+                    var part = new[] { baseDir, resDir, resDir.Length == 0 ? "Res" : resDir + "/Res", docDir, "" }
+                        .Select(dir => OfdPackage.Resolve(dir, file)).FirstOrDefault(_package.Has);
+                    if (part is not null)
+                        into.MediaParts.TryAdd(id, part);
+                    break;
+                case "DrawParam":
+                    into.DrawParams.TryAdd(id, new DrawParam(Attr(element, "Relative"),
+                        Color(Attr(element, "FillColor")) ?? ColorOf(Child(element, "FillColor")),
+                        Color(Attr(element, "StrokeColor")) ?? ColorOf(Child(element, "StrokeColor")),
+                        Number(Attr(element, "LineWidth"))));
+                    break;
+            }
+        }
     }
 
     // ───────────────────────── Small helpers ─────────────────────────
 
-    private static XDocument? LoadXml(IReadOnlyDictionary<string, ZipArchiveEntry> entries, string path)
+    /// <summary>A transformation "a b c d e f": (x, y) → (a·x + c·y + e, b·x + d·y + f).</summary>
+    private readonly record struct Matrix(double A, double B, double C, double D, double E, double F)
     {
-        if (!entries.TryGetValue(path, out var entry) || entry.Length == 0)
-            return null;
-        using var stream = entry.Open();
-        return XDocument.Load(stream, LoadOptions.None);
-    }
+        public static readonly Matrix Identity = new(1, 0, 0, 1, 0, 0);
 
-    private static byte[] ReadEntry(string path)
-    {
-        using var zip = ZipFile.OpenRead(_zipPath!);
-        var entry = zip.Entries.FirstOrDefault(e => Norm(e.FullName) == path)
-                    ?? throw new InvalidDataException($"The OFD package is missing {path}.");
-        using var stream = entry.Open();
-        using var copy = new MemoryStream();
-        stream.CopyTo(copy);
-        return copy.ToArray();
-    }
-
-    private static string? Attr(XElement el, string name) =>
-        el.Attribute(name)?.Value ?? el.Attributes().FirstOrDefault(a => a.Name.LocalName == name)?.Value;
-
-    /// <summary>WPS writes colour as a FillColor child element with a decimal "R G B" Value attribute.</summary>
-    private static string? FillValue(XElement el) =>
-        el.Elements().FirstOrDefault(e => e.Name.LocalName == "FillColor")?.Attribute("Value")?.Value;
-
-    /// <summary>StrokeColor the same way (a DrawParam may only define one).</summary>
-    private static string? StrokeValue(XElement el) =>
-        el.Elements().FirstOrDefault(e => e.Name.LocalName == "StrokeColor")?.Attribute("Value")?.Value;
-
-    /// <summary>MediaFile is an attribute (WPS) or a child element (tax invoices).</summary>
-    private static string MediaFile(XElement el) =>
-        Attr(el, "MediaFile") ?? el.Elements().FirstOrDefault(e => e.Name.LocalName == "MediaFile")?.Value.Trim() ?? "";
-
-    /// <summary>A Layer's DrawParam colours its text (tax invoices: red labels and amounts).</summary>
-    private static string? LayerColor(XElement el, Dictionary<string, string> res)
-    {
-        var layer = el.Ancestors().FirstOrDefault(a => a.Name.LocalName == "Layer");
-        return layer is not null && Attr(layer, "DrawParam") is { } id ? res.GetValueOrDefault("draw:" + id) : null;
-    }
-
-    /// <summary>TextCode DeltaX: per-character advances in millimetres, when the writer spelled them out.</summary>
-    private static double[]? DeltaX(XElement code)
-    {
-        if (Attr(code, "DeltaX") is not { } value)
-            return null;
-        var advances = new List<double>();
-        foreach (var part in value.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            if (double.TryParse(part, out var advance))
-                advances.Add(advance);
-        return advances.Count > 0 ? advances.ToArray() : null;
-    }
-
-    /// <summary>Width of a text run without DeltaX: full width for CJK, half for digits (the advance tax
-    /// invoices use), slightly more for other Latin.</summary>
-    private static double EstimateWidth(string text, double size) =>
-        text.Sum(c =>
+        public static Matrix Parse(string? value)
         {
-            if (c >= 0x2E80)
-                return size;
-            if (char.IsAsciiDigit(c) || c == '.')
-                return size * 0.5;
-            return size * 0.55;
-        });
+            var numbers = Numbers(value);
+            if (numbers is not [var a, var b, var c, var d, var e, var f] || Math.Abs(a * d - b * c) < 1e-9)
+                return Identity;
+            return new Matrix(a, b, c, d, e, f);
+        }
 
-    /// <summary>Boundary "x y w h" in millimetres (TextObject, ImageObject); null when missing.</summary>
-    private static (double X, double Y, double W, double H)? BoxWH(string? value)
+        public (double X, double Y) Apply(double x, double y) => (A * x + C * y + E, B * x + D * y + F);
+
+        public double ScaleX => Math.Sqrt(A * A + B * B);
+        public double ScaleY => Math.Sqrt(C * C + D * D);
+
+        /// <summary>Box of the unit square after the transformation, moved by (<paramref name="x"/>, <paramref name="y"/>).</summary>
+        public (double Left, double Top, double Width, double Height) Bounds(double x, double y)
+        {
+            var corners = new[] { Apply(0, 0), Apply(1, 0), Apply(0, 1), Apply(1, 1) };
+            var (left, top) = (corners.Min(p => p.X), corners.Min(p => p.Y));
+            return (x + left, y + top, corners.Max(p => p.X) - left, corners.Max(p => p.Y) - top);
+        }
+    }
+
+    /// <summary>A box "x y width height" in millimetres; null when missing or not four numbers.</summary>
+    private static (double X, double Y, double Width, double Height)? Box(string? value) =>
+        Numbers(value) is [var x, var y, var w, var h] && w >= 0 && h >= 0 ? (x, y, w, h) : null;
+
+    private static double[]? Numbers(string? value)
     {
-        var parts = value?.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts is not [var x, var y, var w, var h])
+        if (value is null)
             return null;
-        return Parse(w) > 0 && Parse(h) > 0 ? (Parse(x), Parse(y), Parse(w), Parse(h)) : null;
-    }
-
-    /// <summary>PhysicalBox "xmin ymin xmax ymax" in millimetres (page area); null when missing.</summary>
-    private static (double W, double H)? PageBox(string? value)
-    {
-        var parts = value?.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts is not [var x0, var y0, var x1, var y1])
+        var parts = value.Split([' ', '\t', '\r', '\n', ','], StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length > 16)
             return null;
-        var w = Math.Max(1, Parse(x1) - Parse(x0));
-        var h = Math.Max(1, Parse(y1) - Parse(y0));
-        return w is <= 0 or > 2000 || h is <= 0 or > 2000 ? null : (w, h);
+        var numbers = new double[parts.Length];
+        for (var i = 0; i < parts.Length; i++)
+        {
+            if (Number(parts[i]) is not { } number)
+                return null;
+            numbers[i] = number;
+        }
+        return numbers;
     }
 
-    private static string? Color(string? value) => value switch
+    /// <summary>A number written the XML way (invariant culture); null when it is none, not finite or absurdly large.</summary>
+    private static double? Number(string? value) =>
+        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) && Math.Abs(number) <= 1e6 ? number : null;
+
+    /// <summary>A colour element's Value ("R G B", grey, CMYK, channels in decimal or "#hex").</summary>
+    private static string? ColorOf(XElement? element) => Color(Attr(element, "Value"));
+
+    private static string? Color(string? value)
     {
-        null or "" => null,
-        ['#', .. var hex] when hex.Length >= 6 => "#" + hex[^6..],   // #RRGGBB or #AARRGGBB
-        _ when value.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) is [var r, var g, var br]
-              && int.TryParse(r, out var red) && int.TryParse(g, out var green) && int.TryParse(br, out var blue)
-            => $"#{red:X2}{green:X2}{blue:X2}",   // decimal "R G B" (WPS FillColor Value)
-        _ => null,
-    };
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+        var parts = value.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts is [var single] && single.StartsWith('#') && single.Length >= 7
+            && int.TryParse(single[^6..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var rgb))
+            return $"#{rgb:X6}"; // #RRGGBB or #AARRGGBB
+        var channels = new int[parts.Length];
+        for (var i = 0; i < parts.Length; i++)
+        {
+            var ok = parts[i].StartsWith('#')
+                ? int.TryParse(parts[i][1..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out channels[i])
+                : int.TryParse(parts[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out channels[i]);
+            if (!ok)
+                return null;
+            channels[i] = Math.Clamp(channels[i], 0, 255);
+        }
+        return channels switch
+        {
+            [var gray] => $"#{gray:X2}{gray:X2}{gray:X2}",
+            [var r, var g, var b] => $"#{r:X2}{g:X2}{b:X2}",
+            [var c, var m, var y, var k] => $"#{Cmyk(c, k):X2}{Cmyk(m, k):X2}{Cmyk(y, k):X2}",
+            _ => null,
+        };
 
-    private static double Parse(string? value) => double.TryParse(value, out var number) ? number : 0;
-
-    private static string Extension(string entry) => Path.GetExtension(entry).TrimStart('.').ToLowerInvariant();
-
-    /// <summary>Zip entry names use forward slashes; writers differ in case and in leading slashes.</summary>
-    private static string Norm(string path) => path.TrimStart('/', '\\').Replace('\\', '/').TrimEnd('/');
-
-    private static string DirName(string path)
-    {
-        var i = path.LastIndexOf('/');
-        return i < 0 ? "" : path[..i];
+        static int Cmyk(int channel, int black) => (int)Math.Round((255 - channel) * (255 - black) / 255.0);
     }
 
-    private static string Join(string dir, string file) =>
-        string.IsNullOrEmpty(dir) ? Norm(file) : Norm(dir) + "/" + Norm(file);
+    private static string? Attr(XElement? element, string name) =>
+        element?.Attribute(name)?.Value ?? element?.Attributes().FirstOrDefault(a => a.Name.LocalName == name)?.Value;
 
-    private static string Join(string dir, string folder, string file) =>
-        string.IsNullOrEmpty(folder) ? Join(dir, file) : Join(dir, Norm(folder) + "/" + Norm(file));
+    private static XElement? Child(XElement? element, string name) =>
+        element?.Elements().FirstOrDefault(e => e.Name.LocalName == name);
+
+    private static IEnumerable<XElement> Children(XElement? element, string name) =>
+        element?.Elements().Where(e => e.Name.LocalName == name) ?? [];
 }
