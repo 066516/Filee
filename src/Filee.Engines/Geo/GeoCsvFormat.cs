@@ -69,7 +69,9 @@ internal static class GeoCsvFormat
             if (geometry is not null)
                 located++;
             var properties = new List<KeyValuePair<string, object?>>();
-            for (var c = 0; c < header.Count; c++)
+            // A row shorter than the header has nothing in the columns it lacks: those are not made up for every row
+            // (a wide header over many short rows would otherwise take rows x columns of memory).
+            for (var c = 0; c < Math.Min(header.Count, row.Count); c++)
             {
                 if (!used.Contains(c))
                     properties.Add(new(names[c], GeoText.Typed(Cell(c))));
@@ -101,13 +103,20 @@ internal static class GeoCsvFormat
     private static List<string> UniqueNames(List<string> header)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        // The next number to try for a repeated name: a header of 100,000 identical names costs 100,000 steps, not 5 billion.
+        var next = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var names = new List<string>();
         for (var i = 0; i < header.Count; i++)
         {
             var name = header[i].Length == 0 ? $"column{i + 1}" : header[i];
             var unique = name;
-            for (var n = 2; !seen.Add(unique); n++)
-                unique = $"{name}_{n}";
+            if (!seen.Add(unique))
+            {
+                var n = next.GetValueOrDefault(name, 2);
+                while (!seen.Add(unique = $"{name}_{n}"))
+                    n++;
+                next[name] = n + 1;
+            }
             names.Add(unique);
         }
         return names;

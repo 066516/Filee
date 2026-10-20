@@ -23,6 +23,64 @@ internal static class GeoFixtures
         return Path.Combine(folder, name + "." + extension);
     }
 
+    /// <summary>Two points, A (10.5, 20.25) and B (-5, 40), written the way GDAL writes them (see Geo/make-test-geo.py for the Shapefiles).</summary>
+    internal const string PointsGeoJson = """
+        {
+        "type": "FeatureCollection",
+        "name": "points",
+        "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+        "features": [
+        { "type": "Feature", "properties": { "name": "A", "n": 1 }, "geometry": { "type": "Point", "coordinates": [ 10.5, 20.25 ] } },
+        { "type": "Feature", "properties": { "name": "B", "n": 2 }, "geometry": { "type": "Point", "coordinates": [ -5.0, 40.0 ] } }
+        ]
+        }
+        """;
+
+    internal const string PointsKml = """
+        <?xml version="1.0" encoding="utf-8" ?>
+        <kml xmlns="http://www.opengis.net/kml/2.2">
+        <Document id="root_doc">
+        <Folder><name>points</name>
+          <Placemark>
+        	<name>A</name>
+        	<description>first</description>
+              <Point><coordinates>10.5,20.25</coordinates></Point>
+          </Placemark>
+          <Placemark>
+        	<name>B</name>
+        	<description>second</description>
+              <Point><coordinates>-5,40</coordinates></Point>
+          </Placemark>
+        </Folder>
+        </Document></kml>
+        """;
+
+    internal const string PointsGpx = """
+        <?xml version="1.0"?>
+        <gpx version="1.1" creator="GDAL 3.9.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.topografix.com/GPX/1/1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+        <metadata>
+        <bounds minlat="20.250000000000000" minlon="-5.000000000000000" maxlat="40.000000000000000" maxlon="10.500000000000000"/>
+        </metadata>
+        <wpt lat="20.25" lon="10.5">
+          <ele>12.5</ele>
+          <name>A</name>
+        </wpt>
+        <wpt lat="40.0" lon="-5.0">
+          <ele>0.0</ele>
+          <name>B</name>
+        </wpt>
+        </gpx>
+        """;
+
+    /// <summary>The two points as a file of <paramref name="extension"/> (geojson, kml or gpx) named points.&lt;extension&gt; in a fresh folder.</summary>
+    public static string Points(EngineFixture fx, string extension) => WriteText(fx, "points." + extension, extension switch
+    {
+        "geojson" => PointsGeoJson,
+        "kml" => PointsKml,
+        "gpx" => PointsGpx,
+        _ => throw new ArgumentOutOfRangeException(nameof(extension)),
+    });
+
     /// <summary>Converts <paramref name="input"/> to <paramref name="target"/> as the app would.</summary>
     public static async Task<ConversionJob> ConvertAsync(this EngineFixture fx, string input, string target, Action<Preset>? tweak = null)
     {

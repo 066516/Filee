@@ -84,7 +84,7 @@ internal static class ShapefileFormat
             position += 8;
             if (contentLength < 4 || position + contentLength > end)
                 throw new InvalidDataException($"The .shp is cut off or damaged at shape {geometries.Count + 1}.");
-            geometries.Add(ReadShape(bytes.AsSpan(position, (int)contentLength), geometries.Count + 1));
+            geometries.Add(ReadShape(bytes.AsSpan(position, (int)contentLength), geometries.Count + 1, cancellationToken));
             position += (int)contentLength;
         }
 
@@ -92,7 +92,8 @@ internal static class ShapefileFormat
         if (Sidecar(path, "dbf") is { } dbfPath)
         {
             var cpgPath = Sidecar(path, "cpg");
-            table = DbfFormat.Read(dbfPath, cpgPath is null ? null : File.ReadAllText(cpgPath), cancellationToken);
+            // Only as many rows as there are shapes: a table of millions of rows next to a few shapes is not read.
+            table = DbfFormat.Read(dbfPath, cpgPath is null ? null : File.ReadAllText(cpgPath), geometries.Count, cancellationToken);
             if (table.Rows.Count < geometries.Count)
                 throw new InvalidDataException($"The .dbf has {table.Rows.Count} rows but the .shp has {geometries.Count} shapes.");
         }
@@ -109,15 +110,16 @@ internal static class ShapefileFormat
             dataset.Features.Add(new GeoFeature(geometries[i], properties));
         }
 
-        if (Sidecar(path, "prj") is { } prjPath)
+        // An empty .prj says nothing about the coordinate system, so it counts as no .prj.
+        if (Sidecar(path, "prj") is { } prjPath && File.ReadAllText(prjPath) is { } wkt && !string.IsNullOrWhiteSpace(wkt))
         {
-            dataset.Crs = GeoCrs.FromWkt(File.ReadAllText(prjPath));
+            dataset.Crs = GeoCrs.FromWkt(wkt);
             dataset.CrsDeclared = true;
         }
         return dataset;
     }
 
-    private static GeoGeometry? ReadShape(ReadOnlySpan<byte> c, int number)
+    private static GeoGeometry? ReadShape(ReadOnlySpan<byte> c, int number, CancellationToken cancellationToken)
     {
         var type = BinaryPrimitives.ReadInt32LittleEndian(c);
         switch (type)
@@ -149,7 +151,7 @@ internal static class ShapefileFormat
                     return points.Count == 0 ? null : points.Count == 1 ? new GeoPoint(points[0]) : new GeoMultiPoint(points);
                 }
             case 3 or 13 or 23 or 5 or 15 or 25:
-                return ReadParts(c, type, number);
+                return ReadParts(c, type, number, cancellationToken);
             default:
                 if (type == 31)
                     throw new ConversionRefusedException("error.geo_unsupported_shape", "MultiPatch");
@@ -157,7 +159,7 @@ internal static class ShapefileFormat
         }
     }
 
-    private static GeoGeometry? ReadParts(ReadOnlySpan<byte> c, int type, int number)
+    private static GeoGeometry? ReadParts(ReadOnlySpan<byte> c, int type, int number, CancellationToken cancellationToken)
     {
         Need(c, 44, number);
         var parts = BinaryPrimitives.ReadInt32LittleEndian(c[36..]);
@@ -201,44 +203,55 @@ internal static class ShapefileFormat
                 _ => new GeoMultiLineString(kept),
             };
         }
-        return Polygons(lines);
+        return Polygons(lines, cancellationToken);
     }
 
-    /// <summary>Sorts rings into polygons with holes: outer rings run clockwise, holes counter-clockwise.</summary>
-    private static GeoGeometry? Polygons(List<List<Coord>> lines)
+    /// <summary>
+    /// Sorts rings into polygons with holes: outer rings run clockwise, holes counter-clockwise. Every ring's area and
+    /// bounds are worked out once, and a hole is tried against the outer rings smallest first, so it stops at the first
+    /// (smallest) one that contains it; a file of tens of thousands of rings takes well under a second, and the
+    /// <paramref name="cancellationToken"/> is honoured while it is sorted.
+    /// </summary>
+    internal static GeoGeometry? Polygons(List<List<Coord>> lines, CancellationToken cancellationToken)
     {
-        var rings = lines.Select(l => GeoRings.Close(l)).OfType<IReadOnlyList<Coord>>().Where(r => GeoRings.SignedArea(r) != 0).ToList();
+        var rings = new List<(IReadOnlyList<Coord> Ring, double Area)>();
+        foreach (var line in lines)
+        {
+            if (GeoRings.Close(line) is { } ring && GeoRings.SignedArea(ring) is var area && area != 0)
+                rings.Add((ring, area));
+        }
         if (rings.Count == 0)
             return null;
-        var outers = rings.Where(r => GeoRings.SignedArea(r) < 0).ToList();
-        var holes = rings.Where(r => GeoRings.SignedArea(r) > 0).ToList();
+        var outers = rings.Where(r => r.Area < 0).ToList();
+        var holes = rings.Where(r => r.Area > 0).ToList();
         if (outers.Count == 0)
         {
             // Every ring runs counter-clockwise: the writer used the other convention, so they are all outer rings.
             outers = holes;
             holes = [];
         }
-        var assigned = outers.Select(o => new List<IReadOnlyList<Coord>> { o }).ToList();
-        var bounds = outers.Select(Bounds).ToList();
-        foreach (var hole in holes)
+        var bounds = outers.Select(o => Bounds(o.Ring)).ToArray();
+        var smallestFirst = Enumerable.Range(0, outers.Count).OrderBy(i => Math.Abs(outers[i].Area)).ToArray();
+        var assigned = outers.Select(o => new List<IReadOnlyList<Coord>> { o.Ring }).ToList();
+        var holeCount = 0;
+        foreach (var (hole, _) in holes)
         {
+            if (++holeCount % 64 == 0)
+                cancellationToken.ThrowIfCancellationRequested();
             var probe = hole[0];
-            var best = -1;
-            var bestArea = double.MaxValue;
-            for (var i = 0; i < outers.Count; i++)
+            var found = false;
+            foreach (var i in smallestFirst)
             {
-                if (probe.X < bounds[i].MinX || probe.X > bounds[i].MaxX || probe.Y < bounds[i].MinY || probe.Y > bounds[i].MaxY)
+                var box = bounds[i];
+                if (probe.X < box.MinX || probe.X > box.MaxX || probe.Y < box.MinY || probe.Y > box.MaxY)
                     continue;
-                var area = Math.Abs(GeoRings.SignedArea(outers[i]));
-                if (area < bestArea && GeoRings.Contains(outers[i], probe))
-                {
-                    best = i;
-                    bestArea = area;
-                }
+                if (!GeoRings.Contains(outers[i].Ring, probe))
+                    continue;
+                assigned[i].Add(hole);
+                found = true;
+                break;
             }
-            if (best >= 0)
-                assigned[best].Add(hole);
-            else
+            if (!found)
                 assigned.Add([hole]); // a hole outside every outer ring is a ring of its own
         }
         var polygons = assigned.Select(rs => new GeoPolygon(rs)).ToList();

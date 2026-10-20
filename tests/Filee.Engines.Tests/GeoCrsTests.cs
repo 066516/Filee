@@ -118,11 +118,35 @@ public class GeoCrsTests
     [Fact]
     public void Geographic_system_in_grads_with_the_Paris_meridian_is_converted_to_degrees_from_Greenwich()
     {
-        var crs = GeoCrs.FromWkt("""GEOGCS["NTF (Paris)",DATUM["Nouvelle_Triangulation_Francaise",SPHEROID["Clarke 1880 (IGN)",6378249.2,293.4660212936269]],PRIMEM["Paris",2.5969213],UNIT["grad",0.01570796326794897]]""");
+        // As GDAL / ESRI write EPSG:4807: the prime meridian in degrees (Paris is 2.33722917 degrees east), the unit grads.
+        var crs = GeoCrs.FromWkt("""GEOGCS["GCS_NTF_Paris",DATUM["Nouvelle_Triangulation_Francaise_(Paris)",SPHEROID["Clarke_1880_IGN",6378249.2,293.466021293627]],PRIMEM["Paris",2.33722917],UNIT["Grad",0.0157079632679489]]""");
         var position = crs.ToLonLat(new Coord(0, 50));
-        Assert.Equal(2.5969213 * 0.9, position.X, 9);
+        Assert.Equal(2.33722917, position.X, 9);
         Assert.Equal(45, position.Y, 9);
+        Assert.Equal(2.33722917 + 10 * 0.9, crs.ToLonLat(new Coord(10, 50)).X, 9);
         Assert.True(crs.IsApproximate);
+    }
+
+    [Fact]
+    public void A_projected_system_with_another_prime_meridian_or_angular_unit_is_refused_not_placed_far_away()
+    {
+        // ESRI's NTF Paris Lambert Zone II (EPSG:27572): its central meridian 0 is Paris, so ignoring PRIMEM puts
+        // everything 2.3 degrees (170 km) west of where it is.
+        const string paris = """PROJCS["NTF_Paris_Lambert_Zone_II",GEOGCS["GCS_NTF_Paris",DATUM["Nouvelle_Triangulation_Francaise_(Paris)",SPHEROID["Clarke_1880_IGN",6378249.2,293.466021293627]],PRIMEM["Paris",2.33722917],UNIT["Grad",0.0157079632679489]],PROJECTION["Lambert_Conformal_Conic"],PARAMETER["False_Easting",600000.0],PARAMETER["False_Northing",2200000.0],PARAMETER["Central_Meridian",0.0],PARAMETER["Standard_Parallel_1",52.0],PARAMETER["Scale_Factor",0.99987742],PARAMETER["Latitude_Of_Origin",52.0],UNIT["Meter",1.0]]""";
+        var error = Assert.Throws<ConversionRefusedException>(() => GeoCrs.FromWkt(paris));
+        Assert.Equal("error.geo_unsupported_crs", error.ErrorKey);
+        Assert.Contains("NTF_Paris_Lambert_Zone_II", error.Detail);
+        Assert.Contains("prime meridian", error.Detail);
+
+        // Greenwich, but angles in grads.
+        var grads = paris.Replace("PRIMEM[\"Paris\",2.33722917]", "PRIMEM[\"Greenwich\",0.0]");
+        var gradError = Assert.Throws<ConversionRefusedException>(() => GeoCrs.FromWkt(grads));
+        Assert.Contains("angular unit Grad", gradError.Detail);
+
+        // Another meridian in degrees (Ferro-like) is refused too; Greenwich in degrees still works.
+        var ferro = """PROJCS["Test",GEOGCS["g",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Ferro",-17.6666667],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["Central_Meridian",31.0],UNIT["Meter",1.0]]""";
+        Assert.Contains("prime meridian Ferro", Assert.Throws<ConversionRefusedException>(() => GeoCrs.FromWkt(ferro)).Detail);
+        Assert.NotNull(GeoCrs.FromWkt(ferro.Replace("PRIMEM[\"Ferro\",-17.6666667]", "PRIMEM[\"Greenwich\",0.0]")));
     }
 
     [Theory]

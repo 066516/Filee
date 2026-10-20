@@ -26,6 +26,12 @@ internal readonly record struct DbfLosses(bool NamesChanged, bool TextCut, bool 
 
 internal static class DbfFormat
 {
+    /// <summary>Names tools write in a .cpg for Korean Windows text, all code page 949.</summary>
+    private static readonly HashSet<string> KoreanNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CP949", "UHC", "MS949", "WINDOWS-949", "X-WINDOWS-949", "KS_C_5601-1987",
+    };
+
     private const int MaxTextBytes = 254;
     private const int MaxFields = 255;
     private const int MaxNumberWidth = 24;
@@ -34,10 +40,13 @@ internal static class DbfFormat
 
     // ---- Reading ----
 
-    /// <summary>Reads a table; <paramref name="cpg"/> is the text of the .cpg file, or null.</summary>
-    public static DbfTable Read(string path, string? cpg, CancellationToken cancellationToken)
+    /// <summary>
+    /// Reads a table; <paramref name="cpg"/> is the text of the .cpg file, or null. At most <paramref name="maxRows"/> rows
+    /// are read, and only their bytes: a table of millions of rows beside a few shapes costs nothing.
+    /// </summary>
+    public static DbfTable Read(string path, string? cpg, int maxRows, CancellationToken cancellationToken)
     {
-        var bytes = File.ReadAllBytes(path);
+        var bytes = ReadStart(path, maxRows);
         if (bytes.Length < 33)
             throw new InvalidDataException("The .dbf file is too short to be a dBASE table.");
         var recordCount = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(4));
@@ -63,7 +72,8 @@ internal static class DbfFormat
         if (position > recordLength)
             throw new InvalidDataException("The .dbf field lengths do not fit the record length.");
 
-        var encoding = Resolve(cpg, bytes[29]) ?? Detect(bytes, headerLength, recordLength, table.Fields, offsets, recordCount);
+        var rowLimit = (uint)Math.Max(maxRows, 0);
+        var encoding = Resolve(cpg, bytes[29]) ?? Detect(bytes, headerLength, recordLength, table.Fields, offsets, Math.Min(recordCount, rowLimit));
         // Field names were read as Latin-1 above; re-read them in the table's encoding (they are ASCII almost always).
         for (var i = 0; i < table.Fields.Count; i++)
         {
@@ -74,7 +84,7 @@ internal static class DbfFormat
         }
 
         var available = (bytes.Length - headerLength) / recordLength;
-        var count = (int)Math.Min(recordCount, (uint)available);
+        var count = (int)Math.Min(Math.Min(recordCount, (uint)available), rowLimit);
         for (var r = 0; r < count; r++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -90,6 +100,25 @@ internal static class DbfFormat
             table.Rows.Add(values);
         }
         return table;
+    }
+
+    /// <summary>The header and the first <paramref name="maxRows"/> records of the file (all of it if it is shorter).</summary>
+    private static byte[] ReadStart(string path, int maxRows)
+    {
+        using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var head = new byte[12];
+        var got = file.ReadAtLeast(head, head.Length, throwOnEndOfStream: false);
+        if (got < head.Length)
+            return head[..got];
+        var headerLength = BinaryPrimitives.ReadUInt16LittleEndian(head.AsSpan(8));
+        var recordLength = BinaryPrimitives.ReadUInt16LittleEndian(head.AsSpan(10));
+        // The records, and the end marker after them.
+        var wanted = headerLength + (long)Math.Max(maxRows, 0) * recordLength + 1;
+        // At least the fixed header, so a header that claims to be shorter is reported as damaged, not as a short file.
+        var bytes = new byte[(int)Math.Min(file.Length, Math.Max(wanted, 33))];
+        file.Position = 0;
+        file.ReadExactly(bytes);
+        return bytes;
     }
 
     private static string Latin1(ReadOnlySpan<byte> bytes) => Encoding.Latin1.GetString(bytes);
@@ -116,7 +145,7 @@ internal static class DbfFormat
                         ? real == Math.Floor(real) && Math.Abs(real) < 1e15 && field.Decimals == 0 ? (long)real : real
                         : null;
                 }
-            case 'L':
+            case 'L' when cell.Length > 0:
                 return (char)cell[0] switch
                 {
                     'T' or 't' or 'Y' or 'y' => true,
@@ -152,6 +181,8 @@ internal static class DbfFormat
             {
                 if (name.Equals("UTF-8", StringComparison.OrdinalIgnoreCase) || name.Equals("UTF8", StringComparison.OrdinalIgnoreCase) || name == "65001")
                     return new UTF8Encoding(false);
+                if (KoreanNames.Contains(name))
+                    return Encoding.GetEncoding(949);
                 if (int.TryParse(name, NumberStyles.None, CultureInfo.InvariantCulture, out var page))
                     return Encoding.GetEncoding(page);
                 if (name.StartsWith("ANSI ", StringComparison.OrdinalIgnoreCase) && int.TryParse(name.AsSpan(5), NumberStyles.None, CultureInfo.InvariantCulture, out page))

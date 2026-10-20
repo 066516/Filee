@@ -750,10 +750,12 @@ What each format keeps:
 **Coordinate systems.** Geographic systems (degrees) and the projections most projected data uses, read from a `.prj`
 (ESRI or OGC WKT 1), a GeoJSON `crs` name or an EPSG code: Transverse Mercator (UTM, Gauss-Krüger, state plane, via
 Krüger's series), Mercator and Web Mercator, Lambert Conformal Conic (1 and 2 parallels), Albers;
-metres, feet and US survey feet. They agree with PROJ to well under a millimetre: `GeoCrsTests` checks ten systems against reference
-positions computed with pyproj. Anything else (Lambert azimuthal,
-stereographic, oblique Mercator, WKT 2, geocentric, local) is **refused with its name** (`error.geo_unsupported_crs`)
-rather than read as degrees. Coordinates outside the Earth with no usable system (`error.geo_unknown_crs`, a CSV or
+metres, feet and US survey feet. They agree with PROJ to well under a millimetre: `GeoCrsTests` checks fifteen systems against reference
+positions computed with pyproj. Anything else (Lambert azimuthal, stereographic, oblique Mercator, WKT 2, geocentric,
+local) is **refused with its name** (`error.geo_unsupported_crs`) rather than read as degrees. So is a projected system
+whose geographic part has a prime meridian other than Greenwich or an angular unit other than degrees (ESRI's NTF Paris
+Lambert zones count their longitudes from Paris in grads): the projection's formulas assume neither, and the data would
+land about 170 km from where it is. Coordinates outside the Earth with no usable system (`error.geo_unknown_crs`, a CSV or
 GeoJSON in metres, a Shapefile without `.prj`) are refused too.
 
 **Datums are not shifted.** WGS 84, NAD83, ETRS89, GDA, JGD, Korea 2000, CGCS2000, RGF93, SIRGAS and every other datum on
@@ -778,17 +780,26 @@ tens to hundreds of metres off, and the file carries the note `notice.geo_datum_
 - The files are limited to 2 GB (`error.geo_too_large`); whole files are read into memory, a few at a time.
 
 **Safety.** XML (KML, GPX) is read without DTDs or external entities, so a file can't read other files or expand into
-gigabytes, and a document is limited to 512 million characters (which also stops a KMZ that unpacks to far more than
-it says). Counts and indexes in binary Shapefiles are checked against the record before anything is allocated, nesting
-of JSON, WKT and WKT definitions is limited, and every failure is a reason the user can act on: a damaged file, a
-system Filee can't convert, a CSV with no coordinates (`error.geo_*` in the language files). Nothing is written when a
+gigabytes. The tree is built from `XmlReader` in `GeoXml.Load` rather than by `XDocument.Load` (whose time is quadratic
+in the depth: 48 seconds for 100,000 nested levels), and elements nested more than 256 levels are refused while reading;
+MultiGeometry may nest 32 levels. A document is limited to about 67 million characters and 3 million elements (a file
+of tiny elements costs about 25 bytes of memory per character: 40 million characters in a 150 KB KMZ took 1.1 GB before
+the element limit, and now stops at about 260 MB). A KMZ whose `.kml` is declared larger than 256 MB is refused before it is unpacked, and the unpacked bytes are
+counted as they are read (`LimitedStream`), since a ZIP header can understate its size. Counts and indexes in binary
+Shapefiles are checked against the record before anything is allocated, the attribute table is read only as far as there
+are shapes, rings are sorted into polygons smallest outer ring first with the cancellation token honoured, nesting of
+JSON, WKT and WKT definitions is limited, and every failure is a reason the user can act on: a damaged file, a system
+Filee can't convert, a CSV with no coordinates (`error.geo_*` in the language files). Nothing is written when a
 conversion fails.
 
-Tests: `GeoFormatTests`, `GeoShapefileTests`, `GeoCrsTests` and `GeoRobustnessTests` in `tests/Filee.Engines.Tests`. The
-reference files in `tests/Filee.Engines.Tests/Geo` were written by GDAL (synthetic data), the Shapefile builder in
-`GeoBuilders.cs` follows the ESRI specification for the cases GDAL won't write, and the written Shapefiles are parsed
-in the tests from the specification, not read back with the engine. `GeoRobustnessTests` reads every reference file
-truncated at every length and with random bytes changed.
+Tests: `GeoFormatTests`, `GeoShapefileTests`, `GeoCrsTests`, `GeoHostileInputTests`, `GeoZipTests` and
+`GeoRobustnessTests` in `tests/Filee.Engines.Tests`. The Shapefiles in `tests/Filee.Engines.Tests/Geo` were written by
+GDAL (synthetic data; `Geo/make-test-geo.py` recreates them), so Filee's reader and writer are not only checked against
+each other. Everything else is written in the tests: `GeoBuilders.cs` has GeoJSON, KML and GPX text and a Shapefile and
+dBASE builder that follows the ESRI specification for the cases GDAL won't write, and the Shapefiles Filee writes are
+parsed in the tests from the specification, not read back with the engine. `GeoRobustnessTests` reads every file
+truncated at several lengths and with random bytes changed; `GeoHostileInputTests` keeps each input that once crashed the
+process, took minutes or used gigabytes.
 
 Not here yet: raster data (GeoTIFF, bands), GeoPackage, zipped Shapefiles as input, datum shifts, more projections.
 

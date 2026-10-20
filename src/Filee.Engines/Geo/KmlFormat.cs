@@ -14,8 +14,14 @@ internal static class KmlFormat
 {
     private static readonly XNamespace Kml = "http://www.opengis.net/kml/2.2";
 
-    /// <summary>Reads a .kml or a .kmz file.</summary>
-    public static GeoDataset Read(string path, bool zipped, CancellationToken cancellationToken)
+    /// <summary>The largest .kml a KMZ may hold, declared or really unpacked: a ZIP of a few KB can claim far more.</summary>
+    internal const long MaxKmlBytes = 256L << 20;
+
+    /// <summary>How deep MultiGeometry may nest before the file is refused (real files nest one level).</summary>
+    private const int MaxGeometryDepth = 32;
+
+    /// <summary>Reads a .kml or a .kmz file; <paramref name="maxKmlBytes"/> limits the .kml inside a KMZ.</summary>
+    public static GeoDataset Read(string path, bool zipped, CancellationToken cancellationToken, long maxKmlBytes = MaxKmlBytes)
     {
         XDocument document;
         if (zipped)
@@ -34,7 +40,10 @@ internal static class KmlFormat
                 var entry = archive.Entries.FirstOrDefault(e => e.FullName.Equals("doc.kml", StringComparison.OrdinalIgnoreCase))
                             ?? archive.Entries.FirstOrDefault(e => e.FullName.EndsWith(".kml", StringComparison.OrdinalIgnoreCase))
                             ?? throw new InvalidDataException("The KMZ has no .kml file inside.");
-                using var stream = entry.Open();
+                if (entry.Length > maxKmlBytes)
+                    throw new InvalidDataException($"The .kml inside the KMZ is too large ({entry.Length / (1 << 20)} MB, the limit is {maxKmlBytes / (1 << 20)} MB).");
+                // The size in a ZIP header can be wrong: the unpacked bytes are counted as they are read.
+                using var stream = new LimitedStream(entry.Open(), maxKmlBytes, "The .kml inside the KMZ is larger than " + maxKmlBytes / (1 << 20) + " MB.");
                 document = GeoXml.Load(stream);
             }
         }
@@ -74,7 +83,7 @@ internal static class KmlFormat
             if (names.Add(key))
                 properties.Add(new(key, GeoText.Typed(value.Trim())));
         }
-        var geometries = placemark.Elements().Select(ReadGeometry).OfType<GeoGeometry>().ToList();
+        var geometries = placemark.Elements().Select(e => ReadGeometry(e, 0)).OfType<GeoGeometry>().ToList();
         GeoGeometry? geometry = geometries.Count switch
         {
             0 => null,
@@ -84,8 +93,10 @@ internal static class KmlFormat
         return new GeoFeature(geometry, properties);
     }
 
-    private static GeoGeometry? ReadGeometry(XElement element)
+    private static GeoGeometry? ReadGeometry(XElement element, int depth)
     {
+        if (depth > MaxGeometryDepth)
+            throw new InvalidDataException($"The KML nests geometries more than {MaxGeometryDepth} levels deep.");
         switch (element.Name.LocalName)
         {
             case "Point":
@@ -124,7 +135,7 @@ internal static class KmlFormat
                 }
             case "MultiGeometry":
                 {
-                    var parts = element.Elements().Select(ReadGeometry).OfType<GeoGeometry>().ToList();
+                    var parts = element.Elements().Select(e => ReadGeometry(e, depth + 1)).OfType<GeoGeometry>().ToList();
                     return parts.Count switch
                     {
                         0 => null,
@@ -148,7 +159,7 @@ internal static class KmlFormat
         if (coordinates is null)
             return line;
         // Some writers put spaces after the commas ("1, 2, 3"): glue those back before splitting on white space.
-        var text = System.Text.RegularExpressions.Regex.Replace(coordinates.Value, @"\s*,\s*", ",");
+        var text = GlueCommas(coordinates.Value);
         foreach (var tuple in text.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
         {
             var parts = tuple.Split(',');
@@ -158,6 +169,36 @@ internal static class KmlFormat
             line.Add(new Coord(x, y, z));
         }
         return line;
+    }
+
+    /// <summary>
+    /// The text without the white space next to commas (a run of white space elsewhere shrinks to its first character).
+    /// Linear: a regular expression for this takes quadratic time on a long run of spaces.
+    /// </summary>
+    private static string GlueCommas(string text)
+    {
+        if (!text.Contains(',', StringComparison.Ordinal))
+            return text;
+        var builder = new System.Text.StringBuilder(text.Length);
+        var space = ' '; // white space seen since the last character: kept unless a comma is next to it
+        var afterComma = false;
+        foreach (var ch in text)
+        {
+            if (char.IsWhiteSpace(ch))
+            {
+                if (!afterComma && space == ' ')
+                    space = ch;
+                continue;
+            }
+            if (ch != ',' && space != ' ')
+                builder.Append(space);
+            space = ' ';
+            builder.Append(ch);
+            afterComma = ch == ',';
+        }
+        if (space != ' ')
+            builder.Append(space);
+        return builder.ToString();
     }
 
     private static List<Coord> TrackCoordinates(XElement track)
@@ -323,8 +364,24 @@ internal static class KmlFormat
 /// <summary>XML helpers shared by the KML and GPX formats.</summary>
 internal static class GeoXml
 {
-    /// <summary>Parses XML without DTDs or external entities, so a hostile file can't read files or expand into gigabytes.</summary>
-    public static XDocument Load(Stream stream)
+    /// <summary>How many levels of elements a KML or GPX file may nest (real files nest a dozen).</summary>
+    internal const int MaxElementDepth = 256;
+
+    /// <summary>
+    /// How many elements a KML or GPX file may hold. Each costs about 100 bytes in the tree whatever its size, so a
+    /// file of tiny elements ("&lt;a/&gt;" repeated) would use 25 bytes of memory per character: 40 million characters
+    /// in a 150 KB KMZ took 1.1 GB. Real files hold a few elements per feature; this allows a million features.
+    /// </summary>
+    internal const int MaxElements = 3_000_000;
+
+    /// <summary>
+    /// Parses XML without DTDs or external entities, so a hostile file can't read files or expand into gigabytes, and
+    /// refuses elements nested more than <see cref="MaxElementDepth"/> levels. The tree is built here from the reader
+    /// rather than by <c>XDocument.Load</c>, which takes time quadratic in the depth (a 1.4 MB file nested 100,000 deep
+    /// kept it busy for 48 seconds, the reader alone needs a quarter of a second) and so couldn't be allowed to see such
+    /// a file. Namespace declarations and prefixes are not kept; names are the local name and namespace.
+    /// </summary>
+    public static XDocument Load(Stream stream, int maxElements = MaxElements)
     {
         var settings = new XmlReaderSettings
         {
@@ -332,13 +389,54 @@ internal static class GeoXml
             XmlResolver = null,
             MaxCharactersFromEntities = 0,
             CheckCharacters = false,
-            // Also the limit for a KMZ: the .kml inside is unpacked while it is read, so a ZIP bomb stops here.
-            MaxCharactersInDocument = 1L << 29,
+            // About 1 GB of memory at the most: the tree takes some 16 bytes for every character.
+            MaxCharactersInDocument = 1L << 26,
         };
         try
         {
             using var reader = XmlReader.Create(stream, settings);
-            return XDocument.Load(reader, LoadOptions.None);
+            var document = new XDocument();
+            XContainer current = document;
+            var depth = 0;
+            var elements = 0;
+            while (reader.Read())
+            {
+                switch (reader.NodeType)
+                {
+                    case XmlNodeType.Element:
+                        if (++depth > MaxElementDepth)
+                            throw new InvalidDataException($"The file nests elements more than {MaxElementDepth} levels deep.");
+                        if (++elements > maxElements)
+                            throw new InvalidDataException("The file has more than " + maxElements.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) + " elements.");
+                        var element = new XElement(XName.Get(reader.LocalName, reader.NamespaceURI));
+                        var empty = reader.IsEmptyElement;
+                        if (reader.HasAttributes)
+                        {
+                            while (reader.MoveToNextAttribute())
+                            {
+                                if (reader.NamespaceURI != "http://www.w3.org/2000/xmlns/")
+                                    element.SetAttributeValue(XName.Get(reader.LocalName, reader.NamespaceURI), reader.Value);
+                            }
+                            reader.MoveToElement();
+                        }
+                        current.Add(element);
+                        if (empty)
+                            depth--;
+                        else
+                            current = element;
+                        break;
+                    case XmlNodeType.EndElement:
+                        current = current.Parent ?? (XContainer)document;
+                        depth--;
+                        break;
+                    case XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.SignificantWhitespace or XmlNodeType.Whitespace:
+                        // Text outside the root element (white space between declarations) is no content.
+                        if (current is XElement)
+                            current.Add(new XText(reader.Value));
+                        break;
+                }
+            }
+            return document;
         }
         catch (XmlException ex)
         {

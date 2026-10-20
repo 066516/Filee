@@ -117,9 +117,9 @@ public class GeoFormatTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
-    public async Task Gdal_kml_name_and_description_become_attributes()
+    public async Task Kml_name_and_description_become_attributes()
     {
-        using var doc = await ToGeoJsonAsync(GeoFixtures.Copy(fx, "gdal_points", "kml"));
+        using var doc = await ToGeoJsonAsync(GeoFixtures.Points(fx, "kml"));
         var features = Features(doc);
         Assert.Equal(2, features.GetArrayLength());
         Assert.Equal([10.5, 20.25], GeoFixtures.Position(features[0].GetProperty("geometry")));
@@ -128,9 +128,9 @@ public class GeoFormatTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
-    public async Task Gdal_gpx_waypoint_elevation_becomes_the_height()
+    public async Task Gpx_waypoint_elevation_becomes_the_height()
     {
-        using var doc = await ToGeoJsonAsync(GeoFixtures.Copy(fx, "gdal_waypoints", "gpx"));
+        using var doc = await ToGeoJsonAsync(GeoFixtures.Points(fx, "gpx"));
         var features = Features(doc);
         Assert.Equal(2, features.GetArrayLength());
         Assert.Equal([10.5, 20.25, 12.5], GeoFixtures.Position(features[0].GetProperty("geometry")));
@@ -139,9 +139,9 @@ public class GeoFormatTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
-    public async Task Gdal_geojson_converts_to_the_same_geojson_rewritten_one_feature_per_line()
+    public async Task GeoJson_converts_to_the_same_geojson_rewritten_one_feature_per_line()
     {
-        var output = (await fx.ConvertOkAsync(GeoFixtures.Copy(fx, "gdal_points", "geojson"), "geojson")).Single();
+        var output = (await fx.ConvertOkAsync(GeoFixtures.Points(fx, "geojson"), "geojson")).Single();
         var lines = File.ReadAllLines(output);
         Assert.Equal(4, lines.Length); // the opening, one line for each of the two features, the closing
         Assert.StartsWith("""{"type":"Feature",""", lines[1]);
@@ -155,7 +155,7 @@ public class GeoFormatTests(EngineFixture fx) : IClassFixture<EngineFixture>
     public async Task Every_format_converts_into_every_other_and_back_to_the_same_places_and_names()
     {
         var formats = new[] { "kml", "kmz", "gpx", "shp", "csv", "geojson" };
-        var source = GeoFixtures.Copy(fx, "gdal_points", "geojson");
+        var source = GeoFixtures.Points(fx, "geojson");
         var made = new Dictionary<string, string> { ["geojson"] = source };
         foreach (var format in formats.Where(f => f != "geojson"))
             made[format] = (await fx.ConvertOkAsync(source, format)).First(path => path.EndsWith("." + format, StringComparison.Ordinal));
@@ -383,7 +383,7 @@ public class GeoFormatTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [Fact]
     public async Task Kmz_is_written_as_a_zip_with_doc_kml_and_read_back_whatever_the_kml_is_called()
     {
-        var geojson = GeoFixtures.Copy(fx, "gdal_points", "geojson");
+        var geojson = GeoFixtures.Points(fx, "geojson");
         var kmz = (await fx.ConvertOkAsync(geojson, "kmz")).Single();
         using (var zip = ZipFile.OpenRead(kmz))
             Assert.Equal(["doc.kml"], zip.Entries.Select(e => e.FullName).ToArray());
@@ -627,7 +627,7 @@ public class GeoFormatTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [Fact]
     public async Task Csv_output_is_longitude_latitude_columns_for_points_and_wkt_otherwise()
     {
-        var points = File.ReadAllText((await fx.ConvertOkAsync(GeoFixtures.Copy(fx, "gdal_points", "geojson"), "csv")).Single()).TrimStart('\uFEFF');
+        var points = File.ReadAllText((await fx.ConvertOkAsync(GeoFixtures.Points(fx, "geojson"), "csv")).Single()).TrimStart('\uFEFF');
         Assert.StartsWith("longitude,latitude,name,n\r\n10.5,20.25,A,1\r\n-5,40,B,2\r\n", points);
 
         var polygons = File.ReadAllText((await fx.ConvertOkAsync(GeoFixtures.Copy(fx, "gdal_polygons", "shp"), "csv")).Single()).TrimStart('\uFEFF');

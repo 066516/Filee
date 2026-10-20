@@ -119,9 +119,10 @@ internal abstract class GeoCrs
         var compatible = IsWgs84Compatible(datum, node.Child("DATUM")?.Child("SPHEROID"));
         var unit = node.Child("UNIT")?.Number(1) ?? Math.PI / 180;
         var meridian = node.Child("PRIMEM")?.Number(1) ?? 0;
-        // Angles in radians (UNIT factor) → degrees. A prime meridian other than Greenwich is given in the same unit.
+        // Angles in radians (UNIT factor) → degrees. PRIMEM is in degrees from Greenwich whatever the unit of the system:
+        // GDAL and ESRI both write the Paris meridian as 2.33722917 next to UNIT["Grad"], not as 2.5969 grads.
         var toDegrees = Math.Abs(unit * Degrees - 1) < 1e-9 ? 1 : unit * Degrees;
-        return new GeographicCrs(name, toDegrees, meridian * toDegrees, approximate: !compatible);
+        return new GeographicCrs(name, toDegrees, meridian, approximate: !compatible);
     }
 
     private static GeoCrs FromProjected(WktNode node)
@@ -132,6 +133,13 @@ internal abstract class GeoCrs
         var spheroid = datum?.Child("SPHEROID");
         if (spheroid is null || spheroid.Number(1) is not { } axis || axis <= 0)
             throw Unsupported($"{name} (no ellipsoid)");
+        // The projection's own longitudes are counted from the prime meridian and its angles in the unit of the geographic
+        // system. Neither is applied here, and ignoring them puts the data far from where it is (NTF Paris Lambert II is
+        // 2.3 degrees west of its true place), so a system with another prime meridian or angular unit is refused.
+        if (geographic.Child("PRIMEM") is { } primeMeridian && Math.Abs(primeMeridian.Number(1) ?? 0) > 1e-9)
+            throw Unsupported($"{name} (prime meridian {primeMeridian.Text(0)} {primeMeridian.Number(1)?.ToString(CultureInfo.InvariantCulture)}°)");
+        if (geographic.Child("UNIT") is { } angular && angular.Number(1) is { } angularFactor && Math.Abs(angularFactor * Degrees - 1) > 1e-9)
+            throw Unsupported($"{name} (angular unit {angular.Text(0)})");
         var ellipsoid = Ellipsoid.FromInverseFlattening(axis, spheroid.Number(2) ?? 0);
         var approximate = !IsWgs84Compatible(datum?.Text(0) ?? geographic.Text(0) ?? "", spheroid);
         var unit = node.Children("UNIT").LastOrDefault()?.Number(1) ?? 1;

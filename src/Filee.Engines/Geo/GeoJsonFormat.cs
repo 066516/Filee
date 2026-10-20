@@ -102,7 +102,7 @@ internal static class GeoJsonFormat
     private static object? Value(JsonElement element) => element.ValueKind switch
     {
         JsonValueKind.String => element.GetString(),
-        JsonValueKind.Number => element.TryGetInt64(out var whole) ? whole : element.GetDouble(),
+        JsonValueKind.Number => element.TryGetInt64(out var whole) ? whole : double.IsFinite(element.GetDouble()) ? element.GetDouble() : element.GetRawText(),
         JsonValueKind.True => true,
         JsonValueKind.False => false,
         JsonValueKind.Null or JsonValueKind.Undefined => null,
@@ -190,7 +190,10 @@ internal static class GeoJsonFormat
                 case 2: z = number.GetDouble(); break;
             }
         }
-        return new Coord(x!.Value, y!.Value, z);
+        // 1e400 reads as infinity: as a longitude or latitude that is no position, as a height it is no height.
+        if (!double.IsFinite(x!.Value) || !double.IsFinite(y!.Value))
+            throw new InvalidDataException($"A position in {where} holds a number too large for a coordinate.");
+        return new Coord(x.Value, y!.Value, double.IsFinite(z) ? z : double.NaN);
     }
 
     // ---- Writing ----

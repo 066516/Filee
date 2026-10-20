@@ -24,22 +24,22 @@ public class GeoZipTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [Fact]
     public async Task A_shapefile_becomes_one_zip_with_its_five_files_and_nothing_else()
     {
-        var input = GeoFixtures.Copy(fx, "gdal_points", "geojson");
+        var input = GeoFixtures.Points(fx, "geojson");
         var folder = Path.GetDirectoryName(input)!;
         var before = Names(folder);
         var outputs = await fx.ConvertOkAsync(input, "shp", Zip);
 
         var zip = Assert.Single(outputs);
         Assert.EndsWith(".zip", zip);
-        Assert.Equal(["gdal_points.cpg", "gdal_points.dbf", "gdal_points.prj", "gdal_points.shp", "gdal_points.shx"], Entries(zip));
+        Assert.Equal(["points.cpg", "points.dbf", "points.prj", "points.shp", "points.shx"], Entries(zip));
         // The folder gained the ZIP and no loose files: the Shapefile files that were there already are the fixture's own.
-        Assert.Equal([.. before.Append("gdal_points.zip").Order()], Names(folder));
+        Assert.Equal([.. before.Append("points.zip").Order()], Names(folder));
     }
 
     [Fact]
     public async Task The_zipped_shapefile_is_the_same_shapefile_as_the_loose_one()
     {
-        var input = GeoFixtures.Copy(fx, "gdal_points", "geojson");
+        var input = GeoFixtures.Points(fx, "geojson");
         var loose = await fx.ConvertOkAsync(input, "shp");
         var zip = (await fx.ConvertOkAsync(input, "shp", Zip)).Single();
 
@@ -85,11 +85,11 @@ public class GeoZipTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [Fact]
     public async Task The_conflict_policy_applies_to_the_zip()
     {
-        var input = GeoFixtures.Copy(fx, "gdal_points", "geojson");
+        var input = GeoFixtures.Points(fx, "geojson");
         var first = (await fx.ConvertOkAsync(input, "shp", Zip)).Single();
         var second = (await fx.ConvertOkAsync(input, "shp", Zip)).Single();
-        Assert.Equal("gdal_points.zip", Path.GetFileName(first));
-        Assert.Equal("gdal_points (2).zip", Path.GetFileName(second));
+        Assert.Equal("points.zip", Path.GetFileName(first));
+        Assert.Equal("points (2).zip", Path.GetFileName(second));
 
         var length = new FileInfo(first).Length;
         File.WriteAllText(first, "stale");
@@ -106,14 +106,14 @@ public class GeoZipTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [Fact]
     public async Task The_name_pattern_names_the_zip()
     {
-        var input = GeoFixtures.Copy(fx, "gdal_points", "geojson");
+        var input = GeoFixtures.Points(fx, "geojson");
         var zip = (await fx.ConvertOkAsync(input, "shp", preset =>
         {
             preset.Output.ZipResult = true;
             preset.Output.FileNamePattern = "{name}_wgs84";
         })).Single();
-        Assert.Equal("gdal_points_wgs84.zip", Path.GetFileName(zip));
-        Assert.Contains("gdal_points.shp", Entries(zip)); // the files inside keep the source's name
+        Assert.Equal("points_wgs84.zip", Path.GetFileName(zip));
+        Assert.Contains("points.shp", Entries(zip)); // the files inside keep the source's name
     }
 
     [Fact]
