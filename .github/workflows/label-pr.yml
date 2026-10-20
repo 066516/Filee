@@ -24,7 +24,8 @@ jobs:
               [/^feat(\(.+\))?!?:/, 'feature'],
               [/^fix(\(.+\))?!?:/, 'bug'],
               [/^docs(\(.+\))?!?:/, 'documentation'],
-              [/^(ci|build)(\(.+\))?!?:/, 'build'],
+              [/^ci(\(.+\))?!?:/, 'ci'],
+              [/^build(\(.+\))?!?:/, 'build'],
               [/^(i18n|l10n)(\(.+\))?!?:/, 'translation'],
             ];
             const labels = rules.filter(([re]) => re.test(title)).map(([, label]) => label);
