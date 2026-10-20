@@ -373,6 +373,8 @@ public class LivePhotoTests(EngineFixture fx) : IClassFixture<EngineFixture>
         using var hostile = new MemoryStream(JpegWithXmp(jpeg, "<!DOCTYPE x [<!ENTITY leak SYSTEM 'file:///secret'>]><x>&leak;</x>"));
         Assert.Throws<System.Xml.XmlException>(() => MotionPhoto.FindVideo(hostile));
 
+        // Through a conversion (FFmpeg's edge): the user gets the plain message, not the parser's.
+        Tools();
         var path = Path.Combine(fx.NewFolder(), "hostile.jpg");
         await File.WriteAllBytesAsync(path, hostile.ToArray(), TestContext.Current.CancellationToken);
         var job = await fx.ConvertAsync([path], Extract());
