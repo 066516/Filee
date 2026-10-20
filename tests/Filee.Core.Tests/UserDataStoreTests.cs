@@ -14,7 +14,7 @@ public class UserDataStoreTests
         store.Load();
         store.Settings.SchemaVersion = 30;
         foreach (var profile in store.Profiles)
-            profile.Extensions.RemoveAll(e => e is "log" or "py" or "pac" or "bat" or "command" or "dat");
+            profile.Extensions.RemoveAll(e => e is "log" or "py" or "pac" or "bat" or "command" or "dat" or "wbpz");
         store.Profiles.Insert(0, new ToolbarProfile { Id = "my-python", Name = "My code", Extensions = ["py"] });
         store.SaveLibrary();
         store.SaveSettings();
@@ -29,6 +29,7 @@ public class UserDataStoreTests
         Assert.DoesNotContain("py", text.Extensions);
         Assert.Contains("py", upgraded.Profiles.Single(p => p.Id == "my-python").Extensions);
         Assert.Contains("dat", upgraded.Profiles.Single(p => p.Id == "video").Extensions);
+        Assert.Contains("wbpz", upgraded.Profiles.Single(p => p.Id == "archives").Extensions);
 
         var reloaded = new UserDataStore(dir.Path);
         reloaded.Load();

@@ -248,7 +248,8 @@ public static class FormatRegistry
         new("spx", "Speex", FormatCategory.Audio, ["spx"], Writable: false),
 
         // Archives
-        new("zip", "ZIP", FormatCategory.Archive, ["zip"]),
+        // ANSYS Workbench project archives use the ZIP container (issue #294).
+        new("zip", "ZIP", FormatCategory.Archive, ["zip", "wbpz"]),
         new("7z", "7Z", FormatCategory.Archive, ["7z"]),
         new("rar", "RAR", FormatCategory.Archive, ["rar"], Writable: false),
         new("tar", "TAR", FormatCategory.Archive, ["tar"]),

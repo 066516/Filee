@@ -1,5 +1,8 @@
 // End-to-end regressions from the public issue audit: real converters and files, checked after conversion.
 
+using System.IO.Compression;
+using System.Security.Cryptography;
+using System.Text;
 using Filee.Core.Conversion;
 using Filee.Core.Formats;
 using Filee.Core.Presets;
@@ -12,6 +15,56 @@ namespace Filee.Engines.Tests;
 
 public class ReportedIssueTests(EngineFixture fx) : IClassFixture<EngineFixture>
 {
+    [Fact]
+    public async Task Issue294_workbench_zip_archive_keeps_every_payload_when_exported_as_zip()
+    {
+        Assert.SkipUnless(fx.Catalog.StatusOf(fx.Converters.Single(c => c.Id == "archive")).IsAvailable,
+            "7-Zip is needed for archive reading.");
+        var input = Path.Combine(fx.NewFolder(), "project.wbpz");
+        var expected = new Dictionary<string, byte[]>
+        {
+            ["project.wbpj"] = Encoding.UTF8.GetBytes("<?xml version=\"1.0\"?><Project name=\"Archive payload\"/>"),
+            ["project_files/dp0/SYS/MECH/model.dat"] = Enumerable.Range(0, 256).Select(i => (byte)i).ToArray(),
+            ["user_files/ملاحظات.txt"] = Encoding.UTF8.GetBytes("مرحبا 中文 שלום\n"),
+        };
+        using (var archive = ZipFile.Open(input, ZipArchiveMode.Create))
+        {
+            foreach (var (name, bytes) in expected)
+            {
+                using var entry = archive.CreateEntry(name).Open();
+                entry.Write(bytes);
+            }
+            archive.CreateEntry("project_files/empty/");
+        }
+        var before = SHA256.HashData(await File.ReadAllBytesAsync(input, TestContext.Current.CancellationToken));
+        var job = await fx.ConvertAsync([input], new Preset { TargetFormat = "zip" });
+        Assert.Equal(JobState.Completed, job.State);
+        using var output = ZipFile.OpenRead(Assert.Single(job.Outputs));
+        Assert.Equal(expected.Keys.Order(), output.Entries.Where(e => !e.FullName.EndsWith('/')).Select(e => e.FullName).Order());
+        foreach (var (name, bytes) in expected)
+        {
+            using var entry = output.GetEntry(name)!.Open();
+            using var data = new MemoryStream();
+            await entry.CopyToAsync(data, TestContext.Current.CancellationToken);
+            Assert.Equal(bytes, data.ToArray());
+        }
+        Assert.NotNull(output.GetEntry("project_files/empty/"));
+        Assert.Equal(before, SHA256.HashData(await File.ReadAllBytesAsync(input, TestContext.Current.CancellationToken)));
+    }
+
+    [Fact]
+    public async Task Issue294_a_non_archive_wbpz_is_refused_without_a_claimed_zip_result()
+    {
+        Assert.SkipUnless(fx.Catalog.StatusOf(fx.Converters.Single(c => c.Id == "archive")).IsAvailable,
+            "7-Zip is needed for archive validation.");
+        var input = Path.Combine(fx.NewFolder(), "invalid.wbpz");
+        await File.WriteAllTextAsync(input, "This is not an archive.", TestContext.Current.CancellationToken);
+        var job = await fx.ConvertAsync([input], new Preset { TargetFormat = "zip" });
+        Assert.Equal(JobState.Failed, job.State);
+        Assert.Empty(job.Outputs);
+        Assert.Equal("This is not an archive.", await File.ReadAllTextAsync(input, TestContext.Current.CancellationToken));
+    }
+
     [Theory]
     [InlineData("mp4")]
     [InlineData("mkv")]

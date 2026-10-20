@@ -715,9 +715,9 @@ internal static class SettingsMigrations
         //      back. One the user emptied is saved empty and stays so.
         if (from < 30 || profiles.Any(p => p.BackPresetIds is null))
             changed |= AddBackFaces(presets, profiles);
-        // v31: text logs/source/proxy scripts and Video CD DAT files learn their donuts; custom claims stay put.
+        // v31: source text, Video CD DAT and Workbench archives learn their donuts; custom claims stay put.
         if (from < 31)
-            changed |= LearnExtensions(profiles, out _, ["log", "py", "pac", "bat", "command", "dat"]);
+            changed |= LearnExtensions(profiles, out _, ["log", "py", "pac", "bat", "command", "dat", "wbpz"]);
         return changed;
     }
 
