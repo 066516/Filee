@@ -103,7 +103,7 @@ public static class BuiltInData
 
     /// <summary>
     /// A clip of a video as an iPhone Live Photo (a JPG and a MOV) or an Android Motion Photo (added in settings schema
-    /// 31), on no donut: users add them in Settings → Toolbar.
+    /// 31), on the back of the video donut after "Extract frames".
     /// </summary>
     public static List<Preset> LivePhotoPresets() =>
     [
@@ -351,7 +351,11 @@ public static class BuiltInData
         new() { Id = "to-vcf", Name = "vCard", TargetFormat = "vcf" },
     ];
 
-    /// <summary>Creates the default toolbar profiles.</summary>
+    /// <summary>
+    /// Creates the default toolbar profiles. Each has a back face (Tab or the mouse wheel flips the open donut to it, settings schema 30)
+    /// with presets for its files that aren't on its front: less common formats and tools (rotate, merge, compress
+    /// into one ZIP, ...). The fronts are as they were before back faces.
+    /// </summary>
     public static List<ToolbarProfile> CreateProfiles() =>
     [
         new()
@@ -359,18 +363,21 @@ public static class BuiltInData
             Id = "images", NameKey = "profile.images",
             Extensions = ExtensionsOf(FormatCategory.Image),
             PresetIds = ["to-png", "to-jpg", "to-webp", "to-pdf", "trace-svg", "trace-line-art", "to-tiff", "to-bmp", "to-ico", "half-size"],
+            BackPresetIds = ["tool-crop", "rotate", "flip", "remove-background", "grayscale", "extract-motion", "to-avif", "to-gif", "merge-pdf", "zip-all"],
         },
         new()
         {
             Id = "pdf", NameKey = "profile.pdf",
             Extensions = ["pdf"],
             PresetIds = [.. PdfDonut],
+            BackPresetIds = ["compress-pdf", "to-webp", "to-tiff", "to-html", "to-odt", "to-rtf", "to-azw3", "to-cbz", "zip-all"],
         },
         new()
         {
             Id = "office", NameKey = "profile.office",
             Extensions = ExtensionsOf(FormatCategory.Document),
             PresetIds = ["to-pdf", "to-hwpx", "to-hwp", "to-docx", "to-odt", "to-txt", "to-html", "to-epub", "to-png", "merge-pdf"],
+            BackPresetIds = ["to-md", "to-rtf", "to-jpg", "pdf-long-image", "to-azw3", "to-kepub", "zip-all"],
         },
         SpreadsheetProfile(),
         PresentationProfile(),
@@ -379,6 +386,7 @@ public static class BuiltInData
             Id = "hwp", NameKey = "profile.hwp",
             Extensions = ["hwp", "hwpx"],
             PresetIds = ["to-pdf", "to-docx", "to-hwpx", "to-hwp", "to-png", "to-jpg", "to-txt", "to-md", "to-epub", "merge-pdf"],
+            BackPresetIds = ["to-html", "to-odt", "to-rtf", "pdf-long-image", "to-azw3", "zip-all"],
         },
         TextProfile(),
         .. WithSubtitleProfile(CatalogProfiles()),
@@ -389,6 +397,7 @@ public static class BuiltInData
         {
             Id = "mixed", NameKey = "profile.mixed", IsFallback = true,
             PresetIds = ["to-pdf", "merge-pdf", "zip-all", "to-png", "to-txt"],
+            BackPresetIds = ["to-jpg", "to-webp", "to-docx", "to-md", "to-html", "compress-pdf"],
         },
     ];
 
@@ -410,6 +419,7 @@ public static class BuiltInData
         NameKey = "profile.spreadsheets",
         Extensions = ExtensionsOf(FormatCategory.Spreadsheet),
         PresetIds = ["to-pdf", "to-xlsx", "to-csv", "to-json", "to-ods", "to-hwpx", "to-hwp", "to-html", "merge-pdf"],
+        BackPresetIds = ["to-docx", "to-md", "to-txt", "to-yaml", "to-xml", "to-vcf", "to-png", "zip-all"],
     };
 
     /// <summary>PowerPoint and OpenDocument slides (split from "office" in settings schema 5).</summary>
@@ -419,6 +429,7 @@ public static class BuiltInData
         NameKey = "profile.presentations",
         Extensions = ExtensionsOf(FormatCategory.Presentation),
         PresetIds = ["to-pdf", "to-png", "to-jpg", "to-pptx", "to-hwpx", "to-hwp", "merge-pdf"],
+        BackPresetIds = ["to-odp", "to-webp", "pdf-long-image", "to-docx", "to-txt", "to-md", "to-html", "zip-all"],
     };
 
     /// <summary>Markdown, plain text and HTML (added in settings schema 4, see SettingsMigrations); MHTML (schema 23).</summary>
@@ -428,6 +439,7 @@ public static class BuiltInData
         NameKey = "profile.text",
         Extensions = ExtensionsOf(FormatCategory.Text),
         PresetIds = ["to-pdf", "to-hwpx", "to-hwp", "to-docx", "to-html", "to-txt", "to-epub"],
+        BackPresetIds = ["to-md", "to-odt", "to-rtf", "to-kepub", "merge-pdf", "zip-all"],
     };
 
     /// <summary>Donuts of the categories added in settings schema 6, in the order they follow "text".</summary>
@@ -438,24 +450,31 @@ public static class BuiltInData
             Id = "ebooks", NameKey = "profile.ebooks",
             Extensions = ExtensionsOf(FormatCategory.Ebook),
             PresetIds = ["to-pdf", "to-epub", "to-docx", "to-txt", "to-azw3", "to-mobi", "to-kepub", "to-hwpx", "to-hwp", "to-html"],
+            BackPresetIds = ["to-fb2", "to-md", "to-rtf", "to-odt", "merge-pdf", "zip-all"],
         },
         new()
         {
             Id = "video", NameKey = "profile.video",
             Extensions = ExtensionsOf(FormatCategory.Video),
             PresetIds = ["to-mp4", "mp4-720", "mp4-hevc", "to-webm", "to-mov", "to-gif", "to-mp3", "extract-subtitles", "to-mkv", "to-avi"],
+            // Every frame as pictures is on no front (a long video gives thousands of files): behind a flip, a drop that
+            // misses its slice doesn't start it. Live / Motion Photos of a clip are there too.
+            BackPresetIds = ["mp4-av1", "to-webp", "extract-frames-png", "extract-frames-jpg", "live-photo-iphone", "motion-photo-android",
+                "to-m4a", "to-wav", "to-flac", "zip-all"],
         },
         new()
         {
             Id = "audio", NameKey = "profile.audio",
             Extensions = ExtensionsOf(FormatCategory.Audio),
             PresetIds = ["to-mp3", "mp3-128", "to-m4a", "to-wav", "to-flac", "to-ogg", "to-opus", "to-aac"],
+            BackPresetIds = ["to-alac", "zip-all"],
         },
         new()
         {
             Id = "vector", NameKey = "profile.vector",
             Extensions = ExtensionsOf(FormatCategory.Vector),
             PresetIds = ["to-png", "to-pdf", "to-svg", "to-jpg", "to-webp", "to-eps"],
+            BackPresetIds = ["to-tiff", "to-ico", "to-icns", "to-avif", "to-dxf", "merge-pdf", "zip-all"],
         },
         new()
         {
@@ -463,18 +482,22 @@ public static class BuiltInData
             Extensions = ExtensionsOf(FormatCategory.Archive),
             // "One ZIP" since settings schema 28.
             PresetIds = ["extract", "zip-all", "to-zip", "to-7z", "to-tgz", "to-tar"],
+            // Nothing else converts archives: no back face, Tab does nothing.
+            BackPresetIds = [],
         },
         new()
         {
             Id = "cad", NameKey = "profile.cad",
             Extensions = ExtensionsOf(FormatCategory.Cad),
             PresetIds = ["to-pdf", "to-png", "to-svg", "to-dxf", "to-dwg"],
+            BackPresetIds = ["to-jpg", "to-webp", "to-tiff", "merge-pdf", "zip-all"],
         },
         new()
         {
             Id = "fonts", NameKey = "profile.fonts",
             Extensions = ExtensionsOf(FormatCategory.Font),
             PresetIds = ["to-woff2", "to-woff", "to-ttf", "to-otf", "to-eot"],
+            BackPresetIds = ["zip-all"],
         },
     ];
 
@@ -485,6 +508,7 @@ public static class BuiltInData
         NameKey = "profile.data",
         Extensions = ExtensionsOf(FormatCategory.Data),
         PresetIds = ["to-json", "to-yaml", "to-toml", "to-xml", "to-csv", "to-xlsx"],
+        BackPresetIds = ["to-ods", "to-html", "to-md", "zip-all"],
     };
 
     /// <summary>Text subtitles: SRT, ASS, WebVTT, SAMI, LRC, ... (added in settings schema 11, after "audio").</summary>
@@ -494,6 +518,7 @@ public static class BuiltInData
         NameKey = "profile.subtitles",
         Extensions = ExtensionsOf(FormatCategory.Subtitle),
         PresetIds = ["to-srt", "to-vtt", "to-ass", "to-smi", "to-lrc", "to-ttml"],
+        BackPresetIds = ["zip-all"],
     };
 
     /// <summary><paramref name="profiles"/> with the subtitle donut after the audio donut.</summary>
@@ -510,6 +535,7 @@ public static class BuiltInData
         NameKey = "profile.models",
         Extensions = ExtensionsOf(FormatCategory.Model3D),
         PresetIds = ["to-glb", "to-stl", "to-obj", "to-3mf", "to-ply", "to-png"],
+        BackPresetIds = ["to-gltf", "to-jpg", "to-webp", "zip-all"],
     };
 
     /// <summary>Geospatial vector data: Shapefile, GeoJSON, KML, KMZ, GPX (added in settings schema 25, after "models").</summary>
@@ -519,6 +545,8 @@ public static class BuiltInData
         NameKey = "profile.geo",
         Extensions = ExtensionsOf(FormatCategory.Geo),
         PresetIds = ["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz"],
+        // A shapefile is several files: one ZIP keeps them together.
+        BackPresetIds = ["zip-all"],
     };
 
     /// <summary>Every file extension of the formats in <paramref name="category"/>.</summary>

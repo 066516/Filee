@@ -70,6 +70,9 @@ public sealed class WindowsPlatformServices : IPlatformServices
 
     public string? ShortcutTarget(string path) => ShellLinks.TargetOf(path);
 
+    public string DownloadsFolder => KnownFolders.Downloads
+        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+
     /// <summary>
     /// Reads the selection of the foreground Explorer window through the Shell automation object.
     /// Must be called on an STA thread (the Avalonia UI thread is STA).

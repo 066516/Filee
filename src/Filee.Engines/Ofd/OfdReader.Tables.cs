@@ -453,6 +453,7 @@ internal sealed partial class OfdReader
             ColumnWidths = [.. grid.Columns.Zip(grid.Columns.Skip(1), (a, b) => Hwp(b - a))],
             Borders = HBorders.Empty,
             CellMargin = new HInsets(Hwp(Padding), Hwp(Padding), 0, 0),
+            Tight = true, // the next block's space before is the distance on the page
         };
         if (grid.Left - containerLeft > 0.5)
             table.Indent = Hwp(grid.Left - containerLeft);
@@ -472,19 +473,27 @@ internal sealed partial class OfdReader
             if (cell.Fragments.Count > 0)
             {
                 var (left, right) = (cell.Left + Padding, cell.Right - Padding);
-                var paragraphs = Paragraphs(Lines(cell.Fragments), left, right);
-                var above = TextTop(paragraphs[0]);
+                // Only lines at about single spacing are one paragraph: widely spaced lines in a cell are rows (小计,
+                // 折扣, 总计 under each other) that must stay level with the rows of the cells beside them, and renderers
+                // place text differently inside a tall exact line (Word at its foot, 한글 and rhwp at its head).
+                var paragraphs = FitLineHeights(Paragraphs(Lines(cell.Fragments), left, right, maxPitch: 1.6));
+
+                // One paragraph about as far from the top as from the bottom is centred. Anything else keeps its distance
+                // from the top (as the cell's top padding: space before a cell's first paragraph is not drawn
+                // everywhere): the cells of a column-ruled list (序号, 项目名称, 金额 side by side, each with all rows)
+                // hold their rows at the same heights, so they line up across the columns as on the page.
+                var space = (Top: TextTop(paragraphs[0]) - cell.Top, Bottom: cell.Bottom - TextBottom(paragraphs[^1]));
+                var centred = paragraphs.Count == 1 && space.Top > 1 && Math.Abs(space.Top - space.Bottom) <= Math.Max(1, 0.25 * (space.Top + space.Bottom));
+                hcell.VerticalAlign = centred ? HVerticalAlign.Center : HVerticalAlign.Top;
+                if (!centred && space.Top > 0.2)
+                    hcell.CellMargin = new HInsets(Hwp(Padding), Hwp(Padding), Hwp(Math.Min(space.Top, 100)), 0);
+                var flow = TextTop(paragraphs[0]);
                 foreach (var paragraph in paragraphs)
                 {
-                    var before = hcell.Blocks.Count == 0 ? 0 : Math.Clamp(TextTop(paragraph) - above, 0, 50);
+                    var before = Math.Clamp(TextTop(paragraph) - flow, 0, 100);
                     hcell.Blocks.Add(TextParagraph(paragraph, left, right, Hwp(before), exact: true));
-                    above = TextBottom(paragraph);
+                    flow += before + TextBottom(paragraph) - TextTop(paragraph);
                 }
-                // Text about as far from the top as from the bottom is centred; text at the bottom stays there.
-                var space = (Top: TextTop(paragraphs[0]) - cell.Top, Bottom: cell.Bottom - TextBottom(paragraphs[^1]));
-                hcell.VerticalAlign = space.Top > 1 && Math.Abs(space.Top - space.Bottom) <= Math.Max(1, 0.25 * (space.Top + space.Bottom)) ? HVerticalAlign.Center
-                    : space.Bottom < 0.4 * space.Top && space.Top > 2 ? HVerticalAlign.Bottom
-                    : HVerticalAlign.Top;
             }
             table.Rows[cell.Row].Cells.Add(hcell);
         }

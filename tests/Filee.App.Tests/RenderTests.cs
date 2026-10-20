@@ -1846,7 +1846,7 @@ public class RenderTests
         Assert.Equal(Filee.Core.Presets.LivePhotoKind.None, preset.Media.LivePhoto);
     }
 
-    private static void Pump()
+    internal static void Pump()
     {
         // Let layout, bindings and a few animation frames run.
         for (var i = 0; i < 40; i++)
@@ -1856,7 +1856,7 @@ public class RenderTests
         }
     }
 
-    private static void Save(TopLevel window, string name)
+    internal static void Save(TopLevel window, string name)
     {
         // Disposed at the end, so the frame stays alive while Skia encodes it: a collection in between (the idle memory
         // trim runs one on another thread) would otherwise finalize its image under the encoder.

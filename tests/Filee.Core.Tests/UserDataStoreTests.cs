@@ -955,14 +955,16 @@ public class UserDataStoreTests
     }
 
     [Fact]
-    public void Version_29_libraries_get_the_live_photo_presets_after_extract_live_video_on_no_donut()
+    public void Version_30_libraries_get_the_live_photo_presets_after_extract_live_video_and_behind_the_video_donut()
     {
-        // As written with schema 29 (30 is another change's): no Live / Motion Photo presets.
+        // As written with schema 30: no Live / Motion Photo presets, and the video donut's back face without them.
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id is "live-photo-iphone" or "motion-photo-android");
         var profiles = BuiltInData.CreateProfiles();
+        var video = profiles.Single(p => p.Id == "video");
+        video.BackPresetIds!.RemoveAll(id => id is "live-photo-iphone" or "motion-photo-android");
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(29, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(30, presets, profiles));
 
         var iphone = presets.Single(p => p.Id == "live-photo-iphone");
         var android = presets.Single(p => p.Id == "motion-photo-android");
@@ -972,7 +974,19 @@ public class UserDataStoreTests
         Assert.Equal(BuiltInData.CreatePresets().Select(p => p.Id), presets.Select(p => p.Id));
         Assert.Equal("extract-motion", presets[presets.IndexOf(iphone) - 1].Id);
         Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("live-photo-iphone") || p.PresetIds.Contains("motion-photo-android"));
-        Assert.False(SettingsMigrations.ApplyToLibrary(29, presets, profiles)); // once only
+        // Behind the video donut as in a new one, after "Extract frames".
+        Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "video").BackPresetIds, video.BackPresetIds);
+        Assert.False(SettingsMigrations.ApplyToLibrary(30, presets, profiles)); // once only
+
+        // A back face the user filled up stays as it is.
+        var full = BuiltInData.CreateProfiles();
+        var fullBack = full.Single(p => p.Id == "video").BackPresetIds!;
+        fullBack.RemoveAll(id => id is "live-photo-iphone" or "motion-photo-android");
+        while (fullBack.Count < ToolbarProfile.MaxSlices)
+            fullBack.Add("to-mp3");
+        var before = fullBack.ToList();
+        SettingsMigrations.ApplyToLibrary(30, BuiltInData.CreatePresets(), full);
+        Assert.Equal(before, fullBack);
 
         // Back from an older Filee, which dropped the option it didn't know: the preset makes Live Photos again.
         iphone.Media.LivePhoto = LivePhotoKind.None;

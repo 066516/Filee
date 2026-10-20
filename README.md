@@ -62,8 +62,12 @@ Filee shows new releases in its menu and updates itself, keeping your settings a
 ## Features
 
 - **A donut at the cursor**: hold a key, drag files and drop them on a format. Only formats that fit the files appear.
+- **Straight from the browser**: drag a picture, a link to a file or a download out of Chrome, Edge, Firefox or Safari the same
+  way. Filee saves it to your Downloads folder (or keeps only the converted file) and converts it. Links are downloaded
+  without your browser's sign-in.
 - **One toolbar per file type**, arranged by drag and drop, with presets for quality, size, DPI, PDF pages and compression,
   video and audio, output folder and file names.
+- **Two sides to every donut**: press <kbd>Tab</kbd> or turn the mouse wheel while it is open to flip it over to less common formats and tools.
 - **Many files at once**, in parallel. Routes with several steps (HWP → HWPX → DOCX) are found automatically.
 - **Watch folders** convert every file that lands in them.
 - **Other ways in**: the right-click menu, a keyboard shortcut, the drop zone and the [`filee` command](#command-line).

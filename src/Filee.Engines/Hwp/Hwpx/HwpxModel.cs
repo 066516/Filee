@@ -130,6 +130,13 @@ internal sealed class HTable : HBlock
     /// <summary>The table starts a new page (a page break set in Excel).</summary>
     public bool PageBreakBefore { get; set; }
 
+    /// <summary>
+    /// The table takes no more height than its rows (fixed layouts: OFD, whose next paragraph has its own distance).
+    /// In HWPX it gets no 5 mm space under it and the paragraph holding it no empty line of its own, so a full page
+    /// does not run over.
+    /// </summary>
+    public bool Tight { get; set; }
+
     public List<HBlock> Caption { get; } = [];
 }
 

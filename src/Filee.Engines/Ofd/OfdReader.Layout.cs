@@ -35,6 +35,9 @@ internal sealed partial class OfdReader
         public double Right => Fragments.Max(f => f.Right);
         public double LastBaseline => Fragments.Concat(Wrapped.Select(w => w.Fragment)).Max(f => f.Baseline + f.Run);
         public bool Vertical => Fragments[0].Vertical;
+
+        /// <summary>Line distance of a paragraph of this one line when the line above leaves less than 1.2 sizes.</summary>
+        public double? Cap { get; set; }
     }
 
     /// <summary>A paragraph, a table or a picture at its place on the page (mm from the top).</summary>
@@ -60,7 +63,7 @@ internal sealed partial class OfdReader
             var blocks = PageBlocks(page, left, page.Width - right, top);
             // A table cannot start a page in every format: a tiny empty paragraph before it carries the page break.
             if (blocks.Count == 0 || blocks[0] is HTable)
-                blocks.Insert(0, new HParagraph { MarkFormat = new HCharFormat(Size: 100) });
+                blocks.Insert(0, Spacer());
             if (!newSection && blocks[0] is HParagraph first)
                 first.PageBreakBefore = true;
             section!.Blocks.AddRange(blocks);
@@ -105,13 +108,13 @@ internal sealed partial class OfdReader
         var items = new List<Placed>();
         foreach (var table in RuledTables(page, fragments))
             items.Add(new Placed(table.Top, table.Bottom, Table: table));
-        foreach (var paragraph in Paragraphs(Lines(fragments), containerLeft, containerRight))
+        foreach (var paragraph in FitLineHeights(Paragraphs(Lines(fragments), containerLeft, containerRight)))
             items.Add(new Placed(TextTop(paragraph), TextBottom(paragraph), Lines: paragraph));
 
         var floating = new List<HImage>();
         foreach (var picture in page.Pictures.OrderBy(p => p.Top))
         {
-            if (Extract(picture.Part) is not { } file)
+            if ((picture.File ?? (picture.Part is { } part ? Extract(part) : null)) is not { } file)
                 continue;
             var image = new HImage(file) { Width = Hwp(picture.Width), Height = Hwp(picture.Height) };
             if (items.Any(i => i.Top < picture.Bottom - 0.5 && i.Bottom > picture.Top + 0.5))
@@ -125,13 +128,23 @@ internal sealed partial class OfdReader
             }
         }
 
+        // The blocks follow each other down the page; where one starts above the end of the one before (a title with
+        // the invoice number beside it) it is pushed down, and the next gaps take that back, so the rest of the page
+        // stays at its place.
         var blocks = new List<HBlock>();
-        var above = marginTop;
+        var flow = marginTop;
         foreach (var item in items.OrderBy(i => i.Top))
         {
-            var before = Math.Clamp(item.Top - above, 0, 100);
+            var before = Math.Clamp(item.Top - flow, 0, 100);
             if (item.Table is { } table)
             {
+                // A table has no space before: a 1 pt paragraph carries the distance.
+                if (before > 0.5)
+                {
+                    var spacer = Spacer();
+                    spacer.Format = spacer.Format with { Before = Hwp(before - 0.35) };
+                    blocks.Add(spacer);
+                }
                 blocks.Add(TableBlock(table, containerLeft));
             }
             else if (item.Image is { } image)
@@ -146,19 +159,40 @@ internal sealed partial class OfdReader
             }
             else
             {
-                blocks.Add(TextParagraph(item.Lines!, containerLeft, containerRight, Hwp(before)));
+                // Exact line distance where the largest text fits in it: "at least" grows each line to the font's own
+                // height in Word and LibreOffice (KaiTi: ~1.4 em), and a full invoice page ran over.
+                var lines = item.Lines!;
+                var exact = lines.Max(l => l.Size) <= LineHeight(lines) + 0.01;
+                blocks.Add(TextParagraph(lines, containerLeft, containerRight, Hwp(before), exact));
             }
-            above = Math.Max(above, item.Bottom);
+            flow += before + (item.Bottom - item.Top);
+        }
+
+        // The first block's distance from the top margin becomes the height of an empty line: space before the first
+        // paragraph of a page is not drawn by every renderer (rhwp leaves it out, and the page came out 3 mm high).
+        if (blocks.Count > 0 && blocks[0] is HParagraph first && first.Format.Before is > 0 and var top && top > Hwp(0.5))
+        {
+            var spacer = Spacer();
+            spacer.Format = spacer.Format with { LineSpacing = new HLineSpacing(HLineSpacingKind.Fixed, top) };
+            first.Format = first.Format with { Before = 0 };
+            blocks.Insert(0, spacer);
         }
 
         if (floating.Count > 0)
         {
             if (blocks.Count == 0 || blocks[0] is not HParagraph)
-                blocks.Insert(0, new HParagraph { MarkFormat = new HCharFormat(Size: 100) });
+                blocks.Insert(0, Spacer());
             ((HParagraph)blocks[0]).Inlines.InsertRange(0, floating);
         }
         return blocks;
     }
+
+    /// <summary>An empty 1 pt paragraph with no spacing: carries a page break before a table, or the floating pictures.</summary>
+    private static HParagraph Spacer() => new()
+    {
+        Format = new HParaFormat(Before: 0, After: 0, LineSpacing: new HLineSpacing(HLineSpacingKind.Percent, 100)),
+        MarkFormat = new HCharFormat(Size: 100),
+    };
 
     /// <summary>The same text drawn twice at one place (fake bold, a label in both the template and the page) once.</summary>
     private static List<Fragment> Deduplicated(List<Fragment> fragments)
@@ -230,15 +264,16 @@ internal sealed partial class OfdReader
     /// <summary>
     /// Lines into paragraphs: a line continues the paragraph above when that one filled the measure (ran to the
     /// right edge from at least half-way), the size and line distance match and it starts no further right than the
-    /// paragraph's body (the first line may be indented).
+    /// paragraph's body (the first line may be indented). Lines further apart than <paramref name="maxPitch"/> font
+    /// sizes stay paragraphs of their own.
     /// </summary>
-    private static List<List<Line>> Paragraphs(List<Line> lines, double containerLeft, double containerRight)
+    private static List<List<Line>> Paragraphs(List<Line> lines, double containerLeft, double containerRight, double maxPitch = 2.5)
     {
         var paragraphs = new List<List<Line>>();
         foreach (var line in lines)
         {
             var current = paragraphs.LastOrDefault();
-            if (current is not null && Continues(current, line, containerLeft, containerRight))
+            if (current is not null && Continues(current, line, containerLeft, containerRight, maxPitch))
                 current.Add(line);
             else
                 paragraphs.Add([line]);
@@ -246,14 +281,19 @@ internal sealed partial class OfdReader
         return paragraphs;
     }
 
-    private static bool Continues(List<Line> paragraph, Line line, double containerLeft, double containerRight)
+    private static bool Continues(List<Line> paragraph, Line line, double containerLeft, double containerRight, double maxPitch)
     {
         var last = paragraph[^1];
         var size = last.Size;
         if (last.Tabs.Count > 0 || line.Tabs.Count > 0 || last.Vertical || line.Vertical || Math.Abs(line.Size - size) > 0.15 * size)
             return false;
         var pitch = line.Baseline - last.Baseline;
-        if (pitch < 0.9 * size || pitch > 2.5 * size || paragraph.Count > 1 && Math.Abs(pitch - (last.Baseline - paragraph[^2].Baseline)) > 0.25 * size)
+        if (pitch < 0.9 * size || pitch > maxPitch * size || paragraph.Count > 1 && Math.Abs(pitch - (last.Baseline - paragraph[^2].Baseline)) > 0.25 * size)
+            return false;
+        // A line its writer broke inside one TextCode (a block of cipher text) follows after a line break.
+        if (line.Fragments[0].Continued)
+            return line.Fragments.Count == 1 && Math.Abs(line.Left - last.Left) < 0.6 * size;
+        if (paragraph.Skip(1).Any(l => l.Fragments[0].Continued))
             return false;
         var body = paragraph.Count > 1 ? paragraph.Skip(1).Min(l => l.Left) : paragraph[0].Left;
         if (last.Right < containerRight - 2.5 * size || last.Right - Math.Min(body, last.Left) < 0.5 * (containerRight - containerLeft))
@@ -268,8 +308,26 @@ internal sealed partial class OfdReader
         var wrapped = lines[0].Wrapped.Select(w => w.Fragment.Baseline).Distinct().Count();
         var pitch = lines.Count > 1 ? (lines[^1].Baseline - lines[0].Baseline) / (lines.Count - 1)
             : wrapped > 0 ? (lines[0].LastBaseline - lines[0].Baseline) / wrapped
-            : size * 1.2;
+            : lines[0].Cap ?? size * 1.2;
         return Math.Clamp(pitch, size, size * 3);
+    }
+
+    /// <summary>
+    /// A one-line paragraph closer to the line above than 1.2 times its size (an invoice's label rows, 4.7 mm apart
+    /// with 4.2 mm numbers) gets a line distance that fits in between, else every such line pushes the rest down.
+    /// </summary>
+    private static List<List<Line>> FitLineHeights(List<List<Line>> paragraphs)
+    {
+        for (var i = 1; i < paragraphs.Count; i++)
+        {
+            var (above, line) = (paragraphs[i - 1][^1], paragraphs[i][0]);
+            if (paragraphs[i].Count > 1 || line.Wrapped.Count > 0 || line.Vertical || above.Vertical)
+                continue;
+            var room = line.Baseline - above.LastBaseline + 0.25 * (line.Size - above.Size);
+            if (room > 0 && room < 1.2 * line.Size)
+                line.Cap = room;
+        }
+        return paragraphs;
     }
 
     /// <summary>Top of a paragraph's first line box (Word puts the extra line distance above the text).</summary>
@@ -292,8 +350,8 @@ internal sealed partial class OfdReader
             align = HAlign.Center;
         else if (lines.Count == 1 && !tabbed && rightGap < 1.5 && leftGap > width * 0.2)
             align = HAlign.Right;
-        else if (lines.Count > 1)
-            align = HAlign.Justify;
+        else if (lines.Count > 1 && !lines.Skip(1).Any(l => l.Fragments[0].Continued))
+            align = HAlign.Justify; // not lines that end in a line break: Word would spread them
         else
             align = HAlign.Left;
 
@@ -357,6 +415,10 @@ internal sealed partial class OfdReader
                     var gap = fragment.Left - previous.Right;
                     if (gap > 0.5 * fragment.Size || gap > 0.2 * fragment.Size && !IsWide(previous.Text[^1]) && !IsWide(fragment.Text[0]))
                         Space();
+                }
+                else if (l > 0 && fragment.Continued)
+                {
+                    pieces.Add(("\n", fragment.Format));
                 }
                 else if (l > 0 && pieces.Count > 0 && !IsWide(pieces[^1].Text[^1]) && !IsWide(fragment.Text[0]))
                 {
