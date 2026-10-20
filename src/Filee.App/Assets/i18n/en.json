@@ -134,6 +134,15 @@
   "profile.models": "3D models",
   "profile.mixed": "Mixed files",
 
+  "preset.crop": "Crop",
+  "crop.save": "Crop & Save",
+  "crop.reset": "Reset",
+  "crop.skip": "Skip",
+  "crop.aspect_title": "Aspect:",
+  "crop.aspect_free": "Free",
+  "crop.aspect_original": "Original",
+  "crop.page_counter": "{0} of {1}",
+
   "preset.half_size": "Half size",
   "preset.grayscale": "Grayscale",
   "preset.remove_background": "Remove background",
