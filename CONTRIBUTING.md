@@ -110,7 +110,7 @@ Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) first. In short:
 Bump `<Version>` in `Directory.Build.props`, merge, then push a tag `vX.Y.Z`. `.github/workflows/release.yml` runs the
 tests and `build/build-installer.ps1 -Portable`: it publishes the app (`-p:FileeRelease=true`, which lets it register
 Explorer and startup entries), adds the Explorer menu extension and the bundled rhwp and 7-Zip, compiles
-`installer/Filee.iss` with a pinned, portable Inno Setup, and uploads `Filee-X.Y.Z-win-Setup.exe`, the portable zip and
+`src/Filee.Setup` (Filee's own installer) and appends the app to it, and uploads `Filee-X.Y.Z-win-Setup.exe`, the portable zip and
 their SHA-256 sums with release notes generated from the merged pull requests.
 
 ### "What's new" slides for a release
@@ -142,7 +142,11 @@ To try it in the app, build with the new version (`dotnet run --project src/File
 data folder whose settings say an older version was seen (`"whatsNewSeenVersion": "1.0.0"`, `FILEE_DATA_DIR`), or
 open About → "What's new".
 
-To try the installer locally run `pwsh build/build-installer.ps1` (output in `Releases/`). Setup needs administrator
-rights; `pwsh build/build-installer.ps1 -CheckOnly` only compiles the script. The installer's engine page and some of
-its texts are generated from `EngineDownloads` and the app's translations (`build/tools/make-installer-engines.cs`);
-its own texts are in the `[CustomMessages]` section of `installer/Filee.iss` (English, Korean, Simplified Chinese).
+To try the installer locally run `pwsh build/build-installer.ps1` (output in `Releases/`; it fetches the bundled
+engines, the C++ runtime and the Zig toolchain for the Explorer menu into `build/.cache`; run `build/fetch-fonts.ps1`
+first). `pwsh build/build-installer.ps1 -CheckOnly` builds Setup around a stub app and installs, updates and
+uninstalls it in a sandbox. To run the real Setup without touching your PC, give it a scratch folder:
+`Filee-X.Y.Z-win-Setup.exe /SANDBOX=D:\scratch` (registry, Program Files, Start menu, desktop, PATH and `%APPDATA%`
+all go into that folder; no administrator rights are asked for and Filee is not started). Setup's texts are the
+`installer.*` keys of the app's translation files; its engine page uses the app's engine names. See
+[Architecture](docs/ARCHITECTURE.md#windows-installer).

@@ -23,6 +23,14 @@ public partial class LocalizationTests
 
     public static TheoryData<string> Languages => new(LocalizationService.Languages.Where(l => l.Code != "en").Select(l => l.Code));
 
+    [Fact]
+    public void Shared_language_registry_covers_every_shipped_translation_once()
+    {
+        var codes = LocalizationService.Languages.Select(l => l.Code).ToList();
+        Assert.Equal(codes.Count, codes.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Equal(Directory.GetFiles(I18nDirectory, "*.json").Select(Path.GetFileNameWithoutExtension).Order(), codes.Order());
+    }
+
     [Theory]
     [InlineData("ar")]
     [InlineData("AR")]

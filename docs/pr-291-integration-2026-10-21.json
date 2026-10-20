@@ -1,0 +1,100 @@
+{
+  "date": "2026-10-21",
+  "pull_request": "https://github.com/KnifeLemon/Filee/pull/291",
+  "integrated_main": "2831766",
+  "prior_head": "dcd39524535ed04ac0b299bfa9b836e18687f235",
+  "resolution": [
+    "Retained shared AppLanguages.All for the app and installer; registered Arabic once.",
+    "Retained shared SoftPalette with Latin primary for ellipses, embedded Arabic fallback and installer system fonts.",
+    "Preserved upstream Live Photo migration 31; moved reported extension migration to 32. Tested upgrades from 30 and 31, custom claims, deliberate removals and reloads.",
+    "Completed all 870 Arabic keys, including 59 installer and 17 Live Photo additions; all nine languages have matching keys and placeholders and no duplicate keys.",
+    "Preserved left-to-right UI layout; tested live Arabic switching in app and installer.",
+    "Updated contributor guidance and added registry/resource coverage and Arabic render regressions."
+  ],
+  "validation": [
+    {
+      "scope": "Core full",
+      "trx": "artifacts/pr291-integration/core-final/3D_DESKTOP-OKH12RP_2026-10-21_01_29_04.trx",
+      "passed": 437,
+      "failed": 0,
+      "skipped": 2,
+      "skipped_cases": [
+        "Filee.Core.Tests.FolderWatcherTests.Case_distinct_files_with_identical_metadata_are_both_converted",
+        "Filee.Core.Tests.FolderWatcherTests.A_case_distinct_folder_is_not_mistaken_for_the_output_folder"
+      ]
+    },
+    {
+      "scope": "Setup full",
+      "trx": "artifacts/pr291-integration/setup-final/3D_DESKTOP-OKH12RP_2026-10-21_01_29_03.trx",
+      "passed": 130,
+      "failed": 0,
+      "skipped": 0,
+      "skipped_cases": []
+    },
+    {
+      "scope": "Engine integration: Live Photo, archives, reported issues",
+      "trx": "artifacts/pr291-integration/engines-with-7zip/3D_DESKTOP-OKH12RP_2026-10-21_01_25_59.trx",
+      "passed": 119,
+      "failed": 0,
+      "skipped": 0,
+      "skipped_cases": []
+    },
+    {
+      "scope": "App localization and Live Photo final",
+      "trx": "artifacts/pr291-integration/app-final-targeted/3D_DESKTOP-OKH12RP_2026-10-21_01_30_18.trx",
+      "passed": 39,
+      "failed": 0,
+      "skipped": 0,
+      "skipped_cases": []
+    },
+    {
+      "scope": "Platform full",
+      "trx": "artifacts/pr291-integration/tests/3D_DESKTOP-OKH12RP_2026-10-21_01_24_35.trx",
+      "passed": 48,
+      "failed": 0,
+      "skipped": 3,
+      "skipped_cases": [
+        "Filee.Platform.Tests.MacOSNativeTests.NativeFrameworksAndPermissionProbeLoadOnMacOS",
+        "Filee.Platform.Tests.LinuxNativeIntegrationTests.X11CanIdentifyAnOwnedWindowAndRequestRestackingWithoutChangingFocus",
+        "Filee.Platform.Tests.LinuxNativeIntegrationTests.NautilusScriptPreservesDistinctPathsAndShellCharacters"
+      ]
+    },
+    {
+      "scope": "Cli full",
+      "trx": "artifacts/pr291-integration/tests/3D_DESKTOP-OKH12RP_2026-10-21_01_24_35[2].trx",
+      "passed": 27,
+      "failed": 0,
+      "skipped": 1,
+      "skipped_cases": [
+        "Filee.Cli.Tests.CliTests.Case_distinct_inputs_are_both_converted_and_exact_duplicates_are_removed"
+      ]
+    },
+    {
+      "scope": "App full",
+      "trx": "artifacts/pr291-integration/tests/3D_DESKTOP-OKH12RP_2026-10-21_01_24_35[5].trx",
+      "passed": 607,
+      "failed": 0,
+      "skipped": 3,
+      "skipped_cases": [
+        "Filee.App.Tests.WhatsNewMedia.Generate_2_0_0",
+        "Filee.App.Tests.ExplorerMenuTests.Built_package_contains_the_current_manifest",
+        "Filee.App.Tests.ExplorerMenuTests.Native_dll_serves_the_explorer_command_in_process"
+      ]
+    }
+  ],
+  "build": "Filee.slnx Debug build passed; existing compiler/obsolete API warnings remain.",
+  "format": "dotnet format Filee.slnx --verify-no-changes --no-restore --severity warn passed.",
+  "installer_sandbox": "build/build-installer.ps1 -CheckOnly passed: published self-contained trimmed Setup installed, updated and uninstalled a stub app in its isolated sandbox.",
+  "visual_review": [
+    "Arabic General page",
+    "Arabic Live Photo editor",
+    "Arabic installer options (light)",
+    "Arabic installer completion (dark)"
+  ],
+  "limits": [
+    "Integration scopes above were rerun; this does not replace the historical full engine audit or its recorded LibreOffice timeouts.",
+    "No real-phone compatibility, UAC/admin installation or native macOS/Linux verification is claimed.",
+    "Regression checks detect these integration errors; future upstream edits may still produce merge conflicts."
+  ],
+  "historical_audit": "issue-audit-2026-10-20.json"
+}

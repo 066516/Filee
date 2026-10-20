@@ -146,11 +146,13 @@ public partial class App : Application
             AppHost.Get<WatchFolderService>().DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
         };
 
-        // Before HandleCommandLine marks the first run complete: a fresh install gets no slides. Without the main
-        // window (sign-in, the Explorer menu) they wait until the user opens Filee, unless the installer asked for them.
+        // Before HandleCommandLine marks the first run complete: a fresh install gets no slides (an update by the
+        // installer does, even when its settings are gone). Without the main window (sign-in, the Explorer menu) they
+        // wait until the user opens Filee, unless the installer asked for them.
         AppHost.Get<WhatsNewService>().CheckAtStartup(
             background: Program.Options.Background && !Program.Options.ShowSettings && !Program.Options.WhatsNew
-                        || Program.Options.ConvertFiles.Count > 0);
+                        || Program.Options.ConvertFiles.Count > 0,
+            updated: Program.Options.WhatsNew, updatedFrom: Program.Options.UpdatedFrom);
         HandleCommandLine(Program.Options, firstLaunch: true);
         if (OperatingSystem.IsMacOS())
             this.TryGetFeature<IActivatableLifetime>()?.Activated += (_, e) =>
@@ -307,17 +309,21 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Options ticked on the installer's task page. Saving applies them through SystemIntegrationService
-    /// as if they had been switched on the General page.
+    /// Options ticked in Setup, and the language picked there. Saving applies them (SystemIntegrationService, the
+    /// language) as if they had been switched on the General page.
     /// </summary>
     private static void ApplyInstallerChoices(CommandLine options, UserDataStore store)
     {
-        if (options.StartWithWindows is null && options.ContextMenu is null)
+        // Only Filee's languages; anything else keeps the setting (normally "auto", Windows' language).
+        var language = LocalizationService.Languages.FirstOrDefault(l => l.Code.Equals(options.Language, StringComparison.OrdinalIgnoreCase)).Code;
+        if (options.StartWithWindows is null && options.ContextMenu is null && language is null)
             return;
         if (options.StartWithWindows is { } start)
             store.Settings.StartWithSystem = start;
         if (options.ContextMenu is { } menu)
             store.Settings.ContextMenuEnabled = menu;
+        if (language is not null)
+            store.Settings.Language = language;
         store.SaveSettings();
     }
 

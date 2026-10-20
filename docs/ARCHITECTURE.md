@@ -52,6 +52,8 @@
 ## Files dragged from a web browser
 
 A picture, a link to a file or a download dragged out of a browser opens the donut like a file from the file manager.
+A drag gesture over a browser (`WebBrowsers`, by process name) counts as over the file manager, so the default scope
+covers it; click and key gestures don't, as they read the file manager's selection.
 `DraggedFiles.Read` asks `BrowserDrags` (App, reads Avalonia's drag data) first; `BrowserDrag` (Core, pure rules)
 decides what in the drag is a file:
 
@@ -121,6 +123,9 @@ The editor's Front / Back switch (`ToolbarPageViewModel.EditingBack`) edits eith
 `UserDataStore` owns `settings.json`, `presets.json`, `profiles.json` and `history.json`
 (System.Text.Json source generation, atomic writes, broken files are kept as `*.broken`).
 Bump `AppSettings.CurrentSchemaVersion` and add a step to `SettingsMigrations` when the format changes.
+When integrating another branch, reserve a version after the latest migration on `main`; two independent
+changes must not share a version. Test loading settings saved at that latest version as well as older ones,
+then reload the upgraded library to check that user customizations survive and migrations do not repeat.
 
 ## Localization and theming
 
@@ -213,7 +218,7 @@ applied by `WindowsPlatformServices.SetContextMenu` at start-up and whenever set
   - The package is **unsigned** (publisher contains `OID.2.25.311729368913984317654407730594956997722=1`; Filee has no
     code-signing certificate). Windows only registers an unsigned package with executable content **with
     administrator rights** (it installs it for all users); a per-user attempt fails with 0x80073D2B "an unsigned
-    package cannot include Executable activations". Setup (`installer/Filee.iss`) has those rights anyway and
+    package cannot include Executable activations". Setup (`src/Filee.Setup`) has those rights anyway and
     registers it on Windows 11 x64 while its option is ticked. Later the General page offers "Add to the main menu",
     which runs `Add-AppxPackage -Path … -ExternalLocation … -AllowUnsigned` in Windows PowerShell through one UAC
     prompt (`ExplorerMenuRegistration`). A signed package would register per user without a prompt.
@@ -227,10 +232,11 @@ applied by `WindowsPlatformServices.SetContextMenu` at start-up and whenever set
   - Invoke starts `Filee.exe --convert "<path>"…` next to the DLL and returns at once. Selections longer than a
     command line go through `%TEMP%\Filee-convert-*.txt` (`--convert-list`, one path per line), which the app deletes.
   - Updates: Setup asks the running Filee to exit (`Filee.exe --quit`), then renames a `FileeExplorerMenu.dll` that
-    Explorer still has loaded (Windows allows renaming a loaded DLL, not replacing or deleting it) and has Windows
-    delete the old copy at the next restart, so updating needs no restart. An update keeps the registration as it
-    was and refreshes it. Uninstall runs `Filee.exe --uninstall-cleanup` (`UninstallCleanup`): it removes the package,
-    the title file, the classic verb, the startup entry and downloaded engines; settings stay.
+    Explorer still has loaded into its backup folder (Windows allows renaming a loaded DLL, not replacing or deleting
+    it) and has Windows delete the old copy at the next restart, so updating needs no restart. An update keeps the
+    registration as it was and refreshes it. Uninstall runs `Filee.exe --uninstall-cleanup` (`UninstallCleanup`): it
+    removes the package, the title file, the classic verb, the startup entry and downloaded engines; the uninstaller
+    then asks whether to delete the settings too (they stay by default).
   - Build: `pwsh build/build-explorer-menu.ps1` downloads a pinned Zig (SHA-256 checked) into `build/.cache`, compiles
     the DLL and packs the MSIX with `build/tools/make-explorer-package.cs` (Windows' own packaging API, no SDK).
     Output: `build/.cache/explorer-menu`; CI builds it for the tests, `build/build-installer.ps1` builds it into the
@@ -242,3 +248,58 @@ Debugging: `Get-AppxPackage Filee.ExplorerMenu` shows the registration (`Install
 `Add-AppxPackage -Path FileeExplorerMenu.msix -ExternalLocation <folder with Filee.exe> -AllowUnsigned`. Explorer picks
 the entry up for new menus; if not, restart Explorer. To remove it by hand:
 `Get-AppxPackage Filee.ExplorerMenu | Remove-AppxPackage`.
+
+## Windows installer
+
+`Filee-<version>-win-Setup.exe` is Filee's own installer, `src/Filee.Setup` (it replaced the Inno Setup script of
+1.x). It is an Avalonia program with the app's look and translations: it links `Styles/Soft.axaml` (which therefore
+styles only Avalonia's own controls; Filee's controls are in `Controls.axaml`), `SoftPalette` (accent, radii, font
+order), `AppLanguages` and `Assets/i18n/*.json` (Setup's texts are the `installer.*` keys). To stay small it uses
+Windows' own UI fonts (Segoe UI, Nirmala UI and the UI language's CJK font first; titles bold, as those CJK fonts
+have no semibold) instead of the app's embedded Noto fonts.
+
+- **Look**: one borderless 640×420 card (`SetupWindow`, its own window buttons, drag to move) whose states crossfade
+  (`Views/StateViews.axaml`): Welcome (the logo assembling itself, `DonutLogo`; one Install button; an Options sheet
+  sliding up with the language, folder, options and engines), Progress (the new version's "What's new" slides, a thin
+  `ShimmerBar`), Done (`CheckBurst`, "Launch Filee"), Failed ("Copy details") and the uninstaller's states.
+  `SoftBackdrop` draws slowly drifting accent blobs behind it. The slides are the app's (`SlideShow`, `AnimatedImage`,
+  `SlideDeck` and `Assets/WhatsNew`, linked): the newest deck up to the version being installed, advancing every 6 s.
+  Every animation runs only while the window is visible and not minimized (`FrameLoop`) and is a still picture when
+  Windows' "Show animations" is off (`SetupMotion`). `/SILENT` shows only the progress card, without slides. After an
+  update Setup starts Filee with `--background --whats-new`, so the slides show once in the app as well.
+
+- **Build** (`build/build-installer.ps1`): Setup is published as one self-contained, trimmed file
+  (`-p:FileeSetupPublish=true`), so it runs on Windows 10 1809+ x64 without .NET. `build/tools/make-setup.cs` appends
+  the app's publish folder as the payload: `[program][LZMA streams of all files][manifest JSON][72-byte trailer]`
+  (`SetupPayload`): ~48 MB segments compressed in parallel with SharpCompress's LZMA (48 MB dictionary), programs
+  first through the x86 branch filter (`X86Filter`, from the LZMA SDK) as 7-Zip and Inno Setup do. The manifest lists
+  every file with its size, SHA-256 and filter, the SHA-256 of the compressed data, the version and the engines to
+  offer (from `EngineDownloads`). A future signature goes after the trailer (Setup looks
+  for the trailer in front of the certificate table), so sign after packing. The code is trim- and AOT-safe
+  (compiled bindings, source-generated P/Invoke and COM); Native AOT would need the MSVC linker on the build machine
+  and still couldn't link SkiaSharp's native libraries in.
+- **Rights**: Setup starts unelevated (asInvoker) and, for an install for all users, starts itself again with
+  administrator rights (one UAC prompt) and waits. The elevated copy writes what to start at the end into a file
+  (`/LAUNCHFILE`), and the unelevated one starts Filee from it as the signed-in user. Elevated without such a parent
+  (run as administrator, a package manager), it starts Filee with Explorer's token.
+- **Install** (`Installer`): checks the free space and the payload's hash first, closes Filee (`--quit`, then ends
+  what still runs from the folder), unpacks into `<folder>\~setup-*\new` checking every file, checks that every
+  program finds the Microsoft C++ runtime it imports (next to it or in System32; `RuntimeCheck`), then swaps the files
+  in (`FileSwap`: replaced and obsolete files are renamed into a backup, which works for files in use) and writes the
+  uninstall entry, the shortcuts and PATH. Any failure until then puts everything back. Filee's own settings (Explorer
+  menu, start at sign-in, engines, a picked language) are handed to Filee on its command line, as before.
+- **Updates from 1.x**: the uninstall key stays `{C8686E06-8327-40A2-B0F7-3DEDD61D9248}_is1` (Inno Setup's AppId), so
+  Apps & Features keeps one Filee. `PreviousInstall` reads the folder and choices of an Inno Setup installation; an
+  update keeps the folder and what is registered now (desktop shortcut, PATH, the top-level menu package), removes
+  `unins000.*` and every file 2.0 doesn't have, and rewrites the key without the `Inno Setup: …` values. The app
+  counts as installed when `uninstall.exe` (or 1.x's `unins000.exe`) is next to it (`UpdateService.IsInstalled`).
+- **Uninstall**: `uninstall.exe` is Setup without its payload. Run from the install folder it copies itself to
+  `%TEMP%` and waits for the copy, which removes what `uninstall.json` lists (other files in the folder stay), the
+  shortcuts, the PATH entry and the key. Files in use are moved out and deleted at the next restart.
+- **Command line**: Inno Setup's switches (`SetupOptions`, documented at the top of the file), because Filee 1.x
+  updates itself with `/SILENT /NORESTART` and winget passes `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART`. Exit codes as
+  Inno Setup's: 0 done, 1 could not start, 2 cancelled before installing (also a declined UAC prompt), 4 failed.
+- **Testing**: `Filee.Setup.Tests` runs installs, updates (also over a simulated 1.x installation) and uninstalls
+  against `MemoryRegistry`, a fake `ISetupSystem` and scratch folders, and renders every page. `/SANDBOX=<folder>`
+  runs the real Setup with a registry file and all folders inside `<folder>`; `build-installer.ps1 -CheckOnly` (CI)
+  installs, updates and uninstalls that way.
