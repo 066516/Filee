@@ -701,6 +701,28 @@ internal static class SettingsMigrations
             }
             changed |= LearnExtensions(profiles, out _, ["livp"]);
         }
+        // v31 (30 is kept for another change): "Live Photo (iPhone)" and "Motion Photo (Android)" (a clip of a video
+        //      as a moving photo), after "Extract Live Photo video" as in a new library, on no donut. Present already
+        //      but saved since by a Filee before 31: that one dropped the option and left a plain JPG preset, so it is
+        //      put back.
+        if (from < 31)
+        {
+            foreach (var live in BuiltInData.LivePhotoPresets())
+            {
+                if (presets.FirstOrDefault(p => p.Id == live.Id) is { } existing)
+                {
+                    if (existing.Media.LivePhoto == LivePhotoKind.None && existing.TargetFormat == live.TargetFormat)
+                    {
+                        existing.Media.LivePhoto = live.Media.LivePhoto;
+                        changed = true;
+                    }
+                    continue;
+                }
+                var at = presets.FindLastIndex(p => p.Id is "extract-motion" or "live-photo-iphone" or "extract-frames-jpg");
+                presets.Insert(at < 0 ? presets.Count : at + 1, live);
+                changed = true;
+            }
+        }
         return changed;
     }
 

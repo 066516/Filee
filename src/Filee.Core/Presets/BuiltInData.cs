@@ -74,6 +74,7 @@ public static class BuiltInData
         .. PdfSlidesPresets(),
         .. FramePresets(),
         .. MotionPhotoPresets(),
+        .. LivePhotoPresets(),
         new() { Id = "to-docx", Name = "DOCX", TargetFormat = "docx" },
         new() { Id = "to-hwpx", Name = "HWPX", TargetFormat = "hwpx" },
         .. HwpPresets(),
@@ -98,6 +99,16 @@ public static class BuiltInData
     public static List<Preset> MotionPhotoPresets() =>
     [
         new() { Id = "extract-motion", NameKey = "preset.extract_motion", TargetFormat = "mp4", Media = { ExtractMotionPhoto = true } },
+    ];
+
+    /// <summary>
+    /// A clip of a video as an iPhone Live Photo (a JPG and a MOV) or an Android Motion Photo (added in settings schema
+    /// 31), on no donut: users add them in Settings → Toolbar.
+    /// </summary>
+    public static List<Preset> LivePhotoPresets() =>
+    [
+        new() { Id = "live-photo-iphone", NameKey = "preset.live_photo_iphone", TargetFormat = "jpg", Media = { LivePhoto = LivePhotoKind.Apple } },
+        new() { Id = "motion-photo-android", NameKey = "preset.motion_photo_android", TargetFormat = "jpg", Media = { LivePhoto = LivePhotoKind.Android } },
     ];
 
     /// <summary>
