@@ -73,6 +73,7 @@ public static class BuiltInData
         .. PdfCompressionPresets(),
         .. PdfSlidesPresets(),
         .. FramePresets(),
+        .. MotionPhotoPresets(),
         new() { Id = "to-docx", Name = "DOCX", TargetFormat = "docx" },
         new() { Id = "to-hwpx", Name = "HWPX", TargetFormat = "hwpx" },
         .. HwpPresets(),
@@ -88,6 +89,15 @@ public static class BuiltInData
         .. ModelPresets(),
         .. GeoPresets(),
         .. TracePresets(),
+    ];
+
+    /// <summary>
+    /// The video of a Live / Motion Photo as MP4 (added in settings schema 29), on no donut: the images donut is full,
+    /// so users add it in Settings → Toolbar.
+    /// </summary>
+    public static List<Preset> MotionPhotoPresets() =>
+    [
+        new() { Id = "extract-motion", NameKey = "preset.extract_motion", TargetFormat = "mp4", Media = { ExtractMotionPhoto = true } },
     ];
 
     /// <summary>

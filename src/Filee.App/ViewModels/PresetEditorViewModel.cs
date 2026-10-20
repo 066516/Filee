@@ -121,6 +121,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _archiveLevel = ArchiveLevels.First(l => l.Value == _edit.Archive.Level);
         _combineIntoOne = _edit.Archive.CombineIntoOne;
         _saveEveryFrame = _edit.Media.SaveEveryFrame;
+        _extractMotionPhoto = _edit.Media.ExtractMotionPhoto;
         _frameInterval = _edit.Media.FrameInterval > 0 ? _edit.Media.FrameInterval : 1;
         _traceMode = TraceModes.First(m => m.Value == _edit.Trace.Mode);
         _animationSpeed = AnimationSpeeds.First(s => s.Value == _edit.Image.PlaybackSpeed);
@@ -199,7 +200,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec), nameof(ShowHardwareEncoding),
         nameof(AudioCodecs), nameof(AudioCodecChoice), nameof(ShowAudioCodec),
         nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote),
-        nameof(ShowSaveEveryFrame), nameof(ShowAnimationSpeed), nameof(ShowTrace))]
+        nameof(ShowSaveEveryFrame), nameof(ShowAnimationSpeed), nameof(ShowTrace), nameof(ShowExtractMotionPhoto))]
     private Choice<string> _target;
 
     private VideoCodec _videoCodecValue;
@@ -348,6 +349,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private Choice<ArchiveLevel> _archiveLevel;
     [ObservableProperty] private bool _combineIntoOne;
     [ObservableProperty] private bool _saveEveryFrame;
+    [ObservableProperty] private bool _extractMotionPhoto;
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(FrameEstimate))]
     private int _frameInterval = 1;
@@ -444,6 +446,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowExtractNote => TargetId == FormatRegistry.Folder;
     /// <summary>"Save every frame" of a video: PNG and JPG (format ids, <see cref="MediaOptions.FrameTargets"/>).</summary>
     public bool ShowSaveEveryFrame => !IsTool && MediaOptions.FrameTargets.Contains(TargetId);
+    /// <summary>The video of a Live / Motion Photo: MP4 and MOV (<see cref="MediaOptions.MotionPhotoTargets"/>).</summary>
+    public bool ShowExtractMotionPhoto => !IsTool && MediaOptions.MotionPhotoTargets.Contains(TargetId);
     /// <summary>
     /// Playback speed: for the formats an animation stays animated in (an animated GIF, WebP, APNG or MNG, or a video
     /// made into a GIF or APNG). Other targets get one frame.
@@ -537,6 +541,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         // Only where the option is shown: a box ticked for PNG and left behind by another target saves nothing.
         media.SaveEveryFrame = ShowSaveEveryFrame && SaveEveryFrame;
         media.FrameInterval = media.SaveEveryFrame ? Math.Clamp(FrameInterval, 1, 1000) : 1;
+        media.ExtractMotionPhoto = ShowExtractMotionPhoto && ExtractMotionPhoto;
         _original.Archive.Level = ArchiveLevel.Value;
         _original.Archive.CombineIntoOne = CombineIntoOne;
         _original.Trace.Mode = TraceMode.Value;

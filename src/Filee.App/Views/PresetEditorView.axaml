@@ -141,6 +141,8 @@
     <Border x:Name="MediaCard" Classes="card" IsVisible="{Binding ShowMedia}" Padding="14">
       <StackPanel Spacing="10">
         <TextBlock Classes="h2" Text="{DynamicResource presets.group.media}" />
+        <CheckBox Content="{DynamicResource presets.extract_motion_photo}" IsChecked="{Binding ExtractMotionPhoto}"
+                  IsVisible="{Binding ShowExtractMotionPhoto}" ToolTip.Tip="{DynamicResource presets.extract_motion_photo_hint}" />
         <Grid ColumnDefinitions="*,12,*" IsVisible="{Binding ShowMediaQuality}">
           <StackPanel>
             <TextBlock Classes="label" Text="{DynamicResource presets.media_quality}" />
