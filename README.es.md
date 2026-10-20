@@ -25,11 +25,11 @@
 </p>
 
 <p align="center">
-  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/weekly?language=C%23" alt="Filee: #1 C# repository of the week on Trendshift" width="250" height="55"></a>
-  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23" alt="Filee: C# repository of the day on Trendshift" width="250" height="55"></a>
+  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/weekly?language=C%23&v=2" alt="Filee: #1 C# repository of the week on Trendshift" width="250" height="55"></a>
+  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <b>Español</b> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ja.md">日本語</a></p>
+<p align="center"><a href="README.md">English</a> · <b>Español</b> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.ru.md">Русский</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ja.md">日本語</a></p>
 
 <table>
   <tr>
@@ -67,7 +67,7 @@ Filee avisa de las versiones nuevas en su menú y se actualiza solo, sin tocar t
 - **Muchos archivos a la vez**, en paralelo. Las conversiones de varios pasos (HWP → HWPX → DOCX) se resuelven solas.
 - **Carpetas supervisadas** que convierten cada archivo que llega a ellas.
 - **Otras formas de usarlo**: el menú contextual, un atajo de teclado, la zona de suelta y el [comando `filee`](#línea-de-comandos).
-- Temas claro y oscuro, en English, Español, 한국어, 简体中文, Polski, हिन्दी y 日本語.
+- Temas claro y oscuro, en English, Español, 한국어, 简体中文, Polski, Русский, हिन्दी y 日本語.
 
 ## Capturas de pantalla
 

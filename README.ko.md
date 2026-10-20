@@ -29,7 +29,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23" alt="Filee: C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <b>한국어</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ja.md">日本語</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <b>한국어</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.ru.md">Русский</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ja.md">日本語</a></p>
 
 <table>
   <tr>
@@ -67,7 +67,7 @@
 - **여러 파일을 한 번에** 병렬로 변환해요. 여러 단계가 필요한 변환(HWP → HWPX → DOCX)도 알아서 찾아요.
 - **자동 변환 폴더**에 들어온 파일을 바로 변환해요.
 - **다른 방법**: 우클릭 메뉴, 키보드 단축키, 드롭 영역, [`filee` 명령](#명령줄)
-- 밝은·어두운 테마, English · Español · 한국어 · 简体中文 · Polski · हिन्दी · 日本語
+- 밝은·어두운 테마, English · Español · 한국어 · 简体中文 · Polski · Русский · हिन्दी · 日本語
 
 ## 스크린샷
 

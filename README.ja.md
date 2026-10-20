@@ -25,11 +25,11 @@
 </p>
 
 <p align="center">
-  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/weekly?language=C%23" alt="Filee: #1 C# repository of the week on Trendshift" width="250" height="55"></a>
-  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23" alt="Filee: C# repository of the day on Trendshift" width="250" height="55"></a>
+  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/weekly?language=C%23&v=2" alt="Filee: #1 C# repository of the week on Trendshift" width="250" height="55"></a>
+  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <b>日本語</b></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.ru.md">Русский</a> · <a href="README.hi.md">हिन्दी</a> · <b>日本語</b></p>
 
 <table>
   <tr>
@@ -66,7 +66,7 @@
 - **複数のファイルをまとめて**並列で変換します。複数の手順が必要な変換（HWP → HWPX → DOCX）も、経路を自動で見つけます。
 - **監視フォルダー**に入ったファイルを、すべて自動で変換します。
 - **ほかの使い方**：右クリックメニュー、キーボードショートカット、ドロップ領域、[`filee`コマンド](#コマンドライン)。
-- ライトテーマとダークテーマ。English、Español、한국어、简体中文、Polski、हिन्दी、日本語に対応。
+- ライトテーマとダークテーマ。English、Español、한국어、简体中文、Polski、Русский、हिन्दी、日本語に対応。
 
 ## スクリーンショット
 

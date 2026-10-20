@@ -29,7 +29,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23" alt="Filee: C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><b>English</b> · <a href="README.es.md">Español</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ja.md">日本語</a></p>
+<p align="center"><b>English</b> · <a href="README.es.md">Español</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.ru.md">Русский</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ja.md">日本語</a></p>
 
 <table>
   <tr>
@@ -67,7 +67,7 @@ Filee shows new releases in its menu and updates itself, keeping your settings a
 - **Many files at once**, in parallel. Routes with several steps (HWP → HWPX → DOCX) are found automatically.
 - **Watch folders** convert every file that lands in them.
 - **Other ways in**: the right-click menu, a keyboard shortcut, the drop zone and the [`filee` command](#command-line).
-- Light and dark themes, in English, Español, 한국어, 简体中文, Polski, हिन्दी and 日本語.
+- Light and dark themes, in English, Español, 한국어, 简体中文, Polski, Русский, हिन्दी and 日本語.
 
 ## Screenshots
 

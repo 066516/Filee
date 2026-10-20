@@ -25,11 +25,11 @@
 </p>
 
 <p align="center">
-  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/weekly?language=C%23" alt="Filee: #1 C# repository of the week on Trendshift" width="250" height="55"></a>
-  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23" alt="Filee: C# repository of the day on Trendshift" width="250" height="55"></a>
+  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/weekly?language=C%23&v=2" alt="Filee: #1 C# repository of the week on Trendshift" width="250" height="55"></a>
+  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <b>Polski</b> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ja.md">日本語</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <b>Polski</b> · <a href="README.ru.md">Русский</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ja.md">日本語</a></p>
 
 <table>
   <tr>
@@ -67,7 +67,7 @@ Filee pokazuje nowe wersje w swoim menu i sam się aktualizuje, zachowując Twoj
 - **Wiele plików naraz**, równolegle. Konwersje wymagające kilku kroków (HWP → HWPX → DOCX) Filee znajduje sam.
 - **Obserwowane foldery** konwertują każdy plik, który do nich trafi.
 - **Inne sposoby**: menu kontekstowe, skrót klawiszowy, strefa upuszczania i [polecenie `filee`](#wiersz-poleceń).
-- Jasny i ciemny motyw, w językach English, Español, 한국어, 简体中文, Polski, हिन्दी i 日本語.
+- Jasny i ciemny motyw, w językach English, Español, 한국어, 简体中文, Polski, Русский, हिन्दी i 日本語.
 
 ## Zrzuty ekranu
 
