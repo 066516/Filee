@@ -1147,15 +1147,14 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     {
         SkipUnlessInstalled();
         var folder = fx.NewFolder();
-        // Keep real work running across several half-second reports. A fast GPU can encode the old 40 s / 360p
-        // fixture between reports, even though progress is read correctly. Use software encoding at 720p here.
-        var source = await MakeClipAsync(folder, "long.mp4", seconds: 60, size: "1280x720", extra: ["-c:v", "libx264", "-preset", "ultrafast"]);
+        // Long enough for several of FFmpeg's half-second progress reports.
+        var source = await MakeClipAsync(folder, "long.mp4", seconds: 40, size: "640x360", extra: ["-c:v", "libx264", "-preset", "ultrafast"]);
         var converter = new FfmpegConverter();
         Assert.True(converter.GetStatus().IsAvailable);
 
         var recorder = new Recorder();
         // Small: H.264 + AAC in MKV would otherwise only be rewrapped, which takes too little time to report progress.
-        var outputs = await converter.ConvertAsync(Step(source, "mp4", "mkv", folder, new MediaOptions { Quality = MediaQuality.Small, HardwareEncoding = false }), recorder, CancellationToken.None);
+        var outputs = await converter.ConvertAsync(Step(source, "mp4", "mkv", folder, new MediaOptions { Quality = MediaQuality.Small }), recorder, CancellationToken.None);
 
         Assert.True(File.Exists(Assert.Single(outputs)));
         var values = recorder.Values.ToList();
@@ -1280,5 +1279,43 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
             }
         }
         return false;
+    }
+
+    // ───────────────────────── Video CD (issue #292) ─────────────────────────
+
+    [Theory]
+    [InlineData("mp4")]
+    [InlineData("mkv")]
+    public async Task A_video_cd_dat_file_converts_with_its_picture_and_sound(string target)
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        // A Video CD keeps its MPEG-1 streams in MPEGAV/AVSEQ01.DAT.
+        var input = Path.Combine(folder, "AVSEQ01.DAT");
+        var create = await ProcessRunner.RunAsync(Tools!.Value.Ffmpeg,
+            ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc2=size=352x288:rate=25",
+             "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100", "-t", "0.4",
+             "-target", "pal-vcd", "-f", "mpeg", input], TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+        Assert.True(create.ExitCode == 0, create.StandardError);
+        Assert.Equal("mpg", FormatRegistry.Detect(input)?.Id);
+
+        var job = await fx.ConvertAsync([input], new Preset { TargetFormat = target });
+
+        Assert.True(job.State == JobState.Completed, string.Join("; ", job.Files.Select(f => f.ErrorDetail)));
+        var decode = await ProcessRunner.RunAsync(Tools.Value.Ffmpeg,
+            ["-v", "error", "-i", Assert.Single(job.Outputs), "-map", "0:v:0", "-map", "0:a:0", "-f", "null", "-"],
+            TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+        Assert.True(decode.ExitCode == 0, decode.StandardError);
+    }
+
+    [Fact]
+    public async Task A_dat_file_that_is_no_video_fails()
+    {
+        SkipUnlessInstalled();
+        var input = Path.Combine(fx.NewFolder(), "database.dat");
+        await File.WriteAllTextAsync(input, "This is application data, not a video.", TestContext.Current.CancellationToken);
+        var job = await fx.ConvertAsync([input], new Preset { TargetFormat = "mp4" });
+        Assert.Equal(JobState.Failed, job.State);
+        Assert.Empty(job.Outputs);
     }
 }

@@ -259,10 +259,8 @@ public sealed class CliTests : IDisposable
 
         Assert.Equal(Cli.Success, code);
         Assert.Equal(OperatingSystem.IsWindows(), output.Contains("png, jpg", StringComparison.Ordinal));
-        // Elsewhere no download would help. Windows may have every relevant optional engine installed already,
-        // in which case there is correctly no "optional engines" section at all.
-        if (!OperatingSystem.IsWindows())
-            Assert.DoesNotContain("optional engines", output, StringComparison.Ordinal);
+        // Elsewhere no download would help (on Windows, FFmpeg adds HEIC and video).
+        Assert.Equal(OperatingSystem.IsWindows(), output.Contains("optional engines", StringComparison.Ordinal));
     }
 
     /// <summary>Adds presets to the settings folder the CLI runs with.</summary>
