@@ -15,20 +15,8 @@ namespace Filee.App.Services;
 /// <summary>JSON based localization with live language switching.</summary>
 public sealed class LocalizationService : ILocalizer
 {
-    /// <summary>Languages shipped with Filee: code → native name (shown in the language picker).</summary>
-    public static readonly IReadOnlyList<(string Code, string NativeName)> Languages =
-    [
-        ("en", "English"),
-        ("es", "Español"),
-        ("ja", "日本語"),
-        ("ko", "한국어"),
-        ("zh-CN", "简体中文"),
-        ("pl", "Polski"),
-        ("hi", "हिन्दी"),
-        ("ru", "Русский"),
-        ("pt-PT", "Português (Portugal)"),
-        ("pt-BR", "Português (Brasil)"),
-    ];
+    /// <summary>Languages shared by the app and Setup, with native names for their pickers.</summary>
+    public static readonly IReadOnlyList<(string Code, string NativeName)> Languages = AppLanguages.All;
 
     private readonly ResourceDictionary _resources = new();
     private readonly Dictionary<string, string> _english;
@@ -110,11 +98,8 @@ public sealed class LocalizationService : ILocalizer
             return Languages.First(l => l.Code.Equals(setting, StringComparison.OrdinalIgnoreCase)).Code;
 
         var ui = systemLanguage;
-        // Neutral Portuguese and regions without a separate catalog use European Portuguese. Recognize the
-        // region subtag even if a script is present (pt-Latn-BR); never turn a manual pt-PT choice into pt-BR.
-        var parts = ui.Split('-');
-        if (parts[0].Equals("pt", StringComparison.OrdinalIgnoreCase))
-            return parts.Skip(1).Any(p => p.Equals("BR", StringComparison.OrdinalIgnoreCase)) ? "pt-BR" : "pt-PT";
+        if (AppLanguages.PortugueseVariant(ui) is { } portuguese)
+            return portuguese;
         if (ui.StartsWith("ja", StringComparison.OrdinalIgnoreCase))
             return "ja";
         if (ui.StartsWith("ko", StringComparison.OrdinalIgnoreCase))

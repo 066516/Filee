@@ -19,6 +19,29 @@ public class PortugueseRenderTests
     [AvaloniaTheory]
     [InlineData("pt-PT")]
     [InlineData("pt-BR")]
+    public void Tagline_fits_in_the_navigation_column(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var loc = AppHost.Get<ILocalizer>();
+        var vm = new MainWindowViewModel(AppHost.Services, loc, AppHost.Get<UpdateService>());
+        var window = new MainWindow { DataContext = vm };
+        try
+        {
+            window.Show();
+            RenderTests.Pump();
+            var text = window.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == loc["app.tagline"]);
+            var end = text.TranslatePoint(new Point(text.Bounds.Width, 0), window)!.Value.X;
+            Assert.True(end <= 216, $"{language}: tagline extends beyond the navigation padding ({end})");
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaTheory]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
     public void Icon_actions_have_localized_accessible_names(string language)
     {
         TestServices.EnsureInitialized(language);

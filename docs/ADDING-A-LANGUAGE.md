@@ -4,8 +4,9 @@
    The file is a flat list of `"key": "text"` pairs.
 2. Translate the values. Keep `{0}`, `{1}` placeholders — a test checks they match English.
    Keep the text short where English is short (buttons, donut labels).
-3. Register the language in `LocalizationService.Languages`
-   (`src/Filee.App/Services/LocalizationService.cs`) with its native name, e.g. `("ja", "日本語")`.
+3. Register the language in `AppLanguages.All`
+   (`src/Filee.App/Services/AppLanguages.cs`) with its native name, e.g. `("ja", "日本語")`.
+   The app and its Windows installer share this registry.
    If the OS culture should pick it automatically, extend `LocalizationService.Resolve`.
 4. `LocalizationTests.Languages` is derived from the registry. Tests also check that every JSON catalog is
    registered, that keys are unique and that translations are not empty.
@@ -21,9 +22,9 @@ and `pt-PT` for neutral `pt` and other Portuguese regions. An explicit selection
 The UI language changes `CurrentUICulture`; number and date formatting continue to use the user's regional
 `CurrentCulture`. Do not change machine-readable filenames, pattern tokens or command-line switches when translating.
 
-For the current Windows installer, add the language in `installer/Filee.iss`, translate its custom messages and
-map the installer code to the app code in `build/tools/make-installer-engines.cs`. Standard wizard messages come
-from Inno Setup's language files. The CLI currently has a separate, English-only text provider.
+The Windows installer embeds the same JSON files, including the `installer.*` keys. Test the language with
+`Filee.Setup.Tests` as well, and extend `SetupTexts.Resolve` when a region needs a distinct catalog. The CLI
+currently has a separate, English-only text provider.
 
 Optional, but welcome in the same or a later pull request: a translated README. Add `README.<code>.md` and link
 it from the language line at the top of the other READMEs.
