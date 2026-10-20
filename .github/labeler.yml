@@ -3,13 +3,17 @@ build:
       - any-glob-to-any-file:
           - build/**
           - installer/**
-          - .github/workflows/**
           - global.json
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/workflows/**
 
 documentation:
   - changed-files:
       - all-globs-to-all-files:
-          - '{docs/**,**/*.md}'
+          - "{docs/**,**/*.md}"
 
 formats:
   - changed-files:
