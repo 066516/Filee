@@ -35,13 +35,24 @@ internal sealed class OfdPackage : IDisposable
 
     private readonly ZipArchive _zip;
     private readonly Dictionary<string, ZipArchiveEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
+    private readonly long _maxTotal;
     private long _read;
 
-    public OfdPackage(string path)
+    public OfdPackage(string path) : this(() => ZipFile.OpenRead(path), MaxTotalBytes)
     {
+    }
+
+    /// <summary>A package held in memory (the seal picture inside a signature), with its own limit on what it unpacks to.</summary>
+    public OfdPackage(byte[] bytes, long maxTotal) : this(() => new ZipArchive(new MemoryStream(bytes, writable: false), ZipArchiveMode.Read), maxTotal)
+    {
+    }
+
+    private OfdPackage(Func<ZipArchive> open, long maxTotal)
+    {
+        _maxTotal = Math.Min(maxTotal, MaxTotalBytes);
         try
         {
-            _zip = ZipFile.OpenRead(path);
+            _zip = open();
         }
         catch (InvalidDataException ex)
         {
@@ -138,8 +149,8 @@ internal sealed class OfdPackage : IDisposable
             if (copy.Length + count > max)
                 return null;
             _read += count;
-            if (_read > MaxTotalBytes)
-                throw new InvalidDataException($"The OFD package unpacks to more than {MaxTotalBytes / (1024 * 1024 * 1024)} GB; Filee does not read it.");
+            if (_read > _maxTotal)
+                throw new InvalidDataException($"The OFD package unpacks to more than {_maxTotal / (1024 * 1024)} MB; Filee does not read it.");
             copy.Write(buffer, 0, count);
         }
         return copy.ToArray();
