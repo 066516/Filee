@@ -4,6 +4,13 @@
              Name="Filee Setup"
              RequestedThemeVariant="Default">
   <!-- Light or dark follows Windows (RequestedThemeVariant="Default"), like Filee's "System" theme. -->
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://Filee.Setup/Views/StateViews.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
   <Application.Styles>
     <FluentTheme />
     <StyleInclude Source="avares://Filee.Setup/Styles/Soft.axaml" />

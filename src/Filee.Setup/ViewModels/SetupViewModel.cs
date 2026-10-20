@@ -1,7 +1,7 @@
-// The wizard: Welcome (with the language) → Options (folder, Explorer menu, start at sign-in, PATH, desktop icon) →
-// Engines (fresh installs, when there is something to download) → Install (progress) → Done ("Launch Filee").
-// An update shows only what it may change (desktop icon, PATH); Filee's own settings stay as they are. The uninstaller
-// uses the same window: Uninstall (keep or delete the settings) → progress → Done.
+// One compact card in a few states: Welcome (the logo, one Install button and an Options sheet with the folder, the
+// options, the engines and the language) → Progress (feature clips while the files go in) → Done ("Launch Filee") or
+// Failed ("Copy details"). An update shows only what it may change (desktop icon, PATH); Filee's own settings stay as
+// they are. The uninstaller uses the same card: Uninstall (keep or delete the settings) → Progress → Uninstalled.
 
 using System.Collections.ObjectModel;
 using Avalonia.Threading;
@@ -15,8 +15,6 @@ namespace Filee.Setup.ViewModels;
 public enum SetupPage
 {
     Welcome,
-    Options,
-    Engines,
     Progress,
     Done,
     Failed,
@@ -24,7 +22,7 @@ public enum SetupPage
     Uninstalled,
 }
 
-/// <summary>What the wizard does when the user goes ahead (the real installer, or a fake in tests).</summary>
+/// <summary>What the card does when the user goes ahead (the real installer, or a fake in tests).</summary>
 public interface ISetupRunner
 {
     InstallResult Install(InstallChoices choices, IProgress<SetupProgress> progress);
@@ -39,7 +37,7 @@ public sealed record LanguageItem(string Code, string Name)
     public override string ToString() => Name;
 }
 
-/// <summary>An engine package on the Engines page.</summary>
+/// <summary>An engine package in the Options sheet.</summary>
 public sealed partial class EngineItem(EngineOffer offer, bool installed) : ObservableObject
 {
     public EngineOffer Offer { get; } = offer;
@@ -52,18 +50,24 @@ public sealed partial class EngineItem(EngineOffer offer, bool installed) : Obse
     [ObservableProperty] private string _detail = "";
 }
 
-/// <summary>A step in the left column.</summary>
-public sealed partial class StepItem(string key, SetupPage[] pages) : ObservableObject
-{
-    public string Key { get; } = key;
-    public SetupPage[] Pages { get; } = pages;
-    [ObservableProperty] private string _title = "";
-    [ObservableProperty] private bool _isCurrent;
-    [ObservableProperty] private bool _isDone;
-}
+/// <summary>A feature clip shown while installing.</summary>
+/// <param name="Clip">avares:// URI of the light clip.</param>
+/// <param name="DarkClip">The clip for dark mode, when there is one.</param>
+public sealed record Showcase(string Clip, string? DarkClip, string CaptionKey);
 
 public sealed partial class SetupViewModel : ObservableObject
 {
+    /// <summary>The feature clips (Assets/Showcase), in the order they play.</summary>
+    public static readonly IReadOnlyList<Showcase> Clips =
+    [
+        new("avares://Filee.Setup/Assets/Showcase/expand-640.webp", "avares://Filee.Setup/Assets/Showcase/expand-dark-640.webp", "installer.showcase.expand"),
+        new("avares://Filee.Setup/Assets/Showcase/flip-640.webp", null, "installer.showcase.flip"),
+        new("avares://Filee.Setup/Assets/Showcase/browser-640.webp", null, "installer.showcase.browser"),
+    ];
+
+    /// <summary>How long each clip stays before the next one crossfades in.</summary>
+    public static readonly TimeSpan ClipTime = TimeSpan.FromSeconds(6);
+
     private readonly SetupTexts _texts;
     private readonly ISetupRunner _runner;
     private readonly PreviousInstall? _previous;
@@ -71,12 +75,13 @@ public sealed partial class SetupViewModel : ObservableObject
     private readonly long _neededSpace;
     private bool _languagePicked;
     private InstallResult? _result;
+    private DispatcherTimer? _clipTimer;
 
     /// <param name="version">The Filee version Setup installs (or the uninstaller removes).</param>
     /// <param name="initial">The choices from the command line and the defaults.</param>
     /// <param name="engines">Packages offered on a fresh install, with whether each is installed already.</param>
     /// <param name="modernMenuSupported">Windows 11 x64 and administrator rights: the top-level menu can be offered.</param>
-    /// <param name="uninstall">The uninstaller's window.</param>
+    /// <param name="uninstall">The uninstaller's card.</param>
     public SetupViewModel(SetupTexts texts, ISetupRunner runner, string version, InstallChoices initial, PreviousInstall? previous,
         IReadOnlyList<(EngineOffer Offer, bool Installed)> engines, bool modernMenuSupported, long neededSpace, bool uninstall = false,
         bool languagePicked = false)
@@ -108,23 +113,6 @@ public sealed partial class SetupViewModel : ObservableObject
                     UpdateEngineSelection();
             };
         }
-        var steps = new List<StepItem>();
-        if (uninstall)
-        {
-            steps.Add(new StepItem("installer.step.uninstall", [SetupPage.Uninstall]));
-            steps.Add(new StepItem("installer.step.remove", [SetupPage.Progress, SetupPage.Failed]));
-            steps.Add(new StepItem("installer.step.done", [SetupPage.Uninstalled]));
-        }
-        else
-        {
-            steps.Add(new StepItem("installer.step.welcome", [SetupPage.Welcome]));
-            steps.Add(new StepItem("installer.step.options", [SetupPage.Options]));
-            if (HasEnginesPage)
-                steps.Add(new StepItem("installer.step.engines", [SetupPage.Engines]));
-            steps.Add(new StepItem("installer.step.install", [SetupPage.Progress, SetupPage.Failed]));
-            steps.Add(new StepItem("installer.step.done", [SetupPage.Done]));
-        }
-        Steps = steps;
         _page = uninstall ? SetupPage.Uninstall : SetupPage.Welcome;
         texts.LanguageChanged += (_, _) => RefreshTexts();
         RefreshTexts();
@@ -137,10 +125,25 @@ public sealed partial class SetupViewModel : ObservableObject
     public bool ModernMenuSupported { get; }
     public IReadOnlyList<LanguageItem> Languages { get; }
     public ObservableCollection<EngineItem> Engines { get; }
-    public IReadOnlyList<StepItem> Steps { get; }
 
     /// <summary>Fresh installs offer the engines that aren't downloaded yet.</summary>
-    public bool HasEnginesPage => IsFresh && Engines.Any(e => !e.Installed);
+    public bool HasEngines => IsFresh && Engines.Any(e => !e.Installed);
+
+    /// <summary>/SILENT: the progress card only, no clips.</summary>
+    public bool Silent { get; set; }
+
+    /// <summary>Dark mode: the clips with a dark variant use it.</summary>
+    public bool Dark
+    {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+            field = value;
+            OnPropertyChanged(nameof(CurrentClip));
+        }
+    }
 
     /// <summary>Raised when the window should close (finished, cancelled).</summary>
     public event EventHandler? CloseRequested;
@@ -148,21 +151,25 @@ public sealed partial class SetupViewModel : ObservableObject
     /// <summary>Asks the view for a folder (the folder picker); null when cancelled.</summary>
     public Func<string, Task<string?>>? PickFolder { get; set; }
 
+    /// <summary>Puts text on the clipboard (the view's).</summary>
+    public Func<string, Task>? CopyText { get; set; }
+
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsWelcome), nameof(IsOptions), nameof(IsEngines), nameof(IsProgress), nameof(IsDone),
-        nameof(IsFailed), nameof(IsUninstallPage), nameof(IsUninstalled), nameof(CanGoBack), nameof(ShowCancel), nameof(NextText),
-        nameof(ShowNext))]
+    [NotifyPropertyChangedFor(nameof(IsWelcome), nameof(IsProgress), nameof(IsDone), nameof(IsFailed), nameof(IsUninstallPage),
+        nameof(IsUninstalled), nameof(ShowShowcase), nameof(PrimaryText))]
     private SetupPage _page;
 
     public bool IsWelcome => Page == SetupPage.Welcome;
-    public bool IsOptions => Page == SetupPage.Options;
-    public bool IsEngines => Page == SetupPage.Engines;
     public bool IsProgress => Page == SetupPage.Progress;
     public bool IsDone => Page == SetupPage.Done;
     public bool IsFailed => Page == SetupPage.Failed;
     public bool IsUninstallPage => Page == SetupPage.Uninstall;
     public bool IsUninstalled => Page == SetupPage.Uninstalled;
 
+    /// <summary>The progress card plays feature clips (not for /SILENT or the uninstaller).</summary>
+    public bool ShowShowcase => IsProgress && !Silent && !IsUninstall;
+
+    [ObservableProperty] private bool _optionsOpen;
     [ObservableProperty] private LanguageItem _selectedLanguage;
     [ObservableProperty] private string _folder;
     [ObservableProperty] private bool _contextMenu;
@@ -170,7 +177,6 @@ public sealed partial class SetupViewModel : ObservableObject
     [ObservableProperty] private bool _startup;
     [ObservableProperty] private bool _cli;
     [ObservableProperty] private bool _desktopIcon;
-    [ObservableProperty] private bool _launchFilee = true;
     [ObservableProperty] private bool _deleteSettings;
 
     [ObservableProperty] private string _welcomeText = "";
@@ -178,17 +184,42 @@ public sealed partial class SetupViewModel : ObservableObject
     [ObservableProperty] private string _statusText = "";
     [ObservableProperty] private double _percent;
     [ObservableProperty] private string _progressTitle = "";
+    [ObservableProperty] private string _doneTitle = "";
     [ObservableProperty] private string _doneText = "";
     [ObservableProperty] private string _warningText = "";
-    [ObservableProperty] private string _errorText = "";
     [ObservableProperty] private string _errorTitle = "";
+    [ObservableProperty] private string _errorText = "";
     [ObservableProperty] private string _uninstallText = "";
     [ObservableProperty] private string _uninstalledText = "";
     [ObservableProperty] private string _engineSelectionText = "";
     [ObservableProperty] private string _logText = "";
     [ObservableProperty] private string _settingsText = "";
+    [ObservableProperty] private bool _copied;
 
-    /// <summary>Setup's log file (named on the error page).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CurrentClip), nameof(CurrentCaption))]
+    private int _clipIndex;
+
+    /// <summary>The clip playing now.</summary>
+    public string CurrentClip => Dark && Clips[ClipIndex].DarkClip is { } dark ? dark : Clips[ClipIndex].Clip;
+
+    public string CurrentCaption => _texts[Clips[ClipIndex].CaptionKey];
+
+    /// <summary>The big button of the Welcome card.</summary>
+    public string PrimaryText => _texts[IsUpdate ? "installer.update" : "installer.install"];
+
+    /// <summary>The fresh install's top-level menu option needs the Explorer menu option.</summary>
+    public bool ModernMenuEnabled => ContextMenu;
+
+    /// <summary>Exit code for Setup (Inno Setup's: 0 done, 2 cancelled before installing, 4 failed during installing).</summary>
+    public int ExitCode { get; private set; } = 2;
+
+    /// <summary>What to start when the window closes ("Launch Filee").</summary>
+    public LaunchRequest? Launch { get; private set; }
+
+    public InstallResult? Result => _result;
+
+    /// <summary>Setup's log file (named on the error card).</summary>
     public string? LogFile
     {
         get;
@@ -199,7 +230,7 @@ public sealed partial class SetupViewModel : ObservableObject
         }
     }
 
-    /// <summary>Filee's settings folder (named on the uninstall page).</summary>
+    /// <summary>Filee's settings folder (named on the uninstall card).</summary>
     public string SettingsFolder
     {
         get;
@@ -209,34 +240,6 @@ public sealed partial class SetupViewModel : ObservableObject
             RefreshTexts();
         }
     } = "";
-
-    /// <summary>The page has a working Back button.</summary>
-    public bool CanGoBack => Page is SetupPage.Options or SetupPage.Engines;
-
-    public bool ShowCancel => Page is SetupPage.Welcome or SetupPage.Options or SetupPage.Engines or SetupPage.Uninstall;
-
-    public bool ShowNext => Page != SetupPage.Progress;
-
-    public string NextText => Page switch
-    {
-        SetupPage.Options when !HasEnginesPage => _texts[IsUpdate ? "installer.update" : "installer.install"],
-        SetupPage.Engines => _texts["installer.install"],
-        SetupPage.Done => _texts["installer.finish"],
-        SetupPage.Failed or SetupPage.Uninstalled => _texts["common.close"],
-        SetupPage.Uninstall => _texts["installer.uninstall.button"],
-        _ => _texts["installer.next"],
-    };
-
-    /// <summary>The fresh install's top-level menu option needs the Explorer menu option.</summary>
-    public bool ModernMenuEnabled => ContextMenu;
-
-    /// <summary>Exit code for Setup (Inno Setup's: 0 done, 2 cancelled before installing, 4 failed during installing).</summary>
-    public int ExitCode { get; private set; } = 2;
-
-    /// <summary>What to start when the window closes (Done with "Launch Filee").</summary>
-    public LaunchRequest? Launch { get; private set; }
-
-    public InstallResult? Result => _result;
 
     partial void OnSelectedLanguageChanged(LanguageItem value)
     {
@@ -250,13 +253,20 @@ public sealed partial class SetupViewModel : ObservableObject
 
     partial void OnPageChanged(SetupPage value)
     {
-        var current = Steps.ToList().FindIndex(s => s.Pages.Contains(value));
-        for (var i = 0; i < Steps.Count; i++)
+        if (ShowShowcase)
         {
-            Steps[i].IsCurrent = i == current;
-            Steps[i].IsDone = i < current;
+            ClipIndex = 0;
+            _clipTimer ??= new DispatcherTimer(ClipTime, DispatcherPriority.Background, (_, _) => NextClip());
+            _clipTimer.Start();
+        }
+        else
+        {
+            _clipTimer?.Stop();
         }
     }
+
+    /// <summary>The next feature clip (every <see cref="ClipTime"/> while installing).</summary>
+    public void NextClip() => ClipIndex = (ClipIndex + 1) % Clips.Count;
 
     /// <summary>Recomputes the texts with arguments (after a language change).</summary>
     private void RefreshTexts()
@@ -268,8 +278,6 @@ public sealed partial class SetupViewModel : ObservableObject
         UninstallText = _texts.Format("installer.uninstall.text", Version);
         SettingsText = _texts.Format("installer.uninstall.settings_where", SettingsFolder);
         LogText = LogFile is null ? "" : _texts.Format("installer.error.log", LogFile);
-        foreach (var step in Steps)
-            step.Title = _texts[step.Key];
         foreach (var engine in Engines)
         {
             engine.Name = _texts[$"engines.package.{engine.Id}.name"];
@@ -280,8 +288,9 @@ public sealed partial class SetupViewModel : ObservableObject
         UpdateEngineSelection();
         ErrorTitle = _texts[IsUninstall ? "installer.error.uninstall_title" : "installer.error.title"];
         ProgressTitle = _texts[IsUninstall ? "installer.uninstall.progress" : IsUpdate ? "installer.progress.update" : "installer.progress.install"];
-        OnPropertyChanged(nameof(NextText));
-        OnPageChanged(Page);
+        DoneTitle = _texts["installer.done.title"];
+        OnPropertyChanged(nameof(PrimaryText));
+        OnPropertyChanged(nameof(CurrentCaption));
     }
 
     private void UpdateEngineSelection()
@@ -289,6 +298,9 @@ public sealed partial class SetupViewModel : ObservableObject
         var selected = Engines.Where(e => e.Selected).Select(e => e.Name).ToList();
         EngineSelectionText = selected.Count == 0 ? _texts["setup.nothing_selected"] : _texts.Format("setup.selection", string.Join(", ", selected));
     }
+
+    [RelayCommand]
+    private void ToggleOptions() => OptionsOpen = !OptionsOpen;
 
     [RelayCommand]
     private async Task BrowseAsync()
@@ -304,61 +316,55 @@ public sealed partial class SetupViewModel : ObservableObject
         }
     }
 
+    /// <summary>The window's close button and Escape: closes the Options sheet first, then cancels (before installing).</summary>
     [RelayCommand]
-    private void Back()
+    private void Cancel()
     {
-        Page = Page switch
+        if (OptionsOpen)
         {
-            SetupPage.Engines => SetupPage.Options,
-            SetupPage.Options => SetupPage.Welcome,
-            _ => Page,
-        };
+            OptionsOpen = false;
+            return;
+        }
+        if (IsProgress)
+            return;
+        WindowClosing();
+        CloseRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>The window's close button: Cancel before installing, Finish on the Done page.</summary>
+    /// <summary>The window is closing: before installing it is a cancel; after, nothing is started.</summary>
     public void WindowClosing()
     {
-        if (Page == SetupPage.Done)
-            Launch = LaunchFilee ? _result?.Launch : null;
-        else if (Page is SetupPage.Welcome or SetupPage.Options or SetupPage.Engines or SetupPage.Uninstall)
+        if (Page is SetupPage.Welcome or SetupPage.Uninstall)
             ExitCode = 2;
     }
 
     [RelayCommand]
-    private void Cancel()
+    private Task Install() => InstallAsync();
+
+    [RelayCommand]
+    private Task Uninstall() => UninstallAsync();
+
+    /// <summary>"Launch Filee" on the Done card.</summary>
+    [RelayCommand]
+    private void LaunchAndClose()
     {
-        ExitCode = 2;
+        Launch = _result?.Launch;
         CloseRequested?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
-    private async Task NextAsync()
+    private void Close() => CloseRequested?.Invoke(this, EventArgs.Empty);
+
+    [RelayCommand]
+    private async Task CopyDetailsAsync()
     {
-        switch (Page)
-        {
-            case SetupPage.Welcome:
-                Page = SetupPage.Options;
-                break;
-            case SetupPage.Options when HasEnginesPage:
-                Page = SetupPage.Engines;
-                break;
-            case SetupPage.Options or SetupPage.Engines:
-                await InstallAsync();
-                break;
-            case SetupPage.Uninstall:
-                await UninstallAsync();
-                break;
-            case SetupPage.Done:
-                Launch = LaunchFilee ? _result?.Launch : null;
-                CloseRequested?.Invoke(this, EventArgs.Empty);
-                break;
-            default:
-                CloseRequested?.Invoke(this, EventArgs.Empty);
-                break;
-        }
+        if (CopyText is null)
+            return;
+        await CopyText(ErrorText + Environment.NewLine + Environment.NewLine + LogText);
+        Copied = true;
     }
 
-    /// <summary>The choices as they stand on the pages.</summary>
+    /// <summary>The choices as they stand in the Options sheet.</summary>
     public InstallChoices Choices()
     {
         var tasks = new SetupTasks(ContextMenu, ContextMenu && ModernMenu && ModernMenuSupported, Startup, Cli, DesktopIcon);
@@ -375,8 +381,11 @@ public sealed partial class SetupViewModel : ObservableObject
     /// <summary>Installs with the current choices (also what /SILENT does right away).</summary>
     public async Task InstallAsync()
     {
+        if (Page != SetupPage.Welcome)
+            return;
         RefreshTexts();
         var choices = Choices();
+        OptionsOpen = false;
         Page = SetupPage.Progress;
         Percent = 0;
         var progress = new SyncProgress<SetupProgress>(p => Dispatcher.UIThread.Post(() => ShowProgress(p)));
@@ -384,9 +393,14 @@ public sealed partial class SetupViewModel : ObservableObject
         if (_result.Succeeded)
         {
             ExitCode = 0;
-            DoneText = _texts[IsUpdate ? "installer.done.updated" : "installer.done.text"]
-                       + (choices.Engines.Count > 0 ? Environment.NewLine + Environment.NewLine + _texts["installer.done.engines"] : "");
+            Percent = 100;
             WarningText = string.Join(Environment.NewLine + Environment.NewLine, _result.Warnings.Select(WarningMessage));
+            // With a warning to read, the card leaves out how to use Filee (Filee shows that itself).
+            DoneText = string.Join(Environment.NewLine + Environment.NewLine, new[]
+            {
+                IsUpdate ? _texts["installer.done.updated"] : WarningText.Length > 0 ? "" : _texts["installer.done.text"],
+                choices.Engines.Count > 0 ? _texts["installer.done.engines"] : "",
+            }.Where(t => t.Length > 0));
             Page = SetupPage.Done;
         }
         else
@@ -401,6 +415,8 @@ public sealed partial class SetupViewModel : ObservableObject
     /// <summary>Uninstalls (also what a silent uninstall does right away).</summary>
     public async Task UninstallAsync()
     {
+        if (Page != SetupPage.Uninstall)
+            return;
         RefreshTexts();
         var deleteSettings = DeleteSettings;
         Page = SetupPage.Progress;
@@ -410,6 +426,7 @@ public sealed partial class SetupViewModel : ObservableObject
         if (error is null)
         {
             ExitCode = 0;
+            Percent = 100;
             UninstalledText = _texts["installer.uninstall.done"]
                               + (deleteSettings ? "" : Environment.NewLine + Environment.NewLine + _texts["installer.uninstall.settings_kept"]);
             Page = SetupPage.Uninstalled;

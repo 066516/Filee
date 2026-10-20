@@ -1,5 +1,16 @@
+using System.ComponentModel;
+using Avalonia;
+using Avalonia.Animation;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
+using Avalonia.Input;
+using Avalonia.Input.Platform;
+using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Avalonia.Styling;
+using Filee.Setup.Controls;
 using Filee.Setup.ViewModels;
 
 namespace Filee.Setup.Views;
@@ -14,7 +25,7 @@ public partial class SetupWindow : Window
     {
     }
 
-    /// <param name="silent">/SILENT: install at once, show only the progress and close when done.</param>
+    /// <param name="silent">/SILENT: install at once, show only the progress card and close when done.</param>
     public SetupWindow(SetupViewModel model, bool silent)
     {
         InitializeComponent();
@@ -22,11 +33,23 @@ public partial class SetupWindow : Window
         DataContext = model;
         if (model is null)
             return;
+        model.Silent = silent;
+        if (!SetupMotion.Enabled)
+            Classes.Add("reduced-motion");
+        else
+            Host.PageTransition = new CrossFade(TimeSpan.FromMilliseconds(320));
         model.PickFolder = PickFolderAsync;
+        model.CopyText = text => Clipboard?.SetTextAsync(text) ?? Task.CompletedTask;
         model.CloseRequested += (_, _) =>
         {
             _closing = true;
             Close();
+        };
+        model.PropertyChanged += OnModelChanged;
+        TitleBar.PointerPressed += (_, e) =>
+        {
+            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+                BeginMoveDrag(e);
         };
         // Installing can't be stopped halfway: the window stays until the files are in place (or back).
         Closing += (_, e) =>
@@ -38,6 +61,17 @@ public partial class SetupWindow : Window
             else
                 model.WindowClosing();
         };
+        KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Escape)
+            {
+                model.CancelCommand.Execute(null);
+                e.Handled = true;
+            }
+        };
+        ActualThemeVariantChanged += (_, _) => ApplyTheme();
+        ApplyTheme();
+        ShowState();
         Opened += async (_, _) =>
         {
             if (silent)
@@ -51,12 +85,99 @@ public partial class SetupWindow : Window
                 Close();
                 return;
             }
-            (model.IsUninstall ? (Control)NextButton : LanguageBox).Focus();
+            FocusPrimary();
         };
     }
 
     /// <summary>A /SILENT run ended (before the window closes): Program shows an error message if there was one.</summary>
     public event EventHandler? SilentFinished;
+
+    /// <summary>The state shown now (tests).</summary>
+    public Control? State => Host.Content as Control;
+
+    private void ApplyTheme()
+    {
+        var dark = ActualThemeVariant == ThemeVariant.Dark;
+        _model.Dark = dark;
+        // Links and the version pill: the deeper accent on light, the accent itself on dark (enough contrast on both).
+        if (Application.Current?.FindResource(dark ? "AccentBrush" : "AccentStrongBrush") is { } link)
+            Resources["Setup.LinkBrush"] = link;
+        Backdrop.Intensity = dark ? 0.22 : 0.30;
+    }
+
+    private void OnModelChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(SetupViewModel.Page):
+                ShowState();
+                break;
+            case nameof(SetupViewModel.ClipIndex) or nameof(SetupViewModel.CurrentClip):
+                ShowClip();
+                break;
+            case nameof(SetupViewModel.CurrentCaption):
+                ShowCaption();
+                break;
+            case nameof(SetupViewModel.OptionsOpen) when _model.OptionsOpen:
+                LanguageBox.Focus();
+                break;
+            case nameof(SetupViewModel.OptionsOpen):
+                FocusPrimary();
+                break;
+        }
+    }
+
+    /// <summary>Builds the card for the current state (StateViews.axaml) and crossfades to it.</summary>
+    private void ShowState()
+    {
+        if (this.FindResource("Setup." + _model.Page) is not IDataTemplate template)
+            return;
+        var state = template.Build(_model);
+        if (state is null)
+            return;
+        state.DataContext = _model;
+        Host.Content = state;
+        ShowClip();
+        ShowCaption();
+        FocusPrimary();
+    }
+
+    private T? Find<T>(string name) where T : Control =>
+        State?.GetLogicalDescendants().OfType<T>().FirstOrDefault(c => c.Name == name);
+
+    private void ShowClip()
+    {
+        if (!_model.ShowShowcase || Find<TransitioningContentControl>("ClipHost") is not { } host)
+            return;
+        if (SetupMotion.Enabled)
+            host.PageTransition ??= new CrossFade(TimeSpan.FromMilliseconds(600));
+        (host.Content as AnimatedWebp)?.Dispose();
+        host.Content = new AnimatedWebp { Source = _model.CurrentClip };
+    }
+
+    private void ShowCaption()
+    {
+        if (!_model.ShowShowcase || Find<TransitioningContentControl>("CaptionHost") is not { } host)
+            return;
+        if (SetupMotion.Enabled)
+            host.PageTransition ??= new CrossFade(TimeSpan.FromMilliseconds(600));
+        host.Content = new TextBlock
+        {
+            Text = _model.CurrentCaption,
+            TextWrapping = TextWrapping.Wrap,
+            TextAlignment = TextAlignment.Center,
+            Classes = { "muted" },
+        };
+    }
+
+    private void FocusPrimary()
+    {
+        if (_model.OptionsOpen)
+            return;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => Find<Button>("PrimaryButton")?.Focus(), Avalonia.Threading.DispatcherPriority.Loaded);
+    }
+
+    private void OnMinimize(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
     private async Task<string?> PickFolderAsync(string current)
     {

@@ -49,14 +49,14 @@ public partial class SetupTextsTests
     {
         var texts = new SetupTexts("ko");
         Assert.Equal("ko", texts.Language);
-        Assert.NotEqual("installer.welcome.title", texts["installer.welcome.title"]);
+        Assert.NotEqual("installer.install", texts["installer.install"]);
         Assert.Contains("9.9.9", texts.Format("installer.welcome.fresh", "9.9.9"));
         Assert.Equal("no.such.key", texts["no.such.key"]);
         var changed = 0;
         texts.LanguageChanged += (_, _) => changed++;
         texts.SetLanguage("en");
         Assert.Equal(1, changed);
-        Assert.Equal("Welcome to Filee", texts["installer.welcome.title"]);
+        Assert.Equal("Install", texts["installer.install"]);
     }
 
     [Fact]
@@ -69,10 +69,10 @@ public partial class SetupTextsTests
             .SelectMany(f => DynamicResource().Matches(File.ReadAllText(f)).Select(m => m.Groups[1].Value))
             .Concat(Directory.EnumerateFiles(source, "*.cs", SearchOption.AllDirectories)
                 .SelectMany(f => KeyLiteral().Matches(File.ReadAllText(f)).Select(m => m.Groups[1].Value)))
-            .Where(k => k.Contains('.') && !k.EndsWith('.'))
+            .Where(k => k.Contains('.') && !k.EndsWith('.') && !k.StartsWith("Setup.", StringComparison.Ordinal))
             .Distinct()
             .ToList();
-        Assert.Contains("installer.welcome.title", used);
+        Assert.Contains("installer.welcome.fresh", used);
         Assert.Contains("general.context_menu", used);
         Assert.DoesNotContain(used, k => !english.ContainsKey(k));
         // Engine names come from the app's own keys.

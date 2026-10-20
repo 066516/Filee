@@ -57,6 +57,8 @@
     <AvaloniaResource Include="..\Filee.App\Styles\Soft.axaml" Link="Styles\Soft.axaml" />
     <AvaloniaResource Include="..\Filee.App\Assets\Icons\filee.ico" Link="Assets\Icons\filee.ico" />
     <AvaloniaResource Include="..\Filee.App\Assets\Icons\filee.png" Link="Assets\Icons\filee.png" />
+    <!-- Feature clips shown while installing (640 px animated WebP, ~330 KB each). -->
+    <AvaloniaResource Include="Assets\Showcase\*.webp" />
     <EmbeddedResource Include="..\Filee.App\Assets\i18n\*.json" Link="i18n\%(Filename)%(Extension)" LogicalName="i18n.%(Filename)%(Extension)" />
   </ItemGroup>
 

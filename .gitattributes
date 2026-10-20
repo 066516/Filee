@@ -24,3 +24,4 @@
 *.shx     binary
 *.dbf     binary
 *.kmz     binary
+*.webp    binary

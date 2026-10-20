@@ -1,15 +1,19 @@
-// Renders every page of Setup and the uninstaller headlessly (Skia) in Filee's languages, light and dark: catches XAML
-// and binding errors, text that doesn't fit, and leaves screenshots in bin/.../screenshots for review.
+// Renders every state of Setup's card headlessly (Skia) in Filee's languages, light and dark: catches XAML and binding
+// errors and text that doesn't fit, and leaves screenshots in bin/.../screenshots for review. Animations are off
+// (static logo, a still from each clip) except in the test that runs them.
 
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Filee.Setup.Controls;
 using Filee.Setup.Installation;
 using Filee.Setup.Payload;
 using Filee.Setup.ViewModels;
@@ -19,6 +23,9 @@ namespace Filee.Setup.Tests;
 
 public class SetupWindowTests
 {
+    [ModuleInitializer]
+    internal static void StaticScreenshots() => SetupMotion.Enabled = false;
+
     /// <summary>Every language Setup offers.</summary>
     public static TheoryData<string> Languages => new(SetupTexts.Languages.Select(l => l.Code));
 
@@ -27,11 +34,13 @@ public class SetupWindowTests
         public InstallChoices? Installed { get; private set; }
         public bool? DeletedSettings { get; private set; }
         public InstallResult Result { get; set; } = new(new LaunchRequest(@"C:\Program Files\Filee\Filee.exe", "--background"), []);
+        public TaskCompletionSource? Hold { get; set; }
 
         public InstallResult Install(InstallChoices choices, IProgress<SetupProgress> progress)
         {
             Installed = choices;
-            progress.Report(new SetupProgress(SetupStep.Copying, 0.5));
+            progress.Report(new SetupProgress(SetupStep.Copying, 0.62));
+            Hold?.Task.Wait();
             return Result;
         }
 
@@ -72,69 +81,100 @@ public class SetupWindowTests
 
     [AvaloniaTheory]
     [MemberData(nameof(Languages))]
-    public async Task Every_install_page_renders_and_fits(string language)
+    public async Task Every_state_renders_and_fits(string language)
     {
         var (model, _, runner) = Model(language);
         var window = Show(model);
         Check(window, $"setup-1-welcome-{language}.png");
-        Assert.True(model.IsWelcome);
 
-        await model.NextCommand.ExecuteAsync(null);
-        Assert.True(model.IsOptions);
-        Check(window, $"setup-2-options-{language}.png");
-
-        await model.NextCommand.ExecuteAsync(null);
-        Assert.True(model.IsEngines);
+        model.ToggleOptionsCommand.Execute(null);
+        Pump();
+        Assert.True(model.OptionsOpen);
         // FFmpeg is installed already: shown, not offered.
         Assert.False(model.Engines.Single(e => e.Id == "ffmpeg").CanSelect);
-        Check(window, $"setup-3-engines-{language}.png", mayScroll: true);
+        Check(window, $"setup-2-options-{language}.png", sheetMayScroll: true);
 
-        model.Page = SetupPage.Progress;
-        model.StatusText = new SetupTexts(language)["installer.status.copying"];
-        model.Percent = 62;
-        Check(window, $"setup-4-progress-{language}.png");
+        runner.Hold = new TaskCompletionSource();
+        var install = model.InstallAsync();
+        Pump();
+        Assert.True(model.IsProgress);
+        Assert.False(model.OptionsOpen);
+        Assert.Equal(62, model.Percent);
+        Assert.NotNull(window.GetVisualDescendants().OfType<AnimatedWebp>().SingleOrDefault());
+        Check(window, $"setup-3-installing-{language}.png");
 
         runner.Result = new InstallResult(new LaunchRequest(@"C:\Program Files\Filee\Filee.exe", "--install-engines=pandoc"),
-        [
-            new ExplorerMenuWarning("Deployment failed with HRESULT: 0x80073CF3, Package failed updates, dependency or conflict validation."),
-            new RuntimeWarning([new MissingRuntime(@"engines\rhwp\rhwp.exe", "vcruntime140.dll")]),
-        ]);
-        model.Page = SetupPage.Engines;
-        await model.NextCommand.ExecuteAsync(null);
+            [new RuntimeWarning([new MissingRuntime(@"engines\rhwp\rhwp.exe", "vcruntime140.dll")])]);
+        runner.Hold.SetResult();
+        await install;
         Pump();
         Assert.True(model.IsDone);
-        Check(window, $"setup-5-done-{language}.png", mayScroll: true);
+        Check(window, $"setup-4-done-{language}.png");
         window.Close();
     }
 
     [AvaloniaFact]
-    public async Task Update_and_failure_pages_render()
+    public async Task Dark_cards_follow_the_system()
     {
-        foreach (var language in new[] { "en", "ko", "ja", "hi" })
+        var app = Application.Current!;
+        try
         {
-            var (model, _, runner) = Model(language, update: true);
-            var window = Show(model);
-            Assert.False(model.HasEnginesPage);
-            Check(window, $"setup-update-1-welcome-{language}.png");
-            await model.NextCommand.ExecuteAsync(null);
-            Check(window, $"setup-update-2-options-{language}.png");
-            // An update offers only what it may change.
-            Assert.Equal(model.NextText, new SetupTexts(language)["installer.update"]);
+            app.RequestedThemeVariant = ThemeVariant.Dark;
+            foreach (var language in new[] { "en", "ko", "ru" })
+            {
+                var (model, _, runner) = Model(language);
+                var window = Show(model);
+                Assert.True(model.Dark);
+                Check(window, $"setup-dark-1-welcome-{language}.png");
+                model.ToggleOptionsCommand.Execute(null);
+                Check(window, $"setup-dark-2-options-{language}.png", sheetMayScroll: true);
+                runner.Hold = new TaskCompletionSource();
+                var install = model.InstallAsync();
+                Pump();
+                // The donut clip has a dark version.
+                Assert.Contains("expand-dark", window.GetVisualDescendants().OfType<AnimatedWebp>().Single().Source);
+                Check(window, $"setup-dark-3-installing-{language}.png");
+                runner.Hold.SetResult();
+                await install;
+                Check(window, $"setup-dark-4-done-{language}.png");
+                window.Close();
+            }
+            var (uninstall, _, _) = Model("ko", uninstall: true);
+            var card = Show(uninstall);
+            Check(card, "uninstall-dark-1-confirm-ko.png");
+            card.Close();
+        }
+        finally
+        {
+            app.RequestedThemeVariant = ThemeVariant.Default;
+        }
+    }
 
-            runner.Result = new InstallResult(null, [], new SetupException("installer.error.space", "space", "C:\\", "420 MB", "12 MB"), RolledBack: false);
-            await model.NextCommand.ExecuteAsync(null);
+    [AvaloniaFact]
+    public async Task Updates_and_failures_render()
+    {
+        foreach (var language in new[] { "en", "ko", "ru" })
+        {
+            var (model, texts, runner) = Model(language, update: true);
+            var window = Show(model);
+            Assert.False(model.HasEngines);
+            Assert.Equal(texts["installer.update"], model.PrimaryText);
+            Check(window, $"setup-update-1-welcome-{language}.png");
+
+            runner.Result = new InstallResult(null, [], new SetupException("installer.error.space", "space", "C:\\", "420 MB", "12 MB"));
+            await model.InstallAsync();
             Pump();
             Assert.True(model.IsFailed);
             Assert.Equal(4, model.ExitCode);
-            Check(window, $"setup-update-3-failed-{language}.png");
+            Check(window, $"setup-update-2-failed-{language}.png");
             window.Close();
         }
     }
 
     [AvaloniaFact]
-    public async Task Uninstall_pages_render_and_keep_the_settings_by_default()
+    public async Task Uninstall_renders_and_keeps_the_settings_by_default()
     {
-        foreach (var language in new[] { "en", "ko", "ja", "zh-CN", "pl" })
+        foreach (var language in new[] { "en", "ko", "ru", "zh-CN" })
         {
             var (model, _, runner) = Model(language, uninstall: true);
             var window = Show(model);
@@ -142,7 +182,7 @@ public class SetupWindowTests
             Assert.False(model.DeleteSettings);
             Assert.Contains(@"C:\Users\me\AppData\Roaming\Filee", model.SettingsText);
             Check(window, $"uninstall-1-confirm-{language}.png");
-            await model.NextCommand.ExecuteAsync(null);
+            await model.UninstallAsync();
             Pump();
             Assert.True(model.IsUninstalled);
             Assert.False(runner.DeletedSettings);
@@ -153,26 +193,72 @@ public class SetupWindowTests
     }
 
     [AvaloniaFact]
-    public void Dark_windows_follow_the_system()
+    public void The_clips_take_turns_with_their_captions()
     {
-        var app = Application.Current!;
+        var (model, texts, runner) = Model("en");
+        var window = Show(model);
+        runner.Hold = new TaskCompletionSource();
+        _ = model.InstallAsync();
+        Pump();
+        var seen = new HashSet<string>();
+        for (var i = 0; i < SetupViewModel.Clips.Count + 1; i++)
+        {
+            // The clip on the card and its caption are the current ones (the 6-second timer may move on meanwhile).
+            var shown = window.GetVisualDescendants().OfType<AnimatedWebp>().Last().Source!;
+            Assert.Equal(SetupViewModel.Clips[model.ClipIndex].Clip, shown);
+            Assert.Equal(texts[SetupViewModel.Clips[model.ClipIndex].CaptionKey], model.CurrentCaption);
+            seen.Add(shown);
+            var before = model.ClipIndex;
+            model.NextClip();
+            Assert.Equal((before + 1) % SetupViewModel.Clips.Count, model.ClipIndex);
+            Pump();
+        }
+        Assert.Equal(SetupViewModel.Clips.Count, seen.Count);
+        runner.Hold.SetResult();
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void A_clip_plays_frame_after_frame()
+    {
+        var clip = new AnimatedWebp { Source = SetupViewModel.Clips[1].Clip };
+        Assert.True(clip.FrameCount > 30);
+        var window = new Window { Content = clip, Width = 640, Height = 360 };
+        window.Show();
+        foreach (var frame in new[] { 0, 1, 2, clip.FrameCount - 1, 0 })
+        {
+            clip.ShowFrame(frame);
+            Assert.Equal(frame, clip.Frame);
+        }
+        // Jumping ahead decodes the frames it builds on.
+        clip.ShowFrame(clip.FrameCount / 2);
+        Assert.Equal(clip.FrameCount / 2, clip.Frame);
+        window.Close();
+        clip.Dispose();
+    }
+
+    [AvaloniaFact]
+    public async Task With_animations_on_the_card_still_works()
+    {
+        SetupMotion.Enabled = true;
         try
         {
-            app.RequestedThemeVariant = ThemeVariant.Dark;
-            var (model, _, _) = Model("en");
+            var (model, _, runner) = Model("en");
             var window = Show(model);
-            Check(window, "setup-dark-welcome-en.png");
-            model.Page = SetupPage.Options;
-            Check(window, "setup-dark-options-en.png");
-            window.Close();
-            var (uninstall, _, _) = Model("ko", uninstall: true);
-            window = Show(uninstall);
-            Check(window, "uninstall-dark-confirm-ko.png");
+            Pump(120);
+            Check(window, "setup-motion-welcome-en.png");
+            runner.Hold = new TaskCompletionSource();
+            var install = model.InstallAsync();
+            Pump(120);
+            runner.Hold.SetResult();
+            await install;
+            Pump(120);
+            Check(window, "setup-motion-done-en.png");
             window.Close();
         }
         finally
         {
-            app.RequestedThemeVariant = ThemeVariant.Default;
+            SetupMotion.Enabled = false;
         }
     }
 
@@ -184,13 +270,11 @@ public class SetupWindowTests
         model.SelectedLanguage = model.Languages.Single(l => l.Code == "ko");
         Pump();
         Assert.Equal("ko", texts.Language);
-        Assert.Equal(texts["installer.next"], model.NextText);
-        Assert.Equal(texts["installer.step.welcome"], model.Steps[0].Title);
+        Assert.Equal(texts["installer.install"], model.PrimaryText);
         Assert.Contains("2.0.0", model.WelcomeText);
         var choices = model.Choices();
         Assert.Equal("ko", choices.Language);
         Assert.True(choices.LanguagePicked);
-        Check(window, "setup-language-switched-ko.png");
         window.Close();
     }
 
@@ -212,29 +296,49 @@ public class SetupWindowTests
     }
 
     [AvaloniaFact]
-    public void Keyboard_escape_cancels_and_enter_goes_on()
+    public void Keyboard_enter_installs_and_escape_closes_the_options_then_cancels()
     {
-        var (model, _, _) = Model("en");
+        var (model, _, runner) = Model("en");
         var window = Show(model);
         var closed = false;
         model.CloseRequested += (_, _) => closed = true;
-        var next = window.FindControl<Button>("NextButton")!;
-        Assert.True(next.IsDefault);
-        next.Focus();
-        window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+
+        model.ToggleOptionsCommand.Execute(null);
         Pump();
-        Assert.True(model.IsOptions);
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        Pump();
+        Assert.False(model.OptionsOpen);
+        Assert.False(closed);
+
+        var primary = window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "PrimaryButton");
+        Assert.True(primary.IsDefault);
+        Assert.True(primary.IsFocused);
         window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
         Pump();
         Assert.True(closed);
         Assert.Equal(2, model.ExitCode);
+        Assert.Null(runner.Installed);
+    }
+
+    [AvaloniaFact]
+    public async Task Launch_or_close_on_the_done_card()
+    {
+        var (model, _, _) = Model("en");
+        var window = Show(model);
+        await model.InstallAsync();
+        Pump();
+        model.CloseCommand.Execute(null);
+        Assert.Null(model.Launch);
+        Assert.Equal(0, model.ExitCode);
+        model.LaunchAndCloseCommand.Execute(null);
+        Assert.Equal("--background", model.Launch!.Arguments);
+        window.Close();
     }
 
     [AvaloniaFact]
     public void Closing_the_window_before_installing_cancels()
     {
         var (model, _, _) = Model("en");
-        model.LaunchFilee = true;
         model.WindowClosing();
         Assert.Equal(2, model.ExitCode);
         Assert.Null(model.Launch);
@@ -242,20 +346,40 @@ public class SetupWindowTests
 
     private static Window Show(SetupViewModel model)
     {
-        var window = new SetupWindow(model, silent: false);
+        // The desktop behind the transparent window's rounded corners (headless captures have no desktop).
+        var window = new SetupWindow(model, silent: false) { Background = new SolidColorBrush(Color.Parse("#D9DCE3")) };
         window.Show();
         Pump();
         return window;
     }
 
-    /// <summary>Saves a screenshot; the page must fit the window (no scrolling) and no button may cut its text.</summary>
-    private static void Check(Window window, string name, bool mayScroll = false)
+    /// <summary>
+    /// Saves a screenshot. Everything visible must lie inside the card (no text pushed out of it), no button may cut its
+    /// text, and the Options sheet may scroll but not the page.
+    /// </summary>
+    private static void Check(Window window, string name, bool sheetMayScroll = false)
     {
         Pump();
-        var scroller = window.GetVisualDescendants().OfType<ScrollViewer>().First();
-        if (!mayScroll)
-            Assert.True(scroller.Extent.Height <= scroller.Viewport.Height + 1, $"{name}: the page needs scrolling ({scroller.Extent.Height} > {scroller.Viewport.Height})");
-        // Push buttons only: check boxes wrap their text.
+        var card = window.GetVisualDescendants().OfType<Border>().First(b => b.Name == "Card");
+        var cardBounds = new Rect(card.Bounds.Size);
+        var state = ((SetupWindow)window).State!;
+        foreach (var text in state.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && t.Bounds.Height > 0))
+        {
+            var corner = text.TranslatePoint(new Point(text.Bounds.Width, text.Bounds.Height), card);
+            Assert.True(corner is { } p && p.Y <= cardBounds.Height + 0.5 && p.X <= cardBounds.Width + 0.5, $"{name}: \"{text.Text}\" runs out of the card");
+            text.Measure(new Size(text.Bounds.Width + text.Margin.Left + text.Margin.Right, double.PositiveInfinity));
+            Assert.True(text.DesiredSize.Height - text.Margin.Top - text.Margin.Bottom <= text.Bounds.Height + 1, $"{name}: \"{text.Text}\" is cut off");
+        }
+        // Nothing may overlap the buttons at the bottom of the card.
+        if (state.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "PrimaryButton" && b.IsEffectivelyVisible) is { } primary
+            && state is Grid { RowDefinitions.Count: 2 } grid
+            && grid.Children.OfType<Control>().First(c => Grid.GetRow(c) == 0 && c.IsEffectivelyVisible) is { } content
+            && !content.IsVisualAncestorOf(primary))
+        {
+            var contentBottom = content.TranslatePoint(new Point(0, content.Bounds.Height), card)!.Value.Y;
+            var buttonsTop = primary.TranslatePoint(default, card)!.Value.Y;
+            Assert.True(contentBottom <= buttonsTop + 0.5, $"{name}: the content ({contentBottom:0}) runs into the buttons ({buttonsTop:0})");
+        }
         foreach (var button in window.GetVisualDescendants().OfType<Button>().Where(b => b is not ToggleButton && b.IsEffectivelyVisible))
         {
             button.Measure(Size.Infinity);
@@ -263,6 +387,9 @@ public class SetupWindowTests
             button.InvalidateMeasure();
             Assert.True(wanted <= button.Bounds.Width + 1, $"{name}: a button cuts its text ({button.Content})");
         }
+        if (!sheetMayScroll)
+            Assert.DoesNotContain(state.GetVisualDescendants().OfType<ScrollViewer>(), s => s.Extent.Height > s.Viewport.Height + 1 && s.MaxHeight is double.PositiveInfinity);
+        Pump();
         using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         var folder = Path.Combine(AppContext.BaseDirectory, "screenshots");
@@ -271,9 +398,9 @@ public class SetupWindowTests
         frame.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
     }
 
-    private static void Pump()
+    private static void Pump(int times = 40)
     {
-        for (var i = 0; i < 40; i++)
+        for (var i = 0; i < times; i++)
         {
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
