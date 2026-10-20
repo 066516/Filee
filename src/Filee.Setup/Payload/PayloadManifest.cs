@@ -7,18 +7,21 @@ using System.Text.Json;
 namespace Filee.Setup.Payload;
 
 /// <summary>One file of the app, relative to the install folder (backslashes).</summary>
-public sealed record PayloadFile(string Path, long Size, string Sha256);
+/// <param name="Segment">The Brotli stream it is in (files are in manifest order within it).</param>
+public sealed record PayloadFile(string Path, long Size, string Sha256, int Segment = 0);
 
 /// <summary>An engine package of Settings → Engines, as Setup offers it on a fresh install.</summary>
 /// <param name="MarkerFolders">Folders under %LocalAppData%\Filee\engines that are all marked when it is installed.</param>
 public sealed record EngineOffer(string Id, IReadOnlyList<string> MarkerFolders, long DownloadSize, long InstalledSize, bool Suggested);
 
+/// <param name="Segments">Compressed length of each Brotli stream, one after the other in the payload.</param>
 public sealed record PayloadManifest(
     string Version,
     IReadOnlyList<PayloadFile> Files,
     string CompressedSha256,
     IReadOnlyList<EngineOffer> Engines,
-    string EngineMarker)
+    string EngineMarker,
+    IReadOnlyList<long> Segments)
 {
     /// <summary>Format of the payload; a Setup refuses a payload with another one.</summary>
     public const int CurrentFormat = 1;
@@ -36,6 +39,10 @@ public sealed record PayloadManifest(
             writer.WriteString("compression", "brotli");
             writer.WriteString("compressedSha256", CompressedSha256);
             writer.WriteString("engineMarker", EngineMarker);
+            writer.WriteStartArray("segments");
+            foreach (var segment in Segments)
+                writer.WriteNumberValue(segment);
+            writer.WriteEndArray();
             writer.WriteStartArray("engines");
             foreach (var engine in Engines)
             {
@@ -58,6 +65,7 @@ public sealed record PayloadManifest(
                 writer.WriteString("path", file.Path);
                 writer.WriteNumber("size", file.Size);
                 writer.WriteString("sha256", file.Sha256);
+                writer.WriteNumber("segment", file.Segment);
                 writer.WriteEndObject();
             }
             writer.WriteEndArray();
@@ -75,9 +83,15 @@ public sealed record PayloadManifest(
             var root = document.RootElement;
             if (root.GetProperty("format").GetInt32() != CurrentFormat || root.GetProperty("compression").GetString() != "brotli")
                 throw new InvalidDataException("Unknown payload format.");
+            var segments = root.GetProperty("segments").EnumerateArray().Select(s => s.GetInt64()).ToList();
             var files = root.GetProperty("files").EnumerateArray()
-                .Select(f => new PayloadFile(f.GetProperty("path").GetString()!, f.GetProperty("size").GetInt64(), f.GetProperty("sha256").GetString()!))
+                .Select(f => new PayloadFile(f.GetProperty("path").GetString()!, f.GetProperty("size").GetInt64(),
+                    f.GetProperty("sha256").GetString()!, f.GetProperty("segment").GetInt32()))
                 .ToList();
+            if (segments.Count == 0 || segments.Any(s => s <= 0)
+                || files.Any(f => f.Segment < 0 || f.Segment >= segments.Count)
+                || files.Zip(files.Skip(1)).Any(p => p.Second.Segment < p.First.Segment))
+                throw new InvalidDataException("The payload's segments don't add up.");
             foreach (var file in files)
                 CheckPath(file.Path);
             if (files.Select(f => f.Path).Distinct(StringComparer.OrdinalIgnoreCase).Count() != files.Count)
@@ -95,7 +109,8 @@ public sealed record PayloadManifest(
                 files,
                 root.GetProperty("compressedSha256").GetString()!,
                 engines,
-                root.TryGetProperty("engineMarker", out var marker) ? marker.GetString() ?? "" : "");
+                root.TryGetProperty("engineMarker", out var marker) ? marker.GetString() ?? "" : "",
+                segments);
         }
         catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException or NullReferenceException)
         {

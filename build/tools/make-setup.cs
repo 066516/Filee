@@ -43,7 +43,7 @@ var engines = EngineDownloads.Packages
 
 var watch = Stopwatch.StartNew();
 var manifest = SetupPayload.Write(program, app, Path.GetFullPath(output), version, engines, marker,
-    quality: fast ? 5 : 11, window: 24);
+    quality: fast ? 5 : 11, window: 24, log: Console.WriteLine);
 var size = new FileInfo(output).Length;
 Console.WriteLine($"{manifest.Files.Count} files, {manifest.TotalSize / 1_000_000} MB -> {output} ({size / 1_000_000} MB) in {watch.Elapsed.TotalSeconds:0} s; " +
                   $"engines offered: {string.Join(", ", engines.Select(e => e.Suggested ? e.Id + "*" : e.Id))}");

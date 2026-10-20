@@ -37,6 +37,24 @@ public class PayloadTests
     }
 
     [Fact]
+    public void Large_apps_are_packed_in_several_segments()
+    {
+        using var bench = new SetupBench(app: (temp, _) =>
+        {
+            temp.Write(@"app\a.bin", new string('a', (int)(SetupPayload.SegmentSize + 1000)));
+            temp.Write(@"app\b.bin", new string('b', 2_000_000));
+        });
+        using var payload = SetupPayload.Open(bench.SetupExe)!;
+        Assert.True(payload.Manifest.Segments.Count >= 2);
+        Assert.Equal(payload.CompressedLength, payload.Manifest.Segments.Sum());
+        payload.Verify(cancellation: TestContext.Current.CancellationToken);
+        var target = bench.Temp.Sub("out");
+        payload.ExtractTo(target, cancellation: TestContext.Current.CancellationToken);
+        foreach (var file in Directory.EnumerateFiles(bench.AppFolder, "*", SearchOption.AllDirectories))
+            Assert.Equal(File.ReadAllBytes(file), File.ReadAllBytes(Path.Combine(target, Path.GetRelativePath(bench.AppFolder, file))));
+    }
+
+    [Fact]
     public void The_uninstaller_is_the_program_without_its_payload()
     {
         using var bench = new SetupBench();

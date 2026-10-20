@@ -44,8 +44,8 @@ public sealed record SetupPaths(
         static string Folder(Environment.SpecialFolder folder) =>
             Environment.GetFolderPath(folder, Environment.SpecialFolderOption.DoNotVerify);
         var localAppData = Folder(Environment.SpecialFolder.LocalApplicationData);
+        // A 64-bit process: ProgramFiles is "C:\Program Files", not the x86 one.
         return new SetupPaths(
-            // A 64-bit process: this is "C:\Program Files", not the x86 one.
             Folder(Environment.SpecialFolder.ProgramFiles),
             Path.Combine(localAppData, "Programs"),
             Folder(Environment.SpecialFolder.CommonPrograms),

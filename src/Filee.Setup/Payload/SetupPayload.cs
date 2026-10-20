@@ -1,12 +1,13 @@
 // The payload appended to Setup.exe:
 //
-//   [Setup program][Brotli stream: every file of the app, one after the other][manifest JSON][trailer, 72 bytes]
+//   [Setup program][Brotli streams: the app's files, one after the other][manifest JSON][trailer, 72 bytes]
 //   (then, once Setup is signed, the Authenticode signature: the trailer sits right before it)
 //
 // Trailer: "FILEE-PAYLOAD-01", payload offset, compressed length, manifest length (little-endian Int64 each) and the
-// SHA-256 of the manifest. The manifest holds the SHA-256 of the compressed stream and of every file. One stream for
-// all files compresses far better than a zip (the .NET assemblies share much). Setup checks the stream's hash before
-// it changes anything and every file's hash while unpacking.
+// SHA-256 of the manifest. The manifest holds the SHA-256 of the compressed data and of every file. Files are packed
+// into a few large streams (segments, compressed in parallel) rather than one per file: similar files next to each
+// other compress far better than a zip (the .NET assemblies share much). Setup checks the hash of the compressed data
+// before it changes anything and every file's hash while unpacking.
 
 using System.Buffers;
 using System.Buffers.Binary;
@@ -154,39 +155,44 @@ public sealed class SetupPayload : IDisposable
     /// </summary>
     public void ExtractTo(string folder, IProgress<long>? progress = null, CancellationToken cancellation = default)
     {
-        _file.Position = Offset;
-        using var compressed = new BoundedReadStream(_file, CompressedLength);
-        using var brotli = new BrotliStream(compressed, CompressionMode.Decompress);
         var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
         long written = 0;
+        var start = Offset;
         try
         {
-            foreach (var file in Manifest.Files)
+            for (var segment = 0; segment < Manifest.Segments.Count; segment++)
             {
-                cancellation.ThrowIfCancellationRequested();
-                var target = Path.Combine(folder, file.Path);
-                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                using (var output = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None, BufferSize))
+                _file.Position = start;
+                start += Manifest.Segments[segment];
+                using var compressed = new BoundedReadStream(_file, Manifest.Segments[segment]);
+                using var brotli = new BrotliStream(compressed, CompressionMode.Decompress);
+                foreach (var file in Manifest.Files.Where(f => f.Segment == segment))
                 {
-                    var left = file.Size;
-                    while (left > 0)
+                    cancellation.ThrowIfCancellationRequested();
+                    var target = Path.Combine(folder, file.Path);
+                    Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                    using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                    using (var output = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None, BufferSize))
                     {
-                        var read = brotli.Read(buffer, 0, (int)Math.Min(buffer.Length, left));
-                        if (read == 0)
-                            throw new InvalidDataException($"The payload ends inside {file.Path}.");
-                        hash.AppendData(buffer, 0, read);
-                        output.Write(buffer, 0, read);
-                        left -= read;
-                        written += read;
-                        progress?.Report(written);
+                        var left = file.Size;
+                        while (left > 0)
+                        {
+                            var read = brotli.Read(buffer, 0, (int)Math.Min(buffer.Length, left));
+                            if (read == 0)
+                                throw new InvalidDataException($"The payload ends inside {file.Path}.");
+                            hash.AppendData(buffer, 0, read);
+                            output.Write(buffer, 0, read);
+                            left -= read;
+                            written += read;
+                            progress?.Report(written);
+                        }
                     }
+                    if (PayloadManifest.Hex(hash.GetHashAndReset()) != file.Sha256)
+                        throw new InvalidDataException($"{file.Path} doesn't match its checksum.");
                 }
-                if (PayloadManifest.Hex(hash.GetHashAndReset()) != file.Sha256)
-                    throw new InvalidDataException($"{file.Path} doesn't match its checksum.");
+                if (brotli.Read(buffer, 0, 1) != 0)
+                    throw new InvalidDataException("The payload has more data than its manifest lists.");
             }
-            if (brotli.Read(buffer, 0, 1) != 0)
-                throw new InvalidDataException("The payload has more data than its manifest lists.");
         }
         finally
         {
@@ -205,9 +211,13 @@ public sealed class SetupPayload : IDisposable
 
     public void Dispose() => _file.Dispose();
 
+    /// <summary>Raw size from which files start a new segment (each segment is compressed on its own core).</summary>
+    public const long SegmentSize = 24L << 20;
+
     /// <summary>
     /// Appends <paramref name="appFolder"/> to a copy of <paramref name="setupProgram"/>: writes <paramref name="output"/>,
-    /// the finished Setup. Brotli quality 11 with the largest window compresses best (and slowest).
+    /// the finished Setup. Brotli quality 11 with the largest window compresses best (and slowest); the segments are
+    /// compressed in parallel.
     /// </summary>
     public static PayloadManifest Write(string setupProgram, string appFolder, string output, string version,
         IReadOnlyList<EngineOffer> engines, string engineMarker, int quality = 11, int window = 24, Action<string>? log = null)
@@ -219,7 +229,55 @@ public sealed class SetupPayload : IDisposable
             .OrderBy(p => Path.GetExtension(p), StringComparer.OrdinalIgnoreCase)
             .ThenBy(p => p, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        var files = new List<PayloadFile>();
+        foreach (var relative in paths)
+            PayloadManifest.CheckPath(relative);
+
+        // Consecutive files up to SegmentSize per segment.
+        var groups = new List<List<string>>();
+        long groupSize = SegmentSize;
+        foreach (var relative in paths)
+        {
+            var size = new FileInfo(Path.Combine(appFolder, relative)).Length;
+            if (groupSize >= SegmentSize)
+            {
+                groups.Add([]);
+                groupSize = 0;
+            }
+            groups[^1].Add(relative);
+            groupSize += size;
+        }
+        if (groups.Count == 0)
+            groups.Add([]);
+
+        var compressed = new byte[groups.Count][];
+        var hashed = new PayloadFile[groups.Count][];
+        Parallel.For(0, groups.Count, segment =>
+        {
+            using var buffer = new MemoryStream();
+            var segmentFiles = new List<PayloadFile>();
+            using (var compressor = new BrotliWriteStream(buffer, quality, window))
+            {
+                var chunk = new byte[BufferSize];
+                foreach (var relative in groups[segment])
+                {
+                    using var input = File.OpenRead(Path.Combine(appFolder, relative));
+                    using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                    int read;
+                    long size = 0;
+                    while ((read = input.Read(chunk)) > 0)
+                    {
+                        hash.AppendData(chunk, 0, read);
+                        compressor.Write(chunk, 0, read);
+                        size += read;
+                    }
+                    segmentFiles.Add(new PayloadFile(relative, size, PayloadManifest.Hex(hash.GetHashAndReset()), segment));
+                }
+            }
+            compressed[segment] = buffer.ToArray();
+            hashed[segment] = [.. segmentFiles];
+            log?.Invoke($"segment {segment + 1}/{groups.Count}: {groups[segment].Count} files, {compressed[segment].Length / 1_000_000} MB");
+        });
+
         var partial = output + ".partial";
         using (var target = new FileStream(partial, FileMode.Create, FileAccess.ReadWrite, FileShare.None, BufferSize))
         {
@@ -232,28 +290,14 @@ public sealed class SetupPayload : IDisposable
             }
             var offset = target.Position;
             using var compressedHash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            using (var compressor = new BrotliWriteStream(target, quality, window, compressedHash))
+            foreach (var segment in compressed)
             {
-                foreach (var relative in paths)
-                {
-                    PayloadManifest.CheckPath(relative);
-                    using var input = File.OpenRead(Path.Combine(appFolder, relative));
-                    using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                    var buffer = new byte[BufferSize];
-                    int read;
-                    long size = 0;
-                    while ((read = input.Read(buffer)) > 0)
-                    {
-                        hash.AppendData(buffer, 0, read);
-                        compressor.Write(buffer, 0, read);
-                        size += read;
-                    }
-                    files.Add(new PayloadFile(relative, size, PayloadManifest.Hex(hash.GetHashAndReset())));
-                    log?.Invoke(relative);
-                }
+                compressedHash.AppendData(segment);
+                target.Write(segment);
             }
             var length = target.Position - offset;
-            var manifest = new PayloadManifest(version, files, PayloadManifest.Hex(compressedHash.GetHashAndReset()), engines, engineMarker);
+            var manifest = new PayloadManifest(version, hashed.SelectMany(f => f).ToList(), PayloadManifest.Hex(compressedHash.GetHashAndReset()),
+                engines, engineMarker, compressed.Select(c => (long)c.Length).ToList());
             var json = manifest.ToJson();
             target.Write(json);
             var trailer = new byte[TrailerLength];
@@ -298,8 +342,8 @@ public sealed class SetupPayload : IDisposable
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
-    /// <summary>Brotli with a chosen window (BrotliStream only takes the quality), hashing what it writes.</summary>
-    private sealed class BrotliWriteStream(Stream inner, int quality, int window, IncrementalHash hash) : Stream
+    /// <summary>Brotli with a chosen window (BrotliStream only takes the quality).</summary>
+    private sealed class BrotliWriteStream(Stream inner, int quality, int window) : Stream
     {
         private BrotliEncoder _encoder = new(quality, window);
         private readonly byte[] _output = new byte[BufferSize];
@@ -316,11 +360,12 @@ public sealed class SetupPayload : IDisposable
             while (true)
             {
                 var status = _encoder.Compress(input, _output, out var consumed, out var produced, isFinalBlock: false);
-                Emit(produced);
-                input = input[consumed..];
                 if (status == OperationStatus.InvalidData)
                     throw new InvalidDataException("Brotli refused the data.");
-                if (input.IsEmpty && status == OperationStatus.Done)
+                inner.Write(_output, 0, produced);
+                input = input[consumed..];
+                // DestinationTooSmall: more output is waiting; otherwise the encoder has taken all the input.
+                if (status != OperationStatus.DestinationTooSmall && input.IsEmpty)
                     return;
             }
         }
@@ -332,21 +377,15 @@ public sealed class SetupPayload : IDisposable
                 while (true)
                 {
                     var status = _encoder.Compress(ReadOnlySpan<byte>.Empty, _output, out _, out var produced, isFinalBlock: true);
-                    Emit(produced);
+                    inner.Write(_output, 0, produced);
                     if (status == OperationStatus.Done)
                         break;
+                    if (status == OperationStatus.InvalidData)
+                        throw new InvalidDataException("Brotli refused the data.");
                 }
                 _encoder.Dispose();
             }
             base.Dispose(disposing);
-        }
-
-        private void Emit(int produced)
-        {
-            if (produced == 0)
-                return;
-            inner.Write(_output, 0, produced);
-            hash.AppendData(_output, 0, produced);
         }
 
         public override void Flush()

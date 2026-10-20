@@ -274,13 +274,15 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
         var cli = Path.Combine(folder, SetupNames.CliFolder);
         if (PathVariable.Set(Registry, choices.Scope, cli, choices.Tasks.Cli))
         {
-            undo.Push(("PATH", () =>
-            {
-                PathVariable.Set(Registry, choices.Scope, cli, !choices.Tasks.Cli);
-                System.BroadcastEnvironmentChange();
-            }));
+            undo.Push(("PATH", UndoPath));
             System.BroadcastEnvironmentChange();
             Log.Info($"{(choices.Tasks.Cli ? "Added" : "Removed")} {cli} {(choices.Tasks.Cli ? "to" : "from")} PATH");
+        }
+
+        void UndoPath()
+        {
+            PathVariable.Set(Registry, choices.Scope, cli, !choices.Tasks.Cli);
+            System.BroadcastEnvironmentChange();
         }
     }
 
