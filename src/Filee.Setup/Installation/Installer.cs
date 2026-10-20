@@ -124,7 +124,7 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
             swap.Commit();
             progress?.Report(new SetupProgress(SetupStep.Finishing, 1));
             Log.Info("Done");
-            var launch = choices.Portable ? null : new LaunchRequest(Path.Combine(folder, SetupNames.AppExe), LaunchArguments(choices, update));
+            var launch = choices.Portable ? null : new LaunchRequest(Path.Combine(folder, SetupNames.AppExe), LaunchArguments(choices, update, updatedFrom: previous?.Version));
             return new InstallResult(launch, warnings);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
@@ -171,15 +171,19 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
     /// <summary>
     /// The arguments Filee starts with: the choices of a fresh install, or after an update the new version's "What's new"
     /// slides, back in the tray (/SILENT, the app's own updater) or over the main window (<paramref name="shown"/>: the
-    /// user clicked "Launch Filee").
+    /// user clicked "Launch Filee"). <paramref name="updatedFrom"/>, the version updated from, tells Filee what is new.
     /// </summary>
-    public static string LaunchArguments(InstallChoices choices, bool update, bool shown = false) => update
-        ? shown ? "--whats-new" : "--background --whats-new"
+    public static string LaunchArguments(InstallChoices choices, bool update, bool shown = false, string? updatedFrom = null) => update
+        ? (shown ? "" : "--background ") + "--whats-new" + (IsVersion(updatedFrom) ? "=" + updatedFrom : "")
         : $"--install-engines={string.Join(',', choices.Engines)} " +
           $"--start-with-windows={OnOff(choices.Tasks.Startup)} --context-menu={OnOff(choices.Tasks.ContextMenu)}" +
           (choices.LanguagePicked ? $" --language={choices.Language}" : "");
 
     private static string OnOff(bool value) => value ? "on" : "off";
+
+    /// <summary>Digits and dots only: safe on a command line without quoting.</summary>
+    private static bool IsVersion(string? text) =>
+        !string.IsNullOrEmpty(text) && text.Length <= 32 && text.All(c => char.IsAsciiDigit(c) || c == '.');
 
     private void CheckSpace(string folder)
     {

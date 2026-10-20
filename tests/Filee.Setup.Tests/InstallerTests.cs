@@ -159,7 +159,7 @@ public class InstallerTests
         Assert.True(File.Exists(Path.Combine(bench.Paths.CommonDesktop, "Filee.lnk")));
         Assert.Contains($"register-menu {folder} False", bench.System.Calls);
         // Back to the tray, as before the update, with the new version's "What's new" slides.
-        Assert.Equal("--background --whats-new", result.Launch!.Arguments);
+        Assert.Equal("--background --whats-new=1.12.0", result.Launch!.Arguments);
     }
 
     [Fact]
@@ -320,9 +320,12 @@ public class InstallerTests
         var updated = CommandLine.Parse(Installer.LaunchArguments(fresh, update: true).Split(' '));
         Assert.True(updated.Background);
         Assert.True(updated.WhatsNew);
-        var shown = CommandLine.Parse(Installer.LaunchArguments(fresh, update: true, shown: true).Split(' '));
+        var shown = CommandLine.Parse(Installer.LaunchArguments(fresh, update: true, shown: true, updatedFrom: "1.12.0").Split(' '));
         Assert.False(shown.Background);
         Assert.True(shown.WhatsNew);
+        Assert.Equal("1.12.0", shown.UpdatedFrom);
+        // A version that isn't plain digits and dots stays off the command line.
+        Assert.Equal("--background --whats-new", Installer.LaunchArguments(fresh, update: true, updatedFrom: "1.0 \"--quit"));
         Assert.False(CommandLine.Parse(Installer.LaunchArguments(fresh, update: false).Split(' ')).WhatsNew);
     }
 }

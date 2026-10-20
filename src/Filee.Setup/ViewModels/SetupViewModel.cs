@@ -319,7 +319,7 @@ public sealed partial class SetupViewModel : ObservableObject
     private void LaunchAndClose()
     {
         Launch = IsUpdate && _result?.Launch is { } launch
-            ? launch with { Arguments = Installer.LaunchArguments(_initial, update: true, shown: true) }
+            ? launch with { Arguments = Installer.LaunchArguments(_initial, update: true, shown: true, _previous?.Version) }
             : _result?.Launch;
         CloseRequested?.Invoke(this, EventArgs.Empty);
     }

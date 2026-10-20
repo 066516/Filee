@@ -228,6 +228,19 @@ public class WhatsNewTests
         Assert.True(options.Background);
         Assert.True(options.WhatsNew);
         Assert.False(CommandLine.Parse(["--background"]).WhatsNew);
+        Assert.Null(options.UpdatedFrom);
+        Assert.Equal("1.12.0", CommandLine.Parse(["--whats-new=1.12.0"]).UpdatedFrom);
+    }
+
+    [Fact]
+    public void The_version_updated_from_decides_over_the_remembered_one()
+    {
+        // 2.0.0's slides were seen, Filee went back to 1.12.0 and was updated again: they are new again.
+        Assert.Equal(V2, WhatsNewService.Decide("2.0.0", true, V2, Decks, updated: true, updatedFrom: "1.12.0").Show?.Version);
+        // Reinstalling the same version shows nothing.
+        Assert.Equal(default, WhatsNewService.Decide(null, true, V2, Decks, updated: true, updatedFrom: "2.0.0"));
+        // Unreadable: the remembered version decides.
+        Assert.Equal(default, WhatsNewService.Decide("2.0.0", true, V2, Decks, updated: true, updatedFrom: "next"));
     }
 
     // ───────────────────────── The window ─────────────────────────

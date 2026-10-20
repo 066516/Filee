@@ -152,7 +152,7 @@ public partial class App : Application
         AppHost.Get<WhatsNewService>().CheckAtStartup(
             background: Program.Options.Background && !Program.Options.ShowSettings && !Program.Options.WhatsNew
                         || Program.Options.ConvertFiles.Count > 0,
-            updated: Program.Options.WhatsNew);
+            updated: Program.Options.WhatsNew, updatedFrom: Program.Options.UpdatedFrom);
         HandleCommandLine(Program.Options, firstLaunch: true);
         if (OperatingSystem.IsMacOS())
             this.TryGetFeature<IActivatableLifetime>()?.Activated += (_, e) =>

@@ -40,12 +40,16 @@ public sealed class WhatsNewService(UserDataStore store, WindowService windows, 
     internal readonly record struct Decision(SlideDeck? Show, Version? Remember);
 
     /// <summary>The rules described at the top of this file, without side effects.</summary>
+    /// <param name="updatedFrom">
+    /// The version the installer updated from: what was running before, so it decides what is new over a remembered
+    /// version (going back to an older Filee and updating again shows the slides again).
+    /// </param>
     internal static Decision Decide(string? seenSetting, bool firstRunCompleted, Version current, IEnumerable<SlideDeck> decks,
-        bool updated = false)
+        bool updated = false, string? updatedFrom = null)
     {
         if (!firstRunCompleted && !updated)
             return new Decision(null, current);
-        var seen = SlideDeck.TryParseVersion(seenSetting);
+        var seen = SlideDeck.TryParseVersion(updatedFrom) ?? SlideDeck.TryParseVersion(seenSetting);
         if (seen is not null && current <= seen)
             return new Decision(null, null);
         var deck = SlideDeck.Newest(decks, seen, current);
@@ -55,14 +59,15 @@ public sealed class WhatsNewService(UserDataStore store, WindowService windows, 
     /// <summary>
     /// Called once at start-up, before the first run is marked complete. <paramref name="background"/> (started at
     /// sign-in, or after an update without <c>--whats-new</c>) keeps the slides until the main window opens.
-    /// <paramref name="updated"/>: the installer started Filee after an update (<c>--whats-new</c>).
+    /// <paramref name="updated"/>: the installer started Filee after an update (<c>--whats-new</c>), from
+    /// <paramref name="updatedFrom"/> when it says.
     /// </summary>
-    public void CheckAtStartup(bool background, bool updated = false)
+    public void CheckAtStartup(bool background, bool updated = false, string? updatedFrom = null)
     {
         Decision decision;
         try
         {
-            decision = Decide(store.Settings.WhatsNewSeenVersion, store.Settings.FirstRunCompleted, CurrentVersion, Decks, updated);
+            decision = Decide(store.Settings.WhatsNewSeenVersion, store.Settings.FirstRunCompleted, CurrentVersion, Decks, updated, updatedFrom);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
