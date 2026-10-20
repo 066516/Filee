@@ -721,7 +721,7 @@
   "installer.install": "Установить",
   "installer.update": "Обновить",
   "installer.welcome.fresh": "Программа установит Filee {0} на этот компьютер.",
-  "installer.welcome.update": "Filee {0} уже установлен. Программа обновит его до версии {1}; настройки, пресеты и движки останутся как есть.",
+  "installer.welcome.update": "Filee {0} уже установлен.\nПрограмма обновит его до версии {1}; настройки, пресеты и движки останутся как есть.",
   "installer.welcome.license": "Filee — бесплатная программа с открытым исходным кодом (лицензия MIT).",
   "installer.language": "Язык",
   "installer.options.title": "Параметры",
