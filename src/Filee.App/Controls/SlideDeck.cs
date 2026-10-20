@@ -80,7 +80,7 @@ public sealed record SlideDeck(Version Version, IReadOnlyList<Slide> Slides)
         {
             if (Text(item, "id") is { } id && Text(item, "media") is { } media
                 && Text(item, "title") is { } title && Text(item, "text") is { } text
-                && !media.Contains("..", StringComparison.Ordinal) && !Path.IsPathRooted(media))
+                && IsPlainRelative(media))
                 slides.Add(new Slide(id, new Uri(folder, media), title, text,
                     item.TryGetProperty("poster", out var poster) && poster.ValueKind == JsonValueKind.Number
                     && poster.TryGetInt32(out var frame) && frame > 0 ? frame : 0));
@@ -105,6 +105,13 @@ public sealed record SlideDeck(Version Version, IReadOnlyList<Slide> Slides)
             ? new Version(parsed.Major, parsed.Minor, Math.Max(0, parsed.Build))
             : null;
     }
+
+    /// <summary>
+    /// A file name or path inside the deck's folder: not "..", not rooted ("/x", "\x") and no drive or scheme ("C:",
+    /// "https:"), whatever the platform the manifest is read on.
+    /// </summary>
+    private static bool IsPlainRelative(string media) =>
+        !media.Contains("..", StringComparison.Ordinal) && !media.Contains(':') && media[0] is not ('/' or '\\');
 
     private static string? Text(JsonElement item, string name) =>
         item.ValueKind == JsonValueKind.Object && item.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String

@@ -75,6 +75,8 @@ public class WhatsNewTests
                 { "id": "no-text", "media": "two.webp", "title": "b.title" },
                 { "id": "escape", "media": "../../secret.png", "title": "c.title", "text": "c.text" },
                 { "id": "rooted", "media": "C:/x.png", "title": "d.title", "text": "d.text" },
+                { "id": "slash", "media": "/x.png", "title": "e.title", "text": "e.text" },
+                { "id": "web", "media": "https://example.com/x.png", "title": "f.title", "text": "f.text" },
               ],
             }
             """, folder);
