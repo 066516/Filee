@@ -585,6 +585,7 @@
   "theme.accent": "एक्सेंट रंग",
   "theme.custom_color": "कस्टम",
   "theme.corner_radius": "कोमलता",
+  "theme.donut_opacity": "डोनट टूलबार की अपारदर्शिता",
   "theme.reduce_motion": "एनिमेशन कम करें",
   "theme.reduce_motion_hint": "पुराने PC के लिए अनुशंसित। ट्रांज़िशन और डोनट की उछाल बंद कर देता है।",
   "theme.preview": "प्रीव्यू",

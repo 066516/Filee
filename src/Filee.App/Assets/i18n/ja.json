@@ -585,6 +585,7 @@
   "theme.accent": "アクセントカラー",
   "theme.custom_color": "カスタム",
   "theme.corner_radius": "角の丸み",
+  "theme.donut_opacity": "ドーナツメニューの不透明度",
   "theme.reduce_motion": "アニメーションを減らす",
   "theme.reduce_motion_hint": "古いPCにおすすめです。画面切り替え時のアニメーションと、ドーナツメニューの弾む動きを無効にします。",
   "theme.preview": "プレビュー",

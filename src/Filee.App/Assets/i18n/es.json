@@ -585,6 +585,7 @@
   "theme.accent": "Color de acento",
   "theme.custom_color": "Personalizado",
   "theme.corner_radius": "Redondeo",
+  "theme.donut_opacity": "Opacidad del menú circular",
   "theme.reduce_motion": "Reducir las animaciones",
   "theme.reduce_motion_hint": "Recomendado para PC antiguos. Desactiva las transiciones y el rebote del menú circular.",
   "theme.preview": "Vista previa",

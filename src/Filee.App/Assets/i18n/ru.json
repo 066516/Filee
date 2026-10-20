@@ -601,6 +601,7 @@
   "theme.accent": "Акцентный цвет",
   "theme.custom_color": "Свой",
   "theme.corner_radius": "Скругление",
+  "theme.donut_opacity": "Непрозрачность кругового меню",
   "theme.reduce_motion": "Меньше анимации",
   "theme.reduce_motion_hint": "Рекомендуется для старых компьютеров. Отключает переходы и подпрыгивание кругового меню.",
   "theme.preview": "Предпросмотр",
