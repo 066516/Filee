@@ -80,6 +80,7 @@
   "error.rhwp_timeout": "rhwp couldn't finish this long document in time",
   "error.rhwp_timeout_calibre": "rhwp couldn't finish this long document in time. For an e-book, move Calibre above the HWPX writer in Settings → Engines, and Calibre makes the PDF much faster",
   "error.needs_shaping": "This script needs LibreOffice to convert correctly. Install it in Settings → Engines",
+  "error.runtime_missing": "A Microsoft Visual C++ runtime file this engine needs is missing or outdated. Update or reinstall Filee, or install the Microsoft Visual C++ Redistributable (x64)",
   "error.conversion_failed": "The engine reported an error",
   "error.geo_empty": "The file has no features",
   "error.geo_unknown_crs": "The coordinates are not longitude and latitude, and the file doesn't name its coordinate system (next to a Shapefile, keep its .prj file)",

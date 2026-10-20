@@ -74,6 +74,7 @@
   "error.rhwp_timeout": "rhwp no pudo terminar este documento largo a tiempo",
   "error.rhwp_timeout_calibre": "rhwp no pudo terminar este documento largo a tiempo. Para un libro electrónico, mueve Calibre por encima del escritor HWPX en Ajustes → Motores; Calibre genera el PDF mucho más rápido",
   "error.needs_shaping": "Este sistema de escritura necesita LibreOffice para convertirse bien. Instálalo en Ajustes → Motores",
+  "error.runtime_missing": "Falta un archivo del runtime de Microsoft Visual C++ que necesita este motor, o está desactualizado. Actualiza o reinstala Filee, o instala Microsoft Visual C++ Redistributable (x64)",
   "error.conversion_failed": "El motor devolvió un error",
   "error.geo_empty": "El archivo no contiene ningún elemento",
   "error.geo_unknown_crs": "Las coordenadas no son longitud y latitud y el archivo no indica su sistema de coordenadas (junto a un Shapefile, conserva su archivo .prj)",

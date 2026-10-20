@@ -80,6 +80,7 @@
   "error.rhwp_timeout": "文档太长，rhwp 未能在时限内完成",
   "error.rhwp_timeout_calibre": "文档太长，rhwp 未能在时限内完成。如果是电子书，请在“设置 → 转换引擎”中把 Calibre 移到 HWPX writer 之上，Calibre 生成 PDF 要快得多",
   "error.needs_shaping": "这种文字需要 LibreOffice 才能正确转换，请在“设置 → 转换引擎”中安装",
+  "error.runtime_missing": "此引擎所需的 Microsoft Visual C++ 运行库文件缺失或版本过旧。请更新或重新安装 Filee，或安装 Microsoft Visual C++ 可再发行程序包 (x64)",
   "error.conversion_failed": "转换引擎出错",
   "error.geo_empty": "文件中没有地理要素",
   "error.geo_unknown_crs": "坐标不是经纬度，文件也没有说明坐标系（Shapefile 请把 .prj 文件放在旁边）",
