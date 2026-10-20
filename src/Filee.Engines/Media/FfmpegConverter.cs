@@ -81,7 +81,7 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
             // Subtitles out of a video. SRT is the hub to the other subtitle formats (the subtitle engine takes it on),
             // so ASS and WebVTT cost a little more and are only taken when they are the target.
             .. from source in videos from target in MediaEncoding.SubtitleTargets.Keys
-               select new ConversionEdge(source, target, target == "srt" ? 10 : 11),
+               select new ConversionEdge(source, target, target == "srt" ? 10 : 11, NotForImageSources: true),
             .. videos.Select(source => new ConversionEdge(source, "gif", 15)),
             .. videos.Select(source => new ConversionEdge(source, "apng", 15)),
             .. from source in audios from target in MediaEncoding.AudioTargets.Keys select new ConversionEdge(source, target),
