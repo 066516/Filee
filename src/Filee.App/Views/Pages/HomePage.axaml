@@ -56,7 +56,7 @@
 
     <!-- Drop zone: files dropped here open the donut toolbar at the cursor. -->
     <Border x:Name="DropZone" DragDrop.AllowDrop="True" MinHeight="220"
-            Background="{DynamicResource AccentFaintBrush}" BorderBrush="{DynamicResource AccentSoftBrush}"
+            Background="{DynamicResource DropZoneBackgroundBrush}" BorderBrush="{DynamicResource DropZoneBorderBrush}"
             BorderThickness="2" CornerRadius="{DynamicResource SoftRadiusLarge}" Padding="24">
       <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
         <Border Width="64" Height="64" CornerRadius="999" Background="{DynamicResource AccentSoftBrush}" HorizontalAlignment="Center">
@@ -90,20 +90,52 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="vm:HistoryItemViewModel">
-            <Border Classes="card" Padding="14,10">
+            <Border Classes="card history-card" Padding="14,10">
               <StackPanel Spacing="8">
                 <DockPanel>
-                  <Button DockPanel.Dock="Right" Command="{Binding OpenFolderCommand}" IsVisible="{Binding HasOutputs}" Padding="10,5">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                      <PathIcon Width="13" Height="13" Data="{StaticResource Icon.Folder}" />
-                      <TextBlock Text="{DynamicResource home.open_folder}" />
-                    </StackPanel>
-                  </Button>
-                  <Border DockPanel.Dock="Left" Width="32" Height="32" CornerRadius="999" Margin="0,0,12,0"
-                          Background="{DynamicResource AccentSoftBrush}">
+                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasOutputs}" VerticalAlignment="Center">
+                    <Button Command="{Binding OpenFileCommand}" ToolTip.Tip="{DynamicResource home.open_file}" Padding="9,5">
+                      <StackPanel Orientation="Horizontal" Spacing="5">
+                        <PathIcon Width="12" Height="12" Data="{StaticResource Icon.File}" />
+                        <TextBlock Text="{DynamicResource home.open_file}" />
+                      </StackPanel>
+                    </Button>
+                    <Button Command="{Binding OpenWithCommand}" ToolTip.Tip="{DynamicResource home.open_with}" Padding="9,5">
+                      <StackPanel Orientation="Horizontal" Spacing="5">
+                        <PathIcon Width="12" Height="12" Data="{StaticResource Icon.OpenWith}" />
+                        <TextBlock Text="{DynamicResource home.open_with}" />
+                      </StackPanel>
+                    </Button>
+                    <Button Command="{Binding OpenFolderCommand}" ToolTip.Tip="{DynamicResource home.open_folder}" Padding="9,5">
+                      <StackPanel Orientation="Horizontal" Spacing="5">
+                        <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Folder}" />
+                        <TextBlock Text="{DynamicResource home.open_folder}" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                  <!-- Dynamic Thumbnail / Format Badge -->
+                  <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Margin="0,0,12,0"
+                          ClipToBounds="True" Background="{DynamicResource SurfaceAltBrush}">
                     <Panel>
-                      <PathIcon Width="15" Height="15" Data="{StaticResource Icon.Check}" Foreground="{DynamicResource AccentStrongBrush}" IsVisible="{Binding !HasErrors}" />
-                      <PathIcon Width="15" Height="15" Data="{StaticResource Icon.Alert}" Foreground="{DynamicResource DangerBrush}" IsVisible="{Binding HasErrors}" />
+                      <!-- Render actual decoded thumbnail if file is image and exists -->
+                      <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" IsVisible="{Binding HasThumbnail}" />
+
+                      <!-- Fallback format badge if no thumbnail -->
+                      <Border IsVisible="{Binding !HasThumbnail}" Background="{DynamicResource AccentSoftBrush}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <TextBlock Text="{Binding FormatBadge}" FontWeight="Bold" FontSize="11"
+                                   Foreground="{DynamicResource AccentStrongBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+
+                      <!-- Tiny Status Pill in Corner (Checkmark or Alert) -->
+                      <Border Width="16" Height="16" CornerRadius="999" Margin="0,0,2,2"
+                              HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                              Background="{DynamicResource SurfaceBrush}">
+                        <Panel>
+                          <PathIcon Width="9" Height="9" Data="{StaticResource Icon.Check}" Foreground="{DynamicResource SuccessBrush}" IsVisible="{Binding !HasErrors}" />
+                          <PathIcon Width="9" Height="9" Data="{StaticResource Icon.Alert}" Foreground="{DynamicResource DangerBrush}" IsVisible="{Binding HasErrors}" />
+                        </Panel>
+                      </Border>
                     </Panel>
                   </Border>
                   <StackPanel VerticalAlignment="Center">

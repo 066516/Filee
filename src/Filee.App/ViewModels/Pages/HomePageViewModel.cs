@@ -1,6 +1,8 @@
 // Home: drop zone (handled in the view) and recent conversions.
 
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -35,6 +37,11 @@ public sealed partial class HistoryItemViewModel : ObservableObject
         HasOutputs = entry.Outputs.Any(ConversionService.Exists);
         // Only entries that remember their preset (Filee 1.8 and later) and still have a failed file to convert.
         CanRetry = conversions is not null && entry.Preset is not null && entry.Failures.Any(f => ConversionService.Exists(f.Source));
+
+        // Load dynamic thumbnail if output or source image file exists
+        var sample = entry.Outputs.FirstOrDefault(ConversionService.Exists) ?? entry.Sources.FirstOrDefault(ConversionService.Exists);
+        if (sample is not null)
+            Thumbnail = TryLoadThumbnail(sample);
     }
 
     public string Title { get; }
@@ -42,6 +49,35 @@ public sealed partial class HistoryItemViewModel : ObservableObject
     public string Time { get; }
     public bool HasErrors { get; }
     public bool HasOutputs { get; }
+    public Bitmap? Thumbnail { get; }
+    public bool HasThumbnail => Thumbnail is not null;
+
+    public string FormatBadge
+    {
+        get
+        {
+            var file = _entry.Outputs.FirstOrDefault() ?? _entry.Sources.FirstOrDefault();
+            if (!string.IsNullOrEmpty(file))
+            {
+                var ext = Path.GetExtension(file).TrimStart('.').ToUpperInvariant();
+                if (!string.IsNullOrEmpty(ext))
+                    return ext.Length > 4 ? ext[..4] : ext;
+            }
+            return "FILE";
+        }
+    }
+
+    private static Bitmap? TryLoadThumbnail(string path)
+    {
+        try
+        {
+            return ThumbnailHelper.LoadThumbnail(path, 96);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     /// <summary>The files that failed and why.</summary>
     public IReadOnlyList<FailureItem> Failures { get; }
@@ -64,6 +100,64 @@ public sealed partial class HistoryItemViewModel : ObservableObject
     {
         if (_conversions is not null && _entry.Preset is not null)
             _conversions.Retry(_entry.Failures.Select(f => f.Source), _entry.Preset, _entry.WatchRuleId);
+    }
+
+    [RelayCommand]
+    private void OpenFile()
+    {
+        var output = _entry.Outputs.FirstOrDefault(ConversionService.Exists);
+        if (output is not null)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = output,
+                    UseShellExecute = true,
+                });
+            }
+            catch
+            {
+                _platform.RevealInFileManager(output);
+            }
+        }
+    }
+
+    [RelayCommand]
+    private void OpenWith()
+    {
+        var output = _entry.Outputs.FirstOrDefault(ConversionService.Exists);
+        if (output is not null)
+        {
+            try
+            {
+                if (OperatingSystem.IsWindows())
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = output,
+                        Verb = "openas",
+                        UseShellExecute = true,
+                    });
+                }
+                else if (OperatingSystem.IsMacOS())
+                {
+                    Process.Start("open", $"-R \"{output}\"");
+                }
+                else
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = output,
+                        UseShellExecute = true,
+                    });
+                }
+            }
+            catch
+            {
+                // User may have cancelled dialog
+            }
+        }
     }
 
     [RelayCommand]
