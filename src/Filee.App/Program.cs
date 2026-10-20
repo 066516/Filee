@@ -277,12 +277,18 @@ internal static class Program
         var builder = AppBuilder.Configure<App>().UsePlatformDetect();
         if (OperatingSystem.IsMacOS())
             builder = builder.With(new MacOSPlatformOptions { ShowInDock = PreloadedStore?.Settings.ShowInDock ?? true });
-        return builder
+        if (OperatingSystem.IsWindows())
+            builder = builder.With(WindowsRendering.Options(
+                WindowsRendering.Normalize(Environment.GetEnvironmentVariable(WindowsRendering.Variable)),
+                adapters => Log.LogInformation("Graphics adapters: {Adapters}", adapters)));
+        builder = builder
             .ConfigureFonts(fonts => fonts.AddFontCollection(new FileeFontCollection()))
 #if DEBUG
             .WithDeveloperTools()
 #endif
             .LogToTrace();
+        AvaloniaLogForwarder.Install(Log);
+        return builder;
     }
 }
 

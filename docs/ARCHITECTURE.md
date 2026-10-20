@@ -194,6 +194,18 @@ can't be received through Avalonia; for a browser drag Filee reads the address a
 registers too (see "Files dragged from a web browser"). A click-mode donut opened for a later launch or the service forgives one loss of
 focus within a second of opening (`ActivationGrace`): Filee becoming the active app can take focus away from it.
 
+The donut, the toast and the notices are transparent windows. On Windows Filee keeps Avalonia's rendering defaults
+(ANGLE on Direct3D 11 composed through WinUI composition, then DirectComposition, then the window's redirection
+surface; software rendering when Direct3D 11 fails): each of them keeps per-pixel transparency. The log says what was
+picked (`Rendering: AngleEgl with WinUIComposition`), lists the graphics adapters, carries Avalonia's own errors from
+starting the GPU paths (`AvaloniaLogForwarder`), and describes each kind of transparent window the first time it
+shows (`TransparentWindows`). A system backdrop (Acrylic, Mica) or an accent blur on such a window turns its
+transparent area into a blurred rectangle (issue #269). Filee sets neither, so one found there came from another
+program: each time the window shows, a backdrop is set back to none and the accent (which can't be read back) is
+turned off. For a report that still shows the wrong thing, the `FILEE_RENDERING` environment variable picks another
+way to draw (`WindowsRendering`): `dcomp` (skip WinUI composition), `redirection` (Direct3D into the redirection
+surface) or `software` (no GPU); unset or `auto` keeps the defaults. Filee reads it at start.
+
 ## Explorer integration
 
 Settings → General → "Show “Convert with Filee” in the Explorer context menu" (`AppSettings.ContextMenuEnabled`) is
