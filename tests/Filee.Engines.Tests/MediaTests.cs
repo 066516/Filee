@@ -111,6 +111,17 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     public void Every_frame_has_no_route_but_its_own(string from, string to) =>
         Assert.Null(Planner().Plan(from, to, frames: true));
 
+    [Theory]
+    [InlineData("jpg", "wav")]
+    [InlineData("png", "mp3")]
+    [InlineData("gif", "flac")]
+    public void A_picture_never_becomes_sound(string from, string to)
+    {
+        // Picture → video → audio would only make a silent file.
+        Assert.Null(Planner().Plan(from, to));
+        Assert.NotNull(Planner().Plan("mp4", to)); // a video still gives its sound
+    }
+
     [Fact]
     public void A_video_to_jpg_is_still_turned_by_the_image_engine()
     {
