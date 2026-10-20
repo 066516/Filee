@@ -5,11 +5,12 @@
 //   Filee.exe --convert a b ...        open the donut for these files (Explorer context menu / Send To)
 //   Filee.exe --convert-list <file>    same, with one path per line in a UTF-8 file (Windows 11 Explorer menu, for
 //                                      selections too long for a command line); the app deletes the file afterwards
-// Used by the installer (installer/Filee.iss):
+// Used by the installer (src/Filee.Setup, Installer.LaunchArguments):
 //   Filee.exe --install-engines=a,b    download these engine packages (EngineDownloads ids) in the engine window;
 //                                      an empty list means the user chose none, so the first-run choice is skipped
 //   Filee.exe --start-with-windows=on|off, --context-menu=on|off
 //                                      set the matching options on the General page
+//   Filee.exe --language=ko            the language picked in Setup (one of LocalizationService.Languages)
 //   Filee.exe --quit                   ask a running Filee to exit, and wait until it has (no window otherwise)
 //   Filee.exe --uninstall-cleanup      quit Filee, then remove what it registered for this user (UninstallCleanup)
 
@@ -22,6 +23,7 @@ namespace Filee.App.Services;
 /// <param name="InstallEngines">Engine packages chosen in the installer; null when the option is absent.</param>
 /// <param name="StartWithWindows">Value of <c>--start-with-windows</c>; null when absent.</param>
 /// <param name="ContextMenu">Value of <c>--context-menu</c>; null when absent.</param>
+/// <param name="Language">Value of <c>--language</c>; null when absent.</param>
 public sealed record CommandLine(
     bool Background,
     bool ShowSettings,
@@ -31,7 +33,8 @@ public sealed record CommandLine(
     bool UninstallCleanup = false,
     IReadOnlyList<string>? InstallEngines = null,
     bool? StartWithWindows = null,
-    bool? ContextMenu = null)
+    bool? ContextMenu = null,
+    string? Language = null)
 {
     /// <summary>File name prefix of list files written by FileeExplorerMenu.dll (LIST_PREFIX there) into %TEMP%.</summary>
     public const string ListFilePrefix = "Filee-convert-";
@@ -49,6 +52,7 @@ public sealed record CommandLine(
         List<string>? engines = null;
         bool? startWithWindows = null;
         bool? contextMenu = null;
+        string? language = null;
 
         foreach (var arg in args)
         {
@@ -71,6 +75,9 @@ public sealed record CommandLine(
                     break;
                 case "--context-menu" when OnOff(value) is { } on:
                     contextMenu = on;
+                    break;
+                case "--language" when !string.IsNullOrWhiteSpace(value):
+                    language = value.Trim();
                     break;
                 case "--quit":
                     quit = true;
@@ -97,7 +104,7 @@ public sealed record CommandLine(
                     break;
             }
         }
-        return new CommandLine(background, settings, files, listFile, quit, cleanup, engines, startWithWindows, contextMenu);
+        return new CommandLine(background, settings, files, listFile, quit, cleanup, engines, startWithWindows, contextMenu, language);
     }
 
     /// <summary>"--Name=Value" → ("--name", "Value"); "--name" → ("--name", null).</summary>
