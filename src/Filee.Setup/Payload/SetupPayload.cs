@@ -261,10 +261,13 @@ public sealed class SetupPayload : IDisposable
     public void Dispose() => _file.Dispose();
 
     /// <summary>Raw size from which files start a new segment (each segment is compressed on its own core).</summary>
-    public const long SegmentSize = 48L << 20;
+    public const long SegmentSize = 96L << 20;
 
-    /// <summary>LZMA dictionary: as large as a segment, so matches reach across all of it.</summary>
-    private const int Dictionary = 48 << 20;
+    /// <summary>
+    /// LZMA dictionary: matches reach 64 MB back, past the largest file. Unpacking needs this much memory per
+    /// segment (at most four at once).
+    /// </summary>
+    private const int Dictionary = 64 << 20;
 
     /// <summary>Programs whose x86/x64 code the branch filter makes more compressible.</summary>
     public static bool IsProgram(string path) =>

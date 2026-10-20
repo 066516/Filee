@@ -113,7 +113,7 @@ $fast = @(if ($CheckOnly) { '--fast' })
 Push-Location $root
 try {
     $program = Join-Path $setupProgram 'Filee.Setup.exe'
-    Invoke-Checked 'make-setup' { dotnet run build/tools/make-setup.cs -- $program $PublishDir $Version $setupExe @fast }
+    Invoke-Checked 'make-setup' { dotnet run --no-cache build/tools/make-setup.cs -- $program $PublishDir $Version $setupExe @fast }
 }
 finally {
     Pop-Location
