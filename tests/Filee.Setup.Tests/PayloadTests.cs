@@ -74,7 +74,7 @@ public class PayloadTests
     {
         using var bench = new SetupBench(app: (temp, _) =>
         {
-            temp.Write(@"app\a.bin", new string('a', (int)(SetupPayload.SegmentSize + 1000)));
+            temp.Write(@"app\a.bin", new string('a', (int)(SetupPayload.FastSegmentSize + 1000)));
             temp.Write(@"app\b.bin", new string('b', 2_000_000));
         });
         using var payload = SetupPayload.Open(bench.SetupExe)!;

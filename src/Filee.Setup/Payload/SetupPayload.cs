@@ -263,6 +263,9 @@ public sealed class SetupPayload : IDisposable
     /// <summary>Raw size from which files start a new segment (each segment is compressed on its own core).</summary>
     public const long SegmentSize = 96L << 20;
 
+    /// <summary>Segment size of a fast (checks only) payload: small, so tests reach several segments cheaply.</summary>
+    public const long FastSegmentSize = 4L << 20;
+
     /// <summary>
     /// LZMA dictionary: matches reach 64 MB back, past the largest file. Unpacking needs this much memory per
     /// segment (at most four at once).
@@ -292,12 +295,13 @@ public sealed class SetupPayload : IDisposable
             PayloadManifest.CheckPath(relative);
 
         // Consecutive files up to SegmentSize per segment.
+        var segmentSize = fast ? FastSegmentSize : SegmentSize;
         var groups = new List<List<string>>();
-        long groupSize = SegmentSize;
+        long groupSize = segmentSize;
         foreach (var relative in paths)
         {
             var size = new FileInfo(Path.Combine(appFolder, relative)).Length;
-            if (groupSize >= SegmentSize)
+            if (groupSize >= segmentSize)
             {
                 groups.Add([]);
                 groupSize = 0;
