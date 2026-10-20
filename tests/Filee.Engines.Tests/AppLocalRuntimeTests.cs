@@ -14,7 +14,8 @@ public sealed class AppLocalRuntimeTests : IDisposable
     [InlineData(-1073741511)] // 0xC0000139 STATUS_ENTRYPOINT_NOT_FOUND
     public void A_program_Windows_could_not_load_is_refused_with_the_runtime_message(int exitCode)
     {
-        var refused = Assert.Throws<ConversionRefusedException>(() => AppLocalRuntime.ThrowIfMissing(@"C:\Filee\engines\rhwp\rhwp.exe", exitCode));
+        var rhwp = Path.Combine(_root, "engines", "rhwp", "rhwp.exe");
+        var refused = Assert.Throws<ConversionRefusedException>(() => AppLocalRuntime.ThrowIfMissing(rhwp, exitCode));
 
         Assert.Equal("error.runtime_missing", refused.ErrorKey);
         Assert.Equal($"rhwp.exe, 0x{unchecked((uint)exitCode):X8}", refused.Detail);
