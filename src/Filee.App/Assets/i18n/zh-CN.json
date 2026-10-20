@@ -151,6 +151,15 @@
   "profile.geo": "地理信息 (GIS)",
   "profile.mixed": "混合文件",
 
+  "preset.crop": "裁剪",
+  "crop.save": "裁剪并保存",
+  "crop.reset": "重置",
+  "crop.skip": "跳过",
+  "crop.aspect_title": "比例:",
+  "crop.aspect_free": "自由",
+  "crop.aspect_original": "原始比例",
+  "crop.page_counter": "{0}/{1}",
+
   "preset.half_size": "缩小 50%",
   "preset.grayscale": "灰度",
   "preset.remove_background": "去除背景",

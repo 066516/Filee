@@ -340,4 +340,14 @@ public sealed class CliTests : IDisposable
         Assert.True(File.Exists(result));
         Assert.True(File.Exists(source));
     }
+
+    [Fact]
+    public async Task Refuses_tool_presets()
+    {
+        var source = Png("photo.png");
+        var (code, _, errors) = await Run("convert", source, "--preset", "tool-crop");
+
+        Assert.Equal(Cli.UsageError, code);
+        Assert.Contains("is an interactive tool, not a conversion", errors);
+    }
 }
