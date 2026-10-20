@@ -26,6 +26,7 @@ public sealed partial class ThemePageViewModel : ObservableObject
         Accent = Color.TryParse(theme.Accent, out var c) ? c : Colors.MediumPurple;
         AccentHex = $"#{Accent.R:X2}{Accent.G:X2}{Accent.B:X2}";
         CornerRadius = theme.CornerRadius;
+        DonutOpacityPercent = Math.Clamp(store.Settings.Donut.Opacity * 100, 10, 100);
         ReduceMotion = theme.ReduceMotion ?? platform.PrefersReducedMotion;
         PreviewItems =
         [
@@ -49,6 +50,8 @@ public sealed partial class ThemePageViewModel : ObservableObject
 
     public IBrush AccentBrush => new SolidColorBrush(Accent);
     [ObservableProperty] private double _cornerRadius;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(DonutSliceOpacity))] private double _donutOpacityPercent;
+    public double DonutSliceOpacity => DonutOpacityPercent / 100;
     [ObservableProperty] private bool _reduceMotion;
 
     partial void OnModeChanged(Choice<ThemeMode>? oldValue, Choice<ThemeMode> newValue)
@@ -71,6 +74,13 @@ public sealed partial class ThemePageViewModel : ObservableObject
             Accent = Color.FromRgb(color.R, color.G, color.B);
     }
     partial void OnCornerRadiusChanged(double value) => Save(t => t.CornerRadius = Math.Round(value));
+    partial void OnDonutOpacityPercentChanged(double value)
+    {
+        if (_loading)
+            return;
+        _store.Settings.Donut.Opacity = Math.Clamp(value / 100, 0.1, 1);
+        _store.SaveSettings();
+    }
     partial void OnReduceMotionChanged(bool value) => Save(t => t.ReduceMotion = value);
 
     [RelayCommand]
