@@ -144,21 +144,52 @@ public sealed partial class HomePageViewModel : ObservableObject, IDisposable
 
     public string DropHint { get; }
 
+    /// <summary>How many conversions the page lists: the newest, or the newest that match the search.</summary>
+    internal const int Shown = 40;
+
+    /// <summary>The conversions listed (each looks for its outputs on disk, so only <see cref="Shown"/> of them).</summary>
     public ObservableCollection<HistoryItemViewModel> History { get; } = [];
 
+    /// <summary>
+    /// What was typed in the search box: the list shows the conversions whose preset or a source file name contains
+    /// it, from the whole history (<see cref="AppSettings.HistoryLimit"/>), not just the ones listed without it.
+    /// </summary>
+    [ObservableProperty] private string _search = "";
+
+    partial void OnSearchChanged(string value) => Reload();
+
+    /// <summary>No history at all: no search box, and the hint that converted files show up here.</summary>
     [ObservableProperty] private bool _isEmpty;
+
+    /// <summary>A search that matches nothing.</summary>
+    [ObservableProperty] private bool _noMatches;
 
     private void Reload()
     {
+        var query = Search.Trim();
+        // The entries are picked first, then built: building one looks for its outputs on disk.
+        var entries = _store.History
+            .Where(entry => query.Length == 0 || Matches(entry, query))
+            .Take(Shown)
+            .ToList();
         History.Clear();
-        foreach (var entry in _store.History.Take(40))
+        foreach (var entry in entries)
             History.Add(new HistoryItemViewModel(entry, _loc, _platform, _conversions));
-        IsEmpty = History.Count == 0;
+        IsEmpty = _store.History.Count == 0;
+        NoMatches = !IsEmpty && History.Count == 0;
+    }
+
+    private static bool Matches(HistoryEntry entry, string query)
+    {
+        return Contains(entry.PresetName) || entry.Sources.Any(source => Contains(Path.GetFileName(source)));
+
+        bool Contains(string? text) => text?.Contains(query, StringComparison.CurrentCultureIgnoreCase) == true;
     }
 
     [RelayCommand]
     private void ClearHistory()
     {
+        Search = "";
         _store.ClearHistory();
         Reload();
     }
