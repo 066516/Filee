@@ -16,8 +16,8 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | Spreadsheets (ExcelDataReader for XLS) | built in (library) | **XLSX, XLS, ODS, CSV, TSV → XLSX, ODS, CSV, TSV** (one CSV / TSV per sheet) |
 | Office Open XML | built in | **DOCM / DOTX / DOTM ↔ DOCX, XLSM / XLTX ↔ XLSX, PPTM / POTX / POTM / PPSX ↔ PPTX** (macros removed for macro-free types) |
 | Fonts | built in | **TTF, OTF, WOFF, WOFF2, EOT ↔ each other**; CFF (PostScript) outlines become TrueType for TTF and EOT |
-| **HWPX writer** | built in | **DOCX (+ DOCM/DOTX/DOTM), XLSX (+ XLSM/XLTX), XLS, ODS, CSV, TSV, PPTX (+ PPTM/POTX/POTM/PPSX), PDF, HTML, MHTML, EPUB, MOBI/AZW3, FB2, HWPX, TXT, Markdown → HWPX** (and with rhwp → PDF and images); ODT, RTF, reStructuredText, LaTeX → HWPX with Pandoc |
-| **DOCX writer** | built in | **HWPX (and HWP through rhwp), PDF, HTML, MHTML, EPUB, MOBI/AZW3, FB2, Markdown, TXT, XLSX, XLS, ODS, CSV, PPTX (+ variants) → DOCX** |
+| **HWPX writer** | built in | **DOCX (+ DOCM/DOTX/DOTM), XLSX (+ XLSM/XLTX), XLS, ODS, CSV, TSV, PPTX (+ PPTM/POTX/POTM/PPSX), PDF, OFD, HTML, MHTML, EPUB, MOBI/AZW3, FB2, HWPX, TXT, Markdown → HWPX** (and with rhwp → PDF and images); ODT, RTF, reStructuredText, LaTeX → HWPX with Pandoc |
+| **DOCX writer** | built in | **HWPX (and HWP through rhwp), PDF, OFD, HTML, MHTML, EPUB, MOBI/AZW3, FB2, Markdown, TXT, XLSX, XLS, ODS, CSV, PPTX (+ variants) → DOCX** |
 | PDF text | built in (PdfPig) | **PDF → TXT, Markdown** (reading order, also two columns; Markdown keeps headings, emphasis, links and the pictures; no OCR) |
 | PDF slides | built in (PDFium, PdfPig) | **PDF → PPTX**: a picture of each page on its own slide (looks like the PDF, not editable), the page's text in the speaker notes |
 | E-mail | built in (MimeKit, MsgReader) | **EML, Outlook MSG → HTML** (headers + body, inline pictures), **TXT**, **ZIP** (the attachments); **MSG → EML**; **MHTML → HTML** (the saved page in one file, pictures inlined; on to PDF, DOCX, HWPX, TXT, Markdown, EPUB from there) |
@@ -44,13 +44,13 @@ so Arabic and Hebrew come out unjoined and in the wrong order, and Indic vowel s
 with dotted circles (#185 Gujarati, #202 Arabic). Its PDF edges are marked `Unshaped`, and rhwp tells
 (`ITextShapingCheck`) whether a source has such text: `Infrastructure/ComplexScripts.cs` scans the text parts of the
 file without reading it into the document model (DOCX `word/document.xml`, headers, footers and notes, PPTX slides,
-XLSX shared strings and sheets, HWPX sections, EPUB chapters, or a text file with its HTML / RTF character
-references) for the Hebrew, Arabic, Syriac, Thaana, N'Ko, Indic, Sinhala, Thai, Lao, Tibetan, Myanmar, Khmer,
-Mongolian and other South / Southeast Asian blocks. For such a file `JobQueue` plans again without unshaped edges: DOCX,
-TXT, Markdown, HTML, XLSX, PPTX and HWPX → PDF (and → images through PDF) go through LibreOffice even when Settings →
-*Engines* doesn't choose it for documents. Without LibreOffice the file fails with "This script needs LibreOffice to
-convert correctly" and the script's name instead of becoming a broken PDF. Latin, Greek, Cyrillic, CJK and Korean
-documents keep the built-in route; a binary HWP is not scanned and stays with rhwp.
+XLSX shared strings and sheets, HWPX sections, OFD pages and templates, EPUB chapters, or a text file with its HTML /
+RTF character references) for the Hebrew, Arabic, Syriac, Thaana, N'Ko, Indic, Sinhala, Thai, Lao, Tibetan, Myanmar,
+Khmer, Mongolian and other South / Southeast Asian blocks. For such a file `JobQueue` plans again without unshaped
+edges: DOCX, TXT, Markdown, HTML, XLSX, PPTX and HWPX → PDF (and → images through PDF) go through LibreOffice even
+when Settings → *Engines* doesn't choose it for documents. Without LibreOffice the file fails with "This script needs
+LibreOffice to convert correctly" and the script's name instead of becoming a broken PDF. Latin, Greek, Cyrillic, CJK
+and Korean documents keep the built-in route; a binary HWP is not scanned and stays with rhwp.
 
 All built-in document readers are registered in one place, `Hwp/Hwpx/DocumentReaders.cs` (format id → reader, and
 which formats need Pandoc). The HWPX writer and the DOCX writer take their input formats from it: adding a reader
@@ -527,6 +527,59 @@ The preset option *Leave out pictures* (`DocumentOptions.LeaveOutPictures`, Docu
 writes the text only, read like PDF → TXT (the invisible OCR layer of scans included) and without a folder. The same
 option applies to every Markdown writer: e-books (`EbookConverter`), HWP / HWPX (`UnhwpConverter`) and Pandoc (a
 Lua filter drops the pictures, figures keep their captions).
+
+## OFD reader
+
+OFD (GB/T 33190-2016) is China's fixed-layout format: fully digitalized e-invoices (数电票), contracts and official
+documents. `Ofd/OfdReader*.cs` reads it into the document model with no external engine, so OFD → DOCX and HWPX are
+one step, → PDF two (rhwp), and TXT, Markdown, HTML, EPUB follow from there. OFD is read only (`Writable: false`) and
+sits on the office donut (settings schema 27 teaches existing donuts `.ofd`).
+
+- **Package** (`Ofd/OfdPackage.cs`): OFD.xml → the first document (Document.xml) → its pages, template pages and
+  resource files (PublicRes, DocumentRes, a page's PageRes, and the unnamed `Res.xml` WPS writes next to them).
+  Parts are looked up by name inside the ZIP and never written out under their own names; references are resolved
+  against the referring part (or the package root for "/…"), "." and ".." applied, and anything that leaves the
+  package, a URL or a drive path finds nothing. XML is read without DTDs; a part may unpack to 64 MB, a picture to
+  32 MB (larger ones are left out), the whole package to 1 GB; at most 100,000 parts, 10,000 pages, 2,000,000
+  drawing objects, page blocks nested 32 deep. DeltaX / DeltaY "g n d" repeats never yield more values than the
+  text has characters.
+- **Encryption**: a package with an `Encryptions.xml` (GM/T 0099) or encryption entries in OFD.xml is refused with a
+  clear message; nothing is decrypted. Parts that are not XML (encrypted or damaged) fail the same way. Signatures
+  (`Signs/`) are ignored, so the seal images stored inside signed data do not appear.
+- **Text**: TextObjects with their Boundary, CTM (scale, also of the font size), Size in millimetres, TextCode X / Y
+  (missing ones continue where the previous code ended) and DeltaX advances; DeltaY runs are vertical text. Fonts
+  from the resource files, with common Chinese names written in English (宋体 → SimSun, 黑体 → SimHei, 楷体 → KaiTi,
+  仿宋 → FangSong, 微软雅黑 → Microsoft YaHei, …) so Word and LibreOffice find them on any system; bold from
+  `Weight` ≥ 600 or the font, italic, colour from the object (FillColor element or attribute; RGB, grey, CMYK,
+  decimal or #hex channels), its DrawParam or the layer's DrawParam (tax invoices colour the template that way),
+  following `Relative` chains. Invisible objects (`Visible="false"`) are left out.
+- **Templates**: the template pages a page names are read first, so an invoice's labels (发票号码：, 名称：) and its
+  values come out together. In template content, single characters stacked in one column (购买方信息, 备注) or a
+  pair spread over a line (合　计) become one word.
+- **Layout** (`OfdReader.Layout.cs`): fragments on one baseline form a line, in reading order top to bottom and
+  left to right; a line that ran to the right edge from at least half the measure continues in the next one
+  (justified, first-line indent kept, no space between Chinese lines). Wide gaps (1.5 em) become tabs with left
+  tab stops where each part starts, so an invoice's item rows keep their columns; a line under such a row whose
+  parts start in its columns and hold no amounts is the wrapped end of its cells and follows after a line break in
+  the same paragraph. Centred and right-aligned lines, left indents and vertical distances (space before) follow
+  the page; page size per page (a new section when it changes), margins from what is drawn.
+- **Ruled tables** (`OfdReader.Tables.cs`): the approach of the PDF reader in millimetres. PathObjects
+  (AbbreviatedData M/S/L/Q/B/A/C, with Boundary, CTM, line width and stroke colour from the object or its
+  DrawParams) give stroked straight rules and thin filled rectangles; joined rules that meet form grids, and a grid
+  of at least 2 × 2 units with rectangular merged cells and text in two cells becomes a table with the page's
+  column widths and row heights, borders in the drawn colour and shading. Text goes into the cell of its first
+  character (widths without DeltaX are estimated) and is laid out like the page, with exact line spacing so the
+  rows keep their heights. The frame of an e-invoice becomes one table: buyer and seller blocks, the item list
+  (one cell with tabbed rows: the invoice draws no rules between item columns), totals and remarks.
+- **Pictures**: ImageObjects (MultiMedia of type Image) with the box from their CTM. PNG, JPEG, GIF and BMP are
+  kept as they are (the format comes from the bytes, not the name), TIFF and JPEG 2000 are converted to PNG
+  (ImageMagick, at most 100 megapixels), anything else (JBIG2) is left out. A picture alone in its band of the page
+  becomes a paragraph; one beside or over text (a QR code next to the title, a seal on a table) floats at its place
+  on the paper, in front of the text.
+
+Not converted: annotations (Annots), signatures and their seals, embedded fonts (the font name is kept), composite
+objects and other vector drawings, attachments, more than the first document of a package, tables without rules
+(their text stays in tabbed rows), clipping. Two text blocks side by side without rules share their lines.
 
 ## PDF → PPTX
 

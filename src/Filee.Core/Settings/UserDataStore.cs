@@ -670,6 +670,10 @@ internal static class SettingsMigrations
                 }
             }
         }
+        // v27: OFD documents (.ofd; read only: e-invoices, official documents) open from the office donut, unless a
+        //      donut of the user already takes them.
+        if (from < 27)
+            changed |= LearnExtensions(profiles, out _, ["ofd"]);
         // v28: "One ZIP" on the archives donut after "Extract", to pack several archives into one. A donut
         //      the user filled up, or a library without the preset, stays as it is.
         if (from < 28)
