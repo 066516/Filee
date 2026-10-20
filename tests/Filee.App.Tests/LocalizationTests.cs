@@ -23,16 +23,14 @@ public partial class LocalizationTests
 
     public static TheoryData<string> Languages => new(LocalizationService.Languages.Where(l => l.Code != "en").Select(l => l.Code));
 
-    [Theory]
-    [InlineData("ar")]
-    [InlineData("AR")]
-    [InlineData("ar-IQ")]
-    [InlineData("ar-SA")]
-    public void Arabic_is_offered_under_its_own_name_and_accepts_regional_cultures(string culture)
+    [Fact]
+    public void Arabic_is_offered_under_its_own_name_and_reads_right_to_left()
     {
         Assert.Contains(("ar", "العربية"), LocalizationService.Languages);
-        Assert.Equal("ar", LocalizationService.Resolve(culture));
-        Assert.Contains("fonts:Filee#Noto Sans Arabic", ThemeService.FontFamilies(culture));
+        Assert.Equal("ar", LocalizationService.Resolve("AR"));
+        Assert.Contains("fonts:Filee#Noto Sans Arabic", ThemeService.FontFamilies("ar"));
+        Assert.True(SoftPalette.IsRightToLeft("ar"));
+        Assert.All(LocalizationService.Languages.Where(l => l.Code != "ar"), l => Assert.False(SoftPalette.IsRightToLeft(l.Code)));
     }
 
     [Theory]

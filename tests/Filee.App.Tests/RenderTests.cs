@@ -106,6 +106,7 @@ public class RenderTests
     [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void Watch_folders_page_renders_a_rule(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -203,6 +204,7 @@ public class RenderTests
     [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void Watch_folder_options_rename_and_filter_with_a_preview(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -293,6 +295,7 @@ public class RenderTests
     [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void Home_page_lists_failed_files_with_a_retry_button(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -344,6 +347,7 @@ public class RenderTests
     [InlineData("pl")]
     [InlineData("hi")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void Home_page_search_finds_old_conversions_in_a_long_history(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -498,6 +502,7 @@ public class RenderTests
     [InlineData("ko")]
     [InlineData("hi")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void Reset_to_default_sits_beside_delete_for_a_built_in_profile_only(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -588,6 +593,7 @@ public class RenderTests
     [InlineData("en")]
     [InlineData("zh-CN")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void The_rotate_and_flip_groups_fan_out_names_that_fit(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -636,6 +642,7 @@ public class RenderTests
     [InlineData("ko")]
     [InlineData("en")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void A_group_slice_fans_out_its_presets(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -814,6 +821,7 @@ public class RenderTests
     [AvaloniaTheory]
     [InlineData("ko", "JPG 3개")]
     [InlineData("ru", "3 × JPG")]
+    [InlineData("ar", "3 × JPG")]
     public void Donut_toolbar_renders_for_images(string language, string title)
     {
         TestServices.EnsureInitialized(language);
@@ -849,6 +857,7 @@ public class RenderTests
     [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void Sponsor_window_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -904,6 +913,7 @@ public class RenderTests
     [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void First_run_engine_setup_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1214,6 +1224,7 @@ public class RenderTests
     [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void Sidebar_shows_the_version_and_a_new_release(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1304,6 +1315,7 @@ public class RenderTests
     [InlineData("en", true)]
     [InlineData("ko", true)]
     [InlineData("ru", false)]
+    [InlineData("ar", true)]
     public void Toolbar_extension_editor_renders(string language, bool dark)
     {
         var photos = new ToolbarProfile
@@ -1383,6 +1395,7 @@ public class RenderTests
     [InlineData("zh-CN", false)]
     [InlineData("ko", true)]
     [InlineData("ru", false)]
+    [InlineData("ar", true)]
     public void Preset_editor_shows_media_and_archive_options(string language, bool dark)
     {
         TestServices.EnsureInitialized(language);
@@ -1466,6 +1479,7 @@ public class RenderTests
     [InlineData("ko")]
     [InlineData("zh-CN")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void Preset_editor_shows_tracing_options(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1511,6 +1525,7 @@ public class RenderTests
     [InlineData("ko")]
     [InlineData("zh-CN")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void Preset_editor_offers_markdown_without_pictures(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1720,6 +1735,7 @@ public class RenderTests
     [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void Excluded_apps_render_as_tags(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1750,6 +1766,7 @@ public class RenderTests
     [InlineData("ko")]
     [InlineData("zh-CN")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void Close_dialog_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1766,6 +1783,7 @@ public class RenderTests
     [InlineData("ko")]
     [InlineData("zh-CN")]
     [InlineData("ru")]
+    [InlineData("ar")]
     public void Format_request_notice_renders(string language)
     {
         TestServices.EnsureInitialized(language);

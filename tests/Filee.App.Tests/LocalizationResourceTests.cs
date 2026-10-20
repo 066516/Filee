@@ -30,7 +30,7 @@ public class LocalizationResourceTests
     }
 
     [AvaloniaFact]
-    public void Switching_to_arabic_keeps_navigation_and_page_in_the_same_positions()
+    public void Arabic_mirrors_the_main_window_and_english_brings_it_back()
     {
         TestServices.EnsureInitialized("en");
         using var model = new MainWindowViewModel(AppHost.Services, AppHost.Get<ILocalizer>(), AppHost.Get<UpdateService>());
@@ -42,20 +42,26 @@ public class LocalizationResourceTests
             RenderTests.Pump();
             var navigation = window.GetVisualDescendants().OfType<ListBox>().Single(l => l.Classes.Contains("nav"));
             var page = window.FindControl<ScrollViewer>("PageScroller")!;
-            var navigationPosition = navigation.TranslatePoint(default, window);
-            var pagePosition = page.TranslatePoint(default, window);
-            Assert.True(pagePosition!.Value.X > navigationPosition!.Value.X);
+            double Left(Visual visual) => new Rect(visual.Bounds.Size).TransformToAABB(visual.TransformToVisual(window)!.Value).Left;
+            double Center(Visual visual) =>
+                new Rect(visual.Bounds.Size).TransformToAABB(visual.TransformToVisual(window)!.Value).Center.X;
+            Assert.Equal(FlowDirection.LeftToRight, window.FlowDirection);
+            Assert.True(Center(navigation) < Center(page));
+            var englishNavigationLeft = Left(navigation);
 
-            foreach (var language in new[] { "ar", "en", "ar" })
-            {
-                TestServices.EnsureInitialized(language);
-                RenderTests.Pump();
-                // Fonts may change the header's natural height; the sidebar must remain on the same side.
-                Assert.Equal(navigationPosition!.Value.X, navigation.TranslatePoint(default, window)!.Value.X);
-                Assert.Equal(pagePosition, page.TranslatePoint(default, window));
-                Assert.Equal(FlowDirection.LeftToRight, window.FlowDirection);
-                Assert.Equal(language == "ar" ? "عام" : "General", AppHost.Get<ILocalizer>()["general.title"]);
-            }
+            TestServices.EnsureInitialized("ar");
+            RenderTests.Pump();
+            Assert.Equal(FlowDirection.RightToLeft, window.FlowDirection);
+            Assert.Equal(FlowDirection.RightToLeft, page.FlowDirection);
+            // The sidebar moves to the right edge, the page to its left.
+            Assert.True(Center(navigation) > Center(page));
+            Assert.Equal(window.Bounds.Width - englishNavigationLeft, Left(navigation) + navigation.Bounds.Width, 1);
+            Assert.Equal("عام", AppHost.Get<ILocalizer>()["general.title"]);
+
+            TestServices.EnsureInitialized("en");
+            RenderTests.Pump();
+            Assert.Equal(FlowDirection.LeftToRight, window.FlowDirection);
+            Assert.Equal(englishNavigationLeft, Left(navigation), 1);
         }
         finally
         {
@@ -65,25 +71,24 @@ public class LocalizationResourceTests
     }
 
     [AvaloniaFact]
-    public void Arabic_translates_existing_and_new_windows_without_mirroring_the_layout()
+    public void Arabic_windows_read_right_to_left_but_pictures_and_the_donut_do_not_mirror()
     {
-        TestServices.EnsureInitialized("en");
-        var window = new Window { Content = new TextBlock() };
+        TestServices.EnsureInitialized("ar");
+        var canvas = new CropCanvas();
+        var donut = new DonutMenu();
+        var picture = new AnimatedImage();
+        var window = new Window { Content = new StackPanel { Children = { new TextBlock(), canvas, donut, picture } } };
         window.Show();
         try
         {
-            Assert.Equal(FlowDirection.LeftToRight, window.FlowDirection);
-            TestServices.EnsureInitialized("ar");
-            Assert.Equal(FlowDirection.LeftToRight, window.FlowDirection);
-            Assert.Equal(FlowDirection.LeftToRight, ((TextBlock)window.Content).FlowDirection);
+            Assert.Equal(FlowDirection.RightToLeft, window.FlowDirection);
+            Assert.Equal(FlowDirection.RightToLeft, ((StackPanel)window.Content).Children[0].FlowDirection);
+            Assert.Equal(FlowDirection.LeftToRight, canvas.FlowDirection);
+            Assert.Equal(FlowDirection.LeftToRight, donut.FlowDirection);
+            Assert.Equal(FlowDirection.LeftToRight, picture.FlowDirection);
             Assert.True(Application.Current!.TryGetResource("general.language", null, out var value));
             Assert.Equal("اللغة", value);
-            var canvas = new CropCanvas();
-            var dialog = new Window { Content = canvas };
-            dialog.Show();
-            Assert.Equal(FlowDirection.LeftToRight, dialog.FlowDirection);
-            Assert.Equal(FlowDirection.LeftToRight, canvas.FlowDirection);
-            dialog.Close();
+
             TestServices.EnsureInitialized("en");
             Assert.Equal(FlowDirection.LeftToRight, window.FlowDirection);
         }

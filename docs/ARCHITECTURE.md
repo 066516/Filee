@@ -128,8 +128,10 @@ Bump `AppSettings.CurrentSchemaVersion` and add a step to `SettingsMigrations` w
 
 - `LocalizationService` loads `Assets/i18n/<lang>.json` into `Application.Resources`; XAML uses
   `{DynamicResource key}`, so switching language updates the UI live.
-- `ThemeService` writes the accent colour, corner radii, fonts and Fluent's `SystemAccentColor*` into
-  application resources. Light/dark surface colours are theme dictionaries in `Styles/Soft.axaml`; a user's
+- `ThemeService` writes the accent colour, corner radii, fonts, the reading direction and Fluent's
+  `SystemAccentColor*` into application resources. Arabic reads right to left: `Styles/Soft.axaml`'s Window style
+  takes `FlowDirection` from that resource, so every window mirrors; the donut, the crop canvas and animated images
+  stay left to right. Light/dark surface colours are theme dictionaries in `Styles/Soft.axaml`; a user's
   `theme.json` (`CustomTheme`, see [CUSTOM-THEMES.md](CUSTOM-THEMES.md)) overrides them with theme dictionaries in
   application resources, which are searched first.
 

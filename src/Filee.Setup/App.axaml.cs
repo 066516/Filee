@@ -34,7 +34,10 @@ public sealed class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    /// <summary>Filee's look in <paramref name="texts"/>' language: default accent, radius, Windows' fonts in the language's order; texts as resources.</summary>
+    /// <summary>
+    /// Filee's look in <paramref name="texts"/>' language: default accent, radius, Windows' fonts in the language's
+    /// order, its reading direction; texts as resources.
+    /// </summary>
     internal static void ApplyLook(Application app, SetupTexts texts)
     {
         var res = app.Resources;
@@ -43,6 +46,7 @@ public sealed class App : Application
         void Apply()
         {
             res["AppFontFamily"] = FontFamily.Parse(SoftPalette.SystemFontFamilies(texts.Language));
+            SoftPalette.ApplyFlowDirection(res, texts.Language);
             texts.Publish(res);
         }
         Apply();

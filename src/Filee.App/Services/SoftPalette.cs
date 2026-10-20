@@ -1,7 +1,8 @@
 // The resources behind Filee's look that are computed rather than written in Styles/Soft.axaml: the accent colour
-// with its shades, the corner radii and the UI font order. ThemeService applies them with the user's choices; the
+// with its shades, the corner radii, the UI font order and the reading direction. ThemeService applies them with the user's choices; the
 // installer (src/Filee.Setup links this file) applies the defaults, so Setup looks like the app.
 
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -84,6 +85,36 @@ internal static class SoftPalette
             : language.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? [Chinese, Korean, Japanese]
             : [Korean, Chinese, Japanese];
         return $"Segoe UI, Nirmala UI, {string.Join(", ", cjk.Select(f => f.System))}, sans-serif";
+    }
+
+    /// <summary>The resource Soft.axaml's Window style takes <see cref="Visual.FlowDirection"/> from.</summary>
+    public const string FlowDirectionKey = "AppFlowDirection";
+
+    /// <summary>"→" between a name and what it becomes, "←" in a right-to-left language (arrows don't mirror).</summary>
+    public const string ForwardArrowKey = "AppForwardArrow";
+
+    /// <summary>
+    /// Arabic reads right to left: every window mirrors its layout (Soft.axaml's Window style). Controls that draw a
+    /// picture or a circle (the donut, the crop canvas, animated images) keep left to right themselves.
+    /// </summary>
+    public static void ApplyFlowDirection(IResourceDictionary res, string language)
+    {
+        var rightToLeft = IsRightToLeft(language);
+        res[FlowDirectionKey] = rightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+        res[ForwardArrowKey] = rightToLeft ? "←" : "→";
+    }
+
+    /// <summary>True for a language written right to left.</summary>
+    public static bool IsRightToLeft(string language)
+    {
+        try
+        {
+            return CultureInfo.GetCultureInfo(language).TextInfo.IsRightToLeft;
+        }
+        catch (CultureNotFoundException)
+        {
+            return false;
+        }
     }
 
     /// <summary>The UI font for <paramref name="language"/>.</summary>

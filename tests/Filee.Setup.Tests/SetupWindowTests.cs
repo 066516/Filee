@@ -126,7 +126,7 @@ public class SetupWindowTests
         try
         {
             app.RequestedThemeVariant = ThemeVariant.Dark;
-            foreach (var language in new[] { "en", "ko", "ru" })
+            foreach (var language in new[] { "en", "ko", "ru", "ar" })
             {
                 var (model, _, runner) = Model(language);
                 var window = Show(model);
@@ -157,7 +157,7 @@ public class SetupWindowTests
     [AvaloniaFact]
     public async Task Updates_and_failures_render()
     {
-        foreach (var language in new[] { "en", "ko", "ru" })
+        foreach (var language in new[] { "en", "ko", "ru", "ar" })
         {
             var (model, texts, runner) = Model(language, update: true);
             var window = Show(model);
@@ -178,7 +178,7 @@ public class SetupWindowTests
     [AvaloniaFact]
     public async Task Uninstall_renders_and_keeps_the_settings_by_default()
     {
-        foreach (var language in new[] { "en", "ko", "ru", "zh-CN" })
+        foreach (var language in new[] { "en", "ko", "ru", "zh-CN", "ar" })
         {
             var (model, _, runner) = Model(language, uninstall: true);
             var window = Show(model);

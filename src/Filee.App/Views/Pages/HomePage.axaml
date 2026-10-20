@@ -126,7 +126,7 @@
                   </Button>
                   <Button Classes="ghost" Command="{Binding ToggleFailuresCommand}" Padding="6,4" HorizontalAlignment="Left">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                      <PathIcon Classes="chevron" Classes.open="{Binding ShowFailures}" Width="12" Height="12"
+                      <PathIcon Classes="chevron reading" Classes.open="{Binding ShowFailures}" Width="12" Height="12"
                                 Data="{StaticResource Icon.ChevronRight}" />
                       <TextBlock Classes="caption danger" Text="{Binding FailureSummary}" />
                     </StackPanel>

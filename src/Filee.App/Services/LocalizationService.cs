@@ -79,6 +79,13 @@ public sealed class LocalizationService : ILocalizer
         LanguageChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>
+    /// Left-to-right <paramref name="text"/> inside a sentence of the UI language: in Arabic a list like ".jpg, .png"
+    /// keeps its dots in front (left-to-right marks around it). Unchanged in left-to-right languages.
+    /// </summary>
+    public static string LeftToRight(string text) =>
+        CultureInfo.CurrentUICulture.TextInfo.IsRightToLeft ? "\u200E" + text + "\u200E" : text;
+
     /// <summary>Maps "auto" / a culture name to one of the shipped languages.</summary>
     public static string Resolve(string setting)
     {

@@ -138,6 +138,9 @@ public sealed partial class DonutMenu : Control
 
     public DonutMenu()
     {
+        // A circle reads the same either way: slices keep their clockwise order in Arabic too, their labels are
+        // shaped right to left (TextDirection).
+        FlowDirection = FlowDirection.LeftToRight;
         ClipToBounds = false;
         Cursor = new Cursor(StandardCursorType.Hand);
     }

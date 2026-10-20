@@ -81,6 +81,9 @@ public sealed class CropCanvas : Control
         AffectsRender<CropCanvas>(SourceImageProperty, NormalizedCropRectProperty, AspectRatioProperty);
     }
 
+    // The picture is never mirrored, also in a right-to-left UI.
+    public CropCanvas() => FlowDirection = FlowDirection.LeftToRight;
+
     public void ResetCrop()
     {
         NormalizedCropRect = new Rect(0, 0, 1, 1);
