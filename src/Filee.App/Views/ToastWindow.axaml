@@ -44,6 +44,13 @@
       <Setter Property="MinHeight" Value="6" />
       <Setter Property="Height" Value="6" />
     </Style>
+    <Style Selector="Window.material-you ProgressBar">
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="MinHeight" Value="8" />
+      <Setter Property="Height" Value="8" />
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Background" Value="{DynamicResource AccentFaintBrush}" />
+    </Style>
   </Window.Styles>
 
   <ItemsControl x:Name="Jobs" ItemsSource="{Binding ToastJobs}" Margin="12">
