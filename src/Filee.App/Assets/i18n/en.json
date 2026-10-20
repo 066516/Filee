@@ -791,5 +791,25 @@
   "watch.status_watching": "Watching",
   "watch.status_starting": "Starting…",
   "watch.status_error": "Can't watch this folder: {0}",
-  "watch.cli_hint": "Also on the command line: filee watch <folder> --to <format>"
+  "watch.cli_hint": "Also on the command line: filee watch <folder> --to <format>",
+
+  "whats_new.title": "What's new in Filee {0}",
+  "whats_new.previous": "Previous",
+  "whats_new.next": "Next",
+  "whats_new.done": "Get started",
+  "whats_new.about_link": "What's new in Filee {0}",
+  "whats_new.2_0_0.browser.title": "Drop straight from your browser",
+  "whats_new.2_0_0.browser.text": "Hold the shortcut and drag a picture or a file link out of a web page. The donut opens, saves it and converts it.",
+  "whats_new.2_0_0.flip.title": "The donut has a back face",
+  "whats_new.2_0_0.flip.text": "Press Tab or turn the mouse wheel while the donut is open to flip it over to more presets.",
+  "whats_new.2_0_0.formats.title": "More formats",
+  "whats_new.2_0_0.formats.text": "Web archives (MHTML), OFD e-invoices, Shapefile, GeoJSON, KML and GPX maps, JPEG XR, FBX models and POTM templates.",
+  "whats_new.2_0_0.crop.title": "Crop before you convert",
+  "whats_new.2_0_0.crop.text": "The Crop slice opens your pictures one by one. Drag the frame, pick a ratio, and only that part is saved.",
+  "whats_new.2_0_0.theme.title": "Softer, and in your colours",
+  "whats_new.2_0_0.theme.text": "The donut's slices round off with Softness, and a theme.json file can recolour all of Filee.",
+  "whats_new.2_0_0.languages.title": "Filee speaks more languages",
+  "whats_new.2_0_0.languages.text": "Spanish, Hindi, Japanese and Russian join English, Korean, Chinese and Polish.",
+  "whats_new.2_0_0.more.title": "And a little more",
+  "whats_new.2_0_0.more.text": "Reset a single donut to its defaults, search your whole history, and convert Gujarati, Hindi or Arabic documents through LibreOffice."
 }

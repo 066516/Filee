@@ -131,6 +131,41 @@ Bump `AppSettings.CurrentSchemaVersion` and add a step to `SettingsMigrations` w
   `theme.json` (`CustomTheme`, see [CUSTOM-THEMES.md](CUSTOM-THEMES.md)) overrides them with theme dictionaries in
   application resources, which are searched first.
 
+## "What's new" slides
+
+After an update, Filee shows the new version's features once as slides (an animation or picture, a title, a line or
+two). The pieces:
+
+- `Assets/WhatsNew/<version>/slides.json` lists the slides: `id`, `media` (a file next to it), and the i18n keys of
+  `title` and `text` (`whats_new.<version>.<id>.title`, in every language file). `SlideDeck` (Controls) reads every
+  manifest from the assembly's resources; a broken one is skipped.
+- `AnimatedImage` shows GIF, animated WebP or a still picture. Avalonia's `Image` shows only the first frame, so
+  `AnimatedImageDecoder` decodes frames with Skia's `SKCodec`, which also says which earlier frame each one is drawn
+  over (`RequiredFrame`, disposal included). The file is copied into an `SKData` and each frame is decoded straight
+  into a `WriteableBitmap`'s framebuffer: no managed buffer is ever handed to native code. `FrameTimeline` keeps the
+  frame durations (0–10 ms counts as 100 ms, as in browsers) and the loop count. The animation pauses while the
+  control is hidden or its window is minimized, shows the first frame with reduced motion (`AutoPlay`), and gives
+  the decoder and bitmap back when it leaves the visual tree or its source changes.
+- `SlideShow` is the deck itself (picture, texts, position dots), built in code so `Filee.Setup` can link the same
+  files for a slideshow on its progress page (`AutoAdvance`). All slides' texts sit in one grid cell, only the
+  current one visible, so the height is the tallest slide's and the window doesn't jump.
+- `WhatsNewWindow` adds the card, ✕, Previous / Next ("Get started" on the last slide), ←/→ and Esc.
+- `WhatsNewService` decides at start-up, before the first run is marked complete:
+  - a fresh install (first run not completed) needs no slides, as the first-run setup introduces Filee; its
+    version is stored as seen;
+  - otherwise `AppSettings.WhatsNewSeenVersion` (null in settings older than the slides, which means "updated")
+    is compared with the running version, and the newest deck after it, up to this version, is shown;
+  - the same version or a downgrade shows nothing and never lowers what was seen; an update without a deck is
+    stored as seen quietly.
+  The version is stored when the window opens. A start in the background (`--background` at sign-in, or the
+  Explorer menu) keeps the deck until `WindowService.ShowMain` raises `MainShown`; the installer starts an updated
+  Filee with `--background --whats-new`, which shows it at once. About → "What's new in Filee X" opens the newest
+  deck again.
+
+The `<!-- update -->` lines of CHANGELOG.md are the other half: the update card shows them for a version that isn't
+installed yet; the slides introduce the installed one. The demo animations are rendered by
+`tests/Filee.App.Tests/WhatsNewMedia.cs` from the real windows (see CONTRIBUTING.md, "Releasing").
+
 ## Command line and watch folders
 
 - `Filee.Cli` (`filee-cli.exe`, run as `filee` through `cli\filee.cmd`, which Setup can put on PATH) composes the same

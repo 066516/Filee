@@ -25,6 +25,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     private EngineUpdateNoticeWindow? _engineNotice;
     private FeedbackNoticeWindow? _feedbackNotice;
     private FormatRequestNoticeWindow? _formatRequestNotice;
+    private WhatsNewWindow? _whatsNew;
 
     internal FormatRequestNoticeWindow? FormatRequestNotice => _formatRequestNotice;
 
@@ -93,7 +94,39 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         if (_main.WindowState == WindowState.Minimized)
             _main.WindowState = WindowState.Normal;
         _main.Activate();
+        MainShown?.Invoke(this, EventArgs.Empty);
     }
+
+    /// <summary>Raised whenever <see cref="ShowMain"/> showed the main window (the user opened Filee).</summary>
+    public event EventHandler? MainShown;
+
+    /// <summary>
+    /// Shows a version's "What's new" slides, centred on the main window when it is open; a second call replaces the
+    /// open window's slides.
+    /// </summary>
+    public void ShowWhatsNew(Controls.SlideDeck deck)
+    {
+        _whatsNew?.Close();
+        Motion.Refresh();
+        var window = new WhatsNewWindow(deck, loc);
+        window.Closed += (_, _) =>
+        {
+            if (_whatsNew == window)
+                _whatsNew = null;
+            trimmer.Request();
+        };
+        _whatsNew = window;
+        if (_main is { IsVisible: true } main && main.WindowState != WindowState.Minimized)
+        {
+            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            window.Show(main);
+        }
+        else
+            window.Show();
+        window.Activate();
+    }
+
+    internal WhatsNewWindow? WhatsNew => _whatsNew;
 
     /// <summary>Opens the optional-engine choice (first run); a second call brings the open window to front.</summary>
     /// <summary>
