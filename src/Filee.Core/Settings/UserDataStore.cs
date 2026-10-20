@@ -627,11 +627,15 @@ internal static class SettingsMigrations
         //      the user already takes them.
         if (from < 23)
             changed |= LearnExtensions(profiles, out _, ["mhtml", "mht"]);
-        // v24: interactive "Crop" tool, after "Remove background" as in a new library, on no donut: users add it in
-        //      Settings → Toolbar. Present already but saved since by a Filee before 24: that one read the unknown
+        // v24: macro-enabled PowerPoint templates (.potm) open from the presentation donut next to POTX, unless a donut
+        //      of the user already takes them.
+        if (from < 24)
+            changed |= LearnExtensions(profiles, out _, ["potm"]);
+        // v26: interactive "Crop" tool, after "Remove background" as in a new library, on no donut: users add it in
+        //      Settings → Toolbar. Present already but saved since by a Filee before 26: that one read the unknown
         //      kind as a Group, dropped the target format and left an empty group. Kind and target format are put back,
         //      the user's own changes (name, file name pattern) stay.
-        if (from < 24)
+        if (from < 26)
         {
             if (BuiltInData.CreatePresets().FirstOrDefault(p => p.Id == "tool-crop") is { } crop)
             {

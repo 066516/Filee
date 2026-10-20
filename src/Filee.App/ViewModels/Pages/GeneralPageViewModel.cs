@@ -7,6 +7,7 @@ using Filee.Core.Localization;
 using Filee.Core.Platform;
 using Filee.Core.Presets;
 using Filee.Core.Settings;
+using Microsoft.Extensions.Logging;
 
 namespace Filee.App.ViewModels.Pages;
 
@@ -15,13 +16,16 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     private readonly UserDataStore _store;
     private readonly ILocalizer _loc;
     private readonly IPlatformServices _platform;
+    private readonly ILogger<GeneralPageViewModel> _log;
     private readonly SystemIntegrationService? _integration;
 
-    public GeneralPageViewModel(UserDataStore store, ILocalizer loc, IPlatformServices platform, SystemIntegrationService? integration = null)
+    public GeneralPageViewModel(UserDataStore store, ILocalizer loc, IPlatformServices platform,
+        ILogger<GeneralPageViewModel> log, SystemIntegrationService? integration = null)
     {
         _store = store;
         _loc = loc;
         _platform = platform;
+        _log = log;
         _integration = integration;
 
         Languages =
@@ -31,6 +35,8 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         ];
         _language = Languages.FirstOrDefault(l => l.Value == store.Settings.Language) ?? Languages[0];
         _startWithSystem = store.Settings.StartWithSystem;
+        _showInDock = store.Settings.ShowInDock;
+        _showMenuBarIcon = store.Settings.ShowMenuBarIcon;
         _contextMenu = store.Settings.ContextMenuEnabled;
         _noHistory = !store.Settings.KeepHistory;
         OutputLocations = new[] { OutputLocation.SameFolder, OutputLocation.Subfolder, OutputLocation.CustomFolder }
@@ -51,6 +57,8 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     public string DataFolder => _store.Directory;
     public bool IsWindows => OperatingSystem.IsWindows();
     public bool HasSystemIntegration => _platform is not NullPlatformServices;
+    /// <summary>Whether this platform supports changing Filee's Dock visibility.</summary>
+    public bool SupportsDockVisibility => _platform.SupportsDockVisibility;
     public string ContextMenuText => _loc[OperatingSystem.IsMacOS() ? "general.context_menu_macos"
         : OperatingSystem.IsLinux() ? "general.context_menu_linux" : "general.context_menu"];
     public string? IntegrationMessage => _integration?.Error ?? (OperatingSystem.IsMacOS()
@@ -105,6 +113,9 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
 
     [ObservableProperty] private Choice<string> _language;
     [ObservableProperty] private bool _startWithSystem;
+    [ObservableProperty] private bool _showInDock;
+    [ObservableProperty] private bool _showMenuBarIcon;
+    [ObservableProperty] private string? _dockStatus;
     [ObservableProperty] private bool _contextMenu;
     [ObservableProperty] private string? _libraryMessage;
 
@@ -129,6 +140,36 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
             Save(s => s.Language = newValue.Value);
     }
     partial void OnStartWithSystemChanged(bool value) => Save(s => s.StartWithSystem = value);
+
+    partial void OnShowInDockChanged(bool value)
+    {
+        if (value == _store.Settings.ShowInDock)
+            return;
+
+        Avalonia.Threading.Dispatcher.UIThread.VerifyAccess();
+        Exception? error = null;
+        try
+        {
+            if (_platform.TrySetShowInDock(value))
+            {
+                DockStatus = null;
+                Save(s => s.ShowInDock = value);
+                return;
+            }
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            error = ex;
+        }
+
+        _log.LogWarning(error, "Could not change Dock visibility to {ShowInDock}", value);
+        DockStatus = _loc["general.dock_failed"];
+        // Put back after the switch has finished writing its value: set from inside that write, the switch keeps
+        // showing the refused value.
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => ShowInDock = _store.Settings.ShowInDock);
+    }
+
+    partial void OnShowMenuBarIconChanged(bool value) => Save(s => s.ShowMenuBarIcon = value);
 
     partial void OnContextMenuChanged(bool value)
     {

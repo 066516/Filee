@@ -34,7 +34,7 @@
 <table>
   <tr>
     <td width="33%" valign="top"><b>就在光标旁</b><br>无需打开应用窗口。只显示适合当前拖动文件的格式，就在你所在的位置。</td>
-    <td width="33%" valign="top"><b>247 种格式，无需其他软件</b><br>图片、PDF、Word、Excel、PowerPoint、HWP、电子书、压缩包、字体、CAD 和 3D 模型，无需 Office、韩文办公软件或 LibreOffice。</td>
+    <td width="33%" valign="top"><b>248 种格式，无需其他软件</b><br>图片、PDF、Word、Excel、PowerPoint、HWP、电子书、压缩包、字体、CAD 和 3D 模型，无需 Office、韩文办公软件或 LibreOffice。</td>
     <td width="33%" valign="top"><b>只在你的电脑上</b><br>不上传任何文件。Filee 离线工作，结果保存在原文件旁边。</td>
   </tr>
 </table>
@@ -90,7 +90,7 @@
 | **PDF** | DOCX、HWPX、TXT、PNG、JPG、TIFF、CBZ、PPTX（每页一张图片）、SVG²；合并、拆分、页码范围、压缩（更小的 PDF） |
 | **文档**：DOCX、DOCM、DOTX、EML、Outlook MSG · DOC、ODT、FODT、OTT、RTF、WPS、WPD、Pages、ClarisWorks、MacWrite、T602 等² | PDF、DOCX、HWPX、EPUB、TXT、HTML、MSG → EML · ODT、FODT、OTT² |
 | **表格**：XLSX、XLSM、XLS、XLT、ODS、CSV、TSV · OTS、FODS、Numbers、ET² | PDF、XLSX、ODS、CSV、TSV、JSON、HWPX、HTML · XLT、OTS² |
-| **演示文稿**：PPTX、PPTM、POTX、PPSX · PPT、ODP、OTP、FODP、Keynote² | PDF、PNG、JPG、DOCX、HWPX · OTP² |
+| **演示文稿**：PPTX、PPTM、POTX、POTM、PPSX · PPT、ODP、OTP、FODP、Keynote² | PDF、PNG、JPG、DOCX、HWPX · OTP² |
 | **HWP**：HWP、HWPX | PDF、PNG、DOCX、HWPX ↔ HWP、TXT、Markdown、HTML |
 | **文本**：TXT、Markdown、HTML；MHTML（保存的网页）仅读取 · reStructuredText、LaTeX、Org、AsciiDoc、Typst、MediaWiki、DocBook、Jupyter、Textile、man、OPML³ | PDF、DOCX、HWPX、EPUB · 互相转换、PPTX 幻灯片³ |
 | **电子书**：EPUB、KEPUB、MOBI、AZW3、AZW、AZW4、FB2、CBZ、CBR、CB7、HTMLZ、TXTZ · LIT、LRF、CHM、PDB 等⁴ | PDF、EPUB、KEPUB（Kobo）、DOCX、TXT、HTML、HWPX · MOBI、AZW3⁴ |

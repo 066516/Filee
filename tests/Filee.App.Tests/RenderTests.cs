@@ -13,9 +13,11 @@ using Filee.App.Services;
 using Filee.App.ViewModels;
 using Filee.App.ViewModels.Pages;
 using Filee.App.Views;
+using Filee.App.Views.Pages;
 using Filee.Core.Localization;
 using Filee.Core.Profiles;
 using Filee.Core.Settings;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Filee.App.Tests;
 
@@ -25,8 +27,9 @@ public class RenderTests
     {
         { "home", "en" }, { "general", "en" }, { "triggers", "en" }, { "toolbar", "en" },
         { "presets", "en" }, { "theme", "en" }, { "engines", "en" }, { "about", "en" },
-        { "toolbar", "ko" }, { "home", "ko" }, { "presets", "zh-CN" }, { "toolbar", "zh-CN" }, { "home", "zh-CN" },
-        { "toolbar", "pl" }, { "presets", "pl" }, { "home", "pl" },
+        { "general", "ko" }, { "toolbar", "ko" }, { "home", "ko" },
+        { "general", "zh-CN" }, { "presets", "zh-CN" }, { "toolbar", "zh-CN" }, { "home", "zh-CN" },
+        { "general", "pl" }, { "toolbar", "pl" }, { "presets", "pl" }, { "home", "pl" },
         { "home", "es" }, { "general", "es" }, { "toolbar", "es" }, { "presets", "es" }, { "engines", "es" },
         { "home", "hi" }, { "toolbar", "hi" }, { "presets", "hi" }, { "engines", "hi" },
     };
@@ -45,6 +48,51 @@ public class RenderTests
         Assert.NotNull(window.FindControl<ScrollViewer>("PageScroller"));
         Save(window, $"page-{page}-{language}.png");
         window.Close();
+    }
+
+    [AvaloniaFact]
+    public void General_page_icon_rows_follow_platform_and_saved_values()
+    {
+        TestServices.EnsureInitialized("en");
+        var directory = Directory.CreateTempSubdirectory("filee-icons-render-").FullName;
+        try
+        {
+            var store = new UserDataStore(directory);
+            store.Load();
+            store.Settings.ShowInDock = false;
+            store.Settings.ShowMenuBarIcon = true;
+            store.SaveSettings();
+            foreach (var supported in new[] { true, false })
+            {
+                var platform = new IconPlatform { SupportsDockVisibility = supported };
+                using var vm = new GeneralPageViewModel(store, AppHost.Get<ILocalizer>(), platform,
+                    NullLogger<GeneralPageViewModel>.Instance);
+                var page = new GeneralPage { DataContext = vm };
+                var window = new Window { Content = page, Width = 800, Height = 820 };
+                try
+                {
+                    window.Show();
+                    Pump();
+                    var dock = page.FindControl<ToggleSwitch>("ShowInDockSwitch")!;
+                    var menu = page.FindControl<ToggleSwitch>("ShowMenuBarIconSwitch")!;
+                    Assert.Equal(supported, dock.IsVisible);
+                    Assert.Equal(supported, menu.IsVisible);
+                    Assert.False(dock.IsChecked);
+                    Assert.True(menu.IsChecked);
+                    Assert.Empty(platform.DockCalls);
+                    if (supported)
+                        Save(window, "page-general-icons-en.png");
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
     }
 
     [AvaloniaTheory]
