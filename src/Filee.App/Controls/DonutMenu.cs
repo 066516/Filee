@@ -89,10 +89,6 @@ public sealed partial class DonutMenu : Control
     public static readonly StyledProperty<IBrush?> DangerBrushProperty =
         AvaloniaProperty.Register<DonutMenu, IBrush?>(nameof(DangerBrush), Brushes.IndianRed);
 
-    /// <summary>Material You (Material Design 3) styling and expressive motion.</summary>
-    public static readonly StyledProperty<bool> IsMaterialYouProperty =
-        AvaloniaProperty.Register<DonutMenu, bool>(nameof(IsMaterialYou));
-
     /// <summary>Gap between slices in pixels (keeps the donut "full" while separating slices).</summary>
     private const double GapPixels = 3;
     private const double PopOut = 7;
@@ -135,7 +131,8 @@ public sealed partial class DonutMenu : Control
         AffectsMeasure<DonutMenu>(OuterRadiusProperty, ReserveSubRingProperty);
         AffectsRender<DonutMenu>(HoleRatioProperty, SliceOpacityProperty, CenterTitleProperty, CenterSubtitleProperty,
             IsEditModeProperty, SliceBrushProperty, SliceBorderBrushProperty, CenterBrushProperty, AccentBrushProperty,
-            IsMaterialYouProperty, CenterHintProperty, CenterHintWheelProperty);
+            OnAccentBrushProperty, ForegroundProperty, SecondaryForegroundProperty, SuccessBrushProperty, CornerRadiusProperty,
+            CenterHintProperty, CenterHintWheelProperty);
         ItemsProperty.Changed.AddClassHandler<DonutMenu>((d, _) => d.OnItemsChanged());
     }
 
@@ -174,7 +171,6 @@ public sealed partial class DonutMenu : Control
     public IBrush? Foreground { get => GetValue(ForegroundProperty); set => SetValue(ForegroundProperty, value); }
     public IBrush? SecondaryForeground { get => GetValue(SecondaryForegroundProperty); set => SetValue(SecondaryForegroundProperty, value); }
     public IBrush? DangerBrush { get => GetValue(DangerBrushProperty); set => SetValue(DangerBrushProperty, value); }
-    public bool IsMaterialYou { get => GetValue(IsMaterialYouProperty); set => SetValue(IsMaterialYouProperty, value); }
 
     /// <summary>True while an external drag hovers the hole (drop = cancel).</summary>
     public bool IsCenterHot => _externalCenterHot;
@@ -746,11 +742,10 @@ public sealed partial class DonutMenu : Control
             // Popping out bounces; letting go settles without a bounce: one below zero would make the faded accent
             // flash once more on its way back.
             for (var i = 0; i < _hover.Length; i++)
-                active |= i == ActiveIndex
-                    ? _hover[i].Step(1, dt, IsMaterialYou ? 380 : 280, IsMaterialYou ? 24 : 18)
-                    : _hover[i].Step(0, dt, 320, CriticalDamping);
-            active |= _centerPulse.Step(0, dt, IsMaterialYou ? 280 : 260, IsMaterialYou ? 14 : 12);
-            // A soft bounce opening, like the slices popping out; folding away settles without one.
+                active |= i == ActiveIndex ? _hover[i].Step(1, dt) : _hover[i].Step(0, dt, 320, CriticalDamping);
+            active |= _centerPulse.Step(0, dt, 260, 12);
+            // A soft bounce opening, like the slices popping out; folding away settles without one. The bounce grows the
+            // ring by about a pixel, well inside the room kept for it (SubRingSpace).
             active |= _expanded >= 0 ? _expand.Step(1, dt, 320, 24) : _expand.Step(0, dt, 320, CriticalDamping);
             if (_expanded < 0 && _expand.Value <= 0.001)
                 _shownExpanded = -1;
@@ -792,10 +787,10 @@ public sealed partial class DonutMenu : Control
         callback?.Invoke();
     }
 
-    private double EaseOutBack(double t)
+    private static double EaseOutBack(double t)
     {
-        double c1 = IsMaterialYou ? 1.75 : 1.55;
-        double c3 = c1 + 1;
+        const double c1 = 1.55;
+        const double c3 = c1 + 1;
         return 1 + c3 * Math.Pow(t - 1, 3) + c1 * Math.Pow(t - 1, 2);
     }
 
@@ -864,39 +859,27 @@ public sealed partial class DonutMenu : Control
             var span = previewing ? _span[i].Value : DonutGeometry.Span(n);
             if (span < 0.01)
                 continue;
-            var pop = IsMaterialYou ? PopOut * 1.4 : PopOut;
-            var offset = DonutGeometry.PointAt(new Point(0, 0), hover * pop, mid);
+            var offset = DonutGeometry.PointAt(new Point(0, 0), hover * PopOut, mid);
 
             // Open animation: scale up from the centre with a small twist.
             var scale = 0.55 + 0.45 * open;
-            var rotate = (1 - Math.Min(open, 1)) * (IsMaterialYou ? -0.22 : -0.35);
-            var hoverScale = IsMaterialYou ? 1 + hover * 0.045 : 1 + hover * 0.025;
+            var rotate = (1 - Math.Min(open, 1)) * -0.35;
             var transform =
                 Matrix.CreateTranslation(-center.X, -center.Y) *
                 Matrix.CreateRotation(rotate) *
-                Matrix.CreateScale(scale * hoverScale, scale * hoverScale) *
+                Matrix.CreateScale(scale * (1 + hover * 0.025), scale * (1 + hover * 0.025)) *
                 Matrix.CreateTranslation(center.X + offset.X, center.Y + offset.Y);
 
             using (context.PushTransform(transform))
             using (context.PushOpacity(Math.Clamp(open, 0, 1) * (i == _dimmedIndex ? 0.3 : 1)))
             {
-                var corner = IsMaterialYou ? Math.Max(12, SliceCornerRadius * 1.4) : SliceCornerRadius;
-                var gap = IsMaterialYou ? 4.5 : GapPixels;
-                var wedge = CreateWedge(center, r1, r2, mid, span, corner, gap);
-
-                if (IsMaterialYou && hover > 0.02)
-                {
-                    // Ambient glow / elevation for active floating slice in Material You
-                    var glowPen = new Pen(WithOpacity(AccentBrush, 0.28 * Math.Clamp(hover, 0, 1)), 4);
-                    context.DrawGeometry(null, glowPen, wedge);
-                }
-
+                var wedge = CreateWedge(center, r1, r2, mid, span);
                 context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity * (item.IsEnabled ? 1 : 0.55)), BorderPen(), wedge);
 
                 // The accent fades in and out with the highlight (no floor: a floor made it vanish with a jump).
                 var emphasis = i == _dropTargetIndex ? 1.0 : hover;
                 if (emphasis > 0.01 && item.IsEnabled)
-                    context.DrawGeometry(WithOpacity(AccentBrush, (IsMaterialYou ? 0.95 : 0.82) * Math.Clamp(emphasis, 0, 1)), null, wedge);
+                    context.DrawGeometry(WithOpacity(AccentBrush, 0.82 * Math.Clamp(emphasis, 0, 1)), null, wedge);
 
                 var hot = (i == ActiveIndex || i == _dropTargetIndex) && item.IsEnabled;
                 DrawLabel(context, item, center, (r1 + r2) / 2, mid, span * (r1 + r2) / 2 - 10,
@@ -929,48 +912,27 @@ public sealed partial class DonutMenu : Control
 
     private void DrawCenter(DrawingContext context, Point center, double r1, Typeface bold, Typeface regular)
     {
-        var pulse = 1 + _centerPulse.Value * (IsMaterialYou ? 0.08 : 0.06);
+        var pulse = 1 + _centerPulse.Value * 0.06;
         var radius = (r1 - 6) * pulse;
         var cancelHot = _externalCenterHot;
-
-        if (IsMaterialYou)
-            DrawCenterShadow(context, center, radius);
-
         context.DrawEllipse(CenterBrush, BorderPen(), center, radius, radius);
         if (cancelHot)
-            context.DrawEllipse(WithOpacity(DangerBrush, IsMaterialYou ? 0.32 : 0.18), null, center, radius, radius);
+            context.DrawEllipse(WithOpacity(DangerBrush, 0.18), null, center, radius, radius);
 
         var maxWidth = radius * 1.6;
-        var title = MakeText(CenterTitle ?? "", bold, IsMaterialYou ? 14.5 : 14, Foreground, maxWidth, maxLines: 2);
-        var subtitle = MakeText(CenterSubtitle ?? "", regular, IsMaterialYou ? 10.5 : 11.5, cancelHot ? DangerBrush : SecondaryForeground, maxWidth, maxLines: 2);
-        var hasSubtitle = !string.IsNullOrEmpty(CenterSubtitle);
+        var title = MakeText(CenterTitle ?? "", bold, 14, Foreground, maxWidth, maxLines: 2);
+        var subtitle = MakeText(CenterSubtitle ?? "", regular, 11.5, cancelHot ? DangerBrush : SecondaryForeground, maxWidth, maxLines: 2);
         // "Tab ↻ back": small, under the rest, a little narrower (the hub is round).
         var hint = string.IsNullOrEmpty(CenterHint) ? null : MakeText(CenterHint, regular, 10.5, SecondaryForeground, maxWidth * 0.85);
-        var total = title.Height + (hasSubtitle ? subtitle.Height + (IsMaterialYou ? 4 : 2) : 0) + (hint is null ? 0 : hint.Height + 5);
+        var total = title.Height + (string.IsNullOrEmpty(CenterSubtitle) ? 0 : subtitle.Height + 2) + (hint is null ? 0 : hint.Height + 5);
         var y = center.Y - total / 2;
         DrawCentered(context, title, center.X, y);
         y += title.Height;
-
-        if (hasSubtitle)
+        if (!string.IsNullOrEmpty(CenterSubtitle))
         {
-            var subY = y + (IsMaterialYou ? 3 : 2);
-            if (IsMaterialYou)
-            {
-                var padX = 7.0;
-                var padY = 2.0;
-                var badgeW = Math.Min(maxWidth, subtitle.Width + padX * 2);
-                var badgeH = subtitle.Height + padY * 2;
-                var badgeRect = new RoundedRect(new Rect(center.X - badgeW / 2, subY, badgeW, badgeH), badgeH / 2);
-                context.DrawRectangle(WithOpacity(AccentBrush, 0.18), null, badgeRect);
-                DrawCentered(context, MakeText(CenterSubtitle!, regular, 10, Foreground, badgeW), center.X, subY + padY);
-            }
-            else
-            {
-                DrawCentered(context, subtitle, center.X, subY);
-            }
-            y += subtitle.Height + (IsMaterialYou ? 4 : 2);
+            DrawCentered(context, subtitle, center.X, y + 2);
+            y += subtitle.Height + 2;
         }
-
         if (hint is not null)
         {
             using (context.PushOpacity(0.85))
@@ -989,22 +951,6 @@ public sealed partial class DonutMenu : Control
                 }
             }
         }
-    }
-
-    private static void DrawCenterShadow(DrawingContext context, Point center, double radius)
-    {
-        var shadowRadius = radius + 9;
-        var brush = new RadialGradientBrush
-        {
-            GradientStops =
-            {
-                new GradientStop(Color.FromArgb(0, 0, 0, 0), 0),
-                new GradientStop(Color.FromArgb(0, 0, 0, 0), (radius - 4) / shadowRadius),
-                new GradientStop(Color.FromArgb(42, 0, 0, 0), (radius + 1) / shadowRadius),
-                new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
-            },
-        };
-        context.DrawEllipse(brush, null, new Point(center.X, center.Y + 2), shadowRadius, shadowRadius);
     }
 
     /// <summary>An outline of a mouse with its wheel, filling <paramref name="box"/>.</summary>
@@ -1156,31 +1102,31 @@ public sealed partial class DonutMenu : Control
 
     /// <summary>A rounded slice of <paramref name="span"/> radians centred on <paramref name="mid"/> (a ring when it is all of it).</summary>
     private StreamGeometry CreateWedge(Point c, double r1, double r2, double mid, double span) =>
-        CreateWedge(c, r1, r2, mid, span, IsMaterialYou ? Math.Max(12, SliceCornerRadius * 1.4) : SliceCornerRadius, IsMaterialYou ? 4.5 : GapPixels);
+        CreateWedge(c, r1, r2, mid, span, SliceCornerRadius);
 
     // Slices are drawn every frame while the donut animates, but their shapes only change with the size, the layout
     // or the softness: the shapes are kept and reused. Animations move them with transforms; only the edit mode's
     // sliding slices make new ones, and the cache starts over when it fills up.
-    private readonly Dictionary<(Point C, double R1, double R2, double Mid, double Span, double Corner, double Gap), StreamGeometry> _wedges = new();
+    private readonly Dictionary<(Point C, double R1, double R2, double Mid, double Span, double Corner), StreamGeometry> _wedges = new();
     private const int MaxCachedWedges = 256;
 
-    private StreamGeometry CreateWedge(Point c, double r1, double r2, double mid, double span, double cornerRadius, double gap = GapPixels)
+    private StreamGeometry CreateWedge(Point c, double r1, double r2, double mid, double span, double cornerRadius)
     {
-        var key = (c, r1, r2, mid, span, cornerRadius, gap);
+        var key = (c, r1, r2, mid, span, cornerRadius);
         if (_wedges.TryGetValue(key, out var cached))
             return cached;
         if (_wedges.Count >= MaxCachedWedges)
             _wedges.Clear();
-        return _wedges[key] = BuildWedge(c, r1, r2, mid, span, cornerRadius, gap);
+        return _wedges[key] = BuildWedge(c, r1, r2, mid, span, cornerRadius);
     }
 
     /// <summary>A slice with a constant-width gap to its neighbours and corners rounded by <paramref name="cornerRadius"/>.</summary>
-    private static StreamGeometry BuildWedge(Point c, double r1, double r2, double mid, double span, double cornerRadius, double gap = GapPixels)
+    private static StreamGeometry BuildWedge(Point c, double r1, double r2, double mid, double span, double cornerRadius)
     {
         if (span >= 2 * Math.PI - 0.001)
             return CreateRing(c, r1, r2);
 
-        var outline = DonutGeometry.Wedge(c, r1, r2, mid, span, gap, cornerRadius);
+        var outline = DonutGeometry.Wedge(c, r1, r2, mid, span, GapPixels, cornerRadius);
         var geometry = new StreamGeometry();
         using var ctx = geometry.Open();
         ctx.BeginFigure(outline.Start, true);

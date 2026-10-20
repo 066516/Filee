@@ -128,9 +128,8 @@
           </StackPanel>
         </Grid>
         <Grid ColumnDefinitions="Auto,12,*">
-          <CheckBox Content="{DynamicResource presets.dpi}" IsChecked="{Binding SetDpi}" VerticalAlignment="Center" />
-          <NumericUpDown Grid.Column="2" Value="{Binding Dpi}" Minimum="36" Maximum="2400" Increment="50" FormatString="0"
-                         IsEnabled="{Binding SetDpi}" HorizontalAlignment="Left" Width="160" />
+          <CheckBox Content="{DynamicResource presets.dpi}" IsChecked="{Binding SetDpi}" />
+          <NumericUpDown Grid.Column="2" Value="{Binding Dpi}" Minimum="36" Maximum="2400" Increment="50" FormatString="0" IsEnabled="{Binding SetDpi}" />
         </Grid>
         <WrapPanel>
           <CheckBox Content="{DynamicResource presets.keep_metadata}" IsChecked="{Binding KeepMetadata}" Margin="0,0,18,0" />

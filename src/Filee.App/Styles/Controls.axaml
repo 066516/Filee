@@ -16,8 +16,4 @@
     <Setter Property="DangerBrush" Value="{DynamicResource DangerBrush}" />
     <Setter Property="SuccessBrush" Value="{DynamicResource SuccessBrush}" />
   </Style>
-
-  <Style Selector="Window.material-you c|DonutMenu, c|DonutMenu.material-you">
-    <Setter Property="IsMaterialYou" Value="True" />
-  </Style>
 </Styles>

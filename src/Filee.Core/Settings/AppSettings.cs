@@ -13,16 +13,6 @@ public enum ThemeMode
     Dark,
 }
 
-/// <summary>Visual theme style.</summary>
-public enum ThemeStyle
-{
-    /// <summary>Filee classic soft pastel rounded design.</summary>
-    Soft,
-
-    /// <summary>Google Material 3 design with dynamic tonal palettes and pill shapes.</summary>
-    MaterialYou,
-}
-
 /// <summary>What closing the main window does (Settings → General).</summary>
 public enum CloseAction
 {
@@ -40,8 +30,6 @@ public enum CloseAction
 public sealed class ThemeSettings
 {
     public ThemeMode Mode { get; set; } = ThemeMode.System;
-
-    public ThemeStyle Style { get; set; } = ThemeStyle.Soft;
 
     /// <summary>Accent colour as <c>#RRGGBB</c>.</summary>
     public string Accent { get; set; } = "#7F77DD";

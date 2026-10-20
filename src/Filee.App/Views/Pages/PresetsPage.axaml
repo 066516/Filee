@@ -28,7 +28,7 @@
               <PathIcon Width="14" Height="14" Margin="10,0,0,0" Data="{StaticResource Icon.Search}" Foreground="{DynamicResource TextSecondaryBrush}" />
             </TextBox.InnerLeftContent>
       </TextBox>
-      <ListBox Classes="soft" ItemsSource="{Binding VisiblePresets}" SelectedItem="{Binding SelectedPreset}" Margin="0,0,8,0">
+      <ListBox Classes="soft" ItemsSource="{Binding VisiblePresets}" SelectedItem="{Binding SelectedPreset}">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:PresetListItem">
             <StackPanel>

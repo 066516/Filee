@@ -71,10 +71,6 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
                 if (page is null)
                     model.Navigate(placement.Page);
             }
-            else if (page is null)
-            {
-                model.Navigate("home");
-            }
             main.Closing += (_, _) =>
             {
                 // While it is still on screen: the release closes it hidden, when its position may no longer be known.
