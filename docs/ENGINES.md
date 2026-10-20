@@ -5,7 +5,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 
 | Engine | How it gets there | Handles |
 |---|---|---|
-| ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, MNG, QOI, DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster, MIFF ↔ each other, and **APNG** (Filee's own reader and writer); HEIC (written with FFmpeg), XCF, camera RAW (LibRaw), DICOM (uncompressed ones by Filee's own reader), Photo CD, OpenEXR, Radiance HDR and EMF/WMF (Windows) read |
+| ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, MNG, QOI, DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster, MIFF ↔ each other, and **APNG** (Filee's own reader and writer); HEIC (written with FFmpeg), XCF, camera RAW (LibRaw), DICOM (uncompressed ones by Filee's own reader), Photo CD, OpenEXR, Radiance HDR, EMF/WMF (Windows) and the photo of an iPhone LIVP read |
 | Windows Imaging Component | part of Windows (Windows only) | **JPEG XR** (JXR, WDP, HDP; HDR screenshots of Windows) → the images ImageMagick writes, and PDF, ICNS, HEIC and SVG through PNG; HDR tone-mapped to SDR |
 | Vector graphics | built in (Svg.Skia, SkiaSharp, ACadSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, **SVG → DXF** (→ DWG with the CAD engine), **raster images → SVG (tracing)**, PDF-compatible AI → PDF |
 | ICNS | built in | images → ICNS (16–1024 px), ICNS → images |
@@ -32,7 +32,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats; FODT, OpenDocument templates (OTT, OTS, OTP) and XLT out; SVG → EMF/WMF/ODG, a PDF page → SVG |
 | Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, markup languages (reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML) ↔ Markdown/HTML/DOCX/ODT and each other (and → RTF, EPUB, TXT), Markdown and markup → PPTX slides |
 | Ghostscript | **optional download** (~20 MB, 31 MB on disk) | EPS/PS → PDF, PDF → EPS/PS, PostScript-based AI → PDF (images through PDF and PDFium); smaller PDFs when a preset asks for it |
-| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG, a still frame or every frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, images → HEIC |
+| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG, a still frame or every frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, Live / Motion Photos → their video, images → HEIC |
 | Calibre | **optional download** (~216 MB, 660 MB on disk) | rare e-book formats: LIT, LRF, CHM, PDB, PML, RB, SNB, TCR, OEB → EPUB; EPUB → MOBI, AZW3, LIT, LRF, PDB, PML, RB, SNB, TCR; e-books → PDF (ranked above the HWPX writer, see below) |
 
 DOCX, XLSX, XLS, ODS and PPTX → PDF need neither Microsoft Office nor LibreOffice: they are read in-process, written as HWPX
@@ -212,6 +212,9 @@ pinned source in `build/build-linux-native.py` like rhwp (PR #113 did this for S
   without "maximize compatibility"). GIMP XCF layers are composited at their offsets with their blend modes; hidden
   layers are left out. ImageMagick reads 8-bit XCF without zlib tile compression (GIMP 2.10+ "better but slower
   compression" files give a clear error).
+- **LIVP** (an iPhone Live Photo as iCloud downloads it: a ZIP of the photo, HEIC or JPEG, and its MOV) is read as its
+  photo, taken out of the package in memory (`LivePhotoSource.ReadStill`, at most 64 MB); its video is FFmpeg's (see
+  Live / Motion Photos there).
 - **Camera RAW** (DNG, CR2, CR3, NEF, ARW, …, and `.raw`) is decoded by LibRaw with the camera's white balance,
   sRGB output and AHD demosaicing, then turned upright from the EXIF orientation.
 - **EMF/WMF** are rendered through GDI+ (Windows only) at the preset's render DPI (at least 150), keeping their
@@ -544,25 +547,45 @@ sits on the office donut (settings schema 27 teaches existing donuts `.ofd`).
   drawing objects, page blocks nested 32 deep. DeltaX / DeltaY "g n d" repeats never yield more values than the
   text has characters.
 - **Encryption**: a package with an `Encryptions.xml` (GM/T 0099) or encryption entries in OFD.xml is refused with a
-  clear message; nothing is decrypted. Parts that are not XML (encrypted or damaged) fail the same way. Signatures
-  (`Signs/`) are ignored, so the seal images stored inside signed data do not appear.
+  clear message; nothing is decrypted. Parts that are not XML (encrypted or damaged) fail the same way.
 - **Text**: TextObjects with their Boundary, CTM (scale, also of the font size), Size in millimetres, TextCode X / Y
-  (missing ones continue where the previous code ended) and DeltaX advances; DeltaY runs are vertical text. Fonts
-  from the resource files, with common Chinese names written in English (宋体 → SimSun, 黑体 → SimHei, 楷体 → KaiTi,
-  仿宋 → FangSong, 微软雅黑 → Microsoft YaHei, …) so Word and LibreOffice find them on any system; bold from
-  `Weight` ≥ 600 or the font, italic, colour from the object (FillColor element or attribute; RGB, grey, CMYK,
+  (missing ones continue where the previous code ended) and DeltaX advances; DeltaY alone moving the characters is
+  vertical text. A DeltaX list shorter than the text goes on with its last value while the characters are as wide
+  (a title with one advance for all its characters); a step back with DeltaX or down with DeltaY inside one TextCode
+  starts a new line, kept with a line break (the four lines of a VAT invoice's 密码区 cipher text are one TextCode).
+  Fonts from the resource files, with common Chinese names written in English (宋体 → SimSun, 黑体 → SimHei,
+  楷体 → KaiTi, 仿宋 → FangSong, 微软雅黑 → Microsoft YaHei, …) so Word and LibreOffice find them on any system; bold
+  from `Weight` ≥ 600 or the font, italic, colour from the object (FillColor element or attribute; RGB, grey, CMYK,
   decimal or #hex channels), its DrawParam or the layer's DrawParam (tax invoices colour the template that way),
   following `Relative` chains. Invisible objects (`Visible="false"`) are left out.
 - **Templates**: the template pages a page names are read first, so an invoice's labels (发票号码：, 名称：) and its
   values come out together. In template content, single characters stacked in one column (购买方信息, 备注) or a
-  pair spread over a line (合　计) become one word.
+  pair spread over a line (合　计) become one word, once the page's own text is there: a pair with a value between
+  (共 4 页 of a sales list) stays apart.
+- **Annotations** (Annots): the text and pictures of each annotation's appearance, placed from its boundary (a stamp
+  drawn as a picture, a note). Hidden annotations and their paths (highlights, underlines) are left out.
+- **Seals** (`OfdReader.Seals.cs`): an e-invoice's or a contract's seal is stored in its signature
+  (`Signs/Sign_n/SignedValue.dat`, GM/T 0031 SES_Signature). The seal picture in it is shown where the signature's
+  StampAnnot puts it, floating in front of the text. PNG, JPEG, GIF and BMP are kept; a seal that is a small OFD
+  package of its own (the red oval of 全国统一发票监制章 with its characters set round the edge) is drawn with
+  SkiaSharp at 12 pixels per mm on a transparent PNG: text per character with its CTM rotation, stroked and filled
+  paths (lines, Béziers, arcs) and pictures. The DER is walked with every length checked against what is left,
+  nesting and the element count capped; a SignedValue is read up to 4 MB, a seal package unpacks to 16 MB, at most
+  64 signatures with 16 stamps each. The signature is not verified: what shows is the picture the file carries.
 - **Layout** (`OfdReader.Layout.cs`): fragments on one baseline form a line, in reading order top to bottom and
   left to right; a line that ran to the right edge from at least half the measure continues in the next one
   (justified, first-line indent kept, no space between Chinese lines). Wide gaps (1.5 em) become tabs with left
   tab stops where each part starts, so an invoice's item rows keep their columns; a line under such a row whose
   parts start in its columns and hold no amounts is the wrapped end of its cells and follows after a line break in
   the same paragraph. Centred and right-aligned lines, left indents and vertical distances (space before) follow
-  the page; page size per page (a new section when it changes), margins from what is drawn.
+  the page; page size per page (a new section when it changes), margins from what is drawn. Line distances are
+  exact where the largest text fits ("at least" grows each line to the font's own height in Word and LibreOffice,
+  ~1.4 em for KaiTi, and a full 210 × 140 mm invoice ran onto a second page); a one-line paragraph closer to the one
+  above than 1.2 sizes gets the distance between them. A block that starts above the end of the one before (the
+  invoice number beside the title) is pushed down, and the next gaps take that back, so the frame stays at its
+  place. A table gets its distance from the block above through a 1 pt paragraph, and is `Tight` in HWPX: no 5 mm
+  under it and no empty line in the paragraph that holds it. The first block's distance from the top margin is an
+  empty line of that height (rhwp draws no space before at the top of a page).
 - **Ruled tables** (`OfdReader.Tables.cs`): the approach of the PDF reader in millimetres. PathObjects
   (AbbreviatedData M/S/L/Q/B/A/C, with Boundary, CTM, line width and stroke colour from the object or its
   DrawParams) give stroked straight rules and thin filled rectangles; joined rules that meet form grids, and a grid
@@ -570,16 +593,25 @@ sits on the office donut (settings schema 27 teaches existing donuts `.ofd`).
   column widths and row heights, borders in the drawn colour and shading. Text goes into the cell of its first
   character (widths without DeltaX are estimated) and is laid out like the page, with exact line spacing so the
   rows keep their heights. The frame of an e-invoice becomes one table: buyer and seller blocks, the item list
-  (one cell with tabbed rows: the invoice draws no rules between item columns), totals and remarks.
+  (one cell with tabbed rows: the invoice draws no rules between item columns), totals and remarks. A cell with one
+  paragraph about as far from its top as from its bottom is centred; any other keeps its text's distance from the
+  top as the cell's top padding (space before a cell's first paragraph is not drawn by every renderer), and only
+  lines at about single spacing (1.6 sizes) are one paragraph. So the columns of a sales list (销货清单: rules only
+  between the columns, each column one cell with all its rows) keep their rows level, the 小计 at the bottom of 序号
+  beside its amount.
 - **Pictures**: ImageObjects (MultiMedia of type Image) with the box from their CTM. PNG, JPEG, GIF and BMP are
   kept as they are (the format comes from the bytes, not the name), TIFF and JPEG 2000 are converted to PNG
   (ImageMagick, at most 100 megapixels), anything else (JBIG2) is left out. A picture alone in its band of the page
   becomes a paragraph; one beside or over text (a QR code next to the title, a seal on a table) floats at its place
   on the paper, in front of the text.
 
-Not converted: annotations (Annots), signatures and their seals, embedded fonts (the font name is kept), composite
-objects and other vector drawings, attachments, more than the first document of a package, tables without rules
-(their text stays in tabbed rows), clipping. Two text blocks side by side without rules share their lines.
+Not converted: signature checks (a seal shows whether or not its signature is valid), seal pictures in SVG,
+embedded fonts (the font name is kept), composite objects and other vector drawings (the ⊗ before an invoice's
+amount in words), attachments, more than the first document of a package, tables without rules (their text stays
+in tabbed rows), clipping. Two text blocks side by side without rules share their lines. Renderers place text
+differently inside an exact line (Word and LibreOffice at its foot, 한글 and rhwp at its head), so in the rhwp PDF
+text sits up to 0.2 sizes higher than on the page. LibreOffice adds cell borders to row heights: the DOCX of a
+full 140 mm invoice opened there puts its last line on a second page (rhwp's PDF keeps it on one).
 
 ## PDF → PPTX
 
@@ -1307,6 +1339,29 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
     how many pictures a minute of 30 fps video gives at the chosen interval.
   - The frames go into a hidden folder next to the output and are moved into place when FFmpeg has finished, so a
     cancelled or failed run leaves no half-filled folder.
+- **Live / Motion Photos** (*Extract Live/Motion Photo video* on an MP4 or MOV preset, `MediaOptions.ExtractMotionPhoto`;
+  the preset "Extract Live Photo video", on no donut): the video saved with a phone photo becomes the output, with its
+  sound, instead of a video of the still picture.
+  - Routes: the motion edges (`ConversionEdge.MotionPhoto`, JPG, HEIC, AVIF and LIVP → MP4 and MOV,
+    `MediaOptions.MotionPhotoSources`) are taken only when `Preset.ExtractsMotionOf` the file, and then as the whole
+    route (`RoutePlanner.Plan(from, to, motionPhoto: true)`). A LIVP always gives its video; GIF, PNG, WebP and other
+    pictures ignore the option and become a video of the picture as below.
+  - Where the video is (`Media/MotionPhoto.cs`, `Media/LivePhotoSource.cs`), always from the photo's own metadata,
+    never by searching its bytes for an MP4 signature: Motion Photo 1.0 JPEGs (Pixel, Samsung, …) give the length of
+    the appended video in the XMP container directory (`GCamera:MotionPhoto`, the last `Container:Item`, attributes or
+    elements); older Google "MicroVideo" JPEGs an offset back from the end (`GCamera:MicroVideoOffset`); HEIC and AVIF
+    hold the video in a top-level `mpvd` box. The video must start with `ftyp` and hold a `moov`, else the metadata is
+    stale (an editor rewrote the picture) and nothing is guessed; it ends with its last whole box, which leaves
+    Samsung's SEF trailer out. An iPhone photo (JPG or HEIC) takes the MOV next to it with the same name, only when
+    both carry the same content identifier (tag 17 of Apple's maker note, `com.apple.quicktime.content.identifier`);
+    a LIVP (the ZIP iCloud downloads give) takes its one MOV, whose identifier is only checked for the log.
+  - The video is copied into the work directory (at most 512 MB; JPEG metadata is read only from the first 8 MB, XMP
+    without DTDs; LIVP entries are copied to names of Filee's own, never extracted by their names), converted there
+    like any video (copied as it is into MP4/MOV when its codecs fit) and moved into place when finished: a failed or
+    cancelled run never touches a file "overwrite" would replace, and the output never replaces the iPhone MOV it was
+    read from (IMG_0001.HEIC → `IMG_0001 (2).mov`). A photo without a video fails with "This photo has no video
+    Filee can read"; why goes to the log.
+  - Not read: vendor formats without this metadata (Huawei's "LIVE_" trailer, for one).
 - Pictures → MP4/WEBM/MOV go through a full-size PNG from the image engines (HEIC → PNG → MOV): a 5-second still at
   30 fps, one quality step above the preset (identical frames cost almost nothing; x264 `-tune stillimage`). The
   PNG's ICC profile is read (`-flags2 +icc_profiles`), so primaries and transfer are tagged as the photo's (Display

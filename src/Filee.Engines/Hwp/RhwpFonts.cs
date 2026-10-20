@@ -198,7 +198,9 @@ internal static class RhwpFonts
                 continue;
             if (OperatingSystem.IsWindows() || string.Equals(typeface.FamilyName, candidate, StringComparison.OrdinalIgnoreCase))
                 return new InstalledFont(IsUsable(typeface), codePoint => typeface.GetGlyph(codePoint) != 0, codePoint => Advance(typeface, codePoint));
-            typeface.Dispose();
+            // Not disposed: SkiaSharp hands out one wrapper per native typeface, so this may be the very object the
+            // CAD font cache, Svg.Skia or the UI's font manager still draws with. Disposing it would leave them a
+            // null handle (a native crash on their next call); the finalizer releases it once nobody uses it.
         }
         return null;
     });
