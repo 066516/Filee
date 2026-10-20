@@ -54,6 +54,8 @@
     <AvaloniaResource Include="..\Filee.App\Styles\Soft.axaml" Link="Styles\Soft.axaml" />
     <AvaloniaResource Include="..\Filee.App\Assets\Icons\filee.ico" Link="Assets\Icons\filee.ico" />
     <AvaloniaResource Include="..\Filee.App\Assets\Icons\filee.png" Link="Assets\Icons\filee.png" />
+    <!-- All of the app's Noto fonts, CJK included (~37 MB of Setup's size): with Windows' own CJK fonts instead, Korean,
+         Japanese and Chinese headings lose their weight. Drop the *.otf to save the space. -->
     <AvaloniaResource Include="..\Filee.App\Assets\Fonts\*.ttf;..\Filee.App\Assets\Fonts\*.otf" Link="Assets\Fonts\%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\Filee.App\Assets\i18n\*.json" Link="i18n\%(Filename)%(Extension)" LogicalName="i18n.%(Filename)%(Extension)" />
   </ItemGroup>

@@ -47,7 +47,8 @@ public sealed record PreviousInstall(
             registry.Get(hive, key, "DisplayVersion")?.Text,
             scope,
             byInno,
-            tasks is null ? null : SetupTasks.FromInnoString(tasks),
+            // Inno Setup leaves the value empty after an update that showed no options.
+            string.IsNullOrWhiteSpace(tasks) ? null : SetupTasks.FromInnoString(tasks),
             language,
             InstallRecord.Read(folder));
     }
