@@ -4,7 +4,7 @@ using Filee.App.Services;
 
 namespace Filee.App.Tests;
 
-/// <summary>Keeps en / es / ja / ko / zh-CN / pl / hi / ru in sync so no language silently falls back to English.</summary>
+/// <summary>Keeps shipped languages in sync so none silently falls back to English.</summary>
 public partial class LocalizationTests
 {
     private static string I18nDirectory
@@ -21,7 +21,19 @@ public partial class LocalizationTests
     private static Dictionary<string, string> Load(string code) =>
         JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(I18nDirectory, code + ".json")))!;
 
-    public static TheoryData<string> Languages => new() { "es", "ja", "ko", "zh-CN", "pl", "hi", "ru" };
+    public static TheoryData<string> Languages => new(LocalizationService.Languages.Where(l => l.Code != "en").Select(l => l.Code));
+
+    [Theory]
+    [InlineData("ar")]
+    [InlineData("AR")]
+    [InlineData("ar-IQ")]
+    [InlineData("ar-SA")]
+    public void Arabic_is_offered_under_its_own_name_and_accepts_regional_cultures(string culture)
+    {
+        Assert.Contains(("ar", "العربية"), LocalizationService.Languages);
+        Assert.Equal("ar", LocalizationService.Resolve(culture));
+        Assert.StartsWith("fonts:Filee#Noto Sans Arabic,", ThemeService.FontFamilies(culture));
+    }
 
     [Theory]
     [MemberData(nameof(Languages))]

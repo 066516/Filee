@@ -426,6 +426,8 @@ public class WhatsNewTests
     [AvaloniaTheory]
     [InlineData("en", false)]
     [InlineData("en", true)]
+    [InlineData("ar", false)]
+    [InlineData("ar", true)]
     [InlineData("es", false)]
     [InlineData("es", true)]
     [InlineData("hi", false)]

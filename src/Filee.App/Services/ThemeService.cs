@@ -20,6 +20,7 @@ public sealed class ThemeService(IPlatformServices platform)
 
     /// <summary>Embedded Noto fonts (see build/fetch-fonts.ps1). Missing files fall back to system fonts.</summary>
     private const string Latin = "fonts:Filee#Noto Sans";
+    private const string Arabic = "fonts:Filee#Noto Sans Arabic";
     private const string Devanagari = "fonts:Filee#Noto Sans Devanagari";
 
     /// <summary>Each CJK region's embedded font and its system fonts (Windows, then macOS).</summary>
@@ -103,7 +104,8 @@ public sealed class ThemeService(IPlatformServices platform)
             language.StartsWith("ja", StringComparison.OrdinalIgnoreCase) ? [Japanese, Korean, Chinese]
             : language.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? [Chinese, Korean, Japanese]
             : [Korean, Chinese, Japanese];
-        return $"{Latin}, {Devanagari}, {string.Join(", ", cjk.Select(f => f.Embedded))}, Segoe UI, Nirmala UI, "
+        var primary = language.StartsWith("ar", StringComparison.OrdinalIgnoreCase) ? $"{Arabic}, {Latin}" : $"{Latin}, {Arabic}";
+        return $"{primary}, {Devanagari}, {string.Join(", ", cjk.Select(f => f.Embedded))}, Segoe UI, Nirmala UI, Tahoma, Geeza Pro, "
             + $"{string.Join(", ", cjk.Select(f => f.System))}, Kohinoor Devanagari, sans-serif";
     }
 

@@ -1000,7 +1000,7 @@ public sealed partial class DonutMenu : Control
             _labelSizes.Clear();
         var widest = text.Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Where(word => !word.Any(IsHanOrKana))
-            .Select(word => new FormattedText(word, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, typeface, LabelFontSize, null).Width)
+            .Select(word => new FormattedText(word, CultureInfo.CurrentUICulture, TextDirection, typeface, LabelFontSize, null).Width)
             .DefaultIfEmpty(0)
             .Max();
         // A pixel to spare: a word exactly as wide as the line still wraps.
@@ -1060,13 +1060,16 @@ public sealed partial class DonutMenu : Control
     private Pen? BorderPen() => SliceBorderBrush is null ? null : new Pen(SliceBorderBrush, 1);
 
     private static FormattedText MakeText(string text, Typeface typeface, double size, IBrush? brush, double maxWidth, int maxLines = 1) =>
-        new(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, typeface, size, brush)
+        new(text, CultureInfo.CurrentUICulture, TextDirection, typeface, size, brush)
         {
             MaxTextWidth = Math.Max(10, maxWidth),
             MaxLineCount = maxLines,
             Trimming = TextTrimming.CharacterEllipsis,
             TextAlignment = TextAlignment.Center,
         };
+
+    private static FlowDirection TextDirection => CultureInfo.CurrentUICulture.TextInfo.IsRightToLeft
+        ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
 
     private static IBrush? WithOpacity(IBrush? brush, double opacity) => brush switch
     {
