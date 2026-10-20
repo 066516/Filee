@@ -49,6 +49,50 @@
    "Compress into one archive" packs the dropped files, unconverted, with the archive engine (`IFileCombiner`).
 6. **Report** – progress and results appear in the toast window and in Home → Recent conversions.
 
+## Files dragged from a web browser
+
+A picture, a link to a file or a download dragged out of a browser opens the donut like a file from the file manager.
+`DraggedFiles.Read` asks `BrowserDrags` (App, reads Avalonia's drag data) first; `BrowserDrag` (Core, pure rules)
+decides what in the drag is a file:
+
+| Source | What the drag carries | What Filee takes |
+| --- | --- | --- |
+| Chrome / Edge, Windows | the picture as a virtual file (`FileGroupDescriptorW` + `FileContents`, which Avalonia 12 gives as a storage item without a local path), a `.url` virtual file for links, `UniformResourceLocatorW`, `text/x-moz-url`, `HTML Format` | the picture's own bytes; for a link, its address |
+| Firefox, Windows | the picture written to `%TEMP%` (`CF_HDROP`), `text/x-moz-url`, file promise formats | the temporary copy (a local file in the temp folder *and* a web address on the drag) |
+| Chrome / Firefox, Linux | `text/x-moz-url`, `_NETSCAPE_URL`, `text/html` (Avalonia turns `text/uri-list` into local files only and drops http addresses) | the address |
+| Safari / Chrome, macOS | file promises (not receivable through Avalonia), `public.url`, `public.html`, sometimes picture data | the address, else the picture data |
+
+Rules, in order: files handed over with their bytes (never `.url` shortcuts or programs); a picture (an HTML fragment
+that is one `<img>` and no text, or a Firefox file promise); a `DownloadURL` a page sets; links only when the address
+ends in an extension Filee converts and isn't a web page (`.html`, `.php`, none); last, picture pixels for a `blob:`
+picture. Plain text is never read. `data:` addresses are decoded.
+
+Until the conversion runs, the files stand as **placeholders** (`WebDrop`): paths in `%TEMP%\Filee\web\<drop>\drop\<n>\`
+named like the file will be, so the donut picks the profile by extension without touching the network. No HEAD request
+is made: a picture without an extension stands as `.jpg` and a link without one isn't offered. `ConversionService.Start`
+gives the job a `WebDropFetcher` (`ISourceFetcher`): `JobQueue` saves every source first (half of its progress), then
+converts. Failures are per file (`error.web_*`), cancelling stops a download, and the job toast/ring shows both phases.
+While files are saved, a badge pops up above the donut's progress ring and above the toast's progress bar with the
+speed and the amounts ("2.4 MB/s · 12.3 / 48.0 MB", "· 2 of 3 files" for several): `FileResult.Transfer` holds each
+file's byte count, `ConversionJob.Transfer()` sums them, and `DownloadBadge` (App) averages the speed over the last
+second with the Engines page's `TransferRate` and units, rewritten four times a second and shown after 300 ms.
+
+- **Where**: Settings → General → "Files dragged from a browser" (`AppSettings.BrowserDrops`): the user's Downloads
+  folder (`IPlatformServices.DownloadsFolder`: the shell's known folder on Windows, `XDG_DOWNLOAD_DIR` on Linux,
+  `~/Downloads` on macOS) or a chosen one. "Next to the source" means this folder for these files
+  (`OutputRule.SourceFolder`, set per job, never saved), so subfolder rules apply there and fixed folders stay fixed.
+- **Save only the converted file**: the original goes to the drop's work folder, which `Release` deletes when the job
+  ends; leftovers from a crash are deleted at start-up after a day.
+- **Downloads** (`WebDownloader`): http and https only, at most 5 redirects (never from https to http or off the web),
+  2 GB cap whether or not the server says the size, 30 s to answer and 30 s without data at most. No cookies or
+  credentials are sent: a file behind a sign-in comes back as the sign-in page, which is refused as a web page
+  ("save it from the browser first"). A browser's own bytes (virtual files, Firefox's copy) don't have that limit.
+- **Names and safety**: Content-Disposition, else the page's name, else the address; then the first bytes decide the
+  extension of pictures and PDFs (`.jpg` that is WebP becomes `.webp`). Names are cut to a plain file name (no folders,
+  no device names, at most 120 characters) and never replace an existing file (`name (2).ext`). Programs, installers and
+  scripts are refused by extension, media type and first bytes; nothing downloaded is ever run, and every file goes
+  through the same converters as any other.
+
 ## Donut control
 
 `Controls/DonutMenu.cs` draws the ring itself (no child controls) for speed. `DonutGeometry.cs` holds the pure math
@@ -93,7 +137,8 @@ On macOS, files reach Filee from file managers other than Finder too (issue #160
 `NSFilenamesPboardType` array of paths (`PasteboardPaths`); the service also takes plain-text lines that are absolute
 paths. The donut registers those types with AppKit next to Avalonia's own, so such a drag reaches it, and a drag or
 service request without readable files is logged with the types it offered. File promises (`NSFilePromiseProvider`)
-can't be received through Avalonia. A click-mode donut opened for a later launch or the service forgives one loss of
+can't be received through Avalonia; for a browser drag Filee reads the address and HTML it also offers, which the donut
+registers too (see "Files dragged from a web browser"). A click-mode donut opened for a later launch or the service forgives one loss of
 focus within a second of opening (`ActivationGrace`): Filee becoming the active app can take focus away from it.
 
 ## Explorer integration
