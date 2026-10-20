@@ -72,8 +72,9 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
         return
         [
             .. from source in videos from target in videoTargets select new ConversionEdge(source, target),
-            // Audio track out of a video: never for an image converted to video first (pictures can't become sounds).
-            .. from source in videos from target in MediaEncoding.AudioTargets.Keys select new ConversionEdge(source, target, NotForImageSources: true),
+            // A picture turned into a video has no sound: picture → video → audio would only make a silent file.
+            .. from source in videos from target in MediaEncoding.AudioTargets.Keys
+               select new ConversionEdge(source, target, NotForImageSources: true),
             // "Save every frame": a folder of numbered pictures, only when a preset asks for it (never in another route).
             .. from source in videos from target in MediaOptions.FrameTargets select new ConversionEdge(source, target, FrameSequence: true),
             // Subtitles out of a video. SRT is the hub to the other subtitle formats (the subtitle engine takes it on),

@@ -68,7 +68,7 @@ public sealed partial class DonutMenu : Control
     public static readonly StyledProperty<bool> ReserveSubRingProperty =
         AvaloniaProperty.Register<DonutMenu, bool>(nameof(ReserveSubRing));
 
-    /// <summary>The theme's softness (Styles/Soft.axaml binds SoftRadius): rounds the corners of the slices.</summary>
+    /// <summary>The theme's softness (Styles/Controls.axaml binds SoftRadius): rounds the corners of the slices.</summary>
     public static readonly StyledProperty<CornerRadius> CornerRadiusProperty =
         AvaloniaProperty.Register<DonutMenu, CornerRadius>(nameof(CornerRadius));
 

@@ -77,18 +77,6 @@ public sealed class ThemeService
     /// <summary>True when the Material You theme is currently applied.</summary>
     public bool IsMaterialYou => CurrentStyle == ThemeStyle.MaterialYou;
 
-    /// <summary>Embedded Noto fonts (see build/fetch-fonts.ps1). Missing files fall back to system fonts.</summary>
-    private const string Latin = "fonts:Filee#Noto Sans";
-    private const string Devanagari = "fonts:Filee#Noto Sans Devanagari";
-
-    /// <summary>Each CJK region's embedded font and its system fonts (Windows, then macOS).</summary>
-    private static readonly (string Embedded, string System) Japanese =
-        ("fonts:Filee#Noto Sans JP", "Yu Gothic UI, Meiryo, Hiragino Sans");
-    private static readonly (string Embedded, string System) Korean =
-        ("fonts:Filee#Noto Sans KR", "Malgun Gothic, Apple SD Gothic Neo");
-    private static readonly (string Embedded, string System) Chinese =
-        ("fonts:Filee#Noto Sans SC", "Microsoft YaHei, PingFang SC");
-
     /// <summary>
     /// theme.json colour names → the brushes in Styles/Soft.axaml they replace. Must cover exactly
     /// <see cref="CustomTheme.Keys"/> (a test checks).
@@ -123,7 +111,7 @@ public sealed class ThemeService
         };
 
         // Accent colour + derived shades. Fluent controls read the System* keys.
-        var accent = Color.TryParse(theme.Accent, out var parsed) ? parsed : Color.Parse(isM3 ? "#6750A4" : "#7F77DD");
+        var accent = Color.TryParse(theme.Accent, out var parsed) ? parsed : Color.Parse(isM3 ? "#6750A4" : SoftPalette.DefaultAccent);
 
         var isDarkVariant = theme.Mode switch
         {
@@ -151,12 +139,12 @@ public sealed class ThemeService
             res["OnSecondaryContainerBrush"] = new SolidColorBrush(activeM3.OnSecondaryContainer);
 
             res["SystemAccentColor"] = activeM3.Primary;
-            res["SystemAccentColorLight1"] = Shade(activeM3.Primary, 0.15);
-            res["SystemAccentColorLight2"] = Shade(activeM3.Primary, 0.30);
-            res["SystemAccentColorLight3"] = Shade(activeM3.Primary, 0.45);
-            res["SystemAccentColorDark1"] = Shade(activeM3.Primary, -0.15);
-            res["SystemAccentColorDark2"] = Shade(activeM3.Primary, -0.30);
-            res["SystemAccentColorDark3"] = Shade(activeM3.Primary, -0.45);
+            res["SystemAccentColorLight1"] = SoftPalette.Shade(activeM3.Primary, 0.15);
+            res["SystemAccentColorLight2"] = SoftPalette.Shade(activeM3.Primary, 0.30);
+            res["SystemAccentColorLight3"] = SoftPalette.Shade(activeM3.Primary, 0.45);
+            res["SystemAccentColorDark1"] = SoftPalette.Shade(activeM3.Primary, -0.15);
+            res["SystemAccentColorDark2"] = SoftPalette.Shade(activeM3.Primary, -0.30);
+            res["SystemAccentColorDark3"] = SoftPalette.Shade(activeM3.Primary, -0.45);
 
             // Fluent control brush keys harmonized with M3 roles
             res["SliderTrackFill"] = new SolidColorBrush(activeM3.Primary);
@@ -196,21 +184,9 @@ public sealed class ThemeService
         }
         else
         {
-            res["AccentColor"] = accent;
-            res["AccentBrush"] = new SolidColorBrush(accent);
-            res["AccentSoftBrush"] = new SolidColorBrush(accent, isDarkVariant ? 0.22 : 0.16);
-            res["AccentFaintBrush"] = new SolidColorBrush(accent, isDarkVariant ? 0.12 : 0.08);
-            res["AccentStrongBrush"] = new SolidColorBrush(isDarkVariant
-                ? (MaterialYouPalette.Luminance(accent) > 0.45 ? accent : Shade(accent, 0.35))
-                : (MaterialYouPalette.Luminance(accent) < 0.45 ? accent : Shade(accent, -0.35)));
-            res["OnAccentBrush"] = new SolidColorBrush(MaterialYouPalette.TextOn(accent));
-            res["SystemAccentColor"] = accent;
-            res["SystemAccentColorLight1"] = Shade(accent, 0.15);
-            res["SystemAccentColorLight2"] = Shade(accent, 0.30);
-            res["SystemAccentColorLight3"] = Shade(accent, 0.45);
-            res["SystemAccentColorDark1"] = Shade(accent, -0.15);
-            res["SystemAccentColorDark2"] = Shade(accent, -0.30);
-            res["SystemAccentColorDark3"] = Shade(accent, -0.45);
+            SoftPalette.ApplyAccent(res, accent);
+            SoftPalette.ApplyCornerRadius(res, theme.CornerRadius);
+            res["PillRadius"] = new CornerRadius(999);
 
             res["DropZoneBackgroundBrush"] = isDarkVariant
                 ? new SolidColorBrush(Color.Parse("#252523"))
@@ -242,19 +218,11 @@ public sealed class ThemeService
             res.Remove("CheckBoxCheckBackgroundStrokeChecked");
             res.Remove("CheckBoxCheckGlyphForegroundChecked");
 
-            var r = Math.Clamp(theme.CornerRadius, 0, 28);
-            res["SoftRadius"] = new CornerRadius(r);
-            res["SoftRadiusSmall"] = new CornerRadius(Math.Round(r * 0.55));
-            res["SoftRadiusLarge"] = new CornerRadius(Math.Round(r * 1.35));
-            res["PillRadius"] = new CornerRadius(999);
-            res["ControlCornerRadius"] = new CornerRadius(Math.Round(r * 0.55));
-            res["OverlayCornerRadius"] = new CornerRadius(r);
-
             ApplyCustom(res, ThemeVariant.Light, custom?.Light);
             ApplyCustom(res, ThemeVariant.Dark, custom?.Dark);
         }
 
-        res["AppFontFamily"] = FontFamily.Parse(FontFamilies(language));
+        res["AppFontFamily"] = SoftPalette.FontFamilyFor(language);
 
         // Update all active windows
         lock (s_openWindows)
@@ -298,21 +266,10 @@ public sealed class ThemeService
         res.ThemeDictionaries[variant] = dict;
     }
 
-    /// <summary>Replaces (or, with no colours, removes) the user's colours for one variant.</summary>
-    /// <summary>
-    /// The UI font chain. Han characters look different in Japanese, Korean and Chinese fonts, so the UI language's
-    /// CJK fonts come first, embedded and system ones alike; other languages keep Korean first.
-    /// </summary>
-    internal static string FontFamilies(string language)
-    {
-        (string Embedded, string System)[] cjk =
-            language.StartsWith("ja", StringComparison.OrdinalIgnoreCase) ? [Japanese, Korean, Chinese]
-            : language.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? [Chinese, Korean, Japanese]
-            : [Korean, Chinese, Japanese];
-        return $"{Latin}, {Devanagari}, {string.Join(", ", cjk.Select(f => f.Embedded))}, Segoe UI, Nirmala UI, "
-            + $"{string.Join(", ", cjk.Select(f => f.System))}, Kohinoor Devanagari, sans-serif";
-    }
+    /// <summary>The UI font chain for <paramref name="language"/> (see <see cref="SoftPalette.FontFamilies"/>).</summary>
+    internal static string FontFamilies(string language) => SoftPalette.FontFamilies(language);
 
+    /// <summary>Replaces (or, with no colours, removes) the user's colours for one variant.</summary>
     private static void ApplyCustom(IResourceDictionary res, ThemeVariant variant, IReadOnlyDictionary<string, string>? colors)
     {
         var dictionary = new ResourceDictionary();
@@ -327,14 +284,8 @@ public sealed class ThemeService
     }
 
     /// <summary>Lightens (amount &gt; 0) or darkens (amount &lt; 0) a colour.</summary>
-    public static Color Shade(Color c, double amount)
-    {
-        byte Mix(byte v) => amount >= 0
-            ? (byte)Math.Round(v + (255 - v) * amount)
-            : (byte)Math.Round(v * (1 + amount));
-        return Color.FromArgb(c.A, Mix(c.R), Mix(c.G), Mix(c.B));
-    }
+    public static Color Shade(Color c, double amount) => SoftPalette.Shade(c, amount);
 
     /// <summary>Relative luminance 0..1 (sRGB approximation).</summary>
-    public static double Luminance(Color c) => (0.2126 * c.R + 0.7152 * c.G + 0.0722 * c.B) / 255.0;
+    public static double Luminance(Color c) => SoftPalette.Luminance(c);
 }

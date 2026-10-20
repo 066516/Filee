@@ -399,7 +399,7 @@ internal readonly record struct HTabStop(int Position, HTabKind Kind, string Lea
 /// <summary>Character formatting; null members keep the 한글 style's value.</summary>
 /// <param name="Size">Font size in 1/100 pt.</param>
 /// <param name="Font">Font for Latin text.</param>
-/// <param name="EastAsianFont">Font for Hangul / Hanja / Japanese text.</param>
+/// <param name="EastAsianFont">Font for Hangul / Hanja / Japanese text and CJK punctuation (the symbol slot).</param>
 /// <param name="Color">Text colour "#RRGGBB".</param>
 /// <param name="Shade">Background (highlight) colour "#RRGGBB".</param>
 internal readonly record struct HCharFormat(

@@ -167,6 +167,12 @@ public sealed class AppSettings
     /// <summary>Newest version the user was already told about, so the update notice shows once per release.</summary>
     public string? NotifiedUpdateVersion { get; set; }
 
+    /// <summary>
+    /// The version whose "What's new" slides were last shown (or that was installed fresh, which needs none). Null in
+    /// settings from before the slides existed: Filee was updated from an older version.
+    /// </summary>
+    public string? WhatsNewSeenVersion { get; set; }
+
     /// <summary>Engine package id → the new version the engine update notice was shown for (once per version).</summary>
     public Dictionary<string, string> NotifiedEngineVersions { get; set; } = [];
 
