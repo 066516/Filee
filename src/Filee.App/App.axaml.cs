@@ -151,8 +151,9 @@ public partial class App : Application
                 if (e.Kind == ActivationKind.Reopen)
                     Dispatcher.UIThread.Post(() =>
                     {
-                        if (!store.Settings.ShowMenuBarIcon)
-                            AppHost.Get<WindowService>().ShowMain(store.Settings.FirstRunCompleted ? null : "home");
+                        // Clicking the Dock icon or opening Filee again in Finder brings the window back, as Mac apps do
+                        // (#232), also while it only runs in the background.
+                        AppHost.Get<WindowService>().ShowMain(store.Settings.FirstRunCompleted ? null : "home");
                         if (!store.Settings.ShowInDock && !platform.TrySetShowInDock(false))
                             log.LogWarning("Could not restore the macOS Dock visibility policy after reopening Filee");
                     });
