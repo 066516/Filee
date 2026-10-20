@@ -42,12 +42,12 @@ public sealed record PreviousInstall(
                      || File.Exists(Path.Combine(folder, SetupNames.InnoUninstallerFiles[0]));
         var tasks = registry.Get(hive, key, SetupNames.TasksValue)?.Text ?? registry.Get(hive, key, SetupNames.InnoTasksValue)?.Text;
         var language = registry.Get(hive, key, SetupNames.LanguageValue)?.Text ?? registry.Get(hive, key, SetupNames.InnoLanguageValue)?.Text;
+        // Inno Setup leaves the task list empty after an update that showed no options: unknown, not "none".
         return new PreviousInstall(
             folder,
             registry.Get(hive, key, "DisplayVersion")?.Text,
             scope,
             byInno,
-            // Inno Setup leaves the value empty after an update that showed no options.
             string.IsNullOrWhiteSpace(tasks) ? null : SetupTasks.FromInnoString(tasks),
             language,
             InstallRecord.Read(folder));
