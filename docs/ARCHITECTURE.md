@@ -250,12 +250,13 @@ have no semibold) instead of the app's embedded Noto fonts.
 
 - **Look**: one borderless 640×420 card (`SetupWindow`, its own window buttons, drag to move) whose states crossfade
   (`Views/StateViews.axaml`): Welcome (the logo assembling itself, `DonutLogo`; one Install button; an Options sheet
-  sliding up with the language, folder, options and engines), Progress (feature clips with captions, crossfading every
-  6 s, a thin `ShimmerBar`), Done (`CheckBurst`, "Launch Filee"), Failed ("Copy details") and the uninstaller's
-  states. `SoftBackdrop` draws slowly drifting accent blobs behind it. The clips are animated WebP files
-  (`Assets/Showcase`, ~330 KB each) played by `AnimatedWebp` (SkiaSharp decodes one frame at a time). Every animation
-  runs on `FrameLoop` (only while the window is visible and not minimized) and turns into its still version when
-  Windows' "Show animations" is off (`SetupMotion`). `/SILENT` shows only the progress card, without clips.
+  sliding up with the language, folder, options and engines), Progress (the new version's "What's new" slides, a thin
+  `ShimmerBar`), Done (`CheckBurst`, "Launch Filee"), Failed ("Copy details") and the uninstaller's states.
+  `SoftBackdrop` draws slowly drifting accent blobs behind it. The slides are the app's (`SlideShow`, `AnimatedImage`,
+  `SlideDeck` and `Assets/WhatsNew`, linked): the newest deck up to the version being installed, advancing every 6 s.
+  Every animation runs only while the window is visible and not minimized (`FrameLoop`) and is a still picture when
+  Windows' "Show animations" is off (`SetupMotion`). `/SILENT` shows only the progress card, without slides. After an
+  update Setup starts Filee with `--background --whats-new`, so the slides show once in the app as well.
 
 - **Build** (`build/build-installer.ps1`): Setup is published as one self-contained, trimmed file
   (`-p:FileeSetupPublish=true`), so it runs on Windows 10 1809+ x64 without .NET. `build/tools/make-setup.cs` appends
