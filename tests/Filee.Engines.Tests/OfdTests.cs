@@ -221,16 +221,22 @@ public class OfdTests(EngineFixture fx) : IClassFixture<EngineFixture>
             Assert.Single(xml.Descendants(), d => d.Name.LocalName == "tbl");
             Assert.Contains("SimSun", xml.ToString());
             Assert.Contains(zip.Entries, e => e.FullName.StartsWith("word/media/", StringComparison.Ordinal));
+
+            // The text in document order is the invoice's reading order.
+            var text = string.Concat(xml.Descendants().Where(d => d.Name.LocalName is "t" or "p").Select(d => d.Name.LocalName == "p" ? "\n" : d.Value));
+            string[] order = ["电子发票（普通发票）", "发票号码：25442000000123456789", "购买方信息", "名称：成都双流科技有限公司", "销售方信息",
+                "*印刷品*转印组", "件套装", "*信息技术服务*软件维护费", "合计", "价税合计（大写）", "¥325.00", "备注", "开票人：张三"];
+            var positions = order.Select(s => text.IndexOf(s, StringComparison.Ordinal)).ToList();
+            Assert.DoesNotContain(-1, positions);
+            Assert.Equal(positions.Order(), positions);
         }
 
+        // TXT takes a route that depends on the platform's engines (through HWPX and Unhwp where it runs).
         job = await fx.ConvertAsync([MakeInvoice(fx.NewFolder())], new Preset { TargetFormat = "txt" });
         Assert.Equal(JobState.Completed, job.State);
-        var text = await File.ReadAllTextAsync(job.Outputs.Single(), TestContext.Current.CancellationToken);
-        string[] order = ["电子发票（普通发票）", "发票号码：25442000000123456789", "购买方信息", "名称：成都双流科技有限公司", "销售方信息",
-            "*印刷品*转印组", "件套装", "*信息技术服务*软件维护费", "合计", "价税合计（大写）", "¥325.00", "备注", "开票人：张三"];
-        var positions = order.Select(s => text.IndexOf(s, StringComparison.Ordinal)).ToList();
-        Assert.DoesNotContain(-1, positions);
-        Assert.Equal(positions.Order(), positions);
+        var txt = await File.ReadAllTextAsync(job.Outputs.Single(), TestContext.Current.CancellationToken);
+        Assert.Contains("发票号码：25442000000123456789", txt);
+        Assert.Contains("开票人：张三", txt);
     }
 
     // ───────────────────────── WPS document ─────────────────────────
