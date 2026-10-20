@@ -118,6 +118,15 @@ public class WhatsNewTests
     }
 
     [Fact]
+    public void The_installer_after_an_update_gets_the_slides_even_without_settings()
+    {
+        // The settings folder was deleted before updating: no first-run flag, but Setup says it was an update.
+        var decision = WhatsNewService.Decide(null, firstRunCompleted: false, V2, Decks, updated: true);
+        Assert.Equal(V2, decision.Show?.Version);
+        Assert.Equal(default, WhatsNewService.Decide("2.0.0", false, V2, Decks, updated: true));
+    }
+
+    [Fact]
     public void An_update_from_before_the_slides_shows_this_versions_deck()
     {
         // Settings from 1.x have no WhatsNewSeenVersion, but the first run was long done.

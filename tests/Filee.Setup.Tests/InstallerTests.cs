@@ -88,6 +88,23 @@ public class InstallerTests
     }
 
     [Fact]
+    public void An_update_leaves_a_current_menu_registration_alone()
+    {
+        // Registering the same package again fails while Explorer has the menu loaded (0x80073D02).
+        using var bench = new SetupBench();
+        bench.System.ExplorerMenuSupported = true;
+        Assert.True(bench.Install().Succeeded);
+        bench.System.Calls.Clear();
+        bench.System.MenuCurrent = true;
+        bench.System.RegisterError = "0x80073D02 the package is in use";
+        var previous = PreviousInstall.Find(bench.Registry, InstallScope.Machine)!;
+        var result = bench.Install(bench.Choices(previous.CurrentTasks(bench.Registry, bench.System, bench.Paths)) with { Engines = [] }, previous);
+        Assert.True(result.Succeeded, result.Error?.ToString());
+        Assert.Empty(result.Warnings);
+        Assert.DoesNotContain(bench.System.Calls, c => c.Contains("register-menu", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Updating_over_filee_1_x_takes_the_inno_setup_installation_over()
     {
         using var bench = new SetupBench();

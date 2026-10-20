@@ -684,7 +684,7 @@
   "installer.install": "Instalar",
   "installer.update": "Actualizar",
   "installer.welcome.fresh": "El instalador instalará Filee {0} en este equipo.",
-  "installer.welcome.update": "Filee {0} está instalado. El instalador lo actualizará a {1}; tus ajustes, ajustes preestablecidos y motores se mantienen.",
+  "installer.welcome.update": "Filee {0} está instalado.\nEl instalador lo actualizará a {1}; tus ajustes, ajustes preestablecidos y motores se mantienen.",
   "installer.welcome.license": "Filee es libre y de código abierto (licencia MIT).",
   "installer.language": "Idioma",
   "installer.options.title": "Opciones",

@@ -684,7 +684,7 @@
   "installer.install": "इंस्टॉल करें",
   "installer.update": "अपडेट करें",
   "installer.welcome.fresh": "सेटअप इस कंप्यूटर पर Filee {0} इंस्टॉल करेगा।",
-  "installer.welcome.update": "Filee {0} पहले से इंस्टॉल है। सेटअप इसे {1} में अपडेट करेगा; आपकी सेटिंग्स, प्रीसेट और इंजन वैसे ही रहेंगे।",
+  "installer.welcome.update": "Filee {0} पहले से इंस्टॉल है।\nसेटअप इसे {1} में अपडेट करेगा; आपकी सेटिंग्स, प्रीसेट और इंजन वैसे ही रहेंगे।",
   "installer.welcome.license": "Filee मुफ़्त और ओपन सोर्स है (MIT लाइसेंस)।",
   "installer.language": "भाषा",
   "installer.options.title": "विकल्प",

@@ -704,7 +704,7 @@
   "installer.install": "安装",
   "installer.update": "更新",
   "installer.welcome.fresh": "安装程序将在这台电脑上安装 Filee {0}。",
-  "installer.welcome.update": "已安装 Filee {0}。安装程序会将其更新到 {1}，设置、预设和引擎保持不变。",
+  "installer.welcome.update": "已安装 Filee {0}。\n安装程序会将其更新到 {1}，设置、预设和引擎保持不变。",
   "installer.welcome.license": "Filee 是免费的开源软件（MIT 许可证）。",
   "installer.language": "语言",
   "installer.options.title": "选项",

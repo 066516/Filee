@@ -5,7 +5,8 @@
 // (the first-run setup introduces Filee; the slides would only repeat it), so the current version counts as seen.
 // After that, WhatsNewSeenVersion says which version's slides were seen; null means the settings come from a Filee
 // older than the slides, i.e. it was updated. A version at or below the one seen (same version, downgrade) shows nothing
-// and never lowers what was seen.
+// and never lowers what was seen. Started by the installer after an update (--whats-new), it is an update whatever the
+// settings say: they may have been deleted, or come from a Filee older than the first-run flag.
 
 using Avalonia.Threading;
 using Filee.App.Controls;
@@ -39,9 +40,10 @@ public sealed class WhatsNewService(UserDataStore store, WindowService windows, 
     internal readonly record struct Decision(SlideDeck? Show, Version? Remember);
 
     /// <summary>The rules described at the top of this file, without side effects.</summary>
-    internal static Decision Decide(string? seenSetting, bool firstRunCompleted, Version current, IEnumerable<SlideDeck> decks)
+    internal static Decision Decide(string? seenSetting, bool firstRunCompleted, Version current, IEnumerable<SlideDeck> decks,
+        bool updated = false)
     {
-        if (!firstRunCompleted)
+        if (!firstRunCompleted && !updated)
             return new Decision(null, current);
         var seen = SlideDeck.TryParseVersion(seenSetting);
         if (seen is not null && current <= seen)
@@ -53,13 +55,14 @@ public sealed class WhatsNewService(UserDataStore store, WindowService windows, 
     /// <summary>
     /// Called once at start-up, before the first run is marked complete. <paramref name="background"/> (started at
     /// sign-in, or after an update without <c>--whats-new</c>) keeps the slides until the main window opens.
+    /// <paramref name="updated"/>: the installer started Filee after an update (<c>--whats-new</c>).
     /// </summary>
-    public void CheckAtStartup(bool background)
+    public void CheckAtStartup(bool background, bool updated = false)
     {
         Decision decision;
         try
         {
-            decision = Decide(store.Settings.WhatsNewSeenVersion, store.Settings.FirstRunCompleted, CurrentVersion, Decks);
+            decision = Decide(store.Settings.WhatsNewSeenVersion, store.Settings.FirstRunCompleted, CurrentVersion, Decks, updated);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {

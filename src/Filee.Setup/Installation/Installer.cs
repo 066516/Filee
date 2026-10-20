@@ -346,7 +346,8 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
 
     /// <summary>
     /// A fresh install registers the top-level menu when ticked (removing an older registration first, which may point
-    /// to another folder) and removes it when not; an update keeps what was chosen in Filee and refreshes it.
+    /// to another folder) and removes it when not; an update keeps what was chosen in Filee and refreshes it, unless
+    /// it is registered for this folder at this version already.
     /// Returns Windows' error when registering failed.
     /// </summary>
     private string? UpdateExplorerMenu(string folder, InstallChoices choices, bool update, bool wasRegistered)
@@ -357,7 +358,11 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
             return null;
         }
         string? error = null;
-        if (update ? wasRegistered : choices.Tasks.ContextMenu && choices.Tasks.ModernMenu)
+        if (update && wasRegistered && System.IsExplorerMenuCurrent(folder))
+        {
+            Log.Info("The Windows 11 Explorer menu package is registered already; Explorer loads the new menu by itself");
+        }
+        else if (update ? wasRegistered : choices.Tasks.ContextMenu && choices.Tasks.ModernMenu)
         {
             Log.Info("Registering the Windows 11 Explorer menu package");
             error = System.RegisterExplorerMenu(folder, removeFirst: !update);
