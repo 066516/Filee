@@ -161,7 +161,10 @@ public class DownloadBadgeTests
             var model = AppHost.Get<RadialViewModel>();
             // As the drop zone opens it (the drag-mode window stays see-through until a drag brings files).
             radial.ShowForFiles(500, 500, [Path.Combine(Path.GetTempPath(), "cat.png")]);
+            // Showing reads the system's setting again (Motion.Refresh): snap the badge for the checks below.
+            Motion.Set(false);
             var window = radial.Window!;
+            Assert.Contains("reduced-motion", window.Classes);
             try
             {
                 window.DonutControl.BeginProgress();
