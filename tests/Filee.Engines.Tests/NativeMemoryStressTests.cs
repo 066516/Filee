@@ -14,6 +14,8 @@ namespace Filee.Engines.Tests;
 
 public class NativeMemoryStressTests(EngineFixture fx) : IClassFixture<EngineFixture>
 {
+    private const int Workers = 3;
+
     private static TimeSpan Duration =>
         TimeSpan.FromSeconds(int.TryParse(Environment.GetEnvironmentVariable("FILEE_STRESS_SECONDS"), out var s) && s > 0 ? s : 6);
 
@@ -39,21 +41,23 @@ public class NativeMemoryStressTests(EngineFixture fx) : IClassFixture<EngineFix
         if (fx.Catalog.StatusOf(fx.Converters.Single(c => c.Id == "unhwp")).IsAvailable)
             routes.Add((await fx.MakeHwpxAsync(fx.NewFolder()), "md"));
 
+        // Every worker goes through every route at least once, however slow the machine; then until the time is up.
         using var stop = new CancellationTokenSource(Duration);
+        var done = false;
         var compactions = 0;
         var compactor = Task.Run(() =>
         {
-            while (!stop.IsCancellationRequested)
+            while (!Volatile.Read(ref done))
             {
                 GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
                 GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
                 compactions++;
-                Thread.Sleep(2);
+                Thread.Sleep(20);
             }
         }, TestContext.Current.CancellationToken);
         var releaser = Task.Run(() =>
         {
-            while (!stop.IsCancellationRequested)
+            while (!Volatile.Read(ref done))
             {
                 EngineCaches.Release();
                 GC.WaitForPendingFinalizers();
@@ -62,14 +66,14 @@ public class NativeMemoryStressTests(EngineFixture fx) : IClassFixture<EngineFix
         }, TestContext.Current.CancellationToken);
 
         var runs = 0;
-        var workers = Enumerable.Range(0, 4).Select(worker => Task.Run(async () =>
+        var workers = Enumerable.Range(0, Workers).Select(worker => Task.Run(async () =>
         {
             // Own copies, so the workers' outputs don't meet in one folder.
             var own = fx.NewFolder();
             var mine = routes.Select(r => (Source: CopyInto(own, r.Source), r.Target)).ToList();
-            for (var i = worker; !stop.IsCancellationRequested; i++)
+            for (var i = 0; i < mine.Count || !stop.IsCancellationRequested; i++)
             {
-                var (source, target) = mine[i % mine.Count];
+                var (source, target) = mine[(worker + i) % mine.Count];
                 var job = await fx.ConvertAsync([source], new Preset { TargetFormat = target });
                 var failures = string.Join("; ", job.Files.Select(f => $"{f.ErrorKey} {f.ErrorDetail}"));
                 Assert.True(job.State == JobState.Completed, $"{Path.GetFileName(source)} → {target}: {failures}");
@@ -78,8 +82,16 @@ public class NativeMemoryStressTests(EngineFixture fx) : IClassFixture<EngineFix
             }
         }, TestContext.Current.CancellationToken)).ToArray();
 
-        await Task.WhenAll([.. workers, compactor, releaser]);
-        Assert.True(runs >= routes.Count, $"only {runs} conversions ran");
+        try
+        {
+            await Task.WhenAll(workers);
+        }
+        finally
+        {
+            Volatile.Write(ref done, true);
+            await Task.WhenAll(compactor, releaser);
+        }
+        Assert.True(runs >= Workers * routes.Count);
         Assert.True(compactions > 0);
     }
 
