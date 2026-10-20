@@ -5,8 +5,9 @@
 
 .DESCRIPTION
   Without -PublishDir the app is published first (Release, self-contained, -p:FileeRelease=true) into
-  publish/win-x64, together with the Windows 11 Explorer menu extension (build-explorer-menu.ps1) and the bundled
-  small engines rhwp and 7-Zip (fetch-engines.ps1); the large engines are downloaded by the app (engines.json).
+  publish/win-x64, together with the Windows 11 Explorer menu extension (build-explorer-menu.ps1), the bundled
+  small engines rhwp and 7-Zip and the Microsoft C++ runtime DLLs next to rhwp.exe and Filee.exe
+  (fetch-engines.ps1); the large engines are downloaded by the app (engines.json).
 
   Inno Setup 7 is downloaded once into build/.cache (pinned, SHA-256 verified) and set up there in its own portable
   mode: nothing is installed or registered on the build machine. The installer's engine page is generated from
@@ -110,11 +111,19 @@ elseif (-not $PublishDir) {
     Set-Content (Join-Path $PublishDir 'cli\filee.cmd') "@`"%~dp0..\filee-cli.exe`" %*" -Encoding ascii
     # Next to Filee.exe: the Explorer menu package's external location is the install folder.
     & (Join-Path $PSScriptRoot 'build-explorer-menu.ps1') -Destination $PublishDir -Version $Version
-    # Only the small rhwp and 7-Zip are bundled; the app downloads the others when the user picks them.
-    & (Join-Path $PSScriptRoot 'fetch-engines.ps1') -Only rhwp, 7zip -Destination (Join-Path $PublishDir 'engines')
+    # Only the small rhwp and 7-Zip are bundled; the app downloads the others when the user picks them. The Microsoft
+    # C++ runtime goes next to rhwp.exe and next to Filee.exe (unhwp.dll imports VCRUNTIME140.dll), so neither needs
+    # the Visual C++ Redistributable (#248).
+    & (Join-Path $PSScriptRoot 'fetch-engines.ps1') -Only rhwp, 7zip -Destination (Join-Path $PublishDir 'engines') -RuntimeTo $PublishDir
 }
 $PublishDir = (Resolve-Path $PublishDir).Path
 if (-not (Test-Path (Join-Path $PublishDir 'Filee.exe'))) { throw "Filee.exe is missing in $PublishDir" }
+if (-not $CheckOnly) {
+    # Without them rhwp and unhwp fail on PCs without the Visual C++ Redistributable (#248).
+    foreach ($dll in 'vcruntime140.dll', 'engines\rhwp\msvcp140.dll', 'engines\rhwp\vcruntime140.dll') {
+        if (-not (Test-Path (Join-Path $PublishDir $dll))) { throw "$dll is missing in $PublishDir (see fetch-engines.ps1 -RuntimeTo)" }
+    }
+}
 
 $iscc = Get-Iscc
 Push-Location $root

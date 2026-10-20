@@ -86,6 +86,7 @@ public static class BuiltInData
         .. DataPresets(),
         .. CodecAndSubtitlePresets(),
         .. ModelPresets(),
+        .. GeoPresets(),
         .. TracePresets(),
     ];
 
@@ -182,6 +183,19 @@ public static class BuiltInData
         new() { Id = "to-3mf", Name = "3MF", TargetFormat = "3mf" },
         new() { Id = "to-ply", Name = "PLY", TargetFormat = "ply" },
         new() { Id = "to-gltf", Name = "glTF", TargetFormat = "gltf" },
+    ];
+
+    /// <summary>
+    /// Geospatial vector targets (added in settings schema 25, see SettingsMigrations). CSV, the sixth slice of the
+    /// donut, is the spreadsheet preset. KMZ is a KML in a ZIP and is on no donut.
+    /// </summary>
+    public static List<Preset> GeoPresets() =>
+    [
+        new() { Id = "to-geojson", Name = "GeoJSON", TargetFormat = "geojson" },
+        new() { Id = "to-shp", Name = "Shapefile", TargetFormat = "shp" },
+        new() { Id = "to-kml", Name = "KML", TargetFormat = "kml" },
+        new() { Id = "to-gpx", Name = "GPX", TargetFormat = "gpx" },
+        new() { Id = "to-kmz", Name = "KMZ", TargetFormat = "kmz" },
     ];
 
     /// <summary>
@@ -357,6 +371,7 @@ public static class BuiltInData
         .. WithSubtitleProfile(CatalogProfiles()),
         DataProfile(),
         ModelProfile(),
+        GeoProfile(),
         new()
         {
             Id = "mixed", NameKey = "profile.mixed", IsFallback = true,
@@ -499,6 +514,15 @@ public static class BuiltInData
         Extensions = ExtensionsOf(FormatCategory.Model3D),
         PresetIds = ["to-glb", "to-stl", "to-obj", "to-3mf", "to-ply", "to-png"],
         BackPresetIds = ["to-gltf", "to-jpg", "to-webp", "zip-all"],
+    };
+
+    /// <summary>Geospatial vector data: Shapefile, GeoJSON, KML, KMZ, GPX (added in settings schema 25, after "models").</summary>
+    public static ToolbarProfile GeoProfile() => new()
+    {
+        Id = "geo",
+        NameKey = "profile.geo",
+        Extensions = ExtensionsOf(FormatCategory.Geo),
+        PresetIds = ["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz"],
     };
 
     /// <summary>Every file extension of the formats in <paramref name="category"/>.</summary>
