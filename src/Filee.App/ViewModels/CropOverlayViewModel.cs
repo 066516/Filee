@@ -381,7 +381,7 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
             return;
         }
         Summary = _failures.Count > 0
-            ? _loc.Format("toast.done_errors", _failures.Count, _processedSources.Count)
+            ? _loc.Format("toast.done_errors", _failures.Count, Queue.Count)
             : _loc["toast.done"];
         DoneCount = Queue.Count(q => q.State == CropItemState.Done);
         SkippedCount = Queue.Count(q => q.State == CropItemState.Skipped);
