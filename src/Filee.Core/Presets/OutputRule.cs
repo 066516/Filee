@@ -65,6 +65,14 @@ public sealed class OutputRule
     public bool KeepDates { get; set; }
 
     /// <summary>
+    /// The folder "next to the source" means for this job, instead of the source's own: files dragged from a browser
+    /// are saved there (or, when only the converted file is kept, into a work folder that is deleted afterwards).
+    /// Set per job, never saved with a preset.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? SourceFolder { get; set; }
+
+    /// <summary>
     /// Pack what a conversion writes for one file (a Shapefile's .shp, .shx, .dbf, .prj and .cpg, or a single file)
     /// into one ZIP named by the rule, instead of leaving the files themselves. The ZIP is the only output.
     /// </summary>

@@ -193,6 +193,9 @@ public sealed class AppSettings
     /// <summary>Where presets set to "Default" save (Settings → General).</summary>
     public DefaultOutputSettings DefaultOutput { get; set; } = new();
 
+    /// <summary>Where files dragged from a web browser are saved (Settings → General).</summary>
+    public BrowserDropSettings BrowserDrops { get; set; } = new();
+
     /// <summary>
     /// Optional engines the user already has: package id ("ffmpeg", "calibre", …) → the program they picked. Used
     /// instead of Filee's download (Settings → Engines).
@@ -282,4 +285,14 @@ public sealed class DefaultOutputSettings
     public string SubfolderName { get; set; } = "converted";
 
     public string CustomFolder { get; set; } = "";
+}
+
+/// <summary>Files dragged out of a web browser (Settings → General).</summary>
+public sealed class BrowserDropSettings
+{
+    /// <summary>Where they are saved; empty means the user's Downloads folder (looked up each time, as it can move).</summary>
+    public string Folder { get; set; } = "";
+
+    /// <summary>Keep only the converted file: the original goes into a work folder and is deleted after the conversion.</summary>
+    public bool SaveOnlyConverted { get; set; }
 }
