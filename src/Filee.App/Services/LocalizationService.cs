@@ -23,8 +23,8 @@ public sealed class LocalizationService : ILocalizer
         ("ko", "한국어"),
         ("zh-CN", "简体中文"),
         ("pl", "Polski"),
-        ("ru", "Русский"),
         ("hi", "हिन्दी"),
+        ("ru", "Русский"),
     ];
 
     private readonly ResourceDictionary _resources = new();
