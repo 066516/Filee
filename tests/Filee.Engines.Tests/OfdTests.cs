@@ -278,7 +278,9 @@ public class OfdTests(EngineFixture fx) : IClassFixture<EngineFixture>
     {
         var folder = fx.NewFolder();
         var document = OfdReader.Read(MakeWps(folder), Path.Combine(folder, "media"));
-        var blocks = document.Sections.Single().Blocks.OfType<HParagraph>().ToList();
+        // Each page starts with an empty line as high as the distance from the top margin to its first text.
+        var all = document.Sections.Single().Blocks.OfType<HParagraph>().ToList();
+        var blocks = all.Where(p => ParagraphText(p).Length > 0).ToList();
         Assert.Equal(["医院信息化建设方案", Body, "第一章 总体规划", "第二章 实施步骤"], blocks.Select(ParagraphText));
 
         var title = blocks[0];
@@ -294,8 +296,268 @@ public class OfdTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal(Hwp(11.2), body.Format.FirstLine);
         Assert.Equal("FangSong_GB2312", body.Inlines.OfType<HText>().First().Format.Font);
 
-        Assert.False(blocks[2].PageBreakBefore);
-        Assert.True(blocks[3].PageBreakBefore);
+        // The second page starts with a page break: on that empty line, which keeps the first text's distance.
+        var second = all.IndexOf(blocks[3]);
+        Assert.True(all[second - 1].PageBreakBefore);
+        Assert.Equal("", ParagraphText(all[second - 1]));
+        Assert.Equal(HLineSpacingKind.Fixed, all[second - 1].Format.LineSpacing!.Value.Kind);
+        Assert.Equal(0, blocks[3].Format.Before);
+        Assert.Single(all, p => p.PageBreakBefore);
+    }
+
+    // ───────────────────────── Structures of real invoice writers ─────────────────────────
+
+    /// <summary>
+    /// A one-page OFD around the given page content (and template content), with optional extra parts; page ID 1,
+    /// fonts 3 (宋体) and 5 (Courier New).
+    /// </summary>
+    private static string MakeOfd(string folder, string page, string template = "", Action<ZipArchive>? extra = null,
+        string docExtra = "", string bodyExtra = "", string area = "0 0 210 140")
+    {
+        var path = Path.Combine(folder, $"{Guid.NewGuid():N}.ofd");
+        using var zip = ZipFile.Open(path, ZipArchiveMode.Create);
+        Text(zip, "OFD.xml", $"""<?xml version="1.0" encoding="UTF-8"?><ofd:OFD {Ns} Version="1.1"><ofd:DocBody><ofd:DocRoot>Doc_0/Document.xml</ofd:DocRoot>{bodyExtra}</ofd:DocBody></ofd:OFD>""");
+        Text(zip, "Doc_0/Document.xml", $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <ofd:Document {Ns}><ofd:CommonData><ofd:PageArea><ofd:PhysicalBox>{area}</ofd:PhysicalBox></ofd:PageArea>
+            <ofd:PublicRes>PublicRes.xml</ofd:PublicRes><ofd:DocumentRes>DocumentRes.xml</ofd:DocumentRes><ofd:TemplatePage ID="2" BaseLoc="Tpls/Tpl_0/Content.xml"/></ofd:CommonData>
+            <ofd:Pages><ofd:Page ID="1" BaseLoc="Pages/Page_0/Content.xml"/></ofd:Pages>{docExtra}</ofd:Document>
+            """);
+        Text(zip, "Doc_0/PublicRes.xml", $"""<?xml version="1.0" encoding="UTF-8"?><ofd:Res {Ns} BaseLoc="Res"><ofd:Fonts><ofd:Font ID="3" FontName="宋体"/><ofd:Font ID="5" FontName="Courier New"/></ofd:Fonts></ofd:Res>""");
+        Text(zip, "Doc_0/Tpls/Tpl_0/Content.xml", $"""<?xml version="1.0" encoding="UTF-8"?><ofd:Page {Ns}><ofd:Content><ofd:Layer ID="1">{template}</ofd:Layer></ofd:Content></ofd:Page>""");
+        Text(zip, "Doc_0/Pages/Page_0/Content.xml", $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <ofd:Page {Ns}><ofd:Template TemplateID="2" ZOrder="Background"/><ofd:Content><ofd:Layer ID="1">{page}</ofd:Layer></ofd:Content></ofd:Page>
+            """);
+        extra?.Invoke(zip);
+        return path;
+    }
+
+    private static string TextObject(string text, double x, double y, double size = 3.175, int font = 3, string code = "", double width = 60) =>
+        $"""<ofd:TextObject ID="1" Boundary="{x} {y - size} {width} {size + 1}" Font="{font}" Size="{size}"><ofd:TextCode X="0" Y="{size}"{code}>{text}</ofd:TextCode></ofd:TextObject>""";
+
+    [Fact]
+    public void A_block_drawn_by_one_text_code_keeps_its_lines_and_a_short_delta_list_goes_on()
+    {
+        // The cipher text of a VAT invoice's 密码区: two lines of four characters in one TextCode — DeltaX steps back
+        // (-7.5) where DeltaY moves down a line. A title whose DeltaX gives one value for all its characters, and a
+        // text placed right where that advance ends: drawn with the font's advance instead, a gap would open.
+        var page = TextObject("ABCDEFGH", 20, 30, 4.2333, 5, """ DeltaX="g 3 2.5 -7.5 g 3 2.5" DeltaY="g 3 0 4.5 g 3 0" """)
+                   + TextObject("一二三四", 20, 60, 4, code: """ DeltaX="5" """)
+                   + TextObject("五六", 40.3, 60, 4, code: """ DeltaX="5" """);
+        var folder = fx.NewFolder();
+        var document = OfdReader.Read(MakeOfd(folder, page), Path.Combine(folder, "media"));
+        var paragraphs = document.Sections.Single().Blocks.OfType<HParagraph>().Where(p => ParagraphText(p).Length > 0).ToList();
+
+        Assert.Equal("ABCD\nEFGH", ParagraphText(paragraphs[0]));
+        Assert.Equal(HAlign.Left, paragraphs[0].Format.Align);
+        Assert.Equal(Hwp(4.5), paragraphs[0].Format.LineSpacing!.Value.Value); // the block's own line distance
+        Assert.Equal("一二三四五六", ParagraphText(paragraphs[1]));
+    }
+
+    [Fact]
+    public void A_page_value_between_template_characters_keeps_them_apart()
+    {
+        // 共 _ 页  第 _ 页 of a sales list: the template draws the characters, the page the numbers between them.
+        var template = TextObject("共", 160, 50, width: 4) + TextObject("页", 170, 50, width: 4)
+                       + TextObject("第", 180, 50, width: 4) + TextObject("页", 190, 50, width: 4)
+                       + TextObject("合", 20, 70, width: 4) + TextObject("计", 30, 70, width: 4);
+        var page = TextObject("4", 166, 50, width: 3) + TextObject("1", 186, 50, width: 3);
+        var folder = fx.NewFolder();
+        var document = OfdReader.Read(MakeOfd(folder, page, template), Path.Combine(folder, "media"));
+        var texts = document.Sections.Single().Blocks.OfType<HParagraph>().Select(ParagraphText).Where(t => t.Length > 0).ToList();
+
+        Assert.Matches(@"^共\s*4\s*页\s*第\s*1\s*页$", texts[0]);
+        Assert.Equal("合计", texts[1]); // a pair with nothing between it is still one word
+    }
+
+    [Fact]
+    public void Annotations_add_their_text_and_pictures()
+    {
+        var folder = fx.NewFolder();
+        var png = File.ReadAllBytes(EngineFixture.MakeImage(folder, "stamp.png", MagickFormat.Png, 60, 60));
+        var path = MakeOfd(folder, TextObject("正文内容", 20, 30), docExtra: "<ofd:Annotations>Annots/Annotations.xml</ofd:Annotations>", extra: zip =>
+        {
+            Text(zip, "Doc_0/DocumentRes.xml", $"""<?xml version="1.0"?><ofd:Res {Ns} BaseLoc="Res"><ofd:MultiMedias><ofd:MultiMedia ID="9" Type="Image"><ofd:MediaFile>stamp.png</ofd:MediaFile></ofd:MultiMedia></ofd:MultiMedias></ofd:Res>""");
+            Entry(zip, "Doc_0/Res/stamp.png", png);
+            Text(zip, "Doc_0/Annots/Annotations.xml", $"""<?xml version="1.0"?><ofd:Annotations {Ns}><ofd:Page PageID="1"><ofd:FileLoc>Page_0/Annotation.xml</ofd:FileLoc></ofd:Page></ofd:Annotations>""");
+            // A stamp with a picture and a note with text, both placed from their appearance's boundary; a hidden one.
+            Text(zip, "Doc_0/Annots/Page_0/Annotation.xml", $"""
+                <?xml version="1.0"?>
+                <ofd:PageAnnot {Ns}>
+                <ofd:Annot Type="Stamp" ID="10"><ofd:Appearance Boundary="150 20 30 30"><ofd:ImageObject ID="11" ResourceID="9" Boundary="0 0 30 30" CTM="30 0 0 30 0 0"/></ofd:Appearance></ofd:Annot>
+                <ofd:Annot Type="Highlight" ID="12"><ofd:Appearance Boundary="20 80 100 10">{TextObject("批注：已核对", 0, 5)}<ofd:PathObject ID="13" Boundary="0 0 100 10" Fill="true"><ofd:AbbreviatedData>M 0 0 L 100 0 L 100 10 L 0 10 C</ofd:AbbreviatedData></ofd:PathObject></ofd:Appearance></ofd:Annot>
+                <ofd:Annot Type="Link" ID="14" Visible="false"><ofd:Appearance Boundary="20 100 100 10">{TextObject("隐藏", 0, 5)}</ofd:Appearance></ofd:Annot>
+                </ofd:PageAnnot>
+                """);
+        });
+        var document = OfdReader.Read(path, Path.Combine(folder, "media"));
+        var paragraphs = document.Sections.Single().Blocks.OfType<HParagraph>().ToList();
+        var texts = paragraphs.Select(ParagraphText).Where(t => t.Length > 0).ToList();
+        Assert.Equal(["正文内容", "批注：已核对"], texts);
+        var stamp = paragraphs.SelectMany(p => p.Inlines).OfType<HImage>().Single();
+        Assert.Equal(Hwp(150), stamp.Anchor!.HorizontalOffset);
+        Assert.Equal(Hwp(20), stamp.Anchor!.VerticalOffset);
+    }
+
+    // DER for the seal tests: an SES_Signature (GM/T 0031 v4) reduced to what the reader walks through.
+    private static byte[] Der(byte tag, params byte[][] children)
+    {
+        var body = children.SelectMany(c => c).ToArray();
+        byte[] length = body.Length < 0x80 ? [(byte)body.Length]
+            : body.Length < 0x100 ? [0x81, (byte)body.Length]
+            : [0x82, (byte)(body.Length >> 8), (byte)body.Length];
+        return [tag, .. length, .. body];
+    }
+
+    private static byte[] Ia5(string text) => Der(0x16, Encoding.ASCII.GetBytes(text));
+
+    private static byte[] Signature(string type, byte[] picture) =>
+        Der(0x30,
+            Der(0x30, // TBS_Sign
+                Der(0x02, [4]),
+                Der(0x30, // SESeal
+                    Der(0x30, // SES_SealInfo
+                        Der(0x30, Ia5("ES"), Der(0x02, [4]), Ia5("TEST")),
+                        Ia5("50011200000323"),
+                        Der(0x30, Der(0x02, [3]), Der(0x0C, Encoding.UTF8.GetBytes("测试发票监制章"))),
+                        Der(0x30, Ia5(type), Der(0x04, picture), Der(0x02, [40]), Der(0x02, [30]))),
+                    Der(0x04, [1, 2, 3])),
+                Ia5("/Doc_0/Signs/Sign_0/Signature.xml")),
+            Der(0x04, [4, 5, 6]),
+            Der(0x03, [0, 7]));
+
+    /// <summary>A seal as its own small OFD package: a red oval and a rotated character, as tax-office seals are drawn.</summary>
+    private static byte[] SealPackage()
+    {
+        using var stream = new MemoryStream();
+        using (var zip = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            Text(zip, "OFD.xml", $"""<?xml version="1.0"?><ofd:OFD {Ns}><ofd:DocBody><ofd:DocRoot>Doc_0/Document.xml</ofd:DocRoot></ofd:DocBody></ofd:OFD>""");
+            Text(zip, "Doc_0/Document.xml", $"""<?xml version="1.0"?><ofd:Document {Ns}><ofd:CommonData><ofd:PublicRes>PublicRes_0.xml</ofd:PublicRes></ofd:CommonData><ofd:Pages><ofd:Page ID="1" BaseLoc="Pages/Page_0/Content.xml"/></ofd:Pages></ofd:Document>""");
+            Text(zip, "Doc_0/PublicRes_0.xml", $"""<?xml version="1.0"?><ofd:Res {Ns}><ofd:Fonts><ofd:Font ID="4" FontName="楷体"/></ofd:Fonts></ofd:Res>""");
+            Text(zip, "Doc_0/Pages/Page_0/Content.xml", $"""
+                <?xml version="1.0"?>
+                <ofd:Page {Ns}><ofd:Area><ofd:PhysicalBox>0 0 40 30</ofd:PhysicalBox></ofd:Area><ofd:Content><ofd:Layer ID="2">
+                <ofd:TextObject ID="3" Boundary="5 4 4 4" CTM="0.8 -0.6 0.6 0.8 0 0" Font="4" Size="3"><ofd:FillColor Value="255 0 0"/><ofd:TextCode X="0" Y="3">全</ofd:TextCode></ofd:TextObject>
+                <ofd:PathObject ID="4" Boundary="0 0 40 30" LineWidth="1.5"><ofd:StrokeColor Value="255 0 0"/>
+                <ofd:AbbreviatedData>M 39 15 B 39 23 30 29 20 29 B 10 29 1 23 1 15 B 1 7 10 1 20 1 B 30 1 39 7 39 15 C</ofd:AbbreviatedData></ofd:PathObject>
+                </ofd:Layer></ofd:Content></ofd:Page>
+                """);
+        }
+        return stream.ToArray();
+    }
+
+    [Fact]
+    public void Seals_in_signatures_float_where_the_stamp_is()
+    {
+        var folder = fx.NewFolder();
+        var png = File.ReadAllBytes(EngineFixture.MakeImage(folder, "seal.png", MagickFormat.Png, 50, 50));
+        var path = MakeOfd(folder, TextObject("重庆增值税电子普通发票", 60, 15, 6) + TextObject("购买方名称：个人", 20, 60),
+            bodyExtra: "<ofd:Signatures>/Doc_0/Signs/Signatures.xml</ofd:Signatures>", extra: zip =>
+            {
+                Text(zip, "Doc_0/Signs/Signatures.xml", $"""<?xml version="1.0"?><ofd:Signatures {Ns}><ofd:Signature ID="1" BaseLoc="Sign_0/Signature.xml"/><ofd:Signature ID="2" BaseLoc="/Doc_0/Signs/Sign_1/Signature.xml"/><ofd:Signature ID="3" BaseLoc="Sign_2/Signature.xml"/></ofd:Signatures>""");
+                // The tax office's supervision seal over the title (an OFD picture) and the seller's seal (PNG) over
+                // the buyer line; a third signature whose signed value is no DER at all.
+                Text(zip, "Doc_0/Signs/Sign_0/Signature.xml", $"""<?xml version="1.0"?><ofd:Signature {Ns}><ofd:SignedInfo><ofd:StampAnnot ID="1" PageRef="1" Boundary="85 5 40 30"/></ofd:SignedInfo><ofd:SignedValue>/Doc_0/Signs/Sign_0/SignedValue.dat</ofd:SignedValue></ofd:Signature>""");
+                Entry(zip, "Doc_0/Signs/Sign_0/SignedValue.dat", Signature("ofd", SealPackage()));
+                Text(zip, "Doc_0/Signs/Sign_1/Signature.xml", $"""<?xml version="1.0"?><ofd:Signature {Ns}><ofd:SignedInfo><ofd:StampAnnot ID="1" PageRef="1" Boundary="30 50 25 25"/><ofd:StampAnnot ID="2" PageRef="99" Boundary="30 50 25 25"/></ofd:SignedInfo><ofd:SignedValue>SignedValue.dat</ofd:SignedValue></ofd:Signature>""");
+                Entry(zip, "Doc_0/Signs/Sign_1/SignedValue.dat", Signature("PNG", png));
+                Text(zip, "Doc_0/Signs/Sign_2/Signature.xml", $"""<?xml version="1.0"?><ofd:Signature {Ns}><ofd:SignedInfo><ofd:StampAnnot ID="1" PageRef="1" Boundary="30 90 25 25"/></ofd:SignedInfo><ofd:SignedValue>SignedValue.dat</ofd:SignedValue></ofd:Signature>""");
+                Entry(zip, "Doc_0/Signs/Sign_2/SignedValue.dat", [0x30, 0x84, 0xFF, 0xFF, 0xFF, 0xFF, 0x16, 0x03]);
+            });
+
+        var document = OfdReader.Read(path, Path.Combine(folder, "media"));
+        var images = document.Sections.Single().Blocks.OfType<HParagraph>().SelectMany(p => p.Inlines).OfType<HImage>().ToList();
+        Assert.Equal(2, images.Count);
+
+        var office = images.Single(i => i.Anchor!.HorizontalOffset == Hwp(85));
+        Assert.Equal(Hwp(5), office.Anchor!.VerticalOffset);
+        Assert.Equal((Hwp(40), Hwp(30)), (office.Width, office.Height));
+        Assert.Equal("IN_FRONT_OF_TEXT", office.Anchor!.Wrap);
+        // The OFD seal is drawn: a transparent picture at its own size with the red oval on it.
+        using (var drawn = new MagickImage(office.Path))
+        {
+            Assert.Equal(MagickFormat.Png, drawn.Format);
+            Assert.Equal(480u, drawn.Width); // 40 mm at 12 pixels per mm
+            using var pixels = drawn.GetPixels();
+            var colours = pixels.ToByteArray(PixelMapping.RGBA)!;
+            var red = 0;
+            var clear = 0;
+            for (var i = 0; i < colours.Length; i += 4)
+            {
+                if (colours[i + 3] > 200 && colours[i] > 200 && colours[i + 1] < 80)
+                    red++;
+                else if (colours[i + 3] == 0)
+                    clear++;
+            }
+            Assert.True(red > 2000, $"{red} red pixels");
+            Assert.True(clear > colours.Length / 4 / 2, "the seal is drawn on a transparent background");
+        }
+
+        var seller = images.Single(i => i.Anchor!.HorizontalOffset == Hwp(30));
+        Assert.Equal(Hwp(50), seller.Anchor!.VerticalOffset);
+        Assert.Equal(File.ReadAllBytes(Path.Combine(folder, "seal.png")), File.ReadAllBytes(seller.Path));
+    }
+
+    /// <summary>
+    /// A sales list (销货清单) as tax writers draw it: rules between the columns only, so each column is one cell with
+    /// all rows; the subtotal row (小计) at the bottom of the first column and its amount at the bottom of another.
+    /// </summary>
+    [Fact]
+    public async Task Columns_of_a_list_keep_their_rows_level_and_the_page_its_height()
+    {
+        var template = new StringBuilder();
+        void Rule(double x0, double y0, double x1, double y1) =>
+            template.Append($"""<ofd:PathObject ID="1" Boundary="{x0} {y0} {Math.Max(1, x1 - x0)} {Math.Max(1, y1 - y0)}"><ofd:AbbreviatedData>M 0 0 L {x1 - x0} {y1 - y0}</ofd:AbbreviatedData></ofd:PathObject>""");
+        Rule(5, 30, 205, 30);
+        Rule(5, 37, 205, 37);
+        Rule(5, 110, 205, 110);
+        foreach (var x in new[] { 5.0, 15, 80, 140, 205 })
+            Rule(x, 30, x, 110);
+        template.Append(TextObject("序号", 6, 35, width: 8)).Append(TextObject("项目名称", 40, 35, width: 20))
+            .Append(TextObject("金额", 100, 35, width: 10)).Append(TextObject("税额", 160, 35, width: 10))
+            .Append(TextObject("小计", 6, 105, width: 8));
+        var page = new StringBuilder();
+        for (var row = 0; row < 3; row++)
+        {
+            var y = 43 + 7 * row;
+            page.Append(TextObject($"{row + 1}", 9, y, width: 3)).Append(TextObject("*餐饮服务*餐费", 16, y, width: 40))
+                .Append(TextObject("100.00", 125, y, width: 12)).Append(TextObject("6.00", 195, y, width: 8));
+        }
+        page.Append(TextObject("¥300.00", 122, 105.2, width: 14)).Append(TextObject("¥18.00", 192, 105.2, width: 12));
+        // Under the frame, right before the page's end: it stays on the page.
+        page.Append(TextObject("开票人：张三", 10, 136, width: 30));
+
+        var folder = fx.NewFolder();
+        var path = MakeOfd(folder, page.ToString(), template.ToString());
+        var document = OfdReader.Read(path, Path.Combine(folder, "media"));
+        var table = document.Sections.Single().Blocks.OfType<HTable>().Single();
+        Assert.True(table.Tight);
+        var columns = table.Rows[1].Cells;
+        Assert.Equal(4, columns.Count);
+
+        // Every column starts its first row at the same height and steps down the same way, so 3 and 100.00 and the
+        // subtotal and its amount stay level.
+        double Position(HCell cell, int paragraph) => cell.CellMargin!.Value.Top + cell.Blocks.OfType<HParagraph>().Take(paragraph + 1)
+            .Sum(p => p.Format.Before!.Value + p.Format.LineSpacing!.Value.Value) - cell.Blocks.OfType<HParagraph>().ElementAt(paragraph).Format.LineSpacing!.Value.Value;
+        Assert.All(columns, c => Assert.Equal(HVerticalAlign.Top, c.VerticalAlign));
+        var firstRow = columns.Select(c => Position(c, 0)).ToList();
+        Assert.All(firstRow, p => Assert.InRange(p, firstRow[0] - Hwp(0.3), firstRow[0] + Hwp(0.3)));
+        Assert.InRange(Position(columns[0], 3), Position(columns[2], 3) - Hwp(0.5), Position(columns[2], 3) + Hwp(0.5)); // 小计 | ¥300.00
+
+        // HWPX: no space under the table and no empty line of its own, so the last line does not go to a new page.
+        var job = await fx.ConvertAsync([path], new Preset { TargetFormat = "hwpx" });
+        Assert.Equal(JobState.Completed, job.State);
+        using (var zip = ZipFile.OpenRead(job.Outputs.Single()))
+        {
+            var section = new StreamReader(zip.GetEntry("Contents/section0.xml")!.Open()).ReadToEnd();
+            Assert.Contains("<hp:outMargin left=\"0\" right=\"0\" top=\"0\" bottom=\"0\"/><hp:inMargin", section);
+        }
+        // DOCX: the cells' top padding is written.
+        job = await fx.ConvertAsync([path], new Preset { TargetFormat = "docx" });
+        using (var zip = ZipFile.OpenRead(job.Outputs.Single()))
+            Assert.Contains("<w:tcMar><w:top ", new StreamReader(zip.GetEntry("word/document.xml")!.Open()).ReadToEnd());
     }
 
     // ───────────────────────── Hostile and refused packages ─────────────────────────
