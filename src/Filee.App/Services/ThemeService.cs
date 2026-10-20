@@ -149,22 +149,6 @@ public sealed class ThemeService
             res["OnPrimaryContainerBrush"] = new SolidColorBrush(activeM3.OnPrimaryContainer);
             res["SecondaryContainerBrush"] = new SolidColorBrush(activeM3.SecondaryContainer);
             res["OnSecondaryContainerBrush"] = new SolidColorBrush(activeM3.OnSecondaryContainer);
-            res["SurfaceBrush"] = new SolidColorBrush(activeM3.SurfaceContainer);
-            res["PageBrush"] = new SolidColorBrush(activeM3.SurfaceContainerLowest);
-            res["SurfaceAltBrush"] = new SolidColorBrush(activeM3.SurfaceContainerHigh);
-            res["SurfaceContainerBrush"] = new SolidColorBrush(activeM3.SurfaceContainer);
-            res["SurfaceContainerLowBrush"] = new SolidColorBrush(activeM3.SurfaceContainerLow);
-            res["SurfaceContainerHighBrush"] = new SolidColorBrush(activeM3.SurfaceContainerHigh);
-            res["SurfaceContainerHighestBrush"] = new SolidColorBrush(activeM3.SurfaceContainerHighest);
-            res["SubtleBorderBrush"] = new SolidColorBrush(activeM3.OutlineVariant);
-            res["TextPrimaryBrush"] = new SolidColorBrush(activeM3.OnSurface);
-            res["TextSecondaryBrush"] = new SolidColorBrush(activeM3.OnSurfaceVariant);
-            res["DangerBrush"] = new SolidColorBrush(activeM3.Danger);
-            res["SuccessBrush"] = new SolidColorBrush(activeM3.Success);
-            res["WarningBrush"] = new SolidColorBrush(activeM3.Warning);
-            res["CardShadow"] = activeM3.CardShadow;
-            res["DropZoneBackgroundBrush"] = new SolidColorBrush(activeM3.SurfaceContainerLow);
-            res["DropZoneBorderBrush"] = new SolidColorBrush(activeM3.OutlineVariant);
 
             res["SystemAccentColor"] = activeM3.Primary;
             res["SystemAccentColorLight1"] = Shade(activeM3.Primary, 0.15);
