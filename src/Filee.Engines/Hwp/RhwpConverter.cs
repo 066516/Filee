@@ -1,5 +1,10 @@
 // HWP / HWPX → PDF, HWP → HWPX and HWPX → HWP with the rhwp command line tool (MIT, https://github.com/edwardkim/rhwp).
 // Bundled under engines/rhwp. Works without Hancom Office, so there is no automation approval dialog.
+//
+// rhwp draws text one character after the other, left to right, without OpenType shaping: Arabic letters don't join
+// and run the wrong way, Indic vowel signs and conjuncts come out as separate glyphs with dotted circles (issues #185,
+// #202). Its PDF edges are marked Unshaped, so a document with such text (found by ComplexScripts) goes to LibreOffice,
+// or is refused with that reason when LibreOffice is missing.
 
 using System.IO.Compression;
 using Filee.Core.Conversion;
@@ -9,7 +14,7 @@ using Filee.Engines.Infrastructure;
 namespace Filee.Engines.Hwp;
 
 /// <summary>Renders HWP and HWPX documents to PDF and converts between the two 한글 formats.</summary>
-public sealed class RhwpConverter : IConverter
+public sealed class RhwpConverter : IConverter, ITextShapingCheck
 {
     // rhwp renders text slowly: about 1 s per KB of section XML (some 4 s per page of a novel) with rhwp 0.8.7 on an
     // i7-1185G7, so a 640-page book takes some 48 minutes; export-hwpx and convert take seconds for the same book. The
@@ -31,12 +36,18 @@ public sealed class RhwpConverter : IConverter
 
     public IReadOnlyList<ConversionEdge> Edges { get; } =
     [
-        new("hwp", "pdf"),
-        new("hwpx", "pdf"),
+        new("hwp", "pdf", Unshaped: true),
+        new("hwpx", "pdf", Unshaped: true),
         // Lossless within the 한글 document model; anything → HWP goes through the HWPX writer first.
         new("hwp", "hwpx"),
         new("hwpx", "hwp"),
     ];
+
+    /// <summary>
+    /// The first script in the source's text that rhwp can't draw. Every format that reaches rhwp through the HWPX
+    /// writer is scanned (DOCX, TXT, Markdown, HTML, PPTX, XLSX, EPUB, HWPX, ...); a binary HWP is not.
+    /// </summary>
+    public string? ScriptNeedingShaping(string sourcePath, string sourceFormat) => ComplexScripts.FindInFile(sourcePath, sourceFormat);
 
     public EngineStatus GetStatus()
     {

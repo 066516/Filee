@@ -16,11 +16,11 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | Spreadsheets (ExcelDataReader for XLS) | built in (library) | **XLSX, XLS, ODS, CSV, TSV → XLSX, ODS, CSV, TSV** (one CSV / TSV per sheet) |
 | Office Open XML | built in | **DOCM / DOTX / DOTM ↔ DOCX, XLSM / XLTX ↔ XLSX, PPTM / POTX / PPSX ↔ PPTX** (macros removed for macro-free types) |
 | Fonts | built in | **TTF, OTF, WOFF, WOFF2, EOT ↔ each other**; CFF (PostScript) outlines become TrueType for TTF and EOT |
-| **HWPX writer** | built in | **DOCX (+ DOCM/DOTX/DOTM), XLSX (+ XLSM/XLTX), XLS, ODS, CSV, TSV, PPTX (+ PPTM/POTX/PPSX), PDF, HTML, EPUB, MOBI/AZW3, FB2, HWPX, TXT, Markdown → HWPX** (and with rhwp → PDF and images); ODT, RTF, reStructuredText, LaTeX → HWPX with Pandoc |
-| **DOCX writer** | built in | **HWPX (and HWP through rhwp), PDF, HTML, EPUB, MOBI/AZW3, FB2, Markdown, TXT, XLSX, XLS, ODS, CSV, PPTX (+ variants) → DOCX** |
+| **HWPX writer** | built in | **DOCX (+ DOCM/DOTX/DOTM), XLSX (+ XLSM/XLTX), XLS, ODS, CSV, TSV, PPTX (+ PPTM/POTX/PPSX), PDF, HTML, MHTML, EPUB, MOBI/AZW3, FB2, HWPX, TXT, Markdown → HWPX** (and with rhwp → PDF and images); ODT, RTF, reStructuredText, LaTeX → HWPX with Pandoc |
+| **DOCX writer** | built in | **HWPX (and HWP through rhwp), PDF, HTML, MHTML, EPUB, MOBI/AZW3, FB2, Markdown, TXT, XLSX, XLS, ODS, CSV, PPTX (+ variants) → DOCX** |
 | PDF text | built in (PdfPig) | **PDF → TXT, Markdown** (reading order, also two columns; Markdown keeps headings, emphasis, links and the pictures; no OCR) |
 | PDF slides | built in (PDFium, PdfPig) | **PDF → PPTX**: a picture of each page on its own slide (looks like the PDF, not editable), the page's text in the speaker notes |
-| E-mail | built in (MimeKit, MsgReader) | **EML, Outlook MSG → HTML** (headers + body, inline pictures), **TXT**, **ZIP** (the attachments); **MSG → EML** |
+| E-mail | built in (MimeKit, MsgReader) | **EML, Outlook MSG → HTML** (headers + body, inline pictures), **TXT**, **ZIP** (the attachments); **MSG → EML**; **MHTML → HTML** (the saved page in one file, pictures inlined; on to PDF, DOCX, HWPX, TXT, Markdown, EPUB from there) |
 | Data | built in (System.Text.Json, YamlDotNet, Tomlyn, System.Xml) | **JSON, JSON Lines, YAML, TOML, XML, CSV ↔ each other** (CSV for tables); **vCard ↔ CSV**; spreadsheets and contacts reach JSON / YAML / TOML / XML through CSV |
 | **E-books** | built in | **EPUB, MOBI/AZW/AZW3/PRC, FB2, HTMLZ, TXTZ → EPUB, HWPX (→ PDF), TXT, HTML, Markdown, FB2, HTMLZ, TXTZ**; HTML, Markdown, TXT, DOCX → EPUB/FB2/HTMLZ/TXTZ; HTML → TXT; comics CBZ/CBR/CB7/CBT/CBC → PDF, EPUB, CBZ; PDF → CBZ; AZW4 → PDF; **EPUB ↔ KEPUB** (Kobo) |
 | CAD (ACadSharp + built-in renderer) | built in (library) | **DWG ↔ DXF**; DWG/DXF → **PDF** (vector), **SVG**, PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF |
@@ -38,6 +38,19 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 DOCX, XLSX, XLS, ODS and PPTX → PDF need neither Microsoft Office nor LibreOffice: they are read in-process, written as HWPX
 and rendered by rhwp. Anything the built-in readers understand (including PDF) is written as DOCX by the DOCX writer.
 LibreOffice's and Pandoc's costs are set so the built-in route always wins where one exists.
+
+Except for text that needs shaping. rhwp draws one glyph per character from left to right without OpenType shaping,
+so Arabic and Hebrew come out unjoined and in the wrong order, and Indic vowel signs and conjuncts as separate glyphs
+with dotted circles (#185 Gujarati, #202 Arabic). Its PDF edges are marked `Unshaped`, and rhwp tells
+(`ITextShapingCheck`) whether a source has such text: `Infrastructure/ComplexScripts.cs` scans the text parts of the
+file without reading it into the document model (DOCX `word/document.xml`, headers, footers and notes, PPTX slides,
+XLSX shared strings and sheets, HWPX sections, EPUB chapters, or a text file with its HTML / RTF character
+references) for the Hebrew, Arabic, Syriac, Thaana, N'Ko, Indic, Sinhala, Thai, Lao, Tibetan, Myanmar, Khmer,
+Mongolian and other South / Southeast Asian blocks. For such a file `JobQueue` plans again without unshaped edges: DOCX,
+TXT, Markdown, HTML, XLSX, PPTX and HWPX → PDF (and → images through PDF) go through LibreOffice even when Settings →
+*Engines* doesn't choose it for documents. Without LibreOffice the file fails with "This script needs LibreOffice to
+convert correctly" and the script's name instead of becoming a broken PDF. Latin, Greek, Cyrillic, CJK and Korean
+documents keep the built-in route; a binary HWP is not scanned and stays with rhwp.
 
 All built-in document readers are registered in one place, `Hwp/Hwpx/DocumentReaders.cs` (format id → reader, and
 which formats need Pandoc). The HWPX writer and the DOCX writer take their input formats from it: adding a reader
@@ -291,6 +304,8 @@ Readers turn the source into a small document model (`Hwp/Hwpx/HwpxModel.cs`) an
   pictures are skipped), links and anchors, quotes, `pre`, `hr` and figures. Scripts, styles, forms and `nav` are
   skipped. The encoding comes from the BOM, the XML declaration or `<meta charset>`, else UTF-8 or the system
   code page. No Pandoc needed.
+- **MHTML** (`.mhtml`, `.mht`) is turned into its standalone page first (see *E-mail* below) and that page read like
+  HTML; it refers to nothing but data: URIs, so no file outside the job's scratch folder is looked at.
 - **ODT, RTF** are parsed by Pandoc into its JSON AST (`PandocAstReader.cs`, following
   [pypandoc-hwpx](https://github.com/msjang/pypandoc-hwpx)).
 - Markdown, HTML and Pandoc keep structure only, so page setup comes from the built-in template (A4).
@@ -432,6 +447,19 @@ it. DOCX → DOCX is no edge; the Word variants are the Office Open XML engine's
   line's first word would have fitted keeps its line break;
 - reading order: gutters between columns are found where no narrow paragraph crosses; paragraphs that span the
   columns (titles, figures, closing text) split the page into bands, read column by column;
+- text that needs shaping (`PdfDocumentReader.ComplexText.cs`): an `/ActualText` of marked content replaces the
+  glyphs it covers on every page (LibreOffice writes one for each cluster whose glyphs don't map to its characters
+  one to one: conjuncts, vowel signs drawn before their consonant, ligatures). On a page with Arabic, Hebrew, Indic,
+  Thai, ... text, words are built from the glyphs in content-stream order instead of by position, because marks
+  have no width and overlap their letter: a mark joins the letter before it, a vowel sign drawn before its consonant
+  (Word's PDFs keep that visual order) joins the consonant after it, and the dotted circles of PDFs made by rhwp
+  (mapped to U+0002 or to a vowel sign, wider than any mark) are left out. Right-to-left words are read from the
+  right, with numbers and Latin words in them left to right, a line's words likewise; a paragraph of mostly
+  right-to-left lines is marked right to left (`HParaFormat.RightToLeft`), its alignment and indents measured from
+  the right, and DOCX gets `w:bidi` on it and `w:rtl` on its Arabic or Hebrew runs (HWPX has no right-to-left
+  paragraphs). Fonts keep their family names (`ArialUnicodeMS` → Arial Unicode MS, `NirmalaUI` → Nirmala UI,
+  `NotoSansGujarati` → Noto Sans Gujarati). Not recovered: a cluster drawn as one glyph whose ToUnicode entry is
+  wrong, in a PDF without ActualText (some Word PDFs), and the word spacing of rhwp's broken layouts;
 - headings from font sizes (short paragraphs clearly larger than the body text, the largest size is level 1), bold
   and italic from the fonts, colours, links from link annotations, alignment, indents, spacing and line pitch;
 - pictures: JPEG streams are kept as they are, others are decoded to PNG, and what PdfPig cannot decode is cut out
@@ -572,6 +600,41 @@ file reader), RtfPipe (MIT) and UTF.Unknown (MPL-1.1, charset detection for old 
   sheets kept, scripts removed) or the text body; pictures sent inline (`cid:`) become data URIs.
 - **EML → TXT**: the same headers and the text body (or the HTML body as text).
 - **EML → ZIP**: the attachments (attached messages as .eml) with safe, unique file names.
+
+### MHTML web archives
+
+A web page saved as "Webpage, Single File" (`.mhtml` from Chrome and Edge, `.mht` from Word and Internet Explorer)
+is a MIME message like an e-mail: the page and its pictures, style sheets and frames as parts of a
+multipart/related body (RFC 2557). `Email/MhtmlArchive.cs` reads it with the same MimeKit parser and writes the page
+as **one HTML file** (`MHTML → HTML`, engine `email`); the HWPX and DOCX writers read archives directly through the
+same code (`DocumentReaders`), so MHTML → DOCX / HWPX is one step and → PDF two (rhwp), and TXT, Markdown, EPUB and
+the other HTML targets go on from the page.
+
+- **The page** is the root of multipart/related (its `start` parameter, else the first part), else the first
+  text/html part. Its charset parameter decodes it; without one (Chrome writes none) or with a wrong "us-ascii" over
+  8-bit text, the BOM, `<meta charset>` or UTF-8 decide, as for HTML files. Quoted-printable and base64 are undone
+  by MimeKit.
+- **References** are matched against the parts' Content-Location, as written or resolved against the page's own
+  location or its `<base href>` (Chrome: `https://…`; Word: `file:///C:/…/page_files/image001.png` named relatively
+  from the page), and `cid:` against Content-ID (Chrome names its style sheets `cid:css-…@mhtml.blink`). These are
+  compared as text only: nothing is downloaded, and no Content-Location is ever opened or written as a file.
+- **Pictures** of the archive (`img src`, `srcset`, `<picture>` sources, the `background` attribute and CSS `url()`)
+  become data URIs; raster only (PNG, JPEG, GIF, WebP, BMP, AVIF, also when saved as application/octet-stream), not
+  SVG. Linked style sheets the archive holds are inlined as `<style>` (with their `@import`s, four levels deep);
+  `url()`s that point elsewhere (web fonts, remote backgrounds) become `none`, and `<` in CSS is escaped so a style
+  sheet cannot end its element.
+- **Safety**: the result goes through the e-mail sanitizer (`EmlConverter.SafeHtml`): scripts, frames, forms,
+  `<link>`, `<base>`, `<meta>`, inline SVG / MathML, event handlers and `javascript:` links are removed, the
+  `Content-Security-Policy` meta allows only inline styles and data: pictures. Links stay when they are http(s) or
+  mailto (made absolute against the page), anchors into the page itself become `#id`.
+- **Limits**: archives over 256 MB are refused; a picture over 32 MB (decoded) is left out, as is any picture once
+  the page's data URIs reach 192 MB (a picture used many times counts each time); 8 MB of style sheet text per page.
+
+Tests (`tests/Filee.Engines.Tests/MhtmlTests.cs`) write archives in code: a Chrome-style one (quoted-printable page
+with the charset only in its meta tag, a `cid:` style sheet, pictures by absolute and relative URL and from CSS, one
+saved as octet-stream, and scripts, frames, remote pictures, fonts and style sheets that must go), a Word `.mht`
+(windows-1252, `file:///C:/` locations, VML fallbacks), a `cid:`-only page in EUC-KR, a picture on disk named by a
+`file:` URI that must not be read, and the routes to HTML, TXT, DOCX, HWPX and PDF.
 
 ## Data (JSON, YAML, TOML, XML, CSV, vCard)
 
@@ -906,6 +969,9 @@ table is not drawn over the paragraphs below it (#49). Paragraphs without stored
 HWPX writer) get room for their equations: rhwp puts a line's baseline at 85 % of its tallest equation and the
 equation's own baseline on it, so a fraction, matrix or sum hangs below the line; that overhang is added as space
 after the paragraph (#143).
+
+An HWPX with text that needs shaping (Arabic, Hindi, Thai, ...) goes to LibreOffice with H2Orestart instead, like the
+documents above; an HWP is not scanned and stays with rhwp.
 
 rhwp renders text slowly: about 1 s per KB of section XML, some 4 s per page of a novel (rhwp 0.8.7 on an
 i7-1185G7, pictures cost little). So each rhwp run's time limit follows the document's text: 2 minutes + 30 minutes

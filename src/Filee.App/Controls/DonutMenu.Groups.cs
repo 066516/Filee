@@ -337,7 +337,7 @@ public sealed partial class DonutMenu
         var reach = SubRadii.Outer + BackdropMargin;
         var span = Math.Min(2 * Math.PI, SubSpanOf(count) * count + 2 * BackdropMargin / reach);
         context.DrawEllipse(HitBackdrop, null, center, OuterRadius + PopOut, OuterRadius + PopOut);
-        context.DrawGeometry(HitBackdrop, null, CreateWedge(center, OuterRadius, reach, DonutGeometry.MidAngle(group, Count), span));
+        context.DrawGeometry(HitBackdrop, null, CreateWedge(center, OuterRadius, reach, DonutGeometry.MidAngle(group, Count), span, 0));
     }
 
     /// <summary>
