@@ -35,6 +35,26 @@ public class InstallerTests
             used);
     }
 
+    [Theory]
+    [InlineData("ptpt", "Portuguese.isl")]
+    [InlineData("ptbr", "BrazilianPortuguese.isl")]
+    public void Portuguese_installer_messages_are_complete_and_preserve_inno_placeholders(string code, string messagesFile)
+    {
+        Assert.Contains($"Name: \"{code}\"; MessagesFile: \"compiler:Languages\\{messagesFile}\"", Script);
+        Dictionary<string, string> Messages(string language) => Regex.Matches(Script, $@"(?m)^{language}\.([\w]+)=(.*)$")
+            .ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value);
+        var english = Messages("en");
+        var portuguese = Messages(code);
+        Assert.Equal(english.Keys.Order(), portuguese.Keys.Order());
+        foreach (var (key, value) in portuguese)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(value));
+            Assert.Equal(
+                Regex.Matches(english[key], @"%[\dn]").Select(m => m.Value).Order(),
+                Regex.Matches(value, @"%[\dn]").Select(m => m.Value).Order());
+        }
+    }
+
     [Fact]
     public void Installer_choices_are_parsed()
     {

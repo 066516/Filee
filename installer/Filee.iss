@@ -74,6 +74,8 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "ko"; MessagesFile: "compiler:Languages\Korean.isl"
 Name: "zhcn"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
 Name: "ja"; MessagesFile: "compiler:Languages\Japanese.isl"
+Name: "ptpt"; MessagesFile: "compiler:Languages\Portuguese.isl"
+Name: "ptbr"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 
 ; Texts shared with the app (engine names, the two options of the General page) are generated into obj\engines.iss.
 [CustomMessages]
@@ -113,6 +115,24 @@ en.FinishedEngines=The conversion engines you picked are downloading in the File
 ko.FinishedEngines=선택한 변환 엔진은 Filee 창에서 내려받고 있어요.
 zhcn.FinishedEngines=你选择的转换引擎正在 Filee 窗口中下载。
 ja.FinishedEngines=選択した変換エンジンは、Fileeのウィンドウでダウンロード中です。
+ptpt.GroupOptions=Opções:
+ptbr.GroupOptions=Opções:
+ptpt.TaskModernMenu=Mostrar também no menu principal do Windows 11, além de «Mostrar mais opções»
+ptbr.TaskModernMenu=Mostrar também no menu principal do Windows 11, além de “Mostrar mais opções”
+ptpt.StatusRemovingOld=A remover a versão anterior (as definições e os motores são mantidos)...
+ptbr.StatusRemovingOld=Removendo a versão anterior (as configurações e os mecanismos são mantidos)...
+ptpt.StatusExplorerMenu=A adicionar o Filee ao menu do Explorador de Ficheiros...
+ptbr.StatusExplorerMenu=Adicionando o Filee ao menu do Explorador de Arquivos...
+ptpt.ExplorerMenuFailed=O Windows não adicionou o Filee ao menu principal do Explorador de Ficheiros:%n%n%1%n%nO Filee continua em «Mostrar mais opções». Podes tentar novamente no Filee, em Definições → Geral.
+ptbr.ExplorerMenuFailed=O Windows não adicionou o Filee ao menu principal do Explorador de Arquivos:%n%n%1%n%nO Filee continua em “Mostrar mais opções”. Você pode tentar novamente no Filee, em Configurações → Geral.
+ptpt.ReadyEngines=Motores de conversão (o Filee descarrega-os ao iniciar):
+ptbr.ReadyEngines=Mecanismos de conversão (o Filee baixa ao iniciar):
+ptpt.FinishedRunning=O Filee está instalado e em execução na área de notificação da barra de tarefas.%n%nPara converter ficheiros, arrasta-os enquanto manténs a tecla de ativação premida ou clica neles com o botão direito no Explorador de Ficheiros.
+ptbr.FinishedRunning=O Filee está instalado e em execução na área de notificação da barra de tarefas.%n%nPara converter arquivos, arraste enquanto segura a tecla de ativação ou clique com o botão direito nos arquivos no Explorador de Arquivos.
+ptpt.TaskCli=Adicionar o comando "filee" ao PATH (converter pela linha de comandos)
+ptbr.TaskCli=Adicionar o comando "filee" ao PATH (converter pela linha de comando)
+ptpt.FinishedEngines=Os motores de conversão escolhidos estão a ser descarregados na janela do Filee.
+ptbr.FinishedEngines=Os mecanismos de conversão escolhidos estão sendo baixados na janela do Filee.
 
 [Tasks]
 Name: "contextmenu"; Description: "{cm:TaskContextMenu}"; GroupDescription: "{cm:GroupOptions}"; Check: IsFreshInstall
