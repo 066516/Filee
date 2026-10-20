@@ -68,16 +68,18 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
     {
         var videos = FormatRegistry.Known.Where(f => f.Category == FormatCategory.Video).Select(f => f.Id).ToList();
         var audios = FormatRegistry.Known.Where(f => f.Category == FormatCategory.Audio).Select(f => f.Id);
-        var videoTargets = MediaEncoding.VideoTargets.Keys.Concat(MediaEncoding.AudioTargets.Keys).Append("png").ToList();
+        var videoTargets = MediaEncoding.VideoTargets.Keys.Append("png").ToList();
         return
         [
             .. from source in videos from target in videoTargets select new ConversionEdge(source, target),
+            // Audio track out of a video: never for an image converted to video first (pictures can't become sounds).
+            .. from source in videos from target in MediaEncoding.AudioTargets.Keys select new ConversionEdge(source, target, NotForImageSources: true),
             // "Save every frame": a folder of numbered pictures, only when a preset asks for it (never in another route).
             .. from source in videos from target in MediaOptions.FrameTargets select new ConversionEdge(source, target, FrameSequence: true),
             // Subtitles out of a video. SRT is the hub to the other subtitle formats (the subtitle engine takes it on),
             // so ASS and WebVTT cost a little more and are only taken when they are the target.
             .. from source in videos from target in MediaEncoding.SubtitleTargets.Keys
-               select new ConversionEdge(source, target, target == "srt" ? 10 : 11),
+               select new ConversionEdge(source, target, target == "srt" ? 10 : 11, NotForImageSources: true),
             .. videos.Select(source => new ConversionEdge(source, "gif", 15)),
             .. videos.Select(source => new ConversionEdge(source, "apng", 15)),
             .. from source in audios from target in MediaEncoding.AudioTargets.Keys select new ConversionEdge(source, target),
