@@ -20,10 +20,12 @@ public sealed class LocalizationService : ILocalizer
     [
         ("en", "English"),
         ("es", "Español"),
+        ("ja", "日本語"),
         ("ko", "한국어"),
         ("zh-CN", "简体中文"),
         ("pl", "Polski"),
         ("hi", "हिन्दी"),
+        ("ru", "Русский"),
     ];
 
     private readonly ResourceDictionary _resources = new();
@@ -96,6 +98,8 @@ public sealed class LocalizationService : ILocalizer
 
         // macOS gives an app started from Finder no LANG: its language list comes from the system instead.
         var ui = Filee.Platform.MacOS.MacOSLocale.PreferredLanguage() ?? CultureInfo.InstalledUICulture.Name;
+        if (ui.StartsWith("ja", StringComparison.OrdinalIgnoreCase))
+            return "ja";
         if (ui.StartsWith("ko", StringComparison.OrdinalIgnoreCase))
             return "ko";
         if (ui.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
@@ -106,6 +110,8 @@ public sealed class LocalizationService : ILocalizer
             return "es";
         if (ui.StartsWith("hi", StringComparison.OrdinalIgnoreCase))
             return "hi";
+        if (ui.StartsWith("ru", StringComparison.OrdinalIgnoreCase))
+            return "ru";
         return "en";
     }
 

@@ -72,6 +72,12 @@ public interface IPlatformServices
     /// </summary>
     string DescribeForegroundWindow() => "";
 
+    /// <summary>
+    /// The user's Downloads folder, where files dragged from a browser are saved unless Settings says otherwise.
+    /// Windows asks the shell (the folder can be moved); elsewhere ~/Downloads.
+    /// </summary>
+    string DownloadsFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+
     /// <summary>System drag threshold in the same units as screen coordinates.</summary>
     int SystemDragThreshold { get; }
 

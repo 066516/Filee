@@ -70,6 +70,50 @@ public sealed class DonutSettings
     /// <summary>Background opacity of the slices (0.5 - 1).</summary>
     public double Opacity { get; set; } = 0.96;
 
+    /// <summary>The flip key unless the user picks another one (Settings → Shortcuts).</summary>
+    public const string DefaultFlipKey = "Tab";
+
+    /// <summary>
+    /// The key that flips the open donut to its other face, as a SharpHook key name without "Vc" ("Tab", "F2", "Q");
+    /// empty for none. See <see cref="EffectiveFlipKey"/>.
+    /// </summary>
+    public string FlipKey { get; set; } = DefaultFlipKey;
+
+    /// <summary>A turn of the mouse wheel flips the open donut to its other face.</summary>
+    public bool FlipWithWheel { get; set; } = true;
+
+    /// <summary>
+    /// Keys that never flip the donut: Esc closes it, Enter and Space convert or open a group, the arrows move between
+    /// slices and Backspace folds a group's ring.
+    /// </summary>
+    public static readonly IReadOnlySet<string> ReservedFlipKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "Escape", "Enter", "Space", "Left", "Right", "Up", "Down", "Backspace",
+    };
+
+    /// <summary>
+    /// Whether <paramref name="key"/> may flip the donut: not a key the donut uses (<see cref="ReservedFlipKeys"/>), nor
+    /// the key of a keyboard shortcut in <paramref name="gestures"/>. While a drag holds its modifier that shortcut would
+    /// fire too, and open the donut for the selected files instead.
+    /// </summary>
+    public static bool IsFlipKeyAllowed(string key, IEnumerable<TriggerGesture> gestures) =>
+        !string.IsNullOrWhiteSpace(key) && !ReservedFlipKeys.Contains(key) &&
+        !gestures.Any(g => g.Kind == TriggerKind.KeyChord && string.Equals(g.Key, key, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// The key that flips the donut now: none when the user cleared it; Tab in place of one that isn't allowed (a file
+    /// edited by hand, or a keyboard shortcut that took the key since), or none when Tab isn't either.
+    /// </summary>
+    public string? EffectiveFlipKey(IEnumerable<TriggerGesture> gestures)
+    {
+        if (string.IsNullOrWhiteSpace(FlipKey))
+            return null;
+        var list = gestures as IReadOnlyCollection<TriggerGesture> ?? gestures.ToList();
+        if (IsFlipKeyAllowed(FlipKey.Trim(), list))
+            return FlipKey.Trim();
+        return IsFlipKeyAllowed(DefaultFlipKey, list) ? DefaultFlipKey : null;
+    }
+
     public DonutSettings Clone() => (DonutSettings)MemberwiseClone();
 }
 
@@ -77,7 +121,7 @@ public sealed class DonutSettings
 public sealed class AppSettings
 {
     /// <summary>Current schema version. Increase when the format changes and add a migration.</summary>
-    public const int CurrentSchemaVersion = 28;
+    public const int CurrentSchemaVersion = 30;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -142,7 +186,7 @@ public sealed class AppSettings
     public List<string> EnginePriority { get; set; } =
     [
         "magick", "pdfium", "pdfsharp", "rhwp", "unhwp", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer",
-        "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook",
+        "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "geo", "archive", "ebook",
         "subtitle", "wic", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice",
     ];
 
@@ -160,6 +204,9 @@ public sealed class AppSettings
 
     /// <summary>Where presets set to "Default" save (Settings → General).</summary>
     public DefaultOutputSettings DefaultOutput { get; set; } = new();
+
+    /// <summary>Where files dragged from a web browser are saved (Settings → General).</summary>
+    public BrowserDropSettings BrowserDrops { get; set; } = new();
 
     /// <summary>
     /// Optional engines the user already has: package id ("ffmpeg", "calibre", …) → the program they picked. Used
@@ -194,16 +241,21 @@ public sealed class AppSettings
     /// <summary>Every conversion keeps the created and modified dates of the original, whatever the preset says.</summary>
     public bool KeepFileDates { get; set; }
 
+    /// <summary>Every geospatial conversion is saved as a ZIP, whatever the preset says (see <see cref="OutputRule.ZipResult"/>).</summary>
+    public bool ZipGeoResults { get; set; }
+
     /// <summary>
     /// Returns <paramref name="preset"/> itself, or a copy with the app-wide output settings applied: it saves to
     /// <see cref="DefaultOutput"/> when the preset's location is <see cref="OutputLocation.Default"/>, and keeps the
-    /// original dates when <see cref="KeepFileDates"/> is on. Name pattern and conflict handling stay the preset's.
+    /// original dates when <see cref="KeepFileDates"/> is on and is saved as a ZIP when <see cref="ZipGeoResults"/> is on and the
+    /// target is geospatial. Name pattern and conflict handling stay the preset's.
     /// </summary>
     public Preset WithDefaultOutput(Preset preset)
     {
         var location = preset.Output.Location == OutputLocation.Default;
         var dates = KeepFileDates && !preset.Output.KeepDates;
-        if (!location && !dates)
+        var zip = ZipGeoResults && !preset.Output.ZipResult && Formats.FormatRegistry.FindById(preset.TargetFormat)?.Category == Formats.FormatCategory.Geo;
+        if (!location && !dates && !zip)
             return preset;
         var copy = preset.Clone();
         if (location)
@@ -214,6 +266,8 @@ public sealed class AppSettings
         }
         if (dates)
             copy.Output.KeepDates = true;
+        if (zip)
+            copy.Output.ZipResult = true;
         return copy;
     }
 }
@@ -243,4 +297,14 @@ public sealed class DefaultOutputSettings
     public string SubfolderName { get; set; } = "converted";
 
     public string CustomFolder { get; set; } = "";
+}
+
+/// <summary>Files dragged out of a web browser (Settings → General).</summary>
+public sealed class BrowserDropSettings
+{
+    /// <summary>Where they are saved; empty means the user's Downloads folder (looked up each time, as it can move).</summary>
+    public string Folder { get; set; } = "";
+
+    /// <summary>Keep only the converted file: the original goes into a work folder and is deleted after the conversion.</summary>
+    public bool SaveOnlyConverted { get; set; }
 }
