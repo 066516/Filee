@@ -25,6 +25,7 @@ public sealed class LocalizationService : ILocalizer
         ("zh-CN", "简体中文"),
         ("pl", "Polski"),
         ("hi", "हिन्दी"),
+        ("ru", "Русский"),
     ];
 
     private readonly ResourceDictionary _resources = new();
@@ -109,6 +110,8 @@ public sealed class LocalizationService : ILocalizer
             return "es";
         if (ui.StartsWith("hi", StringComparison.OrdinalIgnoreCase))
             return "hi";
+        if (ui.StartsWith("ru", StringComparison.OrdinalIgnoreCase))
+            return "ru";
         return "en";
     }
 
