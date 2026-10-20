@@ -1,0 +1,22 @@
+build:
+  - changed-files:
+      - any-glob-to-any-file:
+          - build/**
+          - installer/**
+          - .github/workflows/**
+          - global.json
+
+documentation:
+  - changed-files:
+      - all-globs-to-all-files:
+          - '{docs/**,**/*.md}'
+
+formats:
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/Filee.Engines/**
+
+translation:
+  - changed-files:
+      - all-globs-to-all-files:
+          - src/Filee.App/Assets/i18n/**

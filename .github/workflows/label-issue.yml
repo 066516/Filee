@@ -1,0 +1,39 @@
+name: Label issues
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  label:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const issue = context.payload.issue;
+            if (issue.labels.length) return;   // already labeled, e.g. by an issue form
+
+            const title = issue.title.toLowerCase();
+            const rules = [
+              [/\b(bug|crash(es|ed)?|error|exception|fail(s|ed|ure)?|broken|freez(e|es)|hang(s)?|not working|doesn'?t work)\b/, 'bug'],
+              [/\b(feature request|enhancement|improve(ment)?|suggestion|would be nice|please add)\b/, 'enhancement'],
+              [/\b(add support|support for|new format|new engine)\b/, 'formats'],
+              [/\b(docs?|documentation|readme|typo)\b/, 'documentation'],
+              [/\b(translation|translate|localization|localisation|i18n|l10n)\b/, 'translation'],
+              [/\b(accessibility|a11y|screen reader|high contrast|narrator|nvda)\b/, 'accessibility'],
+              [/\b(installer|msix)\b/, 'build'],
+              [/\?\s*$|^(how|why|what|can|is|does)\b/, 'question'],
+            ];
+            const labels = rules.filter(([re]) => re.test(title)).map(([, label]) => label);
+            if (labels.length) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels,
+              });
+            }

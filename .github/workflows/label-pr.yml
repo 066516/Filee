@@ -1,0 +1,38 @@
+name: Label pull requests
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: ubuntu-24.04
+    steps:
+      # By changed files, using .github/labeler.yml. Labels are only added, never removed.
+      - uses: actions/labeler@v6
+
+      # By title prefix: "feat: ...", "fix: ...", "docs: ...", "ci: ...".
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const title = context.payload.pull_request.title.toLowerCase();
+            const rules = [
+              [/^feat(\(.+\))?!?:/, 'feature'],
+              [/^fix(\(.+\))?!?:/, 'bug'],
+              [/^docs(\(.+\))?!?:/, 'documentation'],
+              [/^(ci|build)(\(.+\))?!?:/, 'build'],
+              [/^(i18n|l10n)(\(.+\))?!?:/, 'translation'],
+            ];
+            const labels = rules.filter(([re]) => re.test(title)).map(([, label]) => label);
+            if (labels.length) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                labels,
+              });
+            }
