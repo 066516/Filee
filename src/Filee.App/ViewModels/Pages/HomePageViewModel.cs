@@ -101,8 +101,6 @@ public sealed partial class HomePageViewModel : ObservableObject, IDisposable
         var drag = store.Settings.Triggers.FirstOrDefault(t => t.Enabled && t.Kind == TriggerKind.Drag);
         DropHint = loc.Format(OperatingSystem.IsMacOS() ? "home.drop_hint_macos" : OperatingSystem.IsLinux() ? "home.drop_hint_linux" : "home.drop_hint", drag is null ? "—" : GestureText.Modifiers(drag.Modifiers));
         store.HistoryChanged += OnHistoryChanged;
-        VisibleHistory = new FilteredList<HistoryItemViewModel>(History,
-            item => [item.Title, item.Subtitle]);
         Reload();
     }
 
