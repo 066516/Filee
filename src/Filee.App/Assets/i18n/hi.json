@@ -771,5 +771,25 @@
   "watch.status_watching": "देख रहा है",
   "watch.status_starting": "शुरू हो रहा है…",
   "watch.status_error": "इस फ़ोल्डर को नहीं देखा जा सकता: {0}",
-  "watch.cli_hint": "कमांड लाइन पर भी: filee watch <folder> --to <format>"
+  "watch.cli_hint": "कमांड लाइन पर भी: filee watch <folder> --to <format>",
+
+  "whats_new.title": "Filee {0} में नया क्या है",
+  "whats_new.previous": "पिछला",
+  "whats_new.next": "अगला",
+  "whats_new.done": "शुरू करें",
+  "whats_new.about_link": "Filee {0} में नया क्या है",
+  "whats_new.2_0_0.browser.title": "सीधे ब्राउज़र से छोड़ें",
+  "whats_new.2_0_0.browser.text": "शॉर्टकट दबाए रखें और किसी वेब पेज से चित्र या फ़ाइल का लिंक खींचें। डोनट खुलता है, उसे सहेजता है और बदल देता है।",
+  "whats_new.2_0_0.flip.title": "डोनट का अब पिछला हिस्सा भी है",
+  "whats_new.2_0_0.flip.text": "डोनट खुला हो तब Tab दबाएँ या माउस व्हील घुमाएँ, वह पलटकर और प्रीसेट दिखाता है।",
+  "whats_new.2_0_0.formats.title": "और फ़ॉर्मैट",
+  "whats_new.2_0_0.formats.text": "वेब आर्काइव (MHTML), OFD ई-इनवॉइस, Shapefile, GeoJSON, KML और GPX नक्शे, JPEG XR, FBX मॉडल और POTM टेम्पलेट।",
+  "whats_new.2_0_0.crop.title": "बदलने से पहले क्रॉप करें",
+  "whats_new.2_0_0.crop.text": "क्रॉप स्लाइस आपके चित्र एक-एक करके खोलता है। फ़्रेम खींचें, अनुपात चुनें, और सिर्फ़ वही हिस्सा सहेजा जाता है।",
+  "whats_new.2_0_0.theme.title": "ज़्यादा कोमल, आपके रंगों में",
+  "whats_new.2_0_0.theme.text": "डोनट की स्लाइसें कोमलता के साथ गोल होती हैं, और एक theme.json फ़ाइल पूरे Filee के रंग बदल सकती है।",
+  "whats_new.2_0_0.languages.title": "Filee अब और भाषाएँ बोलता है",
+  "whats_new.2_0_0.languages.text": "अंग्रेज़ी, कोरियाई, चीनी और पोलिश के साथ अब स्पैनिश, हिन्दी, जापानी और रूसी भी।",
+  "whats_new.2_0_0.more.title": "और भी थोड़ा",
+  "whats_new.2_0_0.more.text": "एक ही डोनट को डिफ़ॉल्ट पर रीसेट करें, पूरा इतिहास खोजें, और गुजराती, हिन्दी या अरबी दस्तावेज़ LibreOffice से बदलें।"
 }

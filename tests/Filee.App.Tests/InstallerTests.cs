@@ -31,7 +31,7 @@ public class InstallerTests
         // Each option below is checked by a parse test; a new one in the script must be added here.
         var used = Regex.Matches(Script, @"--[a-z][a-z-]+=?").Select(m => m.Value).ToHashSet();
         Assert.Equal(
-            new HashSet<string> { "--background", "--quit", "--uninstall-cleanup", "--install-engines=", "--start-with-windows=", "--context-menu=" },
+            new HashSet<string> { "--background", "--quit", "--uninstall-cleanup", "--install-engines=", "--start-with-windows=", "--context-menu=", "--whats-new" },
             used);
     }
 

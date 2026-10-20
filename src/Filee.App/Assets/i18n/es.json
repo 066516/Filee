@@ -771,5 +771,25 @@
   "watch.status_watching": "Supervisando",
   "watch.status_starting": "Iniciando…",
   "watch.status_error": "No se puede supervisar esta carpeta: {0}",
-  "watch.cli_hint": "También en la línea de comandos: filee watch <carpeta> --to <formato>"
+  "watch.cli_hint": "También en la línea de comandos: filee watch <carpeta> --to <formato>",
+
+  "whats_new.title": "Novedades de Filee {0}",
+  "whats_new.previous": "Anterior",
+  "whats_new.next": "Siguiente",
+  "whats_new.done": "Empezar",
+  "whats_new.about_link": "Novedades de Filee {0}",
+  "whats_new.2_0_0.browser.title": "Suelta directamente desde el navegador",
+  "whats_new.2_0_0.browser.text": "Mantén el atajo y arrastra una imagen o un enlace a un archivo desde una página web. El menú circular se abre, lo guarda y lo convierte.",
+  "whats_new.2_0_0.flip.title": "El menú circular tiene reverso",
+  "whats_new.2_0_0.flip.text": "Con el menú abierto, pulsa Tab o gira la rueda del ratón para darle la vuelta y ver más ajustes.",
+  "whats_new.2_0_0.formats.title": "Más formatos",
+  "whats_new.2_0_0.formats.text": "Archivos web (MHTML), facturas electrónicas OFD, mapas Shapefile, GeoJSON, KML y GPX, JPEG XR, modelos FBX y plantillas POTM.",
+  "whats_new.2_0_0.crop.title": "Recorta antes de convertir",
+  "whats_new.2_0_0.crop.text": "La porción Recortar abre tus imágenes una a una. Arrastra el marco, elige una proporción y solo se guarda esa parte.",
+  "whats_new.2_0_0.theme.title": "Más suave y con tus colores",
+  "whats_new.2_0_0.theme.text": "Las porciones del menú circular siguen el Redondeo, y un archivo theme.json puede cambiar los colores de todo Filee.",
+  "whats_new.2_0_0.languages.title": "Filee habla más idiomas",
+  "whats_new.2_0_0.languages.text": "El español, el hindi, el japonés y el ruso se suman al inglés, el coreano, el chino y el polaco.",
+  "whats_new.2_0_0.more.title": "Y un poco más",
+  "whats_new.2_0_0.more.text": "Restablece un solo menú circular, busca en todo tu historial y convierte documentos en guyaratí, hindi o árabe con LibreOffice."
 }
