@@ -31,7 +31,7 @@ public class RenderTests
         { "general", "zh-CN" }, { "presets", "zh-CN" }, { "toolbar", "zh-CN" }, { "home", "zh-CN" },
         { "general", "pl" }, { "toolbar", "pl" }, { "presets", "pl" }, { "home", "pl" },
         { "home", "es" }, { "general", "es" }, { "toolbar", "es" }, { "presets", "es" }, { "engines", "es" },
-        { "home", "hi" }, { "toolbar", "hi" }, { "presets", "hi" }, { "engines", "hi" },
+        { "home", "hi" }, { "general", "hi" }, { "toolbar", "hi" }, { "presets", "hi" }, { "engines", "hi" },
     };
 
     [AvaloniaTheory]
@@ -320,6 +320,131 @@ public class RenderTests
         {
             store.ClearHistory(); // also on disk: the next test's application loads the history again
             try { Directory.Delete(folder, true); } catch (IOException) { }
+        }
+    }
+
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("es")]
+    [InlineData("ko")]
+    [InlineData("zh-CN")]
+    [InlineData("pl")]
+    [InlineData("hi")]
+    public void Home_page_search_finds_old_conversions_in_a_long_history(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var store = AppHost.Get<Filee.Core.Settings.UserDataStore>();
+        var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+        store.ClearHistory();
+        // A full history (newest first), with the report far below what the page lists without a search.
+        var entries = Enumerable.Range(0, store.Settings.EffectiveHistoryLimit).Select(i => new Filee.Core.History.HistoryEntry
+        {
+            FinishedAt = DateTime.Now.AddMinutes(-i),
+            PresetName = i == 150 ? "PDF" : "PNG",
+            State = Filee.Core.Conversion.JobState.Completed,
+            Sources = i == 150 ? [@"C:\Work\Annual report.docx", @"C:\Work\notes.txt"] : [$@"C:\Photos\IMG_{i:0000}.heic"],
+        });
+        store.History.AddRange(entries);
+        try
+        {
+            var vm = new MainWindowViewModel(AppHost.Services, loc, AppHost.Get<UpdateService>());
+            vm.Navigate("home");
+            var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+            window.Show();
+            Pump();
+
+            var page = (HomePageViewModel)vm.CurrentPage;
+            Assert.Equal(HomePageViewModel.Shown, page.History.Count);
+            var search = window.GetVisualDescendants().OfType<TextBox>().Single(t => t.Classes.Contains("search"));
+            Assert.True(search.IsEffectivelyVisible);
+            Assert.Equal(loc["common.search"], search.PlaceholderText);
+
+            page.Search = " REPORT "; // any part of a source file name, ignoring case and spaces around
+            Pump();
+            var found = Assert.Single(page.History);
+            Assert.Equal("PDF", found.Title);
+            Assert.False(page.NoMatches);
+            Save(window, $"page-home-search-{language}.png");
+
+            page.Search = "PNG"; // the preset: the newest matches, no more than without a search
+            Assert.Equal(HomePageViewModel.Shown, page.History.Count);
+            Assert.All(page.History, item => Assert.Equal("PNG", item.Title));
+
+            page.Search = "zzz";
+            Pump();
+            Assert.Empty(page.History);
+            Assert.True(page.NoMatches);
+            Assert.False(page.IsEmpty);
+            Save(window, $"page-home-search-none-{language}.png");
+
+            page.Search = "";
+            Assert.Equal(HomePageViewModel.Shown, page.History.Count);
+            window.Close();
+        }
+        finally
+        {
+            store.ClearHistory(); // also on disk: the next test's application loads the history again
+        }
+    }
+
+    [AvaloniaFact]
+    public void A_new_preset_shows_in_the_list_whatever_was_searched()
+    {
+        TestServices.EnsureInitialized("en");
+        var store = AppHost.Get<Filee.Core.Settings.UserDataStore>();
+        var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+        vm.Navigate("presets");
+        var page = (PresetsPageViewModel)vm.CurrentPage;
+        page.Search = "zzz";
+        Assert.Empty(page.VisiblePresets);
+
+        page.AddCommand.Execute(null);
+        try
+        {
+            Assert.Equal("", page.Search);
+            Assert.Contains(page.SelectedPreset!, page.VisiblePresets);
+        }
+        finally
+        {
+            store.Presets.Remove(page.SelectedPreset!.Preset);
+            store.SaveLibrary();
+        }
+    }
+
+    [AvaloniaFact]
+    public void General_page_keeps_the_history_limit_within_its_range()
+    {
+        TestServices.EnsureInitialized("en");
+        var store = AppHost.Get<Filee.Core.Settings.UserDataStore>();
+        var before = store.Settings.HistoryLimit;
+        try
+        {
+            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            vm.Navigate("general");
+            var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+            window.Show();
+            Pump();
+
+            var page = (GeneralPageViewModel)vm.CurrentPage;
+            Assert.Equal(200, page.HistoryLimit);
+            var limit = window.GetVisualDescendants().OfType<NumericUpDown>().Single();
+            Assert.True(limit.IsEffectivelyVisible);
+
+            page.HistoryLimit = 500;
+            Assert.Equal(500, store.Settings.HistoryLimit);
+            page.HistoryLimit = 5000;
+            Assert.Equal(Filee.Core.Settings.AppSettings.MaxHistoryLimit, store.Settings.HistoryLimit);
+
+            page.NoHistory = true; // nothing is recorded: nothing to limit either
+            Pump();
+            Assert.False(limit.IsEffectivelyVisible);
+            page.NoHistory = false;
+            window.Close();
+        }
+        finally
+        {
+            store.Settings.HistoryLimit = before;
+            store.SaveSettings();
         }
     }
 
@@ -619,6 +744,42 @@ public class RenderTests
             images.PresetIds.Clear();
             images.PresetIds.AddRange(before);
             store.Presets.Remove(group);
+            theme.Apply(new ThemeSettings(), "en");
+        }
+    }
+
+    /// <summary>The geospatial donut opens for Shapefiles with its six slices, rounded by the softness like the others.</summary>
+    [AvaloniaFact]
+    public void Geospatial_donut_opens_for_shapefiles_with_rounded_slices()
+    {
+        TestServices.EnsureInitialized("en");
+        var theme = AppHost.Get<ThemeService>();
+        try
+        {
+            theme.Apply(new ThemeSettings { Mode = ThemeMode.Light, CornerRadius = 28 }, "en");
+            var vm = AppHost.Get<RadialViewModel>();
+            vm.Load([@"C:\gis\roads.shp", @"C:\gis\parcels.shp"], clickMode: true);
+            vm.FitToThisDonut();
+            Assert.Equal(["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz"], vm.Presets.Select(p => p.Id));
+            Assert.All(vm.Items, item => Assert.True(item.IsEnabled));
+            var window = new RadialWindow { DataContext = vm };
+            window.Show();
+            var donut = window.DonutControl;
+            donut.SetExternalHighlight(1);
+            Pump();
+            Assert.Equal(14, donut.SliceCornerRadius);
+
+            // A corner the rounding cut away still picks its slice.
+            var n = vm.Items.Count;
+            var center = new Avalonia.Point(donut.Bounds.Width / 2, donut.Bounds.Height / 2);
+            var inner = vm.OuterRadius * vm.HoleRatio;
+            var corner = DonutGeometry.Wedge(center, inner, vm.OuterRadius, DonutGeometry.MidAngle(4, n), DonutGeometry.Span(n), 3).Start;
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, 4), donut.HitTest(center + (corner - center) * 0.995));
+            Save(window, "donut-geospatial-soft.png");
+            window.Close();
+        }
+        finally
+        {
             theme.Apply(new ThemeSettings(), "en");
         }
     }
@@ -1345,6 +1506,28 @@ public class RenderTests
     }
 
     [AvaloniaFact]
+    public void Preset_editor_offers_save_as_zip_for_geospatial_targets_only()
+    {
+        TestServices.EnsureInitialized("en");
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "shp", Name = "Shapefile" };
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowZipResult);
+        Assert.Equal("Geospatial", vm.Target.Detail);
+
+        vm.ZipResult = true;
+        Assert.True(vm.Apply());
+        Assert.True(preset.Output.ZipResult);
+
+        vm.Target = vm.Targets.Single(t => t.Value == "kml");
+        Assert.True(vm.ShowZipResult);
+        vm.Target = vm.Targets.Single(t => t.Value == "png");
+        Assert.False(vm.ShowZipResult);
+        // The box ticked for Shapefile, hidden for PNG, doesn't zip the PNG.
+        Assert.True(vm.Apply());
+        Assert.False(preset.Output.ZipResult);
+    }
+
+    [AvaloniaFact]
     public void Preset_editor_saves_media_and_archive_options()
     {
         TestServices.EnsureInitialized("en");
@@ -1450,6 +1633,22 @@ public class RenderTests
         vm.Target = vm.Targets.Single(t => t.Value == "smi");
         Assert.False(vm.ShowMedia || vm.ShowPdf || vm.ShowImage);
         Assert.Equal("Subtitle", vm.Target.Detail);
+    }
+
+    /// <summary>The geospatial donut in the toolbar editor: GeoJSON, Shapefile, KML, CSV, GPX and KMZ for geo files.</summary>
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    public void Toolbar_geospatial_donut_renders(string language)
+    {
+        WithProfiles(language, false, 1240, _ => { }, (window, vm) =>
+        {
+            vm.SelectedProfile = vm.Profiles.Single(p => p.Profile.Id == "geo");
+            Pump();
+            Assert.Equal(["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz"], vm.SelectedProfile.Profile.PresetIds);
+            Assert.Contains("shp", vm.ExtensionTags!.Tags.Select(t => t.Text.TrimStart('.')));
+            Save(window, $"toolbar-geospatial-{language}.png");
+        });
     }
 
     /// <summary>Shows the toolbar page (tall, so the profile card is visible) with temporarily changed profiles.</summary>
