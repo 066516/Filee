@@ -57,6 +57,8 @@
   "donut.empty": "把预设拖到这里",
   "donut.same_format": "同格式",
   "donut.group_caption": "组 · {0} 项",
+  "donut.flip_to_back": "Tab ↻ 背面",
+  "donut.flip_to_front": "Tab ↻ 正面",
 
   "toast.converting": "{0} → {1}",
   "toast.done": "完成",
@@ -321,6 +323,9 @@
   "toolbar.opacity": "不透明度",
   "toolbar.new_preset": "新预设",
   "toolbar.new_group": "新建组",
+  "toolbar.face_front": "正面",
+  "toolbar.face_back": "背面",
+  "toolbar.face_hint": "按 Tab 可翻转打开的圆环。",
   "group.editor_title": "组",
   "group.hint": "组把多个预设放进圆环的一格。停留在上面或向外移动，它们就会在周围展开。",
   "group.members": "预设（{0} / {1}）",

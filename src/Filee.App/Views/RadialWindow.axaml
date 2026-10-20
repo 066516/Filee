@@ -27,6 +27,8 @@
                  OuterRadius="{Binding OuterRadius}"
                  HoleRatio="{Binding HoleRatio}"
                  SliceOpacity="{Binding SliceOpacity}"
-                 ReserveSubRing="{Binding ReserveSubRing}" />
+                 ReserveSubRing="{Binding ReserveSubRing}"
+                 CanFlip="{Binding CanFlip}"
+                 CenterHint="{Binding FlipHint}" />
   </Panel>
 </Window>

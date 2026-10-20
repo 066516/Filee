@@ -57,6 +57,8 @@
   "donut.empty": "Przeciągnij tu ustawienia",
   "donut.same_format": "Ten sam format",
   "donut.group_caption": "Grupa: {0}",
+  "donut.flip_to_back": "Tab ↻ tył",
+  "donut.flip_to_front": "Tab ↻ przód",
 
   "toast.converting": "{0} → {1}",
   "toast.done": "Gotowe",
@@ -321,6 +323,9 @@
   "toolbar.opacity": "Krycie",
   "toolbar.new_preset": "Nowe ustawienie",
   "toolbar.new_group": "Nowa grupa",
+  "toolbar.face_front": "Przód",
+  "toolbar.face_back": "Tył",
+  "toolbar.face_hint": "Tab obraca otwarty pierścień.",
   "group.editor_title": "Grupa",
   "group.hint": "Grupa to jeden wycinek pierścienia dla kilku ustawień: zatrzymaj się na nim lub przesuń na zewnątrz, a rozłożą się wokół.",
   "group.members": "Ustawienia ({0} / {1})",

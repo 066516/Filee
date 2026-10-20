@@ -57,6 +57,8 @@
   "donut.empty": "프리셋을 끌어다 놓으세요",
   "donut.same_format": "같은 형식",
   "donut.group_caption": "묶음 · {0}개",
+  "donut.flip_to_back": "Tab ↻ 뒷면",
+  "donut.flip_to_front": "Tab ↻ 앞면",
 
   "toast.converting": "{0} → {1}",
   "toast.done": "완료",
@@ -321,6 +323,9 @@
   "toolbar.opacity": "불투명도",
   "toolbar.new_preset": "새 프리셋",
   "toolbar.new_group": "새 묶음",
+  "toolbar.face_front": "앞면",
+  "toolbar.face_back": "뒷면",
+  "toolbar.face_hint": "Tab을 누르면 열린 도넛이 뒤집혀요.",
   "group.editor_title": "묶음",
   "group.hint": "묶음은 여러 프리셋을 도넛 한 칸에 담아요. 칸 위에 머물거나 바깥으로 움직이면 주변으로 펼쳐져요.",
   "group.members": "프리셋 ({0} / {1})",

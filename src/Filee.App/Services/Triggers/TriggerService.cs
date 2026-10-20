@@ -57,6 +57,33 @@ public sealed class TriggerService : IDisposable
     /// <summary>A hold or keyboard gesture: open the donut for the file manager's current selection.</summary>
     public event EventHandler<GestureEventArgs>? SelectionGesture;
 
+    /// <summary>Tab went down while <see cref="WatchFlipKey"/> was on: flip the donut.</summary>
+    public event EventHandler? FlipKeyPressed;
+
+    private volatile bool _watchFlipKey;
+    private bool _flipKeyDown; // hook thread only
+
+    /// <summary>
+    /// On while the drag-mode donut shows files: Tab is reported (<see cref="FlipKeyPressed"/>), once per press, not
+    /// for the repeats of a held key. During an OS drag the donut's window has no keyboard focus, so Tab reaches
+    /// Filee only through the hook. Nothing is swallowed: the hook only listens (Explorer and Finder ignore Tab
+    /// during a drag, so the drag goes on), and with the donut closed Tab isn't even looked at.
+    /// </summary>
+    public bool WatchFlipKey
+    {
+        get => _watchFlipKey;
+        set => _watchFlipKey = value;
+    }
+
+    /// <summary>Tab went down or up (hook thread).</summary>
+    private void OnFlipKey(bool down)
+    {
+        var repeat = down && _flipKeyDown;
+        _flipKeyDown = down;
+        if (down && !repeat && _watchFlipKey)
+            Post(() => FlipKeyPressed?.Invoke(this, EventArgs.Empty));
+    }
+
     /// <summary>Last known cursor position (physical pixels).</summary>
     public (int X, int Y) LastCursor { get; private set; }
 
@@ -125,7 +152,17 @@ public sealed class TriggerService : IDisposable
             _hook.MouseMoved += (_, e) => OnMove(e);
             _hook.MouseDraggedRelative += (_, e) => OnRelativeMove(e);
             _hook.MouseMovedRelative += (_, e) => OnRelativeMove(e);
-            _hook.KeyPressed += (_, e) => _detector.KeyDown(KeyName(e.Data.KeyCode), Map(e.RawEvent.Mask));
+            _hook.KeyPressed += (_, e) =>
+            {
+                if (e.Data.KeyCode == KeyCode.VcTab)
+                    OnFlipKey(down: true);
+                _detector.KeyDown(KeyName(e.Data.KeyCode), Map(e.RawEvent.Mask));
+            };
+            _hook.KeyReleased += (_, e) =>
+            {
+                if (e.Data.KeyCode == KeyCode.VcTab)
+                    OnFlipKey(down: false);
+            };
             // Own the actual Run thread. SharpHook's RunAsync task completes BEFORE its finally
             // clears the native callback, so awaiting that task alone is not a safe restart barrier.
             var hook = _hook;

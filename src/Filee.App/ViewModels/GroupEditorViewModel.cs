@@ -121,12 +121,15 @@ public sealed partial class GroupEditorViewModel : ObservableObject
         return true;
     }
 
-    /// <summary>Removes the group from the store and from every donut (its presets stay).</summary>
+    /// <summary>Removes the group from the store and from every donut, front and back (its presets stay).</summary>
     public void Delete()
     {
         _store.Presets.Remove(_group);
         foreach (var profile in _store.Profiles)
+        {
             profile.PresetIds.Remove(_group.Id);
+            profile.BackPresetIds?.Remove(_group.Id);
+        }
         Deleted = true;
     }
 

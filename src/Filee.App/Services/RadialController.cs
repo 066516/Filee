@@ -7,6 +7,8 @@
 // Click mode (keyboard shortcut, context menu, drop zone):
 //   files are known up front → donut appears activated → click a slice to convert, right-click to edit,
 //   Esc / click outside closes.
+// Tab flips the open donut to its other face (DonutMenu.Flip.cs): in click mode the focused window gets the key, in
+// drag mode (no focus during an OS drag) the global hook reports it while the donut shows files.
 // After a drop / click the donut becomes a progress ring at the same spot (DonutMenu.Progress.cs):
 //   finished quickly → ✓ pops up in the centre, then the ring fades out;
 //   still running after HandOffAfter, failed, Esc, click elsewhere or a new gesture → the toast takes over.
@@ -15,6 +17,7 @@ using System.ComponentModel;
 using Avalonia;
 using Avalonia.Threading;
 using Filee.App.Controls;
+using Filee.App.Services.Triggers;
 using Filee.App.ViewModels;
 using Filee.App.Views;
 using Filee.Core.Conversion;
@@ -31,6 +34,7 @@ public sealed class RadialController(
     WindowService windows,
     UserDataStore store,
     IPlatformServices platform,
+    TriggerService triggers,
     ILogger<RadialController> log)
 {
     /// <summary>
@@ -84,6 +88,7 @@ public sealed class RadialController(
         viewModel.ResetForDrag();
         window.DonutControl.AllowContextEdit = false;
         PlaceAndShow(window, x, y, activate: false);
+        WatchFlipKey();
 
         var generation = ++_dragGeneration;
         DispatcherTimer.RunOnce(() =>
@@ -115,6 +120,7 @@ public sealed class RadialController(
         viewModel.FitToThisDonut();
         window.DonutControl.AllowContextEdit = true;
         PlaceAndShow(window, x, y, activate: true);
+        WatchFlipKey();
         window.DonutControl.PlayOpenAnimation();
     }
 
@@ -161,6 +167,7 @@ public sealed class RadialController(
             _window.DonutControl.LeaveProgressMode();
         }
         _visible = false;
+        WatchFlipKey();
         _grace.Cancel();
         var window = _window;
         // A group about to open (its dwell timer running) must not open on a closing donut.
@@ -213,10 +220,12 @@ public sealed class RadialController(
                 return;
             viewModel.Load(files, clickMode: false);
             donut.PlayOpenAnimation();
+            WatchFlipKey();
         };
         window.Dropped += (hit, files) =>
         {
             _dropped = true;
+            WatchFlipKey();
             if (hit.Kind is DonutHitKind.Segment or DonutHitKind.SubSegment)
                 Convert(hit.Index, hit.Sub, files.Count > 0 ? files : viewModel.Files);
             else
@@ -246,6 +255,12 @@ public sealed class RadialController(
         };
 
         donut.ActiveIndexChanged += (_, index) => viewModel.ShowHint(index, donut.ActiveSubIndex, donut.IsCenterHot);
+        // Drag mode: Tab seen by the global hook (click mode gets it as a key of the focused window).
+        triggers.FlipKeyPressed += (_, _) =>
+        {
+            if (_visible && !_dropped && !viewModel.IsClickMode && viewModel.HasFiles)
+                donut.Flip();
+        };
         donut.SegmentInvoked += (_, index) => Convert(index, -1, viewModel.Files);
         donut.SubSegmentInvoked += (_, hit) => Convert(hit.Group, hit.Sub, viewModel.Files);
         donut.CenterInvoked += (_, _) => Close();
@@ -351,6 +366,7 @@ public sealed class RadialController(
     private void HideWindow()
     {
         _visible = false;
+        WatchFlipKey();
         _window?.DonutControl.CollapseGroup();
         _window?.Hide();
     }
@@ -366,7 +382,7 @@ public sealed class RadialController(
             if (await windows.EditPresetAsync(preset, _window))
             {
                 store.SaveLibrary();
-                viewModel.Load(viewModel.Files, viewModel.IsClickMode);
+                viewModel.Load(viewModel.Files, viewModel.IsClickMode, viewModel.IsBackFace);
             }
         }
         finally
@@ -376,6 +392,13 @@ public sealed class RadialController(
         if (_visible)
             _window.Activate();
     }
+
+    /// <summary>
+    /// Has the global hook report Tab only while a drag-mode donut shows files that could flip; Tab is left alone
+    /// otherwise (see <see cref="TriggerService.WatchFlipKey"/>).
+    /// </summary>
+    private void WatchFlipKey() =>
+        triggers.WatchFlipKey = _visible && !_dropped && !viewModel.IsClickMode && viewModel.HasFiles;
 
     /// <summary>
     /// Top-left corner of a <paramref name="sidePx"/> square window centred on <paramref name="cursor"/>, moved into

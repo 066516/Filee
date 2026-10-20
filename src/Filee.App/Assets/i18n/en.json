@@ -57,6 +57,8 @@
   "donut.empty": "Drag presets here",
   "donut.same_format": "Same format",
   "donut.group_caption": "Group of {0}",
+  "donut.flip_to_back": "Tab ↻ back",
+  "donut.flip_to_front": "Tab ↻ front",
 
   "toast.converting": "{0} → {1}",
   "toast.done": "Done",
@@ -321,6 +323,9 @@
   "toolbar.opacity": "Opacity",
   "toolbar.new_preset": "New preset",
   "toolbar.new_group": "New group",
+  "toolbar.face_front": "Front",
+  "toolbar.face_back": "Back",
+  "toolbar.face_hint": "Tab flips the open donut over.",
   "group.editor_title": "Group",
   "group.hint": "A group is one donut slice for several presets: rest on it or move outward and they fan out around it.",
   "group.members": "Presets ({0} / {1})",

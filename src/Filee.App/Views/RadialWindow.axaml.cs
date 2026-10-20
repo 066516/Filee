@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Filee.App.Controls;
 using Filee.App.Services;
+using Filee.App.ViewModels;
 using Filee.Core.Platform;
 
 namespace Filee.App.Views;
@@ -20,6 +21,8 @@ public partial class RadialWindow : Window
         DragDrop.AddDragOverHandler(Root, OnDragOver);
         DragDrop.AddDragLeaveHandler(Root, OnDragLeave);
         DragDrop.AddDropHandler(Root, OnDrop);
+        // Halfway through a flip (Tab) the donut shows the other face of the profile.
+        Donut.FaceSwapping += (_, _) => (DataContext as RadialViewModel)?.ToggleFace();
     }
 
     public DonutMenu DonutControl => Donut;
