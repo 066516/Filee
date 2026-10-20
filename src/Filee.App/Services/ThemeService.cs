@@ -59,6 +59,9 @@ public sealed class ThemeService(IPlatformServices platform)
         Motion.Configure(theme.ReduceMotion, () => platform.PrefersReducedMotion);
     }
 
+    /// <summary>The UI font chain for <paramref name="language"/> (see <see cref="SoftPalette.FontFamilies"/>).</summary>
+    internal static string FontFamilies(string language) => SoftPalette.FontFamilies(language);
+
     /// <summary>Replaces (or, with no colours, removes) the user's colours for one variant.</summary>
     private static void ApplyCustom(IResourceDictionary res, ThemeVariant variant, IReadOnlyDictionary<string, string>? colors)
     {

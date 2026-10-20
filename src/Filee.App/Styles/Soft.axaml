@@ -53,6 +53,12 @@
     </ResourceDictionary>
   </Styles.Resources>
 
+  <!-- ToggleSwitch's own On / Off labels are English only. -->
+  <Style Selector="ToggleSwitch">
+    <Setter Property="OnContent" Value="{DynamicResource common.on}" />
+    <Setter Property="OffContent" Value="{DynamicResource common.off}" />
+  </Style>
+
   <!-- ───────── Windows & typography ───────── -->
   <Style Selector="Window">
     <Setter Property="Background" Value="{DynamicResource PageBrush}" />

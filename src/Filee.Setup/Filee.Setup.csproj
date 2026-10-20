@@ -50,6 +50,7 @@
   <!-- Shared with the app: its look, icon, fonts and translations. -->
   <ItemGroup>
     <Compile Include="..\Filee.App\Services\SoftPalette.cs" Link="Shared\SoftPalette.cs" />
+    <Compile Include="..\Filee.App\Services\AppLanguages.cs" Link="Shared\AppLanguages.cs" />
     <AvaloniaResource Include="..\Filee.App\Styles\Soft.axaml" Link="Styles\Soft.axaml" />
     <AvaloniaResource Include="..\Filee.App\Assets\Icons\filee.ico" Link="Assets\Icons\filee.ico" />
     <AvaloniaResource Include="..\Filee.App\Assets\Icons\filee.png" Link="Assets\Icons\filee.png" />

@@ -18,11 +18,15 @@ internal static class SoftPalette
 
     /// <summary>Embedded Noto fonts (see build/fetch-fonts.ps1). Missing files fall back to system fonts.</summary>
     private const string Latin = "fonts:Filee#Noto Sans";
-    private const string Korean = "fonts:Filee#Noto Sans KR";
-    private const string Chinese = "fonts:Filee#Noto Sans SC";
     private const string Devanagari = "fonts:Filee#Noto Sans Devanagari";
-    private const string SystemFallbacks =
-        "Segoe UI, Nirmala UI, Malgun Gothic, Microsoft YaHei, PingFang SC, Apple SD Gothic Neo, Kohinoor Devanagari, sans-serif";
+
+    /// <summary>Each CJK region's embedded font and its system fonts (Windows, then macOS).</summary>
+    private static readonly (string Embedded, string System) Japanese =
+        ("fonts:Filee#Noto Sans JP", "Yu Gothic UI, Meiryo, Hiragino Sans");
+    private static readonly (string Embedded, string System) Korean =
+        ("fonts:Filee#Noto Sans KR", "Malgun Gothic, Apple SD Gothic Neo");
+    private static readonly (string Embedded, string System) Chinese =
+        ("fonts:Filee#Noto Sans SC", "Microsoft YaHei, PingFang SC");
 
     /// <summary>Accent colour + derived shades. Fluent controls read the System* keys.</summary>
     public static void ApplyAccent(IResourceDictionary res, Color accent)
@@ -54,16 +58,21 @@ internal static class SoftPalette
     }
 
     /// <summary>
-    /// The UI font for <paramref name="language"/>. Han characters look different in Korean and Chinese fonts: the
-    /// UI language's font comes first.
+    /// The UI font chain. Han characters look different in Japanese, Korean and Chinese fonts, so the UI language's
+    /// CJK fonts come first, embedded and system ones alike; other languages keep Korean first.
     /// </summary>
-    public static FontFamily FontFamilyFor(string language)
+    public static string FontFamilies(string language)
     {
-        var cjk = language.StartsWith("zh", StringComparison.OrdinalIgnoreCase)
-            ? $"{Chinese}, {Korean}"
-            : $"{Korean}, {Chinese}";
-        return FontFamily.Parse($"{Latin}, {Devanagari}, {cjk}, {SystemFallbacks}");
+        (string Embedded, string System)[] cjk =
+            language.StartsWith("ja", StringComparison.OrdinalIgnoreCase) ? [Japanese, Korean, Chinese]
+            : language.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? [Chinese, Korean, Japanese]
+            : [Korean, Chinese, Japanese];
+        return $"{Latin}, {Devanagari}, {string.Join(", ", cjk.Select(f => f.Embedded))}, Segoe UI, Nirmala UI, "
+            + $"{string.Join(", ", cjk.Select(f => f.System))}, Kohinoor Devanagari, sans-serif";
     }
+
+    /// <summary>The UI font for <paramref name="language"/>.</summary>
+    public static FontFamily FontFamilyFor(string language) => FontFamily.Parse(FontFamilies(language));
 
     /// <summary>Lightens (amount &gt; 0) or darkens (amount &lt; 0) a colour.</summary>
     public static Color Shade(Color c, double amount)

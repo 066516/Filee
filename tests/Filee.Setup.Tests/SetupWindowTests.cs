@@ -19,7 +19,8 @@ namespace Filee.Setup.Tests;
 
 public class SetupWindowTests
 {
-    public static TheoryData<string> Languages => new() { "en", "es", "ko", "zh-CN", "pl", "hi" };
+    /// <summary>Every language Setup offers.</summary>
+    public static TheoryData<string> Languages => new(SetupTexts.Languages.Select(l => l.Code));
 
     private sealed class FakeRunner : ISetupRunner
     {
@@ -109,7 +110,7 @@ public class SetupWindowTests
     [AvaloniaFact]
     public async Task Update_and_failure_pages_render()
     {
-        foreach (var language in new[] { "en", "ko", "hi" })
+        foreach (var language in new[] { "en", "ko", "ja", "hi" })
         {
             var (model, _, runner) = Model(language, update: true);
             var window = Show(model);
@@ -133,7 +134,7 @@ public class SetupWindowTests
     [AvaloniaFact]
     public async Task Uninstall_pages_render_and_keep_the_settings_by_default()
     {
-        foreach (var language in new[] { "en", "ko", "zh-CN", "pl" })
+        foreach (var language in new[] { "en", "ko", "ja", "zh-CN", "pl" })
         {
             var (model, _, runner) = Model(language, uninstall: true);
             var window = Show(model);

@@ -26,8 +26,7 @@ public partial class SetupTextsTests
     public void Setup_offers_every_language_filee_has()
     {
         Assert.Equal(LocalizationService.Languages.Select(l => (l.Code, l.NativeName)), SetupTexts.Languages);
-        // The names of languages that may come later are ready (a test in the app keeps its list).
-        Assert.All(LocalizationService.Languages, l => Assert.Contains((l.Code, l.NativeName), SetupTexts.KnownLanguages));
+        Assert.Contains(SetupTexts.Languages, l => l.Code == "ja");
     }
 
     [Theory]
@@ -39,6 +38,7 @@ public partial class SetupTextsTests
     [InlineData(null, "es-MX", "es")]
     [InlineData(null, "pl-PL", "pl")]
     [InlineData(null, "hi-IN", "hi")]
+    [InlineData(null, "ja-JP", "ja")]
     [InlineData("xx", "de-DE", "en")]
     [InlineData("klingon", "pl-PL", "pl")]
     public void Languages_resolve_like_the_app_and_like_inno_setup(string? setting, string windows, string expected) =>

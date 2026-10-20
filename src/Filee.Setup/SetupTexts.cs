@@ -10,18 +10,6 @@ namespace Filee.Setup;
 
 public sealed class SetupTexts
 {
-    /// <summary>Filee's languages: code → native name (LocalizationService.Languages in the app; a test compares).</summary>
-    public static readonly IReadOnlyList<(string Code, string NativeName)> KnownLanguages =
-    [
-        ("en", "English"),
-        ("es", "Español"),
-        ("ko", "한국어"),
-        ("zh-CN", "简体中文"),
-        ("pl", "Polski"),
-        ("hi", "हिन्दी"),
-        ("ja", "日本語"),
-    ];
-
     private readonly Dictionary<string, string> _english = Load("en");
     private Dictionary<string, string> _current;
 
@@ -31,9 +19,10 @@ public sealed class SetupTexts
         SetLanguage(language);
     }
 
-    /// <summary>The languages whose translation file Setup carries.</summary>
+    /// <summary>Filee's languages (the app's list, AppLanguages) whose translation file Setup carries: all of them.</summary>
     public static IReadOnlyList<(string Code, string NativeName)> Languages { get; } =
-        KnownLanguages.Where(l => typeof(SetupTexts).Assembly.GetManifestResourceInfo($"i18n.{l.Code}.json") is not null).ToList();
+        Filee.App.Services.AppLanguages.All
+            .Where(l => typeof(SetupTexts).Assembly.GetManifestResourceInfo($"i18n.{l.Code}.json") is not null).ToList();
 
     public string Language { get; private set; } = "en";
 
