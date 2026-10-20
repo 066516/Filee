@@ -65,6 +65,8 @@ internal sealed class GeneratedWatchOutputs(WatchRule rule)
         {
             File.WriteAllText(temporary, JsonSerializer.Serialize(_entries.Values));
             File.Move(temporary, StateFile, overwrite: true);
+            if (OperatingSystem.IsWindows())
+                File.SetAttributes(StateFile, File.GetAttributes(StateFile) | FileAttributes.Hidden);
         }
         finally
         {
