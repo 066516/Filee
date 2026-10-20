@@ -31,8 +31,7 @@ public class RenderTests
         { "general", "zh-CN" }, { "presets", "zh-CN" }, { "toolbar", "zh-CN" }, { "home", "zh-CN" },
         { "general", "pl" }, { "toolbar", "pl" }, { "presets", "pl" }, { "home", "pl" },
         { "home", "es" }, { "general", "es" }, { "toolbar", "es" }, { "presets", "es" }, { "engines", "es" },
-        { "home", "hi" }, { "toolbar", "hi" }, { "presets", "hi" }, { "engines", "hi" },
-        { "general", "ko" }, { "general", "zh-CN" }, { "general", "pl" }, { "general", "hi" },
+        { "home", "hi" }, { "general", "hi" }, { "toolbar", "hi" }, { "presets", "hi" }, { "engines", "hi" },
     };
 
     [AvaloniaTheory]
@@ -336,6 +335,7 @@ public class RenderTests
         TestServices.EnsureInitialized(language);
         var store = AppHost.Get<Filee.Core.Settings.UserDataStore>();
         var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+        store.ClearHistory();
         // A full history (newest first), with the report far below what the page lists without a search.
         var entries = Enumerable.Range(0, store.Settings.EffectiveHistoryLimit).Select(i => new Filee.Core.History.HistoryEntry
         {
