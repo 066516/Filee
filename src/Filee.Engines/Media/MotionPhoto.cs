@@ -1,4 +1,4 @@
-// Android JPEG Motion Photo metadata and bounded extraction of the video at the end of a camera image.
+// Android Motion Photos: where the video saved with a camera picture is, read from the picture's own metadata.
 
 using System.Buffers.Binary;
 using System.Globalization;
@@ -8,7 +8,10 @@ using System.Xml.Linq;
 
 namespace Filee.Engines.Media;
 
-/// <summary>Google Motion Photo 1.0 JPEGs and legacy Microvideo JPEGs.</summary>
+/// <summary>
+/// Google Motion Photo 1.0 JPEGs (Pixel, Samsung and others: an XMP container directory, the video appended), legacy
+/// MicroVideo JPEGs (an offset from the end of the file) and HEIC / AVIF pictures with the video in an <c>mpvd</c> box.
+/// </summary>
 internal static class MotionPhoto
 {
     private static readonly byte[] XmpHeader = "http://ns.adobe.com/xap/1.0/\0"u8.ToArray();
@@ -16,39 +19,15 @@ internal static class MotionPhoto
     private const string Container = "http://ns.google.com/photos/1.0/container/";
     private const string Item = "http://ns.google.com/photos/1.0/container/item/";
 
-    /// <summary>Writes one standard JPEG Motion Photo, preserving the encoded picture and video bytes.</summary>
-    public static async Task WriteAsync(string jpeg, string video, string output, long coverMicroseconds, CancellationToken ct)
-    {
-        var length = new FileInfo(video).Length;
-        var xml = $"""
-            <x:xmpmeta xmlns:x="adobe:ns:meta/">
-              <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-                <rdf:Description xmlns:Camera="{Camera}" xmlns:Container="{Container}" xmlns:Item="{Item}"
-                  Camera:MotionPhoto="1" Camera:MotionPhotoVersion="1" Camera:MotionPhotoPresentationTimestampUs="{coverMicroseconds.ToString(CultureInfo.InvariantCulture)}">
-                  <Container:Directory><rdf:Seq>
-                    <rdf:li rdf:parseType="Resource"><Container:Item Item:Mime="image/jpeg" Item:Semantic="Primary" Item:Length="0" Item:Padding="0" /></rdf:li>
-                    <rdf:li rdf:parseType="Resource"><Container:Item Item:Mime="video/mp4" Item:Semantic="MotionPhoto" Item:Length="{length.ToString(CultureInfo.InvariantCulture)}" /></rdf:li>
-                  </rdf:Seq></Container:Directory>
-                </rdf:Description>
-              </rdf:RDF>
-            </x:xmpmeta>
-            """;
-        var payload = XmpHeader.Concat(Encoding.UTF8.GetBytes(xml)).ToArray();
-        await using var image = File.OpenRead(jpeg);
-        if (image.ReadByte() != 0xff || image.ReadByte() != 0xd8)
-            throw new InvalidDataException("The Motion Photo cover is not a JPEG.");
-        await using var dest = File.Create(output);
-        dest.Write([0xff, 0xd8, 0xff, 0xe1]);
-        var size = new byte[2];
-        BinaryPrimitives.WriteUInt16BigEndian(size, checked((ushort)(payload.Length + 2)));
-        dest.Write(size);
-        await dest.WriteAsync(payload, ct);
-        await image.CopyToAsync(dest, ct);
-        await using var movie = File.OpenRead(video);
-        await movie.CopyToAsync(dest, ct);
-    }
+    /// <summary>JPEG metadata comes before the picture data; the walk stops there, and never goes further than this.</summary>
+    private const int MaxMetadataBytes = 8 * 1024 * 1024;
 
-    /// <summary>Finds the declared video, never by searching arbitrary image bytes for an MP4 signature.</summary>
+    /// <summary>
+    /// Finds the declared video, never by searching the picture's bytes for an MP4 signature. Null for a picture
+    /// without one.
+    /// </summary>
+    /// <exception cref="InvalidDataException">The picture says it has a video, but it isn't there (stale metadata).</exception>
+    /// <exception cref="XmlException">The XMP can't be read.</exception>
     public static (long Offset, long Length)? FindVideo(Stream file)
     {
         file.Position = 0;
@@ -60,9 +39,10 @@ internal static class MotionPhoto
             var box = MovieBoxes.ReadHeader(file);
             if (box.Type == "mpvd")
             {
-                if (box.End != file.Length || box.Length <= box.HeaderLength)
+                // Samsung writes its own trailer after the box, so the box need not end the file.
+                if (box.Length <= box.HeaderLength)
                     throw new InvalidDataException("Invalid Motion Photo video box.");
-                return (box.Start + box.HeaderLength, box.Length - box.HeaderLength);
+                return Checked(file, box.Start + box.HeaderLength, box.Length - box.HeaderLength);
             }
             file.Position = box.End;
         }
@@ -71,8 +51,7 @@ internal static class MotionPhoto
 
     private static (long Offset, long Length)? FindJpegVideo(Stream file)
     {
-        // Metadata must precede JPEG scan data. Bound the walk even for a file made of thousands of segments.
-        while (file.Position < Math.Min(file.Length, 8 * 1024 * 1024))
+        while (file.Position < Math.Min(file.Length, MaxMetadataBytes))
         {
             if (file.ReadByte() != 0xff)
                 throw new InvalidDataException("Invalid JPEG marker.");
@@ -87,55 +66,99 @@ internal static class MotionPhoto
             var length = BinaryPrimitives.ReadUInt16BigEndian(size) - 2;
             if (length < 0 || length > file.Length - file.Position)
                 throw new InvalidDataException("Invalid JPEG segment length.");
-            if (marker == 0xe1)
+            if (marker != 0xe1)
             {
-                var data = new byte[length];
-                file.ReadExactly(data);
-                if (data.AsSpan().StartsWith(XmpHeader))
-                {
-                    using var reader = XmlReader.Create(new MemoryStream(data, XmpHeader.Length, data.Length - XmpHeader.Length),
-                        new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 65535 });
-                    var xml = XDocument.Load(reader);
-                    var attrs = xml.Descendants().Attributes().ToList();
-                    string? Value(string name) => attrs.FirstOrDefault(a => a.Name == XName.Get(name, Camera))?.Value;
-                    long videoLength;
-                    if (Value("MotionPhoto") is { } motion)
-                    {
-                        if (motion != "1")
-                            return null;
-                        var items = xml.Descendants(XName.Get("Item", Container)).ToList();
-                        var last = items.LastOrDefault();
-                        if (last?.Attribute(XName.Get("Semantic", Item))?.Value != "MotionPhoto"
-                            || last.Attribute(XName.Get("Mime", Item))?.Value is not ("video/mp4" or "video/quicktime")
-                            || !long.TryParse(last.Attribute(XName.Get("Length", Item))?.Value, NumberStyles.None, CultureInfo.InvariantCulture, out videoLength))
-                            throw new InvalidDataException("Motion Photo has no valid video directory entry.");
-                    }
-                    else if (Value("MicroVideo") == "1"
-                             && long.TryParse(Value("MicroVideoOffset"), NumberStyles.None, CultureInfo.InvariantCulture, out videoLength))
-                    {
-                        // Microvideo v1 measured backwards from EOF; Motion Photo 1.0 replaced this property.
-                    }
-                    else
-                        continue;
-                    var start = file.Length - videoLength;
-                    if (videoLength < 12 || start < file.Position)
-                        throw new InvalidDataException("Motion Photo video length is outside the file.");
-                    ValidateVideo(file, start, videoLength);
-                    return (start, videoLength);
-                }
-            }
-            else
                 file.Position += length;
+                continue;
+            }
+            var data = new byte[length];
+            file.ReadExactly(data);
+            if (!data.AsSpan().StartsWith(XmpHeader) || VideoLength(data) is not { } videoLength)
+                continue;
+            if (videoLength == 0)
+                return null;
+            // The video ends the file; Samsung's own trailer after it is cut off by Checked.
+            var start = file.Length - videoLength;
+            if (videoLength < 16 || start < file.Position)
+                throw new InvalidDataException("Motion Photo video length is outside the file.");
+            return Checked(file, start, videoLength);
         }
         return null;
     }
 
-    /// <summary>Requires a real ISO media header at the declared boundary, not stale XMP left by an image editor.</summary>
-    public static void ValidateVideo(Stream file, long start, long length)
+    /// <summary>
+    /// The length from the end of the file that the XMP gives the video, 0 for a picture marked as not moving (a
+    /// motion photo whose video was switched off), or null
+    /// when this XMP packet says nothing about motion. Properties may be attributes or elements.
+    /// </summary>
+    private static long? VideoLength(byte[] data)
     {
-        file.Position = start;
-        var box = MovieBoxes.ReadHeader(file);
-        if (box.Type != "ftyp" || box.Length < 16 || box.Length > length)
-            throw new InvalidDataException("The image no longer contains its declared Motion Photo video.");
+        // Some writers pad the packet with NUL bytes after its end, which XML doesn't allow.
+        var end = Math.Max(XmpHeader.Length, Array.LastIndexOf(data, (byte)'>') + 1);
+        using var reader = XmlReader.Create(new MemoryStream(data, XmpHeader.Length, end - XmpHeader.Length),
+            new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 65535 });
+        var xml = XDocument.Load(reader);
+        string? Property(XName name) =>
+            xml.Descendants().Attributes(name).FirstOrDefault()?.Value ?? xml.Descendants(name).FirstOrDefault()?.Value;
+        static string? Field(XElement item, string name) =>
+            item.Attribute(XName.Get(name, Item))?.Value ?? item.Element(XName.Get(name, Item))?.Value;
+
+        if (Property(XName.Get("MotionPhoto", Camera)) is { } motion)
+        {
+            if (motion.Trim() != "1")
+                return 0;
+            // The video is the last item of the directory (a Pixel lists a gain map before it).
+            var last = xml.Descendants(XName.Get("Item", Container)).LastOrDefault();
+            if (last is null || Field(last, "Semantic") != "MotionPhoto"
+                || Field(last, "Mime") is not ("video/mp4" or "video/quicktime")
+                || !long.TryParse(Field(last, "Length"), NumberStyles.None, CultureInfo.InvariantCulture, out var length))
+                throw new InvalidDataException("Motion Photo has no valid video directory entry.");
+            return length;
+        }
+        // MicroVideo (Motion Photo before 1.0): an offset back from the end of the file.
+        if (Property(XName.Get("MicroVideo", Camera))?.Trim() == "1")
+        {
+            return long.TryParse(Property(XName.Get("MicroVideoOffset", Camera)), NumberStyles.None, CultureInfo.InvariantCulture, out var offset)
+                ? offset
+                : throw new InvalidDataException("MicroVideo has no valid offset.");
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// The video at <paramref name="start"/>, up to the end of its last whole box: an MP4 must start there (not stale
+    /// XMP left by an editor that rewrote the picture) and hold its movie header. Anything after it (Samsung's SEF
+    /// trailer) is left out.
+    /// </summary>
+    private static (long Offset, long Length) Checked(Stream file, long start, long length)
+    {
+        var end = start + length;
+        var at = start;
+        var movie = false;
+        Span<byte> header = stackalloc byte[16];
+        while (end - at >= 8)
+        {
+            file.Position = at;
+            file.ReadExactly(header[..8]);
+            long size = BinaryPrimitives.ReadUInt32BigEndian(header);
+            var type = Encoding.Latin1.GetString(header[4..8]);
+            if (size == 1 && end - at >= 16)
+            {
+                file.ReadExactly(header[8..16]);
+                var large = BinaryPrimitives.ReadUInt64BigEndian(header[8..]);
+                size = large > long.MaxValue ? -1 : (long)large;
+            }
+            else if (size == 0)
+                size = end - at;
+            if (size < 8 || size > end - at || (at == start && type != "ftyp"))
+                break;
+            movie |= type == "moov";
+            at += size;
+        }
+        if (at == start)
+            throw new InvalidDataException("The picture no longer contains its declared Motion Photo video.");
+        if (!movie)
+            throw new InvalidDataException("The Motion Photo video has no movie header.");
+        return (start, at - start);
     }
 }

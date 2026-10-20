@@ -13,13 +13,7 @@ public static class FormatLabels
 
     /// <summary>The format's short name; the "folder" pseudo format (Extract) is translated.</summary>
     public static string Name(ILocalizer loc, FileFormat format) =>
-        format.Id switch
-        {
-            FormatRegistry.Folder => loc["format.folder"],
-            "livp" => loc["format.livp"],
-            "motionphoto" => loc["format.motionphoto"],
-            _ => format.DisplayName,
-        };
+        format.Id == FormatRegistry.Folder ? loc["format.folder"] : format.DisplayName;
 
     /// <summary>Name of the format with id <paramref name="formatId"/>, or null when it is unknown.</summary>
     public static string? NameOf(ILocalizer loc, string formatId) =>

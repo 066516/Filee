@@ -11,7 +11,8 @@ namespace Filee.Core.Conversion;
 /// <summary>One hop of a route.</summary>
 /// <param name="FrameSequence">The hop saves every frame of a video (<see cref="ConversionEdge.FrameSequence"/>).</param>
 /// <param name="Unshaped">The hop draws text without complex-script shaping (<see cref="ConversionEdge.Unshaped"/>).</param>
-public sealed record RouteStep(IConverter Converter, string From, string To, bool FrameSequence = false, bool Unshaped = false);
+public sealed record RouteStep(IConverter Converter, string From, string To, bool FrameSequence = false, bool Unshaped = false,
+    bool MotionPhoto = false);
 
 /// <summary>A planned conversion from one format to another.</summary>
 public sealed record Route(IReadOnlyList<RouteStep> Steps, int Cost)
@@ -61,7 +62,10 @@ public sealed class RoutePlanner
     /// <param name="shaping">
     /// The source has text that needs complex-script shaping: <see cref="ConversionEdge.Unshaped"/> edges are left out.
     /// </param>
-    /// <param name="motionPhoto">Extract motion from a camera image through a dedicated direct edge.</param>
+    /// <param name="motionPhoto">
+    /// Take the video of a Live / Motion Photo (<see cref="Presets.Preset.ExtractsMotionOf"/>): the route is one
+    /// <see cref="ConversionEdge.MotionPhoto"/> edge, or none. Without it those edges are never taken.
+    /// </param>
     public Route? Plan(string from, string to, bool frames = false, bool shaping = false, bool motionPhoto = false)
     {
         from = from.ToLowerInvariant();
@@ -69,13 +73,13 @@ public sealed class RoutePlanner
 
         if (frames || motionPhoto)
         {
-            var sequence = EdgesFrom(from)
-                .Where(e => e.Edge.FrameSequence == frames && e.Edge.MotionPhoto == motionPhoto && e.Edge.To == to)
+            var special = EdgesFrom(from)
+                .Where(e => e.Edge.To == to && (frames ? e.Edge.FrameSequence : e.Edge.MotionPhoto))
                 .OrderBy(e => e.Cost)
                 .FirstOrDefault();
-            return sequence.Converter is null
+            return special.Converter is null
                 ? null
-                : new Route([new RouteStep(sequence.Converter, from, to, FrameSequence: frames)], sequence.Cost);
+                : new Route([new RouteStep(special.Converter, from, to, FrameSequence: frames, MotionPhoto: !frames)], special.Cost);
         }
 
         // Same-format "conversions" (re-encode, split, compress) must use an explicit self edge.
@@ -139,6 +143,7 @@ public sealed class RoutePlanner
 
     /// <summary>True if <paramref name="from"/> can be converted to <paramref name="to"/>.</summary>
     /// <param name="frames">Every frame of a video as pictures (see <see cref="Plan"/>).</param>
+    /// <param name="motionPhoto">The video of a Live / Motion Photo (see <see cref="Plan"/>).</param>
     public bool CanConvert(string from, string to, bool frames = false, bool motionPhoto = false) =>
         Plan(from, to, frames, motionPhoto: motionPhoto) is not null;
 

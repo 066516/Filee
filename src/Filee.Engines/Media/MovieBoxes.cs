@@ -1,4 +1,4 @@
-// Small, bounds-checked ISO BMFF box helpers for photo metadata; media payloads are streamed, never loaded whole.
+// Small, bounds-checked ISO BMFF box readers for photo metadata; media payloads are streamed, never loaded whole.
 
 using System.Buffers.Binary;
 using System.Text;
@@ -12,6 +12,7 @@ internal readonly record struct MovieBox(string Type, long Start, long Length, i
 
 internal static class MovieBoxes
 {
+    /// <summary>Reads the box header at the stream's position; a box reaching past the end of the stream is refused.</summary>
     public static MovieBox ReadHeader(Stream file)
     {
         var start = file.Position;
@@ -36,6 +37,7 @@ internal static class MovieBoxes
         return new(type, start, size, headerLength);
     }
 
+    /// <summary>The boxes in <paramref name="data"/> (a parent's payload), after <paramref name="skip"/> bytes.</summary>
     public static List<(string Type, byte[] Payload)> Children(byte[] data, int skip = 0)
     {
         using var stream = new MemoryStream(data);
@@ -51,23 +53,7 @@ internal static class MovieBoxes
         return result;
     }
 
-    public static byte[] Box(string type, params byte[][] parts)
-    {
-        using var file = new MemoryStream();
-        file.Write(U32(checked((uint)(8L + parts.Sum(p => (long)p.Length)))));
-        file.Write(Encoding.Latin1.GetBytes(type));
-        foreach (var part in parts)
-            file.Write(part);
-        return file.ToArray();
-    }
-
-    public static byte[] Full(string type, byte[] payload, uint flags = 0) => Box(type, U32(flags), payload);
-    public static byte[] U16(ushort value) { var data = new byte[2]; BinaryPrimitives.WriteUInt16BigEndian(data, value); return data; }
-    public static byte[] U32(uint value) { var data = new byte[4]; BinaryPrimitives.WriteUInt32BigEndian(data, value); return data; }
-    public static byte[] U64(ulong value) { var data = new byte[8]; BinaryPrimitives.WriteUInt64BigEndian(data, value); return data; }
-    public static byte[] Utf8(string text) => Encoding.UTF8.GetBytes(text);
-    public static byte[] Join(params byte[][] parts) => parts.SelectMany(p => p).ToArray();
-
+    /// <summary>Copies exactly <paramref name="count"/> bytes; a source that ends sooner is an error.</summary>
     public static async Task CopyRangeAsync(Stream source, Stream target, long count, CancellationToken ct)
     {
         var buffer = new byte[81920];

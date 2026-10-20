@@ -22,8 +22,6 @@ public static class FormatRegistry
         new("ico", "ICO", FormatCategory.Image, ["ico"]),
         new("avif", "AVIF", FormatCategory.Image, ["avif"]),
         new("heic", "HEIC", FormatCategory.Image, ["heic", "heif", "hif"]),
-        new("livp", "Live Photo (iPhone)", FormatCategory.Image, ["livp"]),
-        new("motionphoto", "Motion Photo (Android)", FormatCategory.Image, ["motion.jpg"]),
         new("jxl", "JPEG XL", FormatCategory.Image, ["jxl"]),
         new("jp2", "JPEG 2000", FormatCategory.Image, ["jp2", "j2k", "jpf", "jpx"]),
         new("psd", "PSD", FormatCategory.Image, ["psd"]),
@@ -52,6 +50,8 @@ public static class FormatRegistry
         // Read on Windows only, with its own codec (HDR screenshots of Windows are JPEG XR).
         new("jxr", "JPEG XR", FormatCategory.Image, ["jxr", "wdp", "hdp"], Writable: false),
         new("xcf", "XCF", FormatCategory.Image, ["xcf"], Writable: false),
+        // iPhone Live Photo as one ZIP (iCloud downloads): the photo, or its video with FFmpeg.
+        new("livp", "Live Photo (LIVP)", FormatCategory.Image, ["livp"], Writable: false),
         new("raw", "RAW", FormatCategory.Image,
             ["dng", "cr2", "cr3", "crw", "nef", "nrw", "arw", "srf", "sr2", "orf", "rw2", "raf", "pef", "dcr", "kdc",
              "erf", "mos", "mrw", "x3f", "3fr", "fff", "iiq", "mef", "rwl", "srw", "raw"], Writable: false),

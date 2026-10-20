@@ -34,7 +34,7 @@
 <table>
   <tr>
     <td width="33%" valign="top"><b>就在光标旁</b><br>无需打开应用窗口。只显示适合当前拖动文件的格式，就在你所在的位置。</td>
-    <td width="33%" valign="top"><b>248 种格式，无需其他软件</b><br>图片、PDF、Word、Excel、PowerPoint、HWP、电子书、压缩包、字体、CAD 和 3D 模型，无需 Office、韩文办公软件或 LibreOffice。</td>
+    <td width="33%" valign="top"><b>249 种格式，无需其他软件</b><br>图片、PDF、Word、Excel、PowerPoint、HWP、电子书、压缩包、字体、CAD 和 3D 模型，无需 Office、韩文办公软件或 LibreOffice。</td>
     <td width="33%" valign="top"><b>只在你的电脑上</b><br>不上传任何文件。Filee 离线工作，结果保存在原文件旁边。</td>
   </tr>
 </table>
@@ -85,7 +85,7 @@
 
 | 源格式 | 目标格式 |
 |---|---|
-| **图片**：JPG、PNG、WEBP、AVIF、TIFF、BMP、GIF、APNG、ICO、ICNS、JPEG XL、JPEG 2000、PSD/PSB、TGA、PPM、HEIC、QOI、DDS、PCX、MNG、CUR 等；GIMP XCF、相机 RAW（CR2、CR3、NEF、ARW、DNG 等）、DICOM、OpenEXR、HDR、JPEG XR（Windows）仅读取 | 上述格式互转（HEIC⁵）、PDF、SVG（描摹）、缩放、灰度 |
+| **图片**：JPG、PNG、WEBP、AVIF、TIFF、BMP、GIF、APNG、ICO、ICNS、JPEG XL、JPEG 2000、PSD/PSB、TGA、PPM、HEIC、QOI、DDS、PCX、MNG、CUR 等；GIMP XCF、相机 RAW（CR2、CR3、NEF、ARW、DNG 等）、DICOM、OpenEXR、HDR、JPEG XR（Windows）、iPhone 实况照片（LIVP）仅读取 | 上述格式互转（HEIC⁵）、PDF、SVG（描摹）、缩放、灰度；实况/动态照片（iPhone、安卓）→ 其中的视频（MP4、MOV⁵） |
 | **矢量图**：SVG、SVGZ、EMF、WMF、AI · EPS、PS¹ · CDR、VSD、CGM、ODG、FODG² | PDF（矢量）、PNG 等图片、SVG ↔ SVGZ、SVG → DXF/DWG、PDF → EPS/PS¹、SVG → EMF、WMF、ODG² |
 | **PDF** | DOCX、HWPX、TXT、PNG、JPG、TIFF、CBZ、PPTX（每页一张图片）、SVG²；合并、拆分、页码范围、压缩（更小的 PDF） |
 | **文档**：DOCX、DOCM、DOTX、EML、Outlook MSG · DOC、ODT、FODT、OTT、RTF、WPS、WPD、Pages、ClarisWorks、MacWrite、T602 等² | PDF、DOCX、HWPX、EPUB、TXT、HTML、MSG → EML · ODT、FODT、OTT² |
@@ -106,9 +106,6 @@
 未标注的格式装好即用，无需 Office、韩文办公软件或 LibreOffice。
 标注的格式需要可选引擎，只在需要时下载，分别是 ¹ Ghostscript、² LibreOffice、³ Pandoc、⁴ calibre、⁵ FFmpeg
 （[详情](docs/ENGINES.md)）。
-
-实验性[实况／动态照片转换](docs/LIVE-PHOTOS.md)：短视频转苹果 LIVP 或安卓 Motion Photo，以及支持的实况照片转 MP4/MOV。
-需要 FFmpeg，手机相册的兼容性仍需实机验证。
 
 ## 命令行
 

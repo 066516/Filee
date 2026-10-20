@@ -659,6 +659,29 @@ internal static class SettingsMigrations
         //      the user filled up, or a library without the preset, stays as it is.
         if (from < 28)
             changed |= Offer(presets, profiles, "archives", "zip-all", "extract");
+        // v29: "Extract live video" (the video of a Live / Motion Photo as MP4), after "Extract frames" as in a new
+        //      library, on no donut: the images donut is full. Present already but saved since by a Filee before 29:
+        //      that one dropped the option and left a plain MP4 preset, so it is put back. The images donut learns
+        //      ".livp" (iPhone Live Photos downloaded from iCloud) unless a donut of the user already takes it.
+        if (from < 29)
+        {
+            foreach (var motion in BuiltInData.MotionPhotoPresets())
+            {
+                if (presets.FirstOrDefault(p => p.Id == motion.Id) is { } existing)
+                {
+                    if (!existing.Media.ExtractMotionPhoto && existing.TargetFormat == motion.TargetFormat)
+                    {
+                        existing.Media.ExtractMotionPhoto = true;
+                        changed = true;
+                    }
+                    continue;
+                }
+                var at = presets.FindIndex(p => p.Id == "extract-frames-jpg");
+                presets.Insert(at < 0 ? presets.Count : at + 1, motion);
+                changed = true;
+            }
+            changed |= LearnExtensions(profiles, out _, ["livp"]);
+        }
         return changed;
     }
 

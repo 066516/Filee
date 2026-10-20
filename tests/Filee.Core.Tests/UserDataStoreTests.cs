@@ -7,33 +7,6 @@ namespace Filee.Core.Tests;
 public class UserDataStoreTests
 {
     [Fact]
-    public void Version_20_library_gains_live_photo_presets_once_and_keeps_customizations()
-    {
-        using var dir = new TempDir();
-        var store = new UserDataStore(dir.Path);
-        store.Load();
-        var ids = BuiltInData.LivePhotoPresets().Select(p => p.Id).ToHashSet();
-        store.Presets.RemoveAll(p => ids.Contains(p.Id));
-        store.Presets.Add(new Preset { Id = "to-livp", Name = "My live photo", TargetFormat = "livp", Media = { LivePhotoDuration = 2.4 } });
-        store.FindPreset("to-mp4")!.Media.LivePhotoStart = 7;
-        store.Settings.SchemaVersion = 20;
-        store.SaveSettings();
-        store.SaveLibrary();
-        var reloaded = new UserDataStore(dir.Path);
-        reloaded.Load();
-        foreach (var id in ids)
-            Assert.Single(reloaded.Presets, p => p.Id == id);
-        Assert.Equal("My live photo", reloaded.FindPreset("to-livp")!.Name);
-        Assert.Equal(2.4, reloaded.FindPreset("to-livp")!.Media.LivePhotoDuration);
-        Assert.Equal(7, reloaded.FindPreset("to-mp4")!.Media.LivePhotoStart);
-        Assert.True(reloaded.FindPreset("extract-motion")!.Media.ExtractMotionPhoto);
-        Assert.DoesNotContain(reloaded.Profiles, p => p.PresetIds.Any(ids.Contains));
-        reloaded.Load();
-        foreach (var id in ids)
-            Assert.Single(reloaded.Presets, p => p.Id == id);
-    }
-
-    [Fact]
     public void Groups_keep_only_conversions_once_and_at_most_six()
     {
         using var dir = new TempDir();
@@ -833,6 +806,37 @@ public class UserDataStoreTests
         archives.PresetIds = [.. presets.Where(p => p.Id != "zip-all").Take(ToolbarProfile.MaxSlices).Select(p => p.Id)];
         Assert.False(SettingsMigrations.ApplyToLibrary(27, presets, profiles));
         Assert.DoesNotContain("zip-all", archives.PresetIds);
+    }
+
+    [Fact]
+    public void Version_28_libraries_get_extract_live_video_on_no_donut_and_learn_livp()
+    {
+        // As written with schema 28: no "Extract Live Photo video", no .livp on the images donut, and the user took
+        // HEIC off it.
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "extract-motion");
+        var profiles = BuiltInData.CreateProfiles();
+        var images = profiles.Single(p => p.Id == "images");
+        images.Extensions.RemoveAll(e => e is "livp" or "heic");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(28, presets, profiles));
+
+        var motion = presets.Single(p => p.Id == "extract-motion");
+        Assert.True(motion.Media.ExtractMotionPhoto);
+        Assert.Equal("mp4", motion.TargetFormat);
+        Assert.Equal("extract-frames-jpg", presets[presets.IndexOf(motion) - 1].Id);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("extract-motion"));
+        Assert.Contains("livp", images.Extensions);
+        Assert.DoesNotContain("heic", images.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(28, presets, profiles)); // once only
+
+        // Back from an older Filee, which dropped the option it didn't know: the preset extracts again, its name stays.
+        motion.Media.ExtractMotionPhoto = false;
+        motion.Name = "Live video";
+        Assert.True(SettingsMigrations.ApplyToLibrary(28, presets, profiles));
+        Assert.True(motion.Media.ExtractMotionPhoto);
+        Assert.Equal("Live video", motion.Name);
+        Assert.Single(presets, p => p.Id == "extract-motion");
     }
 
     [Fact]

@@ -38,7 +38,11 @@ namespace Filee.Core.Conversion;
 /// needs shaping is never routed through the edge: <see cref="JobQueue"/> asks the engine
 /// (<see cref="ITextShapingCheck"/>) and plans again without it.
 /// </param>
-/// <param name="MotionPhoto">Only taken when explicitly extracting a camera image's motion; never a still-image route.</param>
+/// <param name="MotionPhoto">
+/// The edge takes the video out of a Live / Motion Photo (<see cref="Presets.MediaOptions.ExtractMotionPhoto"/>). It is
+/// never part of an ordinary route (a photo → MP4 is otherwise a video of the still picture), and with
+/// <see cref="RoutePlanner.Plan(string, string, bool, bool, bool)"/> asking for it it is the whole route.
+/// </param>
 public readonly record struct ConversionEdge(
     string From, string To, int Cost = 10, bool ImageSourcesOnly = false, bool NotForImageSources = false,
     bool DirectOnly = false, bool FrameSequence = false, bool Unshaped = false, bool MotionPhoto = false);
@@ -98,6 +102,10 @@ public interface IOutputAllocator
 /// Records a note on a step that worked, as a localization key (e.g. <c>notice.pdf_not_smaller</c>): shown with the
 /// file's result. Null when nobody listens.
 /// </param>
+/// <param name="MotionPhoto">
+/// The step takes a <see cref="ConversionEdge.MotionPhoto"/> edge: the video of the Live / Motion Photo becomes the
+/// output, not its still picture.
+/// </param>
 public sealed record ConversionStep(
     string InputPath,
     string From,
@@ -106,7 +114,8 @@ public sealed record ConversionStep(
     IOutputAllocator Output,
     string WorkDirectory,
     bool FrameSequence = false,
-    Action<string>? Notice = null);
+    Action<string>? Notice = null,
+    bool MotionPhoto = false);
 
 /// <summary>
 /// A conversion engine (ImageMagick, LibreOffice, rhwp, ...).
