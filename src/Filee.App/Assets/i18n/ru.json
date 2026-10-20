@@ -119,7 +119,7 @@
   "engine.pdfsharp.description": "Делает PDF из картинок, объединяет и разделяет PDF, вырезает диапазоны страниц.\nА ещё уменьшает PDF, сжимая картинки внутри.",
   "engine.rhwp.description": "Превращает HWP/HWPX в PDF и конвертирует HWP ↔ HWPX.\nОн же отрисовывает документы, которые идут в PDF через HWPX (DOCX, XLSX, PPTX, электронные книги…).",
   "engine.unhwp.description": "Достаёт текст, Markdown и HTML из HWP и HWPX.",
-  "engine.markdown.description": "Markdown → HTML и простой текст.",
+  "engine.markdown.description": "Markdown → HTML и простой текст.\nТекстовые файлы и исходники скриптов → TXT в UTF-8 без выполнения скриптов.",
   "engine.spreadsheet.description": "XLSX, XLS, ODS, CSV и TSV друг в друга (XLS — только чтение).\nПо одному CSV на лист.",
   "engine.ooxml.description": "Файлы с макросами и шаблоны (DOCM, XLSM, PPTM, DOTX…) ↔ DOCX, XLSX, PPTX.\nМакросы удаляются.",
   "engine.hwpx-writer.description": "Создаёт HWPX из Word, Excel, PowerPoint, PDF, OFD, HTML, электронных книг и Markdown.\nПервый шаг, чтобы получить PDF из документов без Office.",
@@ -187,6 +187,9 @@
   "preset.flip_horizontal.short": "По гориз.",
   "preset.flip_vertical": "Отразить по вертикали",
   "preset.flip_vertical.short": "По верт.",
+  "merge.order_title": "Выберите порядок объединения",
+  "merge.order_hint": "Выберите файл и переместите его вверх или вниз. Файлы объединяются сверху вниз. (Alt+↑ / Alt+↓)",
+
   "preset.merge_pdf": "Объединить PDF",
   "preset.split_pdf": "Разделить PDF",
   "preset.compress_pdf": "Сжать PDF",

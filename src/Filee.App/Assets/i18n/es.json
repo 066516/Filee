@@ -112,7 +112,7 @@
   "engine.pdfsharp.description": "Crea PDF a partir de imágenes y combina, divide o extrae rangos de páginas de PDF.\nTambién reduce el tamaño de los PDF reduciendo sus imágenes.",
   "engine.rhwp.description": "Renderiza HWP/HWPX a PDF y convierte HWP ↔ HWPX.\nTambién dibuja en PDF los documentos que llegan a PDF a través de HWPX (DOCX, XLSX, PPTX, libros electrónicos…).",
   "engine.unhwp.description": "Extrae texto, Markdown y HTML de HWP y HWPX.",
-  "engine.markdown.description": "Markdown → HTML y texto sin formato.",
+  "engine.markdown.description": "Markdown → HTML y texto sin formato.\nArchivos de texto y código fuente de scripts → TXT en UTF-8, sin ejecutar scripts.",
   "engine.spreadsheet.description": "XLSX, XLS, ODS, CSV y TSV entre sí (XLS es de solo lectura).\nUn CSV por hoja.",
   "engine.ooxml.description": "Archivos y plantillas con macros (DOCM, XLSM, PPTM, DOTX…) ↔ DOCX, XLSX, PPTX.\nLas macros se eliminan.",
   "engine.hwpx-writer.description": "Escribe HWPX desde Word, Excel, PowerPoint, PDF, OFD, HTML, libros electrónicos y Markdown.\nEl primer paso para pasar documentos a PDF sin Office.",
@@ -177,6 +177,9 @@
   "preset.flip_horizontal.short": "Horizontal",
   "preset.flip_vertical": "Volteo vertical",
   "preset.flip_vertical.short": "Vertical",
+  "merge.order_title": "Elegir el orden de combinación",
+  "merge.order_hint": "Selecciona un archivo y muévelo arriba o abajo. Los archivos se combinan de arriba abajo. (Alt+↑ / Alt+↓)",
+
   "preset.merge_pdf": "Combinar PDF",
   "preset.split_pdf": "Dividir PDF",
   "preset.compress_pdf": "Comprimir PDF",

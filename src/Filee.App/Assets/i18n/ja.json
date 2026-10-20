@@ -112,7 +112,7 @@
   "engine.pdfsharp.description": "画像からPDFを作成し、PDFの結合、分割、ページ範囲の切り出しを行います。\n画像を縮小してPDFのファイルサイズを小さくすることもできます。",
   "engine.rhwp.description": "HWP/HWPXをPDFに変換し、HWPとHWPXを相互変換します。\nHWPXを経由してPDFにする文書（DOCX、XLSX、PPTX、電子書籍など）の描画にも使われます。",
   "engine.unhwp.description": "HWPとHWPXからテキスト、Markdown、HTMLを抽出します。",
-  "engine.markdown.description": "MarkdownをHTMLまたはプレーンテキストに変換します。",
+  "engine.markdown.description": "MarkdownをHTMLまたはプレーンテキストに変換します。\nテキストとスクリプトのソースファイル → UTF-8 TXT。スクリプトは実行しません。",
   "engine.spreadsheet.description": "XLSX、XLS、ODS、CSV、TSVを相互変換します（XLSは読み込みのみ）。\nシートごとにCSVを1つ作成します。",
   "engine.ooxml.description": "マクロ有効ファイルやテンプレート（DOCM、XLSM、PPTM、DOTXなど）をDOCX、XLSX、PPTXと相互変換します。\nマクロは削除されます。",
   "engine.hwpx-writer.description": "Word、Excel、PowerPoint、PDF、OFD、HTML、電子書籍、MarkdownからHWPXを作成します。\nOfficeを使わずに文書をPDFにする際の最初の変換段階です。",
@@ -177,6 +177,9 @@
   "preset.flip_horizontal.short": "水平",
   "preset.flip_vertical": "垂直方向に反転",
   "preset.flip_vertical.short": "垂直",
+  "merge.order_title": "結合順序を選択",
+  "merge.order_hint": "ファイルを選択して上下に移動します。上から順に結合されます。（Alt+↑ / Alt+↓）",
+
   "preset.merge_pdf": "結合",
   "preset.split_pdf": "分割",
   "preset.compress_pdf": "圧縮",

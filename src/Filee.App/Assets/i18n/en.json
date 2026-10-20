@@ -119,7 +119,7 @@
   "engine.pdfsharp.description": "Makes PDFs from images and merges, splits or cuts page ranges out of PDFs.\nAlso makes PDFs smaller by scaling down their pictures.",
   "engine.rhwp.description": "Renders HWP/HWPX to PDF and converts HWP ↔ HWPX.\nIt also draws documents that reach PDF through HWPX (DOCX, XLSX, PPTX, e-books…).",
   "engine.unhwp.description": "Extracts text, Markdown and HTML from HWP and HWPX.",
-  "engine.markdown.description": "Markdown → HTML and plain text.",
+  "engine.markdown.description": "Markdown → HTML and plain text.\nText and script source files → UTF-8 TXT, without running scripts.",
   "engine.spreadsheet.description": "XLSX, XLS, ODS, CSV and TSV into each other (XLS is read only).\nOne CSV per sheet.",
   "engine.ooxml.description": "Macro-enabled files and templates (DOCM, XLSM, PPTM, DOTX…) ↔ DOCX, XLSX, PPTX.\nMacros are removed.",
   "engine.hwpx-writer.description": "Writes HWPX from Word, Excel, PowerPoint, PDF, OFD, HTML, e-books and Markdown.\nThe first step of turning documents into PDF without Office.",
@@ -187,6 +187,9 @@
   "preset.flip_horizontal.short": "Horizontal",
   "preset.flip_vertical": "Flip vertical",
   "preset.flip_vertical.short": "Vertical",
+  "merge.order_title": "Choose merge order",
+  "merge.order_hint": "Select a file and move it up or down. Files are merged from top to bottom. (Alt+↑ / Alt+↓)",
+
   "preset.merge_pdf": "Merge PDF",
   "preset.split_pdf": "Split PDF",
   "preset.compress_pdf": "Compress PDF",

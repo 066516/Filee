@@ -7,6 +7,36 @@ namespace Filee.Core.Tests;
 public class UserDataStoreTests
 {
     [Fact]
+    public void Version_30_learns_reported_text_and_video_extensions_without_taking_custom_claims()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Settings.SchemaVersion = 30;
+        foreach (var profile in store.Profiles)
+            profile.Extensions.RemoveAll(e => e is "log" or "py" or "pac" or "bat" or "command" or "dat");
+        store.Profiles.Insert(0, new ToolbarProfile { Id = "my-python", Name = "My code", Extensions = ["py"] });
+        store.SaveLibrary();
+        store.SaveSettings();
+
+        var upgraded = new UserDataStore(dir.Path);
+        upgraded.Load();
+        var text = upgraded.Profiles.Single(p => p.Id == "text");
+        Assert.Contains("log", text.Extensions);
+        Assert.Contains("pac", text.Extensions);
+        Assert.Contains("bat", text.Extensions);
+        Assert.Contains("command", text.Extensions);
+        Assert.DoesNotContain("py", text.Extensions);
+        Assert.Contains("py", upgraded.Profiles.Single(p => p.Id == "my-python").Extensions);
+        Assert.Contains("dat", upgraded.Profiles.Single(p => p.Id == "video").Extensions);
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        Assert.Single(reloaded.Profiles, p => p.Extensions.Contains("py"));
+        Assert.Single(reloaded.Profiles, p => p.Extensions.Contains("dat"));
+    }
+
+    [Fact]
     public void Groups_keep_only_conversions_once_and_at_most_six()
     {
         using var dir = new TempDir();
