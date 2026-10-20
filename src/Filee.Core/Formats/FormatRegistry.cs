@@ -304,6 +304,13 @@ public static class FormatRegistry
         new("3mf", "3MF", FormatCategory.Model3D, ["3mf"]),
         new("ply", "PLY", FormatCategory.Model3D, ["ply"]),
         new("fbx", "FBX", FormatCategory.Model3D, ["fbx"], Writable: false),
+
+        // Geospatial vector data (CSV with coordinates is a Data format and reaches these through the geo engine)
+        new("geojson", "GeoJSON", FormatCategory.Geo, ["geojson"]),
+        new("kml", "KML", FormatCategory.Geo, ["kml"]),
+        new("kmz", "KMZ", FormatCategory.Geo, ["kmz"]),
+        new("gpx", "GPX", FormatCategory.Geo, ["gpx"]),
+        new("shp", "Shapefile", FormatCategory.Geo, ["shp"]),
     ];
 
     private static readonly Dictionary<string, FileFormat> ById =
