@@ -307,17 +307,21 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Options ticked on the installer's task page. Saving applies them through SystemIntegrationService
-    /// as if they had been switched on the General page.
+    /// Options ticked in Setup, and the language picked there. Saving applies them (SystemIntegrationService, the
+    /// language) as if they had been switched on the General page.
     /// </summary>
     private static void ApplyInstallerChoices(CommandLine options, UserDataStore store)
     {
-        if (options.StartWithWindows is null && options.ContextMenu is null)
+        // Only Filee's languages; anything else keeps the setting (normally "auto", Windows' language).
+        var language = LocalizationService.Languages.FirstOrDefault(l => l.Code.Equals(options.Language, StringComparison.OrdinalIgnoreCase)).Code;
+        if (options.StartWithWindows is null && options.ContextMenu is null && language is null)
             return;
         if (options.StartWithWindows is { } start)
             store.Settings.StartWithSystem = start;
         if (options.ContextMenu is { } menu)
             store.Settings.ContextMenuEnabled = menu;
+        if (language is not null)
+            store.Settings.Language = language;
         store.SaveSettings();
     }
 
