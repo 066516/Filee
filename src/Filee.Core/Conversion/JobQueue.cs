@@ -371,9 +371,22 @@ public sealed class JobQueue : IAsyncDisposable
 
         // "Save every frame": a video becomes a folder of pictures in one step of its own. Never for an intermediate
         // file, and never on the way to another format (video → JPG is otherwise one still frame).
-        var route = planner.Plan(source.Id, target, frames: finalOutput && job.Preset.SavesFramesOf(source.Id));
+        var frames = finalOutput && job.Preset.SavesFramesOf(source.Id);
+        var route = planner.Plan(source.Id, target, frames);
         if (route is null)
             return Fail(file, "error.no_route", $"{source.Id} → {target}");
+
+        // A step that draws text without shaping (rhwp) would break Arabic, Hebrew, Indic or Thai text: such a file
+        // takes a route without it (LibreOffice), or is refused with the reason rather than written broken.
+        if (route.Steps.FirstOrDefault(s => s.Unshaped)?.Converter is ITextShapingCheck check
+            && ScriptNeedingShaping(check, file.SourcePath, source.Id) is { } script)
+        {
+            _log.LogInformation("{File} has {Script} text, which {Engine} can't draw: planning a route without it",
+                file.SourcePath, script, route.Steps.First(s => s.Unshaped).Converter.DisplayName);
+            route = planner.Plan(source.Id, target, frames, shaping: true);
+            if (route is null)
+                return Fail(file, "error.needs_shaping", script);
+        }
 
         // Rotate / flip: only an engine that turns images does it. Without one the file would come out unturned
         // (a PDF or a video re-encoded "as rotated"); with two in the route (EPS → PNG → JPG) it would turn twice.
@@ -485,6 +498,20 @@ public sealed class JobQueue : IAsyncDisposable
             f.Progress = 1;
             Notify(job);
             return [];
+        }
+    }
+
+    /// <summary>The engine's check; a check that fails (an unreadable file) finds nothing, and the conversion reports the file.</summary>
+    private string? ScriptNeedingShaping(ITextShapingCheck check, string path, string format)
+    {
+        try
+        {
+            return check.ScriptNeedingShaping(path, format);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Could not check the scripts of {File}", path);
+            return null;
         }
     }
 

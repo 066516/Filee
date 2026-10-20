@@ -94,6 +94,9 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
 
     [ObservableProperty] private bool _canDelete;
 
+    /// <summary>The selected profile is a built-in donut, which "Reset to default" can put back (a new one can't).</summary>
+    [ObservableProperty] private bool _canReset;
+
     /// <summary>Extension chips of a normal profile (null for a mixed one).</summary>
     [ObservableProperty] private ExtensionTagsViewModel? _extensionTags;
 
@@ -176,6 +179,7 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
         _loading = false;
         CanChangeMixed = profile is not null && !(profile.IsFallback && mixedCount <= 1);
         CanDelete = CanChangeMixed;
+        CanReset = profile is not null && _store.CanResetProfile(profile);
         ExtensionTags = profile is { IsFallback: false } ? new ExtensionTagsViewModel(profile, _store.Profiles, _loc, _store.SaveLibrary) : null;
         MixedExtensions = profile is { IsFallback: true } ? new MixedExtensionsViewModel(profile, _store.Profiles, _loc, _store.SaveLibrary) : null;
     }
@@ -308,6 +312,48 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
         _store.SaveLibrary();
         Profiles.Remove(SelectedProfile!);
         SelectedProfile = Profiles.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    private async Task ResetProfile()
+    {
+        if (SelectedProfile is not { } item || !CanReset || _windows.Main is null)
+            return;
+        if (!await _windows.ConfirmAsync(_windows.Main, _loc.Format("toolbar.reset_profile_confirm", item.Name), destructive: true))
+            return;
+        Reset(item);
+    }
+
+    /// <summary>Puts a built-in profile back to its defaults (see <see cref="UserDataStore.ResetProfile"/>).</summary>
+    internal void Reset(ProfileItemViewModel item)
+    {
+        if (!_store.ResetProfile(item.Profile))
+            return;
+        // A profile that changed kind moved to the border between the normal and the mixed ones.
+        var from = Profiles.IndexOf(item);
+        var to = _store.Profiles.IndexOf(item.Profile);
+        if (from != to)
+        {
+            _repositioning = true;
+            try
+            {
+                Profiles.Move(from, to);
+                SelectedProfile = item;
+            }
+            finally
+            {
+                _repositioning = false;
+            }
+        }
+        _loading = true;
+        ProfileName = _loc.DisplayName(item.Profile);
+        _loading = false;
+        Message = null;
+        // Every profile: the extension hints of the others change with this one's extensions.
+        foreach (var other in Profiles)
+            other.Refresh(_loc);
+        RebuildProfileEditor();
+        Rebuild();
     }
 
     private void Commit()
