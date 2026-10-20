@@ -1227,6 +1227,8 @@ Filee (with the GPL source offer), then an `engines.json` component and an optio
 frame or a folder of every frame, to every audio format (the sound track) and to SRT, ASS and WebVTT (the subtitles);
 every audio format to every audio format; and GIF, APNG and PNG to MP4, WEBM and MOV.
 Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on MP3 files.
+A Video CD's `MPEGAV/AVSEQ01.DAT` (MPEG-1 in a RIFF/CDXA wrapper) counts as MPEG: `.dat` is an extension of that
+format, and FFmpeg reads what the file holds, so a `.dat` with no video in it fails instead of making a file.
 
 - The download is the gyan.dev **9.0.2 "full_build-shared"** Windows build (GPL-3.0, run as a separate program).
   It is smaller than the "essentials" build (100 vs 115 MB download, 272 vs 329 MB on disk, because ffmpeg.exe and
