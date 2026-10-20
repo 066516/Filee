@@ -1,5 +1,6 @@
-// Verifies that retrying gestures waits for the previous native hook to release its shared callback, and that
-// Wayland's relative mouse motion still starts a drag gesture.
+// Verifies that retrying gestures waits for the previous native hook to release its shared callback, that
+// Wayland's relative mouse motion still starts a drag gesture, and that Tab is reported (to flip the drag donut) only
+// while asked for.
 
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
@@ -132,6 +133,49 @@ public sealed class TriggerServiceLifecycleTests
         Assert.Equal((60, 60), service.LastCursor);
     }
 
+    [AvaloniaFact]
+    public void Tab_is_reported_only_while_watched_and_once_per_press()
+    {
+        var provider = new DelayedProvider();
+        provider.AllowExit.Set();
+        using var service = Create(provider, () => { });
+        var flips = 0;
+        service.FlipKeyPressed += (_, _) => flips++;
+        service.Start();
+        Assert.True(SpinWait.SpinUntil(() => provider.Runs == 1, 2000));
+
+        // The donut is closed: Tab is none of Filee's business.
+        provider.PostKey(EventType.KeyPressed, KeyCode.VcTab);
+        provider.PostKey(EventType.KeyReleased, KeyCode.VcTab);
+        Assert.Equal(0, Settle(() => flips));
+
+        service.WatchFlipKey = true;
+        provider.PostKey(EventType.KeyPressed, KeyCode.VcTab, EventMask.LeftCtrl); // the drag's modifier still held
+        Assert.Equal(1, Settle(() => flips));
+        provider.PostKey(EventType.KeyPressed, KeyCode.VcTab); // the key repeating while held: no second flip
+        provider.PostKey(EventType.KeyPressed, KeyCode.VcA);
+        Assert.Equal(1, Settle(() => flips));
+        provider.PostKey(EventType.KeyReleased, KeyCode.VcTab);
+        provider.PostKey(EventType.KeyPressed, KeyCode.VcTab);
+        Assert.Equal(2, Settle(() => flips));
+
+        service.WatchFlipKey = false;
+        provider.PostKey(EventType.KeyReleased, KeyCode.VcTab);
+        provider.PostKey(EventType.KeyPressed, KeyCode.VcTab);
+        Assert.Equal(2, Settle(() => flips));
+    }
+
+    /// <summary>Runs the work the hook posted to the UI thread for a moment, then reads the value.</summary>
+    internal static T Settle<T>(Func<T> read)
+    {
+        for (var i = 0; i < 20; i++)
+        {
+            Thread.Sleep(10);
+            Dispatcher.UIThread.RunJobs();
+        }
+        return read();
+    }
+
     private static (DelayedProvider Provider, TriggerService Service, Func<GestureEventArgs?> Started) StartGesture(bool wayland)
     {
         var provider = new DelayedProvider();
@@ -152,7 +196,7 @@ public sealed class TriggerServiceLifecycleTests
         return started()!;
     }
 
-    private static TriggerService Create(DelayedProvider provider, Action key, bool wayland = false) =>
+    internal static TriggerService Create(DelayedProvider provider, Action key, bool wayland = false) =>
         new(new NullPlatformServicesForHooks { PressCarriesPosition = !wayland }, NullLogger<TriggerService>.Instance, () =>
         {
             var hook = new EventLoopGlobalHook(provider, useBackgroundThreadForEventLoop: true);
@@ -161,7 +205,7 @@ public sealed class TriggerServiceLifecycleTests
         });
 
     // Models libuiohook's process-wide callback and asynchronous native shutdown. No OS input is hooked.
-    private sealed class DelayedProvider : IGlobalHookProvider
+    internal sealed class DelayedProvider : IGlobalHookProvider
     {
         private readonly object _gate = new();
         private DispatchProc? _callback;
@@ -208,6 +252,28 @@ public sealed class TriggerServiceLifecycleTests
             }
         }
 
+        public void PostKey(EventType type, KeyCode code, EventMask mask = EventMask.None)
+        {
+            lock (_gate)
+            {
+                var e = new UioHookEvent { Type = type, Mask = mask, Keyboard = new KeyboardEventData { KeyCode = code } };
+                _callback?.Invoke(ref e, _data);
+            }
+        }
+
+        public void PostWheel(short rotation, MouseWheelScrollDirection direction = MouseWheelScrollDirection.Vertical)
+        {
+            lock (_gate)
+            {
+                var e = new UioHookEvent
+                {
+                    Type = EventType.MouseWheel,
+                    Wheel = new MouseWheelEventData { Rotation = rotation, Delta = 1, Direction = direction },
+                };
+                _callback?.Invoke(ref e, _data);
+            }
+        }
+
         public void PressKey()
         {
             lock (_gate)
@@ -218,7 +284,7 @@ public sealed class TriggerServiceLifecycleTests
         }
     }
 
-    private sealed class NullPlatformServicesForHooks : IPlatformServices
+    internal sealed class NullPlatformServicesForHooks : IPlatformServices
     {
         public bool PressCarriesPosition { get; init; } = true;
         public bool IsFileManagerAt(int x, int y) => true;

@@ -47,7 +47,12 @@
                  OuterRadius="{Binding OuterRadius}"
                  HoleRatio="{Binding HoleRatio}"
                  SliceOpacity="{Binding SliceOpacity}"
-                 ReserveSubRing="{Binding ReserveSubRing}" />
+                 ReserveSubRing="{Binding ReserveSubRing}"
+                 CanFlip="{Binding CanFlip}"
+                 CenterHint="{Binding FlipHint}"
+                 CenterHintWheel="{Binding FlipHintWheel}"
+                 FlipKey="{Binding FlipKey}"
+                 FlipWithWheel="{Binding FlipWithWheel}" />
     <!-- Centred on the donut and lifted just above the ring (DonutMenu.RingRadius 36, its stroke and plate). -->
     <Panel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
            RenderTransform="translate(0px, -70px)">

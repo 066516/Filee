@@ -58,6 +58,50 @@ public sealed class DonutSettings
     /// <summary>Background opacity of the slices (0.5 - 1).</summary>
     public double Opacity { get; set; } = 0.96;
 
+    /// <summary>The flip key unless the user picks another one (Settings → Shortcuts).</summary>
+    public const string DefaultFlipKey = "Tab";
+
+    /// <summary>
+    /// The key that flips the open donut to its other face, as a SharpHook key name without "Vc" ("Tab", "F2", "Q");
+    /// empty for none. See <see cref="EffectiveFlipKey"/>.
+    /// </summary>
+    public string FlipKey { get; set; } = DefaultFlipKey;
+
+    /// <summary>A turn of the mouse wheel flips the open donut to its other face.</summary>
+    public bool FlipWithWheel { get; set; } = true;
+
+    /// <summary>
+    /// Keys that never flip the donut: Esc closes it, Enter and Space convert or open a group, the arrows move between
+    /// slices and Backspace folds a group's ring.
+    /// </summary>
+    public static readonly IReadOnlySet<string> ReservedFlipKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "Escape", "Enter", "Space", "Left", "Right", "Up", "Down", "Backspace",
+    };
+
+    /// <summary>
+    /// Whether <paramref name="key"/> may flip the donut: not a key the donut uses (<see cref="ReservedFlipKeys"/>), nor
+    /// the key of a keyboard shortcut in <paramref name="gestures"/>. While a drag holds its modifier that shortcut would
+    /// fire too, and open the donut for the selected files instead.
+    /// </summary>
+    public static bool IsFlipKeyAllowed(string key, IEnumerable<TriggerGesture> gestures) =>
+        !string.IsNullOrWhiteSpace(key) && !ReservedFlipKeys.Contains(key) &&
+        !gestures.Any(g => g.Kind == TriggerKind.KeyChord && string.Equals(g.Key, key, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// The key that flips the donut now: none when the user cleared it; Tab in place of one that isn't allowed (a file
+    /// edited by hand, or a keyboard shortcut that took the key since), or none when Tab isn't either.
+    /// </summary>
+    public string? EffectiveFlipKey(IEnumerable<TriggerGesture> gestures)
+    {
+        if (string.IsNullOrWhiteSpace(FlipKey))
+            return null;
+        var list = gestures as IReadOnlyCollection<TriggerGesture> ?? gestures.ToList();
+        if (IsFlipKeyAllowed(FlipKey.Trim(), list))
+            return FlipKey.Trim();
+        return IsFlipKeyAllowed(DefaultFlipKey, list) ? DefaultFlipKey : null;
+    }
+
     public DonutSettings Clone() => (DonutSettings)MemberwiseClone();
 }
 
@@ -65,7 +109,7 @@ public sealed class DonutSettings
 public sealed class AppSettings
 {
     /// <summary>Current schema version. Increase when the format changes and add a migration.</summary>
-    public const int CurrentSchemaVersion = 29;
+    public const int CurrentSchemaVersion = 30;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
