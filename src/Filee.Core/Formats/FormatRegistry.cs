@@ -119,6 +119,7 @@ public static class FormatRegistry
         new("pptx", "PPTX", FormatCategory.Presentation, ["pptx"]),
         new("pptm", "PPTM", FormatCategory.Presentation, ["pptm"]),
         new("potx", "POTX", FormatCategory.Presentation, ["potx"]),
+        new("potm", "POTM", FormatCategory.Presentation, ["potm"]),
         new("ppsx", "PPSX", FormatCategory.Presentation, ["ppsx"]),
         new("ppt", "PPT", FormatCategory.Presentation, ["ppt", "pps", "pot"]),
         new("odp", "ODP", FormatCategory.Presentation, ["odp"]),
@@ -132,6 +133,8 @@ public static class FormatRegistry
         new("txt", "TXT", FormatCategory.Text, ["txt"]),
         new("md", "Markdown", FormatCategory.Text, ["md", "markdown"]),
         new("html", "HTML", FormatCategory.Text, ["html", "htm", "xhtml"]),
+        // A web page saved with its pictures in one MIME file (Chrome, Edge, Word); read as the page it holds.
+        new("mhtml", "MHTML", FormatCategory.Text, ["mhtml", "mht"], Writable: false),
         new("rst", "reStructuredText", FormatCategory.Text, ["rst"]),
         new("tex", "LaTeX", FormatCategory.Text, ["tex", "latex"]),
         // Read and written by Pandoc. Man pages claim only ".man": the section numbers (.1 … .9) are also the

@@ -5,6 +5,7 @@
 using System.Text;
 using System.Text.Json.Nodes;
 using Filee.Engines.Ebooks;
+using Filee.Engines.Email;
 using Filee.Engines.Hwp.Hwpx.Docx;
 using Filee.Engines.Hwp.Hwpx.Pptx;
 using Filee.Engines.Infrastructure;
@@ -42,11 +43,13 @@ internal static class DocumentReaders
         ["pptx"] = PptxReader.Read,
         ["pptm"] = PptxReader.Read,
         ["potx"] = PptxReader.Read,
+        ["potm"] = PptxReader.Read,
         ["ppsx"] = PptxReader.Read,
         ["pdf"] = PdfDocumentReader.Read,
         // HWP comes here as HWPX, converted by rhwp first (the route planner adds that step).
         ["hwpx"] = HwpxReader.Read,
         ["html"] = HtmlReader.Read,
+        ["mhtml"] = MhtmlArchive.ReadDocument, // the saved page with its pictures, sanitized like an e-mail
         ["epub"] = EpubReader.Read,
         ["kepub"] = EpubReader.Read, // a Kobo EPUB: its koboSpan markup is plain spans to the HTML reader
         ["mobi"] = MobiReader.Read,

@@ -70,6 +70,66 @@ public class JobQueueTests
     }
 
     [Fact]
+    public async Task Text_that_needs_shaping_avoids_an_unshaped_engine_or_is_refused_without_another()
+    {
+        // Issues #185 and #202: Gujarati or Arabic DOCX → PDF through rhwp came out broken.
+        using var dir = new TempDir();
+        var arabic = dir.File("arabic.docx");
+        var english = dir.File("english.docx");
+        var writer = new FakeConverter("hwpx-writer", new ConversionEdge("docx", "hwpx"));
+        var rhwp = new ShapingCheck("rhwp", path => Path.GetFileName(path).StartsWith("arabic", StringComparison.Ordinal) ? "Arabic" : null,
+            new ConversionEdge("hwpx", "pdf", Unshaped: true));
+        var office = new FakeConverter("libreoffice", new ConversionEdge("docx", "pdf", 25));
+        var preset = new Preset { TargetFormat = "pdf" };
+
+        await using (var queue = new JobQueue(new ConverterCatalog([writer, rhwp, office])))
+        {
+            var job = await Run(queue, [arabic, english], preset);
+            Assert.Equal(JobState.Completed, job.State);
+            Assert.Equal(1, rhwp.Converted); // English only
+            Assert.Equal(["arabic.docx", "english.docx"], rhwp.Checked.Order().Select(Path.GetFileName));
+        }
+
+        office.Available = false;
+        await using (var queue = new JobQueue(new ConverterCatalog([writer, rhwp, office])))
+        {
+            var job = await Run(queue, [dir.File("arabic-2.docx")], preset);
+            var file = Assert.Single(job.Files);
+            Assert.Equal(FileState.Failed, file.State);
+            Assert.Equal("error.needs_shaping", file.ErrorKey);
+            Assert.Equal("Arabic", file.ErrorDetail);
+            Assert.False(File.Exists(Path.Combine(dir.Path, "arabic-2.pdf")));
+        }
+    }
+
+    /// <summary>An engine with unshaped edges that finds a script in the files <paramref name="script"/> names one for.</summary>
+    private sealed class ShapingCheck(string id, Func<string, string?> script, params ConversionEdge[] edges) : IConverter, ITextShapingCheck
+    {
+        private readonly FakeConverter _inner = new(id, edges);
+        public string Id => id;
+        public string DisplayName => id;
+        public IReadOnlyList<ConversionEdge> Edges => edges;
+        public int MaxParallelism => 0;
+        public List<string> Checked { get; } = [];
+        private int _converted;
+        public int Converted => _converted;
+        public EngineStatus GetStatus() => EngineStatus.Available();
+
+        public string? ScriptNeedingShaping(string sourcePath, string sourceFormat)
+        {
+            lock (Checked)
+                Checked.Add(sourcePath);
+            return script(sourcePath);
+        }
+
+        public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref _converted);
+            return _inner.ConvertAsync(step, progress, cancellationToken);
+        }
+    }
+
+    [Fact]
     public async Task Rotate_needs_an_engine_that_turns_images_and_turns_once_on_a_longer_route()
     {
         using var dir = new TempDir();
