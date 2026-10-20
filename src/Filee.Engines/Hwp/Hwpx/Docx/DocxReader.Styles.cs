@@ -448,15 +448,17 @@ internal sealed partial class DocxReader
     /// <summary>Word bullets often use Symbol/Wingdings private-use code points; map them to Unicode.</summary>
     private static string BulletText(string text) => text switch
     {
-        "" or "\uF0B7" or "\uF09F" or "•" => "●",
+        "" => "●",
+        "\uF0B7" or "\uF09F" => "•",
         "o" or "\uF06F" => "○",
-        "\uF0A7" or "\uF06E" or "▪" => "■",
+        "\uF0A7" => "▪",
+        "\uF06E" => "■",
         "\uF0D8" => "➢",
         "\uF076" => "❖",
         "\uF0FC" => "✓",
         "\uF071" => "❑",
         "\uF075" or "\uF0A8" => "◆",
-        "-" or "–" or "\uF02D" => "-",
+        "\uF02D" => "-",
         _ when text.Length > 0 && text[0] >= '\uF000' => "●",
         _ => text,
     };

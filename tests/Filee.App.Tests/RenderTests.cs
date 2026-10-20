@@ -353,6 +353,58 @@ public class RenderTests
         }
     }
 
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("es")]
+    [InlineData("ko")]
+    [InlineData("hi")]
+    public void Reset_to_default_sits_beside_delete_for_a_built_in_profile_only(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var store = AppHost.Get<UserDataStore>();
+        var profiles = store.Profiles.Select(p => p.Clone()).ToList();
+        try
+        {
+            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            vm.Navigate("toolbar");
+            var page = (ToolbarPageViewModel)vm.CurrentPage!;
+            var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+            window.Show();
+            page.SelectedProfile = page.Profiles.Single(p => p.Profile.Id == "images");
+            Pump();
+
+            var actions = window.GetVisualDescendants().OfType<StackPanel>().Single(s => s.Name == "ProfileActions");
+            var reset = (Button)actions.Children[0];
+            var delete = (Button)actions.Children[1];
+            Assert.Same(page.ResetProfileCommand, reset.Command);
+            Assert.Same(page.DeleteProfileCommand, delete.Command);
+            Assert.True(reset.IsVisible && delete.IsVisible);
+            // On one row, reset first, both inside the profile card.
+            var card = window.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "ProfileCard");
+            var resetBox = Avalonia.VisualExtensions.TranslatePoint(reset, default, card)!.Value;
+            var deleteBox = Avalonia.VisualExtensions.TranslatePoint(delete, default, card)!.Value;
+            Assert.Equal(resetBox.Y, deleteBox.Y);
+            Assert.True(resetBox.X + reset.Bounds.Width < deleteBox.X);
+            Assert.True(resetBox.X >= 0 && deleteBox.X + delete.Bounds.Width <= card.Bounds.Width);
+            actions.BringIntoView();
+            Pump();
+            Save(window, $"toolbar-reset-profile-{language}.png");
+
+            // A profile the user made has no default: only delete.
+            page.AddProfileCommand.Execute(null);
+            Pump();
+            Assert.False(reset.IsVisible);
+            Assert.True(delete.IsVisible);
+            window.Close();
+        }
+        finally
+        {
+            store.Profiles.Clear();
+            store.Profiles.AddRange(profiles);
+            store.SaveLibrary();
+        }
+    }
+
     [AvaloniaFact]
     public void Dragging_a_preset_opens_a_gap_with_a_preview_slice()
     {
@@ -496,6 +548,78 @@ public class RenderTests
             images.PresetIds.Clear();
             images.PresetIds.AddRange(before);
             store.Presets.Remove(group);
+        }
+    }
+
+    /// <summary>
+    /// The theme's softness rounds the donut's slices (and a group's ring) too, live while it is open; the corners it
+    /// cuts away still belong to their slice for clicks and drops.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Donut_slices_follow_the_softness(bool dark)
+    {
+        TestServices.EnsureInitialized("en");
+        var theme = AppHost.Get<ThemeService>();
+        var store = AppHost.Get<UserDataStore>();
+        var images = store.Profiles.Single(p => p.Id == "images");
+        var before = images.PresetIds.ToList();
+        var group = new Filee.Core.Presets.Preset
+        {
+            Id = "render-soft-group",
+            Name = "Formats",
+            Kind = Filee.Core.Presets.PresetKind.Group,
+            SubPresetIds = ["to-png", "to-jpg", "to-webp"],
+        };
+        var mode = dark ? ThemeMode.Dark : ThemeMode.Light;
+        var suffix = dark ? "dark" : "light";
+        try
+        {
+            store.Presets.Add(group);
+            images.PresetIds.Add(group.Id);
+            theme.Apply(new ThemeSettings { Mode = mode, CornerRadius = 0 }, "en");
+            var vm = AppHost.Get<RadialViewModel>();
+            vm.Load([@"C:\photos\a.jpg", @"C:\photos\b.jpg"], clickMode: true);
+            vm.FitToThisDonut();
+            var window = new RadialWindow { DataContext = vm };
+            window.Show();
+            var donut = window.DonutControl;
+            donut.SetExternalHighlight(1);
+            Pump();
+            Assert.Equal(0, donut.SliceCornerRadius);
+            Save(window, $"donut-softness-0-{suffix}.png");
+
+            // Changing the setting while the donut is open rounds it at once.
+            theme.Apply(new ThemeSettings { Mode = mode, CornerRadius = 28 }, "en");
+            Pump();
+            Assert.Equal(14, donut.SliceCornerRadius);
+            Save(window, $"donut-softness-28-{suffix}.png");
+
+            // The sharp corner of slice 2, cut away now, still picks slice 2.
+            var n = vm.Items.Count;
+            var center = new Avalonia.Point(donut.Bounds.Width / 2, donut.Bounds.Height / 2);
+            var inner = vm.OuterRadius * vm.HoleRatio;
+            var corner = DonutGeometry.Wedge(center, inner, vm.OuterRadius, DonutGeometry.MidAngle(2, n), DonutGeometry.Span(n), 3).Start;
+            var inside = center + (corner - center) * 0.995;
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, 2), donut.HitTest(inside));
+
+            var index = n - 1;
+            donut.SetExternalHit(new DonutHit(DonutHitKind.Segment, index));
+            donut.ExpandPendingGroup();
+            donut.SetExternalHit(new DonutHit(DonutHitKind.SubSegment, index, 1));
+            vm.ShowHint(index, donut.ActiveSubIndex, centerHot: false);
+            Pump();
+            Assert.Equal(new DonutHit(DonutHitKind.SubSegment, index, 1), donut.HitTest(donut.SubSliceCenter(index, 1)));
+            Save(window, $"donut-softness-28-group-{suffix}.png");
+            window.Close();
+        }
+        finally
+        {
+            images.PresetIds.Clear();
+            images.PresetIds.AddRange(before);
+            store.Presets.Remove(group);
+            theme.Apply(new ThemeSettings(), "en");
         }
     }
 
@@ -647,6 +771,67 @@ public class RenderTests
         Save(window, "page-toolbar-dark.png");
         window.Close();
         AppHost.Get<ThemeService>().Apply(new ThemeSettings(), "en");
+    }
+
+    [AvaloniaFact]
+    public void Custom_theme_colours_replace_the_built_in_ones_and_go_away_with_the_file()
+    {
+        TestServices.EnsureInitialized("en");
+        var service = AppHost.Get<ThemeService>();
+        var dark = new ThemeSettings { Mode = ThemeMode.Dark };
+        var custom = new CustomTheme
+        {
+            Dark = { ["page"] = "#101820", ["surface"] = "#18222C", ["surfaceAlt"] = "#22303C", ["text"] = "#E8E4D8" },
+        };
+        try
+        {
+            service.Apply(dark, "en", custom);
+            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            vm.Navigate("theme");
+            var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+            window.Show();
+            Pump();
+
+            Assert.Equal(Avalonia.Media.Color.Parse("#101820"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(window.Background).Color);
+            Assert.Equal(Avalonia.Media.Color.Parse("#E8E4D8"), BrushColor(window, "TextPrimaryBrush"));
+            // Colours the file does not set, and the other variant, keep Filee's own.
+            Assert.Equal(Avalonia.Media.Color.Parse("#AEACA4"), BrushColor(window, "TextSecondaryBrush"));
+            Assert.Equal(Avalonia.Media.Color.Parse("#F6F5F1"), BrushColor(window, "PageBrush", Avalonia.Styling.ThemeVariant.Light));
+            Save(window, "page-theme-custom.png");
+
+            // Applying without a theme file (deleted, or emptied) restores the built-in colours on the open window.
+            service.Apply(dark, "en");
+            Pump();
+            Assert.Equal(Avalonia.Media.Color.Parse("#1B1B19"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(window.Background).Color);
+            window.Close();
+
+            service.Apply(dark, "en", custom);
+            var radial = AppHost.Get<RadialViewModel>();
+            radial.Load([@"C:\photos\a.jpg"], clickMode: true);
+            var donut = new RadialWindow { DataContext = radial };
+            donut.Show();
+            donut.DonutControl.SetExternalHighlight(1);
+            Pump();
+            Assert.Equal(Avalonia.Media.Color.Parse("#18222C"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(donut.DonutControl.SliceBrush).Color);
+            Save(donut, "donut-custom-theme.png");
+            donut.Close();
+        }
+        finally
+        {
+            service.Apply(new ThemeSettings(), "en");
+        }
+    }
+
+    [Fact]
+    public void Every_custom_theme_name_maps_to_a_brush()
+    {
+        Assert.Equal(CustomTheme.Keys.Order(), ThemeService.CustomBrushKeys.Keys.Order());
+    }
+
+    private static Avalonia.Media.Color BrushColor(Window window, string key, Avalonia.Styling.ThemeVariant? variant = null)
+    {
+        Assert.True(window.TryFindResource(key, variant ?? window.ActualThemeVariant, out var value), key);
+        return Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(value).Color;
     }
 
     [AvaloniaFact]

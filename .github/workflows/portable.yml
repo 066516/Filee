@@ -42,7 +42,7 @@ jobs:
     env:
       NATIVE_OUT: ${{ github.workspace }}/build/.cache/linux-native/${{ matrix.rid }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Fails when engines.json moved to another rhwp version while build/build-linux-native.py still builds the old
       # source (also when the build below comes from the cache).
@@ -51,7 +51,7 @@ jobs:
 
       - name: Restore native builds
         id: native-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: build/.cache/linux-native/${{ matrix.rid }}
           key: linux-native-${{ matrix.rid }}-ubuntu-22.04-${{ hashFiles('build/build-linux-native.py') }}
@@ -70,7 +70,7 @@ jobs:
 
       - name: Restore cargo downloads
         if: steps.native-cache.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry/index
@@ -87,7 +87,7 @@ jobs:
         run: python3 build/check-elf-glibc.py --max 2.35 --needed "$NATIVE_OUT"
 
       - name: Upload native builds
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-native-${{ matrix.rid }}
           path: build/.cache/linux-native/${{ matrix.rid }}/
@@ -116,16 +116,16 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Download Linux native builds
         if: runner.os == 'Linux'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: linux-native-${{ matrix.rid }}
           path: ${{ runner.temp }}/linux-native
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
@@ -141,7 +141,7 @@ jobs:
         run: ./build/fetch-fonts.ps1
 
       - name: Restore engine downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: build/.cache/portable-downloads
           key: portable-engines-${{ matrix.rid }}-${{ hashFiles('src/Filee.Engines/Infrastructure/engines.json') }}
@@ -196,7 +196,7 @@ jobs:
           done
 
       - name: Upload packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: portable-${{ matrix.rid }}
           path: |
@@ -206,7 +206,7 @@ jobs:
 
       - name: Upload test diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: unix-test-results-${{ matrix.rid }}
           path: |
@@ -237,7 +237,7 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Linux desktop dependencies (Ubuntu 22.04)
         shell: bash
@@ -247,7 +247,7 @@ jobs:
             libfontconfig1 libfreetype6 libx11-6 libice6 libsm6 libxrandr2 libxkbcommon0 libxi6 libxtst6 libxt6 xvfb fonts-noto-cjk
 
       - name: Download package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: portable-${{ matrix.rid }}
           path: Releases
@@ -272,7 +272,7 @@ jobs:
 
       - name: Upload diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ubuntu-22-04-results-${{ matrix.rid }}
           path: |

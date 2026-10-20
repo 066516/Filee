@@ -237,7 +237,8 @@ public partial class App : Application
         if (loc.NeedsUpdate(settings.Language))
             loc.SetLanguage(settings.Language);
 
-        AppHost.Get<ThemeService>().Apply(settings.Theme, loc.Language);
+        var custom = CustomTheme.Load(AppHost.Get<UserDataStore>().Directory, AppHost.Get<ILogger<App>>());
+        AppHost.Get<ThemeService>().Apply(settings.Theme, loc.Language, custom);
         AppHost.Get<TriggerService>().Apply(settings);
         AppHost.Get<ConverterCatalog>().Priority = settings.EnginePriority;
         if (ownCopiesChanged || routesChanged)

@@ -67,7 +67,9 @@ Bump `AppSettings.CurrentSchemaVersion` and add a step to `SettingsMigrations` w
 - `LocalizationService` loads `Assets/i18n/<lang>.json` into `Application.Resources`; XAML uses
   `{DynamicResource key}`, so switching language updates the UI live.
 - `ThemeService` writes the accent colour, corner radii, fonts and Fluent's `SystemAccentColor*` into
-  application resources. Light/dark surface colours are theme dictionaries in `Styles/Soft.axaml`.
+  application resources. Light/dark surface colours are theme dictionaries in `Styles/Soft.axaml`; a user's
+  `theme.json` (`CustomTheme`, see [CUSTOM-THEMES.md](CUSTOM-THEMES.md)) overrides them with theme dictionaries in
+  application resources, which are searched first.
 
 ## Command line and watch folders
 
