@@ -64,6 +64,14 @@ public sealed class OutputRule
     /// </summary>
     public bool KeepDates { get; set; }
 
+    /// <summary>
+    /// The folder "next to the source" means for this job, instead of the source's own: files dragged from a browser
+    /// are saved there (or, when only the converted file is kept, into a work folder that is deleted afterwards).
+    /// Set per job, never saved with a preset.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? SourceFolder { get; set; }
+
     public OutputRule Clone()
     {
         var clone = (OutputRule)MemberwiseClone();

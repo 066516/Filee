@@ -27,7 +27,11 @@ public enum FileState
 /// <summary>Result for one source file of a job.</summary>
 public sealed class FileResult
 {
-    public required string SourcePath { get; init; }
+    /// <summary>
+    /// The file converted. For a source the job fetches first (<see cref="ConversionJob.Fetcher"/>) a placeholder
+    /// until it has been saved, then where it was saved.
+    /// </summary>
+    public required string SourcePath { get; set; }
     public FileState State { get; set; } = FileState.Pending;
     public double Progress { get; set; }
     public List<string> Outputs { get; } = [];
@@ -50,17 +54,23 @@ public sealed class ConversionJob
 {
     private readonly CancellationTokenSource _cts = new();
 
-    public ConversionJob(IReadOnlyList<string> sources, Preset preset, string presetDisplayName)
+    /// <param name="fetcher">Saves sources that aren't files yet before they are converted (files from a browser).</param>
+    public ConversionJob(IReadOnlyList<string> sources, Preset preset, string presetDisplayName, ISourceFetcher? fetcher = null)
     {
-        Sources = sources;
         Preset = preset.Clone(); // later edits of the preset must not affect a running job
         PresetDisplayName = presetDisplayName;
+        Fetcher = fetcher;
         Files = sources.Select(s => new FileResult { SourcePath = s }).ToList();
     }
 
     public string Id { get; } = Guid.NewGuid().ToString("N")[..10];
     public DateTime CreatedAt { get; } = DateTime.Now;
-    public IReadOnlyList<string> Sources { get; }
+
+    /// <summary>The source files, as <see cref="FileResult.SourcePath"/> currently names them.</summary>
+    public IReadOnlyList<string> Sources => Files.Select(f => f.SourcePath).ToList();
+
+    /// <summary>Saves the sources that aren't files yet when the job runs; null when all of them are files.</summary>
+    public ISourceFetcher? Fetcher { get; }
     public Preset Preset { get; }
     public string PresetDisplayName { get; }
     public IReadOnlyList<FileResult> Files { get; }
@@ -76,4 +86,24 @@ public sealed class ConversionJob
 
     /// <summary>Requests cancellation. Running engines stop as soon as they can.</summary>
     public void Cancel() => _cts.Cancel();
+}
+
+/// <summary>
+/// Brings sources that aren't files yet onto disk when their job runs: files dragged out of a web browser are saved
+/// (or downloaded) then, so the download shows its progress and errors like the conversion.
+/// </summary>
+public interface ISourceFetcher
+{
+    /// <summary>True for a source this fetcher saves (the others are files already).</summary>
+    bool Fetches(string source);
+
+    /// <summary>Saves the file <paramref name="source"/> stands for and returns its path.</summary>
+    /// <exception cref="ConversionRefusedException">A reason the user can act on (a web page instead of a file, …).</exception>
+    Task<string> FetchAsync(string source, IProgress<double> progress, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The job is over (finished, failed or cancelled before it ran): delete what only the conversion needed. Called
+    /// once, before <see cref="JobQueue.JobFinished"/>.
+    /// </summary>
+    void Release(ConversionJob job);
 }

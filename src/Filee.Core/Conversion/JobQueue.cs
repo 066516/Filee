@@ -50,9 +50,10 @@ public sealed class JobQueue : IAsyncDisposable
     public bool IsBusy => Volatile.Read(ref _busy) > 0;
 
     /// <summary>Adds a job to the queue and returns it immediately.</summary>
-    public ConversionJob Enqueue(IReadOnlyList<string> sources, Preset preset, string presetDisplayName)
+    /// <param name="fetcher">Saves sources that aren't files yet (files from a browser) when the job runs.</param>
+    public ConversionJob Enqueue(IReadOnlyList<string> sources, Preset preset, string presetDisplayName, ISourceFetcher? fetcher = null)
     {
-        var job = new ConversionJob(sources, preset, presetDisplayName);
+        var job = new ConversionJob(sources, preset, presetDisplayName, fetcher);
         Interlocked.Increment(ref _busy); // until the worker is done with it
         _channel.Writer.TryWrite(job);
         JobUpdated?.Invoke(this, job);
@@ -82,6 +83,9 @@ public sealed class JobQueue : IAsyncDisposable
         Directory.CreateDirectory(workDir);
         try
         {
+            if (job.Fetcher is { } fetcher)
+                await FetchSourcesAsync(job, fetcher);
+
             var planner = _catalog.CreatePlanner();
             var merge = job.Preset.Pdf.MergeIntoSingle
                         && job.Preset.TargetFormat == "pdf"
@@ -124,10 +128,81 @@ public sealed class JobQueue : IAsyncDisposable
                 foreach (var output in job.Outputs)
                     _reservedOutputs.Remove(output);
             TryDelete(workDir);
+            Release(job);
         }
 
         Notify(job);
         JobFinished?.Invoke(this, job);
+    }
+
+    /// <summary>Share of a fetched file's progress that saving it takes; converting it fills the rest.</summary>
+    private const double FetchShare = 0.5;
+
+    /// <summary>
+    /// Saves the sources the job's fetcher brings (files dragged from a browser) before anything is converted. A file
+    /// that can't be saved fails with its reason; the others still convert.
+    /// </summary>
+    private async Task FetchSourcesAsync(ConversionJob job, ISourceFetcher fetcher)
+    {
+        var files = job.Files.Where(f => fetcher.Fetches(f.SourcePath)).ToList();
+        await Parallel.ForEachAsync(files, new ParallelOptions { MaxDegreeOfParallelism = 4 }, async (file, _) =>
+        {
+            file.State = FileState.Running;
+            Notify(job);
+            var progress = new Progress<double>(p =>
+            {
+                var value = Math.Clamp(p, 0, 1) * FetchShare;
+                if (value <= file.Progress || file.State != FileState.Running)
+                    return;
+                file.Progress = value;
+                Notify(job);
+            });
+            try
+            {
+                file.SourcePath = await fetcher.FetchAsync(file.SourcePath, progress, job.CancellationToken);
+                file.State = FileState.Pending;
+                file.Progress = FetchShare;
+            }
+            catch (OperationCanceledException)
+            {
+                file.State = FileState.Cancelled;
+            }
+            catch (ConversionRefusedException ex)
+            {
+                _log.LogInformation("Saving {File} was refused: {Reason}", file.SourcePath, ex.Message);
+                FailFetch(file, ex.ErrorKey, ex.Detail);
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Saving {File} failed", file.SourcePath);
+                FailFetch(file, "error.web_download_failed", ex.Message);
+            }
+            Notify(job);
+        });
+
+        static void FailFetch(FileResult file, string key, string? detail)
+        {
+            file.State = FileState.Failed;
+            file.ErrorKey = key;
+            file.ErrorDetail = detail;
+            file.Progress = 1;
+        }
+    }
+
+    /// <summary>A file that didn't get as far as being converted (saving it failed or was cancelled).</summary>
+    private static bool Stopped(FileResult file) => file.State is FileState.Failed or FileState.Cancelled;
+
+    /// <summary>Lets the job's fetcher clean up (originals that aren't kept).</summary>
+    private void Release(ConversionJob job)
+    {
+        try
+        {
+            job.Fetcher?.Release(job);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Cleaning up after job {Job} failed", job.Id);
+        }
     }
 
     /// <summary>Converts every file to PDF in the work directory, then merges them into one output.</summary>
@@ -139,6 +214,8 @@ public sealed class JobQueue : IAsyncDisposable
             async (i, _) =>
             {
                 var file = job.Files[i];
+                if (Stopped(file))
+                    return;
                 // An empty PDF goes the long way, where it fails as empty instead of breaking the whole merge.
                 if (FormatRegistry.Detect(file.SourcePath)?.Id == "pdf" && !IsEmptyFile(file.SourcePath))
                 {
@@ -188,6 +265,8 @@ public sealed class JobQueue : IAsyncDisposable
             async (i, _) =>
             {
                 var file = job.Files[i];
+                if (Stopped(file))
+                    return;
                 // A TIFF joins as it is, unless it is to be turned: then it goes through the engine like the rest.
                 parts[i] = FormatRegistry.Detect(file.SourcePath)?.Id == "tiff" && !job.Preset.Image.TurnsOrMirrors
                            && !IsEmptyFile(file.SourcePath)
@@ -232,7 +311,7 @@ public sealed class JobQueue : IAsyncDisposable
     {
         var format = FormatRegistry.Get(job.Preset.TargetFormat);
         var inputs = new List<FileResult>();
-        foreach (var file in job.Files)
+        foreach (var file in job.Files.Where(f => !Stopped(f)))
         {
             // Folders (from the command line; drops deliver files) are packed with their content.
             if (File.Exists(file.SourcePath) || Directory.Exists(file.SourcePath))
@@ -357,6 +436,8 @@ public sealed class JobQueue : IAsyncDisposable
         string intermediate = "pdf")
     {
         var ct = job.CancellationToken;
+        if (Stopped(file))
+            return [];
         var source = FormatRegistry.Detect(file.SourcePath);
         if (source is null)
             return Fail(file, "error.unsupported_source", "." + FormatRegistry.ExtensionOf(file.SourcePath));
@@ -397,6 +478,8 @@ public sealed class JobQueue : IAsyncDisposable
 
         file.State = FileState.Running;
         Notify(job);
+        // A file saved from a browser first has part of its progress already.
+        var floor = file.Progress;
 
         try
         {
@@ -417,7 +500,7 @@ public sealed class JobQueue : IAsyncDisposable
                     var progress = new Progress<double>(p =>
                     {
                         // Reports arrive on the thread pool, possibly out of order: progress only moves forward.
-                        var value = (stepIndex + Math.Clamp(p, 0, 1)) / route.Steps.Count;
+                        var value = floor + (1 - floor) * (stepIndex + Math.Clamp(p, 0, 1)) / route.Steps.Count;
                         if (value <= file.Progress)
                             return;
                         file.Progress = value;
@@ -546,6 +629,7 @@ public sealed class JobQueue : IAsyncDisposable
                 if (job.CancellationToken.IsCancellationRequested)
                 {
                     job.State = JobState.Cancelled;
+                    Release(job);
                     Notify(job);
                     JobFinished?.Invoke(this, job);
                     continue;
