@@ -29,10 +29,14 @@ public class DonutHighlightTests
         Set(donut, "_lastTick", Environment.TickCount64 - DonutMenu.StalledLoopMs * 4);
 
         donut.SetExternalHighlight(2);
-        for (var i = 0; i < 90 && donut.LitAmount(2) < 0.9; i++)
+        // Forced render ticks use real elapsed time; ninety immediate calls are not ninety 60 Hz frames.
+        // Give the spring time to move while still exercising the real frame-request/recovery path.
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        while (elapsed.Elapsed < TimeSpan.FromSeconds(2) && donut.LitAmount(2) < 0.9)
         {
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(5);
         }
 
         Assert.True(donut.LitAmount(2) > 0.9, $"lit {donut.LitAmount(2):0.00}");
