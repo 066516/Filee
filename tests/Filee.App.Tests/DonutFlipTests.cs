@@ -490,6 +490,7 @@ public class DonutFlipTests
     [InlineData("en", false)]
     [InlineData("ko", false)]
     [InlineData("ja", true)]
+    [InlineData("ru", false)]
     public void The_flip_key_is_recorded_and_checked_in_the_shortcut_settings(string language, bool dark) =>
         With(animations: false, back: null, language: language, test: () =>
         {
@@ -587,6 +588,7 @@ public class DonutFlipTests
     [InlineData("ko", true)]
     [InlineData("zh-CN", false)]
     [InlineData("ja", false)]
+    [InlineData("ru", false)]
     public void The_back_face_renders(string language, bool dark) => With(animations: true, back: null, () =>
     {
         var theme = AppHost.Get<ThemeService>();
@@ -638,6 +640,7 @@ public class DonutFlipTests
     [InlineData("ko", true)]
     [InlineData("zh-CN", false)]
     [InlineData("ja", false)]
+    [InlineData("ru", false)]
     public void The_editor_switches_between_the_front_and_the_back(string language, bool dark) => With(animations: false, back: null, () =>
     {
         var theme = AppHost.Get<ThemeService>();
