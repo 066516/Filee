@@ -32,6 +32,8 @@ public class RenderTests
         { "general", "pl" }, { "toolbar", "pl" }, { "presets", "pl" }, { "home", "pl" },
         { "home", "es" }, { "general", "es" }, { "toolbar", "es" }, { "presets", "es" }, { "engines", "es" },
         { "home", "hi" }, { "general", "hi" }, { "toolbar", "hi" }, { "presets", "hi" }, { "engines", "hi" },
+        { "home", "ja" }, { "general", "ja" }, { "triggers", "ja" }, { "toolbar", "ja" },
+        { "presets", "ja" }, { "theme", "ja" }, { "engines", "ja" }, { "about", "ja" }, { "watch", "ja" },
     };
 
     [AvaloniaTheory]
@@ -97,6 +99,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     public void Watch_folders_page_renders_a_rule(string language)
     {
@@ -130,6 +133,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     public void Watch_folder_card_shows_recent_results_and_retries_in_the_folder(string language)
     {
@@ -191,6 +195,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     public void Watch_folder_options_rename_and_filter_with_a_preview(string language)
     {
@@ -279,6 +284,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     public void Home_page_lists_failed_files_with_a_retry_button(string language)
     {
@@ -568,6 +574,7 @@ public class RenderTests
     /// default): their presets' names fit their ring slices, in every language.
     /// </summary>
     [AvaloniaTheory]
+    [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("en")]
     [InlineData("zh-CN")]
@@ -615,6 +622,7 @@ public class RenderTests
     /// under the pointer there is what a drop or click converts with.
     /// </summary>
     [AvaloniaTheory]
+    [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("en")]
     public void A_group_slice_fans_out_its_presets(string language)
@@ -825,6 +833,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     public void Sponsor_window_renders(string language)
     {
@@ -878,6 +887,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     public void First_run_engine_setup_renders(string language)
     {
@@ -1186,6 +1196,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     public void Sidebar_shows_the_version_and_a_new_release(string language)
     {
@@ -1433,6 +1444,7 @@ public class RenderTests
     /// <summary>The preset popup of "Trace to SVG": mode, colours and detail; colours only in colour mode.</summary>
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("zh-CN")]
     public void Preset_editor_shows_tracing_options(string language)
@@ -1476,6 +1488,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("zh-CN")]
     public void Preset_editor_offers_markdown_without_pictures(string language)
@@ -1684,6 +1697,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     public void Excluded_apps_render_as_tags(string language)
     {
@@ -1711,6 +1725,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("zh-CN")]
     public void Close_dialog_renders(string language)
@@ -1725,6 +1740,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("zh-CN")]
     public void Format_request_notice_renders(string language)

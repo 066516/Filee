@@ -85,6 +85,8 @@ public static class FormatRegistry
         new("ott", "OTT", FormatCategory.Document, ["ott"]),
         new("rtf", "RTF", FormatCategory.Document, ["rtf"]),
         new("wps", "WPS", FormatCategory.Document, ["wps"], Writable: false),
+        // The Chinese fixed-layout standard (GB/T 33190): e-invoices, official documents; read by the built-in OFD reader.
+        new("ofd", "OFD", FormatCategory.Document, ["ofd"], Writable: false),
         new("wpd", "WPD", FormatCategory.Document, ["wpd"], Writable: false),
         new("lwp", "LWP", FormatCategory.Document, ["lwp"], Writable: false),
         new("abw", "ABW", FormatCategory.Document, ["abw", "zabw"], Writable: false),

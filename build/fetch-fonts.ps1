@@ -3,7 +3,7 @@
   Downloads the Noto Sans fonts (SIL Open Font License 1.1) used by the Filee UI.
 
 .DESCRIPTION
-  Fonts are not committed to git (≈27 MB). Run this once after cloning, and CI runs it before publishing.
+  Fonts are not committed to git (≈36 MB). Run this once after cloning, and CI runs it before publishing.
   Without the fonts the app still works and falls back to system fonts (Malgun Gothic, Microsoft YaHei, ...).
 
   Static font files are used because Avalonia does not support variable fonts.
@@ -31,6 +31,8 @@ $fonts = [ordered]@{
     'NotoSansDevanagari-Regular.ttf' = @("$devanagari/NotoSansDevanagari-Regular.ttf", '306B53ECFB182A504DD8A7446093C316387D2FD8DC350D0792ED1753FE0996CD')
     'NotoSansDevanagari-Medium.ttf'  = @("$devanagari/NotoSansDevanagari-Medium.ttf", '4F46CF50B7992E61C7CEE7C4A8284450CCEED8B540B8ADBC8DF637C982C65757')
     'NotoSansDevanagari-Bold.ttf'    = @("$devanagari/NotoSansDevanagari-Bold.ttf", '3AD8362A06271814869838DCC3D161B13C9FB97681B627AF1F7F283EA9387D56')
+    'NotoSansJP-Regular.otf'         = @("$cjk/JP/NotoSansJP-Regular.otf", 'DFF723BA59D57D136764A04B9B2D03205544F7CD785A711442D6D2D085AC5073')
+    'NotoSansJP-Bold.otf'            = @("$cjk/JP/NotoSansJP-Bold.otf", '1B0EDFB500B73A4FA8A4FCAAE1BBBD403994E08E73E3E0DA37E70D3853F42C5F')
     'NotoSansKR-Regular.otf'         = @("$cjk/KR/NotoSansKR-Regular.otf", '69975A0AC8472717870AEFEAB0A4D52739308D90856B9955313B2AD5E0148D68')
     'NotoSansKR-Bold.otf'            = @("$cjk/KR/NotoSansKR-Bold.otf", '5A6CEB287ED2FC6CFC6213144EBEA68CBD94B20FC9EB873D8486493BF02D9BDA')
     'NotoSansSC-Regular.otf'         = @("$cjk/SC/NotoSansSC-Regular.otf", 'FAA6C9DF652116DDE789D351359F3D7E5D2285A2B2A1F04A2D7244DF706D5EA9')

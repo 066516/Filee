@@ -789,6 +789,29 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_26_libraries_learn_ofd_on_the_office_donut_and_nothing_else()
+    {
+        // As written with schema 26: no OFD, and the user took RTF off the office donut.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var office = profiles.Single(p => p.Id == "office");
+        office.Extensions.RemoveAll(e => e is "ofd" or "rtf");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(26, presets, profiles));
+
+        Assert.Contains("ofd", office.Extensions);
+        Assert.DoesNotContain("rtf", office.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(26, presets, profiles)); // once only
+
+        // A donut of the user that already opens .ofd files keeps them.
+        profiles = BuiltInData.CreateProfiles();
+        profiles.Single(p => p.Id == "office").Extensions.Remove("ofd");
+        profiles.Insert(0, new ToolbarProfile { Id = "invoices", Name = "Invoices", Extensions = ["ofd"] });
+        Assert.False(SettingsMigrations.ApplyToLibrary(26, presets, profiles));
+        Assert.DoesNotContain("ofd", profiles.Single(p => p.Id == "office").Extensions);
+    }
+
+    [Fact]
     public void Version_24_libraries_get_geospatial_presets_and_their_donut_after_models()
     {
         // As written with schema 24: no geospatial formats.
