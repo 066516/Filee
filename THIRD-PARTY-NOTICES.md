@@ -53,6 +53,7 @@ Bundled with the installer:
 |---|---|---|
 | rhwp | MIT | https://github.com/edwardkim/rhwp |
 | 7-Zip (console: `7z.exe`, `7z.dll`) | GNU LGPL-2.1-or-later; parts of `7z.dll`: LGPL with the unRAR license restriction, BSD-3-Clause, BSD-2-Clause | https://www.7-zip.org |
+| Microsoft Visual C++ Redistributable (Windows: next to `Filee.exe` and `rhwp.exe`, conda-forge `vc14_runtime`) | Microsoft Visual C++ Redistributable license | https://github.com/conda-forge/vc-feedstock |
 
 The Linux packages contain an rhwp built by Filee's CI from the unmodified source of the same release (tag `v0.8.7`,
 commit `1a76570e833917d15817415a53c09ad61ab3203f`, `cargo build --release --locked --bin rhwp` on Ubuntu 22.04), so it
@@ -103,7 +104,7 @@ programs inside it are Inno Setup's.
 
 | Component | License | Project |
 |---|---|---|
-| Noto Sans, Noto Sans KR, Noto Sans SC, Noto Sans Devanagari | SIL Open Font License 1.1 | https://github.com/notofonts |
+| Noto Sans, Noto Sans JP, Noto Sans KR, Noto Sans SC, Noto Sans Devanagari | SIL Open Font License 1.1 | https://github.com/notofonts |
 | Test fonts in `tests/Filee.Engines.Tests/Fonts` (subsets of Noto Sans and Noto Sans KR; not shipped) | SIL Open Font License 1.1 | see `OFL.txt` in that folder |
 | Material Design Icons (Pictogrammers) | Apache-2.0 | https://pictogrammers.com |
 | Simple Icons 16.35.0 (GitHub Sponsors, Patreon, Ko-fi and PayPal logos in the Sponsor window) | CC0-1.0 | https://simpleicons.org |
