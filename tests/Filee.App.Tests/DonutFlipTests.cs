@@ -348,6 +348,8 @@ public class DonutFlipTests
         {
             if (dark)
                 theme.Apply(new ThemeSettings { Mode = ThemeMode.Dark, CornerRadius = 16 }, language);
+            // Applying a theme follows the system's animation setting again, and build servers report it off.
+            Motion.Configure(false, () => false);
             var (vm, window, donut) = OpenClickMode(@"C:\photos\a.jpg", @"C:\photos\b.jpg", @"C:\photos\c.jpg");
             var suffix = $"{language}{(dark ? "-dark" : "")}";
             donut.FinishAnimations();

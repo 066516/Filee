@@ -523,6 +523,8 @@ public static class BuiltInData
         NameKey = "profile.geo",
         Extensions = ExtensionsOf(FormatCategory.Geo),
         PresetIds = ["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz"],
+        // A shapefile is several files: one ZIP keeps them together.
+        BackPresetIds = ["zip-all"],
     };
 
     /// <summary>Every file extension of the formats in <paramref name="category"/>.</summary>
