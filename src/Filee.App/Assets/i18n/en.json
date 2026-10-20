@@ -187,10 +187,9 @@
   "preset.flip_horizontal.short": "Horizontal",
   "preset.flip_vertical": "Flip vertical",
   "preset.flip_vertical.short": "Vertical",
+  "preset.merge_pdf": "Merge PDF",
   "merge.order_title": "Choose merge order",
   "merge.order_hint": "Select a file and move it up or down. Files are merged from top to bottom. (Alt+↑ / Alt+↓)",
-
-  "preset.merge_pdf": "Merge PDF",
   "preset.split_pdf": "Split PDF",
   "preset.compress_pdf": "Compress PDF",
   "preset.long_image": "Long image",

@@ -187,10 +187,9 @@
   "preset.flip_horizontal.short": "По гориз.",
   "preset.flip_vertical": "Отразить по вертикали",
   "preset.flip_vertical.short": "По верт.",
+  "preset.merge_pdf": "Объединить PDF",
   "merge.order_title": "Выберите порядок объединения",
   "merge.order_hint": "Выберите файл и переместите его вверх или вниз. Файлы объединяются сверху вниз. (Alt+↑ / Alt+↓)",
-
-  "preset.merge_pdf": "Объединить PDF",
   "preset.split_pdf": "Разделить PDF",
   "preset.compress_pdf": "Сжать PDF",
   "preset.long_image": "Длинная картинка",

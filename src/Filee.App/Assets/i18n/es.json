@@ -177,10 +177,9 @@
   "preset.flip_horizontal.short": "Horizontal",
   "preset.flip_vertical": "Volteo vertical",
   "preset.flip_vertical.short": "Vertical",
+  "preset.merge_pdf": "Combinar PDF",
   "merge.order_title": "Elegir el orden de combinación",
   "merge.order_hint": "Selecciona un archivo y muévelo arriba o abajo. Los archivos se combinan de arriba abajo. (Alt+↑ / Alt+↓)",
-
-  "preset.merge_pdf": "Combinar PDF",
   "preset.split_pdf": "Dividir PDF",
   "preset.compress_pdf": "Comprimir PDF",
   "preset.long_image": "Imagen larga",

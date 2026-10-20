@@ -187,10 +187,9 @@
   "preset.flip_horizontal.short": "水平",
   "preset.flip_vertical": "垂直翻转",
   "preset.flip_vertical.short": "垂直",
+  "preset.merge_pdf": "合并 PDF",
   "merge.order_title": "选择合并顺序",
   "merge.order_hint": "选择文件并上下移动。文件将按从上到下的顺序合并。（Alt+↑ / Alt+↓）",
-
-  "preset.merge_pdf": "合并 PDF",
   "preset.split_pdf": "拆分 PDF",
   "preset.compress_pdf": "压缩 PDF",
   "preset.long_image": "长图",

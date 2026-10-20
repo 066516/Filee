@@ -187,10 +187,9 @@
   "preset.flip_horizontal.short": "Poziomo",
   "preset.flip_vertical": "Odbij w pionie",
   "preset.flip_vertical.short": "Pionowo",
+  "preset.merge_pdf": "Połącz PDF",
   "merge.order_title": "Wybierz kolejność scalania",
   "merge.order_hint": "Wybierz plik i przesuń go w górę lub w dół. Pliki są scalane od góry do dołu. (Alt+↑ / Alt+↓)",
-
-  "preset.merge_pdf": "Połącz PDF",
   "preset.split_pdf": "Podziel PDF",
   "preset.compress_pdf": "Kompresuj PDF",
   "preset.long_image": "Długi obraz",

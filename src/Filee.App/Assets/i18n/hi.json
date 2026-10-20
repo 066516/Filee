@@ -177,10 +177,9 @@
   "preset.flip_horizontal.short": "आड़ा",
   "preset.flip_vertical": "खड़ा पलटें",
   "preset.flip_vertical.short": "खड़ा",
+  "preset.merge_pdf": "PDF मर्ज करें",
   "merge.order_title": "मर्ज करने का क्रम चुनें",
   "merge.order_hint": "फ़ाइल चुनकर उसे ऊपर या नीचे ले जाएँ। फ़ाइलें ऊपर से नीचे के क्रम में मर्ज होंगी। (Alt+↑ / Alt+↓)",
-
-  "preset.merge_pdf": "PDF मर्ज करें",
   "preset.split_pdf": "PDF बाँटें",
   "preset.compress_pdf": "PDF कंप्रेस करें",
   "preset.long_image": "लंबी इमेज",
