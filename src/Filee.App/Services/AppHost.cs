@@ -24,7 +24,7 @@ public static class AppHost
 
     public static T Get<T>() where T : notnull => Services.GetRequiredService<T>();
 
-    public static IServiceProvider Build(string? dataDirectory = null)
+    public static IServiceProvider Build(string? dataDirectory = null, UserDataStore? preloadedStore = null)
     {
         var dataDir = dataDirectory ?? UserDataStore.DefaultDirectory;
         var services = new ServiceCollection();
@@ -33,7 +33,7 @@ public static class AppHost
             .AddProvider(new FileLoggerProvider(Path.Combine(dataDir, "logs")))
             .SetMinimumLevel(LogLevel.Information));
 
-        services.AddSingleton(sp => new UserDataStore(dataDir, sp.GetRequiredService<ILogger<UserDataStore>>()));
+        services.AddSingleton(sp => preloadedStore ?? new UserDataStore(dataDir, sp.GetRequiredService<ILogger<UserDataStore>>()));
         services.AddSingleton<IPlatformServices>(_ =>
             OperatingSystem.IsWindows() ? new WindowsPlatformServices()
             : OperatingSystem.IsMacOS() ? new MacOSPlatformServices()

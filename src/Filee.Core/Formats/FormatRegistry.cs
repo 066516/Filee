@@ -120,6 +120,7 @@ public static class FormatRegistry
         new("pptx", "PPTX", FormatCategory.Presentation, ["pptx"]),
         new("pptm", "PPTM", FormatCategory.Presentation, ["pptm"]),
         new("potx", "POTX", FormatCategory.Presentation, ["potx"]),
+        new("potm", "POTM", FormatCategory.Presentation, ["potm"]),
         new("ppsx", "PPSX", FormatCategory.Presentation, ["ppsx"]),
         new("ppt", "PPT", FormatCategory.Presentation, ["ppt", "pps", "pot"]),
         new("odp", "ODP", FormatCategory.Presentation, ["odp"]),

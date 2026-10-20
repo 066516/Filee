@@ -36,7 +36,7 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            AppHost.Build();
+            AppHost.Build(preloadedStore: Program.PreloadedStore);
             Start(desktop);
         }
         base.OnFrameworkInitializationCompleted();
@@ -62,7 +62,8 @@ public partial class App : Application
         var watchdog = new UiWatchdog(action => Dispatcher.UIThread.Post(action), AppHost.Get<ILogger<UiWatchdog>>());
         watchdog.Start();
         var store = AppHost.Get<UserDataStore>();
-        store.Load();
+        if (Program.PreloadedStore is null)
+            store.Load();
 
         var loc = AppHost.Get<LocalizationService>();
         loc.Attach(this);
@@ -144,6 +145,19 @@ public partial class App : Application
         };
 
         HandleCommandLine(Program.Options, firstLaunch: true);
+        if (OperatingSystem.IsMacOS())
+            this.TryGetFeature<IActivatableLifetime>()?.Activated += (_, e) =>
+            {
+                if (e.Kind == ActivationKind.Reopen)
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        // Clicking the Dock icon or opening Filee again in Finder brings the window back, as Mac apps do
+                        // (#232), also while it only runs in the background.
+                        AppHost.Get<WindowService>().ShowMain(store.Settings.FirstRunCompleted ? null : "home");
+                        if (!store.Settings.ShowInDock && !platform.TrySetShowInDock(false))
+                            log.LogWarning("Could not restore the macOS Dock visibility policy after reopening Filee");
+                    });
+            };
         WatchForUpdates(store);
         // Filee runs as administrator while Explorer doesn't (an installer started "as administrator" started it):
         // say so once, next to the tray, and on the Home page for as long as it lasts.

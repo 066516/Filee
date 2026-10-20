@@ -44,6 +44,7 @@ internal static class DocumentReaders
         ["pptx"] = PptxReader.Read,
         ["pptm"] = PptxReader.Read,
         ["potx"] = PptxReader.Read,
+        ["potm"] = PptxReader.Read,
         ["ppsx"] = PptxReader.Read,
         ["pdf"] = PdfDocumentReader.Read,
         ["ofd"] = OfdReader.Read,
