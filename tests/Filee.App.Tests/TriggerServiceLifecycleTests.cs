@@ -323,6 +323,7 @@ public sealed class TriggerServiceLifecycleTests
         public ModernContextMenuState GetModernContextMenuState(string executablePath) => ModernContextMenuState.Unsupported;
         public Task<ModernContextMenuResult> SetModernContextMenuAsync(bool enabled, string executablePath) => Task.FromResult(new ModernContextMenuResult(false));
         public void RevealInFileManager(string path) { }
+        public void OpenFile(string path) { }
         public void RaiseTopmost(nint windowHandle) { }
     }
 }

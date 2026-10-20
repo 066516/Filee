@@ -319,7 +319,7 @@
             </Grid>
             <Grid ColumnDefinitions="90,*">
               <TextBlock Classes="label" VerticalAlignment="Center" Text="{DynamicResource toolbar.opacity}" />
-              <Slider Grid.Column="1" Minimum="50" Maximum="100" Value="{Binding SliceOpacity}" />
+              <Slider Grid.Column="1" Minimum="10" Maximum="100" Value="{Binding SliceOpacity}" />
             </Grid>
           </StackPanel>
         </Border>

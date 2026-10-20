@@ -192,6 +192,13 @@ installed yet; the slides introduce the installed one. The demo animations are r
 Everything OS-specific goes through `IPlatformServices` (`Filee.Core/Platform`). Windows lives in
 `Filee.Platform.Windows`; macOS will get its own project. Global input uses SharpHook on both.
 
+Home → Recent conversions opens a result with `OpenFile` (the shell on Windows, `open` on macOS, `xdg-open` on Linux,
+so a file is handed to its app and never started itself; only formats Filee knows are offered) and, where
+`SupportsOpenWith` (Windows), the shell's "Open with" dialog (`SHOpenWithDialog`, on a thread of its own because it
+blocks until closed). The cards' pictures come from `HistoryThumbnails`: Skia decodes them off the UI thread, scaled
+down while decoding where the format allows, from a copy read in one go so the file isn't held open, and a small cache
+keeps them while the files are unchanged.
+
 On macOS, files reach Filee from file managers other than Finder too (issue #160). The "Convert with Filee" service
 (`MacOSServicesProvider`) and the donut's drags (`DraggedFiles`) read file URLs first, then the older
 `NSFilenamesPboardType` array of paths (`PasteboardPaths`); the service also takes plain-text lines that are absolute
