@@ -2,12 +2,12 @@
 // profile warm-up.
 
 using Filee.Core.Conversion;
+using Filee.Core.Formats;
 using Filee.Core.Presets;
 using Filee.Engines.Infrastructure;
 using Filee.Engines.Office;
 using Filee.Engines.Text;
 using ImageMagick;
-using Filee.Core.Formats;
 
 namespace Filee.Engines.Tests;
 
