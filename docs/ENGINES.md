@@ -26,6 +26,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | CAD (ACadSharp + built-in renderer) | built in (library) | **DWG ↔ DXF**; DWG/DXF → **PDF** (vector), **SVG**, PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF |
 | **Subtitles** | built in | **SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD, SCC → SRT, ASS, WebVTT, SAMI, LRC, TTML, MicroDVD**, always UTF-8 (Korean CP949 / EUC-KR files read correctly) |
 | 3D models (SharpGLTF for glTF) | built in (library) | **GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY ↔ each other**; FBX → each of them; → PNG, JPG, … (an isometric preview) |
+| **Geospatial vector data** | built in | **GeoJSON, KML, KMZ, GPX, Shapefile ↔ each other and CSV** (longitude / latitude or WKT); projected Shapefiles (UTM, Web Mercator, Lambert, Albers) are converted to WGS 84; through CSV to XLSX, JSON, … (see below) |
 | rhwp | bundled with the installer (`engines/rhwp`) | HWP/HWPX → PDF, **HWP → HWPX, HWPX → HWP** |
 | Archives (7-Zip) | bundled with the installer (`engines/7zip`, ~2.5 MB) + built-in readers | ZIP, 7Z, RAR, TAR (+ GZ/BZ2/XZ/Z/7Z/LZ), CAB, ISO, DMG, … **→ folder, ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ**; ALZ, EGG, lzip read in-process; "Compress into one archive" for any files |
 | LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats; FODT, OpenDocument templates (OTT, OTS, OTP) and XLT out; SVG → EMF/WMF/ODG, a PDF page → SVG |
@@ -828,6 +829,95 @@ details, and a generated 1,000,000-triangle STL the speed. `FbxTests.cs` writes 
 binary 7.4 and 7.5, plain and compressed arrays, ASCII): a cube under a moved parent, turned and scaled, with a
 templated material and an embedded or neighbouring texture, Z-up files in metres, rotation orders, concave polygons and
 materials by polygon, and every cut or flipped byte of a file, which must read or fail with a clear message.
+
+## Geospatial data (GeoJSON, KML / KMZ, GPX, Shapefile, CSV)
+
+`Filee.Engines/Geo` converts geospatial **vector** data between GeoJSON, KML, KMZ, GPX, Shapefile and CSV in managed
+code, with no GDAL and no download. Every reader fills one in-memory model (`GeoModel`: features, each with an optional
+geometry and its attributes in file order) and every writer takes it, so each pair is one step; through CSV the data
+also reaches the spreadsheet and data engines (Shapefile → XLSX, GeoJSON → JSON, KML → HWPX, …).
+
+- **Always WGS 84.** Whatever the source's coordinate system, results are longitude / latitude in degrees (and a height
+  where there is one). A Shapefile in UTM, Web Mercator or Lambert becomes a GeoJSON that opens in the right place.
+  Keeping the original system is not an option yet.
+- **One file in, one set out.** A Shapefile is read from its `.shp`; the `.dbf` (attributes), `.prj` (coordinate system)
+  and `.cpg` (text encoding) are found next to it in any letter case, the `.shx` is not needed. A Shapefile is written
+  as `name.shp`, `.shx`, `.dbf`, `.prj` and `.cpg`; the engine returns all of them. The file names always match: when
+  the `.shp` name is taken, the next free name is used for the whole set, and a leftover file of the same name (a lone
+  `.dbf`) is never written over.
+- **Save as ZIP.** A geospatial preset can pack its result into one ZIP (Settings → Presets → *Save the result as a ZIP*,
+  or Settings → General to do it for every geospatial result, or `--zip` on the command line): a Shapefile's five files
+  travel together, and the ZIP, named by the preset's file name pattern and conflict policy, is the only output. The
+  step that writes the files runs in the job's work folder and `JobQueue` packs it afterwards, so the option works for
+  any engine and any number of steps.
+- **Same format again** (`shp → shp`, `geojson → geojson`) rewrites the file in WGS 84, which is how a projected
+  Shapefile is reprojected, and splits mixed geometries (below).
+
+What each format keeps:
+
+| Format | Read | Written |
+|---|---|---|
+| GeoJSON | FeatureCollection, Feature or a bare geometry; UTF-8, UTF-16 or an old code page; comments and trailing commas; `id` (as the attribute `id`); the 2008 `crs` member for the systems below; attributes as text, numbers, true / false, null (lists and objects become their JSON text); Z | one feature per line, polygons in RFC 7946 winding (outer counter-clockwise), at most ten decimals |
+| KML / KMZ | every Placemark wherever it sits (Document, Folders), `name`, `description`, `ExtendedData` (`Data`, `SimpleData`); Point, LineString, LinearRing, Polygon with holes, MultiGeometry (as Multi* when the parts are alike, else a collection), `gx:Track`, `gx:MultiTrack`; altitude; KMZ: `doc.kml`, else the first `.kml` inside | one Document with a Placemark per feature, `name` / `description` from the attributes of that name, all other attributes as `ExtendedData`, `MultiGeometry` for several parts; KMZ is a ZIP with `doc.kml` |
+| GPX | 1.0 and 1.1; waypoints (Point), routes (LineString), tracks (LineString, or MultiLineString for several segments); `name`, `cmt`, `desc`, `src`, `sym`, `type`, `number`, `time`; `ele` as the height; `gpx_type` says which of the three a feature was | points as waypoints, lines as one track (several lines are its segments) or, with `gpx_type` = route, as routes; polygon outlines as tracks; only the fields on the left survive |
+| Shapefile | Point, MultiPoint, PolyLine, Polygon and their Z types; rings sorted into polygons and holes by direction and containment; `.dbf` text, numbers, true / false, dates; deleted rows skipped; MultiPatch is refused | one Shapefile per kind of geometry present; Z types when any height is present; WGS 84 `.prj`; `.dbf` in UTF-8 with a `.cpg` |
+| CSV | a `wkt` / `geom` / `geometry` / `the_geom` column (WKT or EWKT), or longitude and latitude columns (`lon`, `lng`, `long`, `longitude`, `x`; `lat`, `latitude`, `y`; a decimal comma is fine), and `elevation` / `alt` / `z`; other columns become attributes, typed; rows without a usable location are kept without a geometry | `longitude`, `latitude` (+ `elevation`) when every geometry is a point, else a `wkt` column; then the attributes. A dataset that already has a longitude or latitude attribute gets `wkt` so the file reads back unchanged |
+
+**Coordinate systems.** Geographic systems (degrees) and the projections most projected data uses, read from a `.prj`
+(ESRI or OGC WKT 1), a GeoJSON `crs` name or an EPSG code: Transverse Mercator (UTM, Gauss-Krüger, state plane, via
+Krüger's series), Mercator and Web Mercator, Lambert Conformal Conic (1 and 2 parallels), Albers;
+metres, feet and US survey feet. They agree with PROJ to well under a millimetre: `GeoCrsTests` checks fifteen systems against reference
+positions computed with pyproj. Anything else (Lambert azimuthal, stereographic, oblique Mercator, WKT 2, geocentric,
+local) is **refused with its name** (`error.geo_unsupported_crs`) rather than read as degrees. So is a projected system
+whose geographic part has a prime meridian other than Greenwich or an angular unit other than degrees (ESRI's NTF Paris
+Lambert zones count their longitudes from Paris in grads): the projection's formulas assume neither, and the data would
+land about 170 km from where it is. Coordinates outside the Earth with no usable system (`error.geo_unknown_crs`, a CSV or
+GeoJSON in metres, a Shapefile without `.prj`) are refused too.
+
+**Datums are not shifted.** WGS 84, NAD83, ETRS89, GDA, JGD, Korea 2000, CGCS2000, RGF93, SIRGAS and every other datum on
+the GRS 80 / WGS 84 ellipsoid agree within a metre or two. A datum on another ellipsoid (Bessel, Airy, Clarke,
+International: Tokyo / Korean 1985, DHDN, OSGB36, ED50, NAD27, …) is converted as if it were WGS 84, which can be
+tens to hundreds of metres off, and the file carries the note `notice.geo_datum_assumed`.
+
+**Shapefile writing.**
+
+- A Shapefile holds one kind of geometry. Mixed data becomes `name_points`, `name_lines` and `name_polygons` (each a
+  full set) with the note `notice.geo_shapefile_split`. A collection is split into its members, each a record with the
+  attributes repeated; features without geometry go into the first file as null shapes.
+- Polygons are written clockwise, holes counter-clockwise, rings closed; Multi* geometries are one record.
+- `.dbf` columns: whole numbers as `N`, other numbers as `N` with the decimals they need (15 at most, 24 wide), true /
+  false as `L`, everything else as text (`C`, up to 254 bytes; longer text is cut between characters,
+  `notice.geo_text_cut`). A column that mixes numbers and text is text. Field names are cut to 10 bytes, made of letters,
+  digits and underscores, and made unique (`population_2020`, `population_2021` → `population`, `populati_1`,
+  `notice.geo_field_names`). More than 255 columns keep the first 255 (`notice.geo_columns_dropped`). Features without
+  attributes get a record-number field `FID`, since a `.dbf` needs one.
+- Reading takes the text encoding from the `.cpg`, else the language driver byte of the `.dbf`, else UTF-8 if the text is
+  valid UTF-8, else Korean CP949, else Windows-1252. (Chinese GBK and Korean CP949 can't be told apart without a `.cpg`.)
+- The files are limited to 2 GB (`error.geo_too_large`); whole files are read into memory, a few at a time.
+
+**Safety.** XML (KML, GPX) is read without DTDs or external entities, so a file can't read other files or expand into
+gigabytes. The tree is built from `XmlReader` in `GeoXml.Load` rather than by `XDocument.Load` (whose time is quadratic
+in the depth: 48 seconds for 100,000 nested levels), and elements nested more than 256 levels are refused while reading;
+MultiGeometry may nest 32 levels. A document is limited to about 67 million characters and 3 million elements (a file
+of tiny elements costs about 25 bytes of memory per character: 40 million characters in a 150 KB KMZ took 1.1 GB before
+the element limit, and now stops at about 260 MB). A KMZ whose `.kml` is declared larger than 256 MB is refused before it is unpacked, and the unpacked bytes are
+counted as they are read (`LimitedStream`), since a ZIP header can understate its size. Counts and indexes in binary
+Shapefiles are checked against the record before anything is allocated, the attribute table is read only as far as there
+are shapes, rings are sorted into polygons smallest outer ring first with the cancellation token honoured, nesting of
+JSON, WKT and WKT definitions is limited, and every failure is a reason the user can act on: a damaged file, a system
+Filee can't convert, a CSV with no coordinates (`error.geo_*` in the language files). Nothing is written when a
+conversion fails.
+
+Tests: `GeoFormatTests`, `GeoShapefileTests`, `GeoCrsTests`, `GeoHostileInputTests`, `GeoZipTests` and
+`GeoRobustnessTests` in `tests/Filee.Engines.Tests`. The Shapefiles in `tests/Filee.Engines.Tests/Geo` were written by
+GDAL (synthetic data; `Geo/make-test-geo.py` recreates them), so Filee's reader and writer are not only checked against
+each other. Everything else is written in the tests: `GeoBuilders.cs` has GeoJSON, KML and GPX text and a Shapefile and
+dBASE builder that follows the ESRI specification for the cases GDAL won't write, and the Shapefiles Filee writes are
+parsed in the tests from the specification, not read back with the engine. `GeoRobustnessTests` reads every file
+truncated at several lengths and with random bytes changed; `GeoHostileInputTests` keeps each input that once crashed the
+process, took minutes or used gigabytes.
+
+Not here yet: raster data (GeoTIFF, bands), GeoPackage, zipped Shapefiles as input, datum shifts, more projections.
 
 ## HWPX reader
 

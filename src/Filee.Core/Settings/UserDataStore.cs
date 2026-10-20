@@ -369,6 +369,17 @@ internal static class SettingsMigrations
                 InsertBefore(settings.EnginePriority, "model3d", settings.EnginePriority.Contains("archive") ? "archive" : "pandoc");
         }
 
+        // v25: built-in "geo" engine (GeoJSON, KML, KMZ, GPX, Shapefile and CSV points), after the 3D models engine (else
+        //      before the archive engine, else before Pandoc).
+        if (settings.SchemaVersion < 25 && !settings.EnginePriority.Contains("geo"))
+        {
+            var models = settings.EnginePriority.IndexOf("model3d");
+            if (models >= 0)
+                settings.EnginePriority.Insert(models + 1, "geo");
+            else
+                InsertBefore(settings.EnginePriority, "geo", settings.EnginePriority.Contains("archive") ? "archive" : "pandoc");
+        }
+
         // v18: built-in "pdf-slides" engine (PDF → PPTX, a picture of each page per slide), after "pdf-text".
         if (settings.SchemaVersion < 18 && !settings.EnginePriority.Contains("pdf-slides"))
         {
@@ -632,6 +643,10 @@ internal static class SettingsMigrations
         //      of the user already takes them.
         if (from < 24)
             changed |= LearnExtensions(profiles, out _, ["potm"]);
+        // v25: geospatial vector data (Shapefile, GeoJSON, KML, KMZ, GPX) gets presets and its own donut after "models"
+        //      (else after "data", else after "fonts"), with the extensions no donut of the user takes yet.
+        if (from < 25)
+            changed |= AddGeo(presets, profiles);
         // v26: interactive "Crop" tool, after "Remove background" as in a new library, on no donut: users add it in
         //      Settings → Toolbar. Present already but saved since by a Filee before 26: that one read the unknown
         //      kind as a Group, dropped the target format and left an empty group. Kind and target format are put back,
@@ -664,6 +679,36 @@ internal static class SettingsMigrations
         if (from < 28)
             changed |= Offer(presets, profiles, "archives", "zip-all", "extract");
         return changed;
+    }
+
+    private static bool AddGeo(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        foreach (var preset in BuiltInData.GeoPresets().Where(p => presets.All(existing => existing.Id != p.Id)))
+        {
+            presets.Add(preset);
+            changed = true;
+        }
+        // Only the geospatial extensions: others a user removed from a built-in donut stay removed.
+        changed |= LearnExtensions(profiles, out var claimed, BuiltInData.GeoProfile().Extensions);
+        if (profiles.Any(p => p.Id == "geo"))
+            return changed;
+
+        var geo = BuiltInData.GeoProfile();
+        // Only the extensions no donut of the user takes yet.
+        geo.Extensions = geo.Extensions.Where(claimed.Add).ToList();
+        if (geo.Extensions.Count == 0)
+            return changed;
+        var ids = presets.Select(p => p.Id).ToHashSet();
+        geo.PresetIds = geo.PresetIds.Where(ids.Contains).ToList();
+        var after = profiles.FindIndex(p => p.Id == "models");
+        if (after < 0)
+            after = profiles.FindIndex(p => p.Id == "data");
+        if (after < 0)
+            after = profiles.FindIndex(p => p.Id == "fonts");
+        var insertAt = after >= 0 ? after + 1 : profiles.FindIndex(p => p.IsFallback);
+        profiles.Insert(insertAt < 0 ? profiles.Count : insertAt, geo);
+        return true;
     }
 
     private static bool AddPdfSlides(List<Preset> presets, List<ToolbarProfile> profiles)
