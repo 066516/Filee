@@ -182,6 +182,8 @@ internal static class ShapefileFormat
         var lines = new List<List<Coord>>(parts);
         for (var p = 0; p < parts; p++)
         {
+            if (p % 1024 == 1023)
+                cancellationToken.ThrowIfCancellationRequested();
             var line = new List<Coord>(starts[p + 1] - starts[p]);
             for (var i = starts[p]; i < starts[p + 1]; i++)
             {
@@ -215,9 +217,11 @@ internal static class ShapefileFormat
     internal static GeoGeometry? Polygons(List<List<Coord>> lines, CancellationToken cancellationToken)
     {
         var rings = new List<(IReadOnlyList<Coord> Ring, double Area)>();
-        foreach (var line in lines)
+        for (var l = 0; l < lines.Count; l++)
         {
-            if (GeoRings.Close(line) is { } ring && GeoRings.SignedArea(ring) is var area && area != 0)
+            if (l % 1024 == 1023)
+                cancellationToken.ThrowIfCancellationRequested();
+            if (GeoRings.Close(lines[l]) is { } ring && GeoRings.SignedArea(ring) is var area && area != 0)
                 rings.Add((ring, area));
         }
         if (rings.Count == 0)
@@ -230,7 +234,14 @@ internal static class ShapefileFormat
             outers = holes;
             holes = [];
         }
-        var bounds = outers.Select(o => Bounds(o.Ring)).ToArray();
+        var bounds = new (double MinX, double MinY, double MaxX, double MaxY)[outers.Count];
+        for (var i = 0; i < outers.Count; i++)
+        {
+            if (i % 1024 == 1023)
+                cancellationToken.ThrowIfCancellationRequested();
+            bounds[i] = Bounds(outers[i].Ring);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         var smallestFirst = Enumerable.Range(0, outers.Count).OrderBy(i => Math.Abs(outers[i].Area)).ToArray();
         var assigned = outers.Select(o => new List<IReadOnlyList<Coord>> { o.Ring }).ToList();
         var holeCount = 0;
@@ -258,8 +269,18 @@ internal static class ShapefileFormat
         return polygons.Count == 1 ? polygons[0] : new GeoMultiPolygon(polygons);
     }
 
-    private static (double MinX, double MinY, double MaxX, double MaxY) Bounds(IReadOnlyList<Coord> ring) =>
-        (ring.Min(p => p.X), ring.Min(p => p.Y), ring.Max(p => p.X), ring.Max(p => p.Y));
+    private static (double MinX, double MinY, double MaxX, double MaxY) Bounds(IReadOnlyList<Coord> ring)
+    {
+        var (minX, minY, maxX, maxY) = (double.MaxValue, double.MaxValue, double.MinValue, double.MinValue);
+        foreach (var p in ring)
+        {
+            minX = Math.Min(minX, p.X);
+            minY = Math.Min(minY, p.Y);
+            maxX = Math.Max(maxX, p.X);
+            maxY = Math.Max(maxY, p.Y);
+        }
+        return (minX, minY, maxX, maxY);
+    }
 
     private static double Double(ReadOnlySpan<byte> c, int at) => BinaryPrimitives.ReadDoubleLittleEndian(c[at..]);
 

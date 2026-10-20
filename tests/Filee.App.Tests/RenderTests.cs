@@ -575,6 +575,42 @@ public class RenderTests
         }
     }
 
+    /// <summary>The geospatial donut opens for Shapefiles with its six slices, rounded by the softness like the others.</summary>
+    [AvaloniaFact]
+    public void Geospatial_donut_opens_for_shapefiles_with_rounded_slices()
+    {
+        TestServices.EnsureInitialized("en");
+        var theme = AppHost.Get<ThemeService>();
+        try
+        {
+            theme.Apply(new ThemeSettings { Mode = ThemeMode.Light, CornerRadius = 28 }, "en");
+            var vm = AppHost.Get<RadialViewModel>();
+            vm.Load([@"C:\gis\roads.shp", @"C:\gis\parcels.shp"], clickMode: true);
+            vm.FitToThisDonut();
+            Assert.Equal(["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz"], vm.Presets.Select(p => p.Id));
+            Assert.All(vm.Items, item => Assert.True(item.IsEnabled));
+            var window = new RadialWindow { DataContext = vm };
+            window.Show();
+            var donut = window.DonutControl;
+            donut.SetExternalHighlight(1);
+            Pump();
+            Assert.Equal(14, donut.SliceCornerRadius);
+
+            // A corner the rounding cut away still picks its slice.
+            var n = vm.Items.Count;
+            var center = new Avalonia.Point(donut.Bounds.Width / 2, donut.Bounds.Height / 2);
+            var inner = vm.OuterRadius * vm.HoleRatio;
+            var corner = DonutGeometry.Wedge(center, inner, vm.OuterRadius, DonutGeometry.MidAngle(4, n), DonutGeometry.Span(n), 3).Start;
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, 4), donut.HitTest(center + (corner - center) * 0.995));
+            Save(window, "donut-geospatial-soft.png");
+            window.Close();
+        }
+        finally
+        {
+            theme.Apply(new ThemeSettings(), "en");
+        }
+    }
+
     /// <summary>The middle of slot <paramref name="slot"/> of a donut with <paramref name="slots"/> slices.</summary>
     private static Avalonia.Point DonutPoint(DonutMenu donut, int slot, int slots)
     {
@@ -1313,7 +1349,9 @@ public class RenderTests
         Assert.True(vm.ShowZipResult);
         vm.Target = vm.Targets.Single(t => t.Value == "png");
         Assert.False(vm.ShowZipResult);
-        Assert.False(vm.ShowPdf && vm.Target.Value == "shp");
+        // The box ticked for Shapefile, hidden for PNG, doesn't zip the PNG.
+        Assert.True(vm.Apply());
+        Assert.False(preset.Output.ZipResult);
     }
 
     [AvaloniaFact]

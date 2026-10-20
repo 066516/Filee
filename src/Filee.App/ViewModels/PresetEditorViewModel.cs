@@ -547,7 +547,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         output.FileNamePattern = string.IsNullOrWhiteSpace(Pattern) ? "{name}" : Pattern.Trim();
         output.Conflict = Conflict.Value;
         output.KeepDates = KeepDates;
-        output.ZipResult = ZipResult;
+        // Only for geospatial targets, where it is offered: a box ticked for Shapefile must not zip a later PNG.
+        output.ZipResult = ShowZipResult && ZipResult;
         return true;
     }
 

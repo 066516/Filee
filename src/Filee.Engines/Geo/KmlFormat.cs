@@ -180,23 +180,23 @@ internal static class KmlFormat
         if (!text.Contains(',', StringComparison.Ordinal))
             return text;
         var builder = new System.Text.StringBuilder(text.Length);
-        var space = ' '; // white space seen since the last character: kept unless a comma is next to it
+        var space = '\0'; // white space seen since the last character: kept unless a comma is next to it
         var afterComma = false;
         foreach (var ch in text)
         {
             if (char.IsWhiteSpace(ch))
             {
-                if (!afterComma && space == ' ')
+                if (!afterComma && space == '\0')
                     space = ch;
                 continue;
             }
-            if (ch != ',' && space != ' ')
+            if (ch != ',' && space != '\0')
                 builder.Append(space);
-            space = ' ';
+            space = '\0';
             builder.Append(ch);
             afterComma = ch == ',';
         }
-        if (space != ' ')
+        if (space != '\0')
             builder.Append(space);
         return builder.ToString();
     }
