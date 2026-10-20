@@ -1,39 +1,55 @@
 name: Label pull requests
 
+# Labels a new pull request by the files it changes (.github/labeler.yml) and by a Conventional Commits title
+# ("feat: ...", "fix(hwp): ..."). Only when it is opened, and labels are only added: labels changed by hand later stay.
+#
+# pull_request_target runs in this repository with a token that can add labels, also for pull requests from forks. It
+# must never check out or run the pull request's code: labeler reads .github/labeler.yml from the base branch and the
+# changed file names through the API, and the title is read from the event payload, never put into the script.
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, edited]
+    types: [opened]
 
-permissions:
-  contents: read
-  pull-requests: write
+permissions: {}
 
 jobs:
   label:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read        # .github/labeler.yml of the base branch
+      pull-requests: write  # add labels
     steps:
-      # By changed files, using .github/labeler.yml. Labels are only added, never removed.
-      - uses: actions/labeler@v6
+      - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
+        with:
+          sync-labels: false
 
-      # By title prefix: "feat: ...", "fix: ...", "docs: ...", "ci: ...".
-      - uses: actions/github-script@v9
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            const title = context.payload.pull_request.title.toLowerCase();
+            const pull = context.payload.pull_request;
+            const title = pull.title.toLowerCase();
             const rules = [
               [/^feat(\(.+\))?!?:/, 'feature'],
               [/^fix(\(.+\))?!?:/, 'bug'],
               [/^docs(\(.+\))?!?:/, 'documentation'],
-              [/^ci(\(.+\))?!?:/, 'ci'],
-              [/^build(\(.+\))?!?:/, 'build'],
+              [/^(build|ci)(\(.+\))?!?:/, 'build'],
               [/^(i18n|l10n)(\(.+\))?!?:/, 'translation'],
             ];
-            const labels = rules.filter(([re]) => re.test(title)).map(([, label]) => label);
+            // Only labels the repository has: adding an unknown name would create a new label.
+            const known = new Set((await github.paginate(github.rest.issues.listLabelsForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            })).map(label => label.name));
+            const current = new Set(pull.labels.map(label => label.name));
+            const labels = rules.filter(([re]) => re.test(title)).map(([, label]) => label)
+              .filter(label => known.has(label) && !current.has(label));
             if (labels.length) {
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.payload.pull_request.number,
+                issue_number: pull.number,
                 labels,
               });
             }

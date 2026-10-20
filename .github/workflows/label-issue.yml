@@ -1,21 +1,25 @@
 name: Label issues
 
+# Labels a new issue by keywords in its title, unless it already has labels (the issue templates add their own). Only
+# when it is opened, and labels are only added. The title is read from the event payload, never put into the script.
 on:
   issues:
     types: [opened]
 
-permissions:
-  issues: write
+permissions: {}
 
 jobs:
   label:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write  # add labels
     steps:
-      - uses: actions/github-script@v9
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const issue = context.payload.issue;
-            if (issue.labels.length) return;   // already labeled, e.g. by an issue form
+            if (issue.labels.length) return;
 
             const title = issue.title.toLowerCase();
             const rules = [
@@ -25,10 +29,17 @@ jobs:
               [/\b(docs?|documentation|readme|typo)\b/, 'documentation'],
               [/\b(translation|translate|localization|localisation|i18n|l10n)\b/, 'translation'],
               [/\b(accessibility|a11y|screen reader|high contrast|narrator|nvda)\b/, 'accessibility'],
-              [/\b(installer|msix)\b/, 'build'],
-              [/\?\s*$|^(how|why|what|can|is|does)\b/, 'question'],
+              [/\b(installer|setup)\b/, 'build'],
+              [/\?\s*$|^(how|why)\b/, 'question'],
             ];
-            const labels = rules.filter(([re]) => re.test(title)).map(([, label]) => label);
+            // Only labels the repository has: adding an unknown name would create a new label.
+            const known = new Set((await github.paginate(github.rest.issues.listLabelsForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            })).map(label => label.name));
+            const labels = rules.filter(([re]) => re.test(title)).map(([, label]) => label)
+              .filter(label => known.has(label));
             if (labels.length) {
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
