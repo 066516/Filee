@@ -26,7 +26,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | CAD (ACadSharp + built-in renderer) | built in (library) | **DWG ↔ DXF**; DWG/DXF → **PDF** (vector), **SVG**, PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF |
 | **Subtitles** | built in | **SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD, SCC → SRT, ASS, WebVTT, SAMI, LRC, TTML, MicroDVD**, always UTF-8 (Korean CP949 / EUC-KR files read correctly) |
 | 3D models (SharpGLTF for glTF) | built in (library) | **GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY ↔ each other**; FBX → each of them; → PNG, JPG, … (an isometric preview) |
-| rhwp | bundled with the installer (`engines/rhwp`) | HWP/HWPX → PDF, **HWP → HWPX, HWPX → HWP** |
+| rhwp | bundled with the installer (`engines/rhwp`, with the Microsoft C++ runtime, see below) | HWP/HWPX → PDF, **HWP → HWPX, HWPX → HWP** |
 | Archives (7-Zip) | bundled with the installer (`engines/7zip`, ~2.5 MB) + built-in readers | ZIP, 7Z, RAR, TAR (+ GZ/BZ2/XZ/Z/7Z/LZ), CAB, ISO, DMG, … **→ folder, ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ**; ALZ, EGG, lzip read in-process; "Compress into one archive" for any files |
 | LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats; FODT, OpenDocument templates (OTT, OTS, OTP) and XLT out; SVG → EMF/WMF/ODG, a PDF page → SVG |
 | Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, markup languages (reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML) ↔ Markdown/HTML/DOCX/ODT and each other (and → RTF, EPUB, TXT), Markdown and markup → PPTX slides |
@@ -88,6 +88,30 @@ they can be installed or removed later in Settings → *Engines*. A conversion t
   zstd tarball, of which only `Library/bin` is unpacked (SharpCompress; `fetch-engines.ps1` uses Windows' `tar.exe`).
   Its fonts and resources are compiled into `gsdll64.dll`. The Microsoft C++ runtime it was built against
   (`vcruntime` component) is copied next to `gswin64c.exe`, so it runs on PCs without the VC++ Redistributable.
+
+### Microsoft C++ runtime (Windows)
+
+Programs built with Visual C++ import `MSVCP140.dll` / `VCRUNTIME140.dll`, which a fresh Windows does not have (they
+come with the Visual C++ Redistributable). Windows looks for a program's DLLs in its own folder first, so Filee puts
+the runtime next to every program that needs it and does not ship it (`Infrastructure/AppLocalRuntime.cs`):
+
+| Binary | Runtime |
+|---|---|
+| `engines/rhwp/rhwp.exe` (bundled) | `vcruntime` component copied next to it by `fetch-engines.ps1` (#248) |
+| `unhwp.dll` (NuGet, loaded into Filee.exe and filee-cli.exe) | `vcruntime` component copied next to `Filee.exe` (`build-installer.ps1` → `fetch-engines.ps1 -RuntimeTo`) |
+| Ghostscript (download) | `vcruntime` component copied next to `gswin64c.exe` (`EngineInstaller`, `fetch-engines.ps1`) |
+| LibreOffice (download) | its own copy, which the administrative install leaves in `System64`, copied into `program/` (`EngineInstaller`, `fetch-engines.ps1`; `LibreOfficeConverter` also repairs a copy installed by an earlier Filee) |
+| calibre, Java (downloads) | ship their own next to their programs (`app/bin`, `bin`) |
+| 7-Zip, FFmpeg (GyanD), Pandoc, PDFium, SkiaSharp / HarfBuzz, Magick.Native, the Explorer menu DLL, .NET | import neither (static runtime or MinGW / GHC builds) |
+
+The installer and the portable zip are made from the same publish folder, so both have the DLLs. Filee installed in
+Program Files cannot repair its own bundled files, so an older installation gets them by installing the new version.
+When a DLL is still missing, Windows does not start the program and reports `0xC0000135` (STATUS_DLL_NOT_FOUND;
+`0xC0000139` for an outdated one) as its exit code: `ProcessRunner` and `FfmpegRunner` turn that into
+`error.runtime_missing` ("A Microsoft Visual C++ runtime file this engine needs is missing or outdated …", with the
+program and the code in brackets) instead of the raw exit code, and `UnhwpConverter` does the same when `unhwp.dll`
+cannot be loaded. To check binaries after an engine update, list the DLLs each `.exe` / `.dll` imports (its PE import
+table, e.g. `dumpbin /dependents`) and look for `MSVCP140*.dll`, `VCRUNTIME140*.dll` or `CONCRT140.dll`.
 
 To bump a version, change `url`, `sha256` and `size` in engines.json together, run
 `pwsh build/fetch-engines.ps1`, test, and update `THIRD-PARTY-NOTICES.md`. For rhwp, also update `RHWP_VERSION`,
