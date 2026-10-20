@@ -43,6 +43,11 @@ public static class BuiltInData
             Id = "remove-background", NameKey = "preset.remove_background", TargetFormat = "png",
             Image = { RemoveBackground = true }, Output = { FileNamePattern = "{name}_transparent" },
         },
+        new()
+        {
+            Id = "tool-crop", NameKey = "preset.crop", TargetFormat = SameAsSource,
+            Kind = PresetKind.Tool, Output = { FileNamePattern = "{name}_cropped" },
+        },
         .. ImageToolPresets(),
         new()
         {
@@ -323,7 +328,7 @@ public static class BuiltInData
             Id = "images", NameKey = "profile.images",
             Extensions = ExtensionsOf(FormatCategory.Image),
             PresetIds = ["to-png", "to-jpg", "to-webp", "to-pdf", "trace-svg", "trace-line-art", "to-tiff", "to-bmp", "to-ico", "half-size"],
-            BackPresetIds = ["rotate", "flip", "remove-background", "grayscale", "jpg-70", "to-avif", "to-jxl", "to-gif", "merge-pdf", "zip-all"],
+            BackPresetIds = ["tool-crop", "rotate", "flip", "remove-background", "grayscale", "jpg-70", "to-avif", "to-gif", "merge-pdf", "zip-all"],
         },
         new()
         {
@@ -438,8 +443,10 @@ public static class BuiltInData
         {
             Id = "archives", NameKey = "profile.archives",
             Extensions = ExtensionsOf(FormatCategory.Archive),
-            PresetIds = ["extract", "to-zip", "to-7z", "to-tgz", "to-tar"],
-            BackPresetIds = ["zip-all"],
+            // "One ZIP" since settings schema 28.
+            PresetIds = ["extract", "zip-all", "to-zip", "to-7z", "to-tgz", "to-tar"],
+            // Nothing else converts archives: no back face, Tab does nothing.
+            BackPresetIds = [],
         },
         new()
         {

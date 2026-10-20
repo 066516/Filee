@@ -86,6 +86,20 @@ public sealed class AppSettings
     /// <summary>Record finished conversions in the history (home page). Off: nothing new is recorded.</summary>
     public bool KeepHistory { get; set; } = true;
 
+    /// <summary>
+    /// How many finished conversions the history keeps, newest first (<see cref="MinHistoryLimit"/> to
+    /// <see cref="MaxHistoryLimit"/>; a value outside is taken as the nearest end). The home page lists the latest
+    /// ones and searches all of them.
+    /// </summary>
+    public int HistoryLimit { get; set; } = 200;
+
+    public const int MinHistoryLimit = 50;
+    public const int MaxHistoryLimit = 2000;
+
+    /// <summary><see cref="HistoryLimit"/> within its range.</summary>
+    [JsonIgnore]
+    public int EffectiveHistoryLimit => Math.Clamp(HistoryLimit, MinHistoryLimit, MaxHistoryLimit);
+
     /// <summary>Whether the macOS Dock shows Filee.</summary>
     [JsonConverter(typeof(IconPreferenceJsonConverter))]
     public bool ShowInDock { get; set; } = true;

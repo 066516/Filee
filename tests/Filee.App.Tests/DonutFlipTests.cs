@@ -263,9 +263,9 @@ public class DonutFlipTests
         var donut = window.DonutControl;
         var n = vm.Items.Count;
         var center = new Point(donut.Bounds.Width / 2, donut.Bounds.Height / 2);
-        var at = DonutGeometry.PointAt(center, vm.OuterRadius * (1 + vm.HoleRatio) / 2, DonutGeometry.MidAngle(2, n));
+        var at = DonutGeometry.PointAt(center, vm.OuterRadius * (1 + vm.HoleRatio) / 2, DonutGeometry.MidAngle(5, n));
         donut.SetExternalHit(donut.HitTest(at), at);
-        Assert.Equal(2, donut.ActiveIndex);
+        Assert.Equal(5, donut.ActiveIndex);
 
         Assert.True(donut.Flip());
 

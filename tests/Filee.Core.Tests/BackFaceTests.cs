@@ -45,13 +45,14 @@ public class BackFaceTests
         {
             var back = profile.BackPresetIds;
             Assert.NotNull(back);
-            Assert.NotEmpty(back);
             Assert.True(back.Count <= ToolbarProfile.MaxSlices, profile.Id);
             Assert.Equal(back.Count, back.Distinct().Count());
             Assert.All(back, id => Assert.True(presets.ContainsKey(id), $"{profile.Id}: {id}"));
             // Nothing moved off the front, nothing shown twice.
             Assert.Empty(back.Intersect(profile.PresetIds));
         }
+        // Only archives have nothing more to offer ("One ZIP" is on their front since settings schema 28).
+        Assert.Equal(["archives"], BuiltInData.CreateProfiles().Where(p => p.BackPresetIds!.Count == 0).Select(p => p.Id));
     }
 
     [Fact]
@@ -96,14 +97,14 @@ public class BackFaceTests
         var mine = new ToolbarProfile { Id = "mine", Name = "Mine", Extensions = ["xyz"], PresetIds = ["to-pdf"] };
         profiles.Insert(0, mine);
         // A preset of the default back face the user deleted stays deleted.
-        presets.RemoveAll(p => p.Id == "to-jxl");
+        presets.RemoveAll(p => p.Id == "to-gif");
         var fronts = profiles.ToDictionary(p => p.Id, p => p.PresetIds.ToList());
 
         Assert.True(SettingsMigrations.ApplyToLibrary(24, presets, profiles));
 
         foreach (var profile in profiles.Where(p => p != mine))
         {
-            var expected = BuiltIn(profile.Id).BackPresetIds!.Where(id => id != "to-jxl");
+            var expected = BuiltIn(profile.Id).BackPresetIds!.Where(id => id != "to-gif");
             Assert.Equal(expected, profile.BackPresetIds);
         }
         Assert.Null(mine.BackPresetIds); // the store gives it an empty one (below)

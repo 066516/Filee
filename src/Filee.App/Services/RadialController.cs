@@ -286,6 +286,14 @@ public sealed class RadialController(
             return;
         }
 
+        if (preset.IsTool)
+        {
+            var near = _window?.Position;
+            Close(animate: false);
+            windows.ShowCropOverlay(files, preset, near);
+            return;
+        }
+
         log.LogInformation("Converting {Count} file(s) with preset {Preset}", files.Count, preset.Id);
         var job = conversions.Start(files, preset, showInToast: false);
         if (job is null || _window is null)
