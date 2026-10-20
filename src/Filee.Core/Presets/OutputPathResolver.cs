@@ -24,6 +24,8 @@ public static class OutputPathResolver
     public static string? Resolve(OutputRule rule, Tokens tokens, string targetExtension,
         Func<string, bool> exists, string? suffix = null)
     {
+        // A folder given as "Photos\" (the command line keeps what was typed) is named and placed like "Photos".
+        tokens = tokens with { SourcePath = Path.TrimEndingDirectorySeparator(tokens.SourcePath) };
         var sourceDir = Path.GetDirectoryName(Path.GetFullPath(tokens.SourcePath)) ?? "";
         var dir = rule.Location switch
         {
