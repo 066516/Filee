@@ -16,11 +16,11 @@ internal static class DraggedFiles
         data.Contains(DataFormat.File) || data.Items.Any(item => item.Formats.Any(IsFilenames));
 
     /// <summary>
-    /// Local file and folder paths in the drag (virtual items are ignored). A shortcut counts as the item it points
-    /// to; one to a folder counts as the folder.
+    /// Local file paths in the drag (folders and virtual items are ignored). A shortcut counts as the file it points
+    /// to; one to a folder is ignored like the folder.
     /// </summary>
     public static IReadOnlyList<string> Local(IDataTransfer data) =>
-        Local(data, ConversionService.Exists, AppHost.Get<IPlatformServices>().ResolveShortcuts);
+        Local(data, File.Exists, AppHost.Get<IPlatformServices>().ResolveShortcuts);
 
     internal static IReadOnlyList<string> Local(IDataTransfer data, Func<string, bool> fileExists,
         Func<IReadOnlyList<string>, IReadOnlyList<string>>? resolveShortcuts = null)

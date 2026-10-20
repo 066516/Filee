@@ -107,14 +107,6 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
             .OfType<Preset>()
             .ToList();
 
-        if ((files.Count > 1 || files.Any(Directory.Exists))
-            && Presets.All(p => !p.Archive.CombineIntoOne || p.TargetFormat != "zip")
-            && store.FindPreset("zip-all") is { } zipAll
-            && Presets.Count < ToolbarProfile.MaxSlices)
-        {
-            Presets.Add(zipAll);
-        }
-
         _subPresets = Presets
             .Select(p => (IReadOnlyList<Preset>)(p.IsGroup ? p.SubPresetIds : [])
                 .Select(store.FindPreset).OfType<Preset>().Where(c => !c.IsGroup).Take(Preset.MaxSubPresets).ToList())

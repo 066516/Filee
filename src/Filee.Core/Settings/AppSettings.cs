@@ -65,7 +65,7 @@ public sealed class DonutSettings
 public sealed class AppSettings
 {
     /// <summary>Current schema version. Increase when the format changes and add a migration.</summary>
-    public const int CurrentSchemaVersion = 24;
+    public const int CurrentSchemaVersion = 28;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -86,8 +86,19 @@ public sealed class AppSettings
     /// <summary>Record finished conversions in the history (home page). Off: nothing new is recorded.</summary>
     public bool KeepHistory { get; set; } = true;
 
-    /// <summary>Maximum number of finished conversions kept on the Home page (50–2000). Default 200.</summary>
-    public int MaxHistory { get; set; } = 200;
+    /// <summary>
+    /// How many finished conversions the history keeps, newest first (<see cref="MinHistoryLimit"/> to
+    /// <see cref="MaxHistoryLimit"/>; a value outside is taken as the nearest end). The home page lists the latest
+    /// ones and searches all of them.
+    /// </summary>
+    public int HistoryLimit { get; set; } = 200;
+
+    public const int MinHistoryLimit = 50;
+    public const int MaxHistoryLimit = 2000;
+
+    /// <summary><see cref="HistoryLimit"/> within its range.</summary>
+    [JsonIgnore]
+    public int EffectiveHistoryLimit => Math.Clamp(HistoryLimit, MinHistoryLimit, MaxHistoryLimit);
 
     /// <summary>Whether the macOS Dock shows Filee.</summary>
     [JsonConverter(typeof(IconPreferenceJsonConverter))]

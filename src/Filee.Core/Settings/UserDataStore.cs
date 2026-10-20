@@ -109,12 +109,13 @@ public sealed class UserDataStore
     {
         if (!Settings.KeepHistory)
             return;
-        var maxHistory = Math.Clamp(Settings.MaxHistory, 50, 2000);
+        // A lowered limit drops the oldest entries here, with the next conversion.
+        var limit = Settings.EffectiveHistoryLimit;
         lock (_saveLock)
         {
             History.Insert(0, entry);
-            if (History.Count > maxHistory)
-                History.RemoveRange(maxHistory, History.Count - maxHistory);
+            if (History.Count > limit)
+                History.RemoveRange(limit, History.Count - limit);
         }
         Write(HistoryPath, History, FileeJsonContext.Default.ListHistoryEntry);
         HistoryChanged?.Invoke(this, EventArgs.Empty);
@@ -631,6 +632,10 @@ internal static class SettingsMigrations
         //      of the user already takes them.
         if (from < 24)
             changed |= LearnExtensions(profiles, out _, ["potm"]);
+        // v28: "One ZIP" on the archives donut after "Extract", to pack several archives into one. A donut
+        //      the user filled up, or a library without the preset, stays as it is.
+        if (from < 28)
+            changed |= Offer(presets, profiles, "archives", "zip-all", "extract");
         return changed;
     }
 

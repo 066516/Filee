@@ -672,19 +672,4 @@ public class DonutGroupTests
         var position = RadialController.WindowPosition(new PixelPoint(960, 540), new PixelRect(0, 0, 1920, 1080), side);
         Assert.Equal(new PixelPoint(960 - side / 2, 540 - side / 2), position);
     }
-
-    [AvaloniaFact]
-    public void Multiple_files_or_folders_dynamically_include_zip_all_preset_on_the_donut()
-    {
-        TestServices.EnsureInitialized("en");
-        var vm = AppHost.Get<RadialViewModel>();
-        // Single file: uses images profile without zip-all
-        vm.Load([@"C:\photos\a.jpg"], clickMode: true);
-        Assert.DoesNotContain(vm.Items, item => item.Id == "zip-all");
-
-        // Multiple files: dynamically includes zip-all
-        vm.Load([@"C:\photos\a.jpg", @"C:\photos\b.jpg"], clickMode: true);
-        Assert.Contains(vm.Items, item => item.Id == "zip-all");
-    }
 }
-

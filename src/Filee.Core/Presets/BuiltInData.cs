@@ -420,6 +420,7 @@ public static class BuiltInData
         {
             Id = "archives", NameKey = "profile.archives",
             Extensions = ExtensionsOf(FormatCategory.Archive),
+            // "One ZIP" since settings schema 28.
             PresetIds = ["extract", "zip-all", "to-zip", "to-7z", "to-tgz", "to-tar"],
         },
         new()
