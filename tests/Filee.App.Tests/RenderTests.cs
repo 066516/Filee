@@ -756,6 +756,42 @@ public class RenderTests
         }
     }
 
+    /// <summary>The geospatial donut opens for Shapefiles with its six slices, rounded by the softness like the others.</summary>
+    [AvaloniaFact]
+    public void Geospatial_donut_opens_for_shapefiles_with_rounded_slices()
+    {
+        TestServices.EnsureInitialized("en");
+        var theme = AppHost.Get<ThemeService>();
+        try
+        {
+            theme.Apply(new ThemeSettings { Mode = ThemeMode.Light, CornerRadius = 28 }, "en");
+            var vm = AppHost.Get<RadialViewModel>();
+            vm.Load([@"C:\gis\roads.shp", @"C:\gis\parcels.shp"], clickMode: true);
+            vm.FitToThisDonut();
+            Assert.Equal(["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz"], vm.Presets.Select(p => p.Id));
+            Assert.All(vm.Items, item => Assert.True(item.IsEnabled));
+            var window = new RadialWindow { DataContext = vm };
+            window.Show();
+            var donut = window.DonutControl;
+            donut.SetExternalHighlight(1);
+            Pump();
+            Assert.Equal(14, donut.SliceCornerRadius);
+
+            // A corner the rounding cut away still picks its slice.
+            var n = vm.Items.Count;
+            var center = new Avalonia.Point(donut.Bounds.Width / 2, donut.Bounds.Height / 2);
+            var inner = vm.OuterRadius * vm.HoleRatio;
+            var corner = DonutGeometry.Wedge(center, inner, vm.OuterRadius, DonutGeometry.MidAngle(4, n), DonutGeometry.Span(n), 3).Start;
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, 4), donut.HitTest(center + (corner - center) * 0.995));
+            Save(window, "donut-geospatial-soft.png");
+            window.Close();
+        }
+        finally
+        {
+            theme.Apply(new ThemeSettings(), "en");
+        }
+    }
+
     /// <summary>The middle of slot <paramref name="slot"/> of a donut with <paramref name="slots"/> slices.</summary>
     private static Avalonia.Point DonutPoint(DonutMenu donut, int slot, int slots)
     {
@@ -1486,6 +1522,28 @@ public class RenderTests
     }
 
     [AvaloniaFact]
+    public void Preset_editor_offers_save_as_zip_for_geospatial_targets_only()
+    {
+        TestServices.EnsureInitialized("en");
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "shp", Name = "Shapefile" };
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowZipResult);
+        Assert.Equal("Geospatial", vm.Target.Detail);
+
+        vm.ZipResult = true;
+        Assert.True(vm.Apply());
+        Assert.True(preset.Output.ZipResult);
+
+        vm.Target = vm.Targets.Single(t => t.Value == "kml");
+        Assert.True(vm.ShowZipResult);
+        vm.Target = vm.Targets.Single(t => t.Value == "png");
+        Assert.False(vm.ShowZipResult);
+        // The box ticked for Shapefile, hidden for PNG, doesn't zip the PNG.
+        Assert.True(vm.Apply());
+        Assert.False(preset.Output.ZipResult);
+    }
+
+    [AvaloniaFact]
     public void Preset_editor_saves_media_and_archive_options()
     {
         TestServices.EnsureInitialized("en");
@@ -1591,6 +1649,22 @@ public class RenderTests
         vm.Target = vm.Targets.Single(t => t.Value == "smi");
         Assert.False(vm.ShowMedia || vm.ShowPdf || vm.ShowImage);
         Assert.Equal("Subtitle", vm.Target.Detail);
+    }
+
+    /// <summary>The geospatial donut in the toolbar editor: GeoJSON, Shapefile, KML, CSV, GPX and KMZ for geo files.</summary>
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    public void Toolbar_geospatial_donut_renders(string language)
+    {
+        WithProfiles(language, false, 1240, _ => { }, (window, vm) =>
+        {
+            vm.SelectedProfile = vm.Profiles.Single(p => p.Profile.Id == "geo");
+            Pump();
+            Assert.Equal(["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz"], vm.SelectedProfile.Profile.PresetIds);
+            Assert.Contains("shp", vm.ExtensionTags!.Tags.Select(t => t.Text.TrimStart('.')));
+            Save(window, $"toolbar-geospatial-{language}.png");
+        });
     }
 
     /// <summary>Shows the toolbar page (tall, so the profile card is visible) with temporarily changed profiles.</summary>
