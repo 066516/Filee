@@ -3,7 +3,8 @@
 // as a ZIP. MimeKit decodes the transfer encodings (quoted-printable, base64), encoded headers (RFC 2047 / 2231) and
 // charsets, including the Korean ones (EUC-KR / CP949, ISO-2022-KR); header text in raw 8-bit that is not UTF-8 is read
 // as CP949, as older Korean mail programs wrote it. Outlook .msg files are rebuilt as MIME messages first (see
-// OutlookMessage) and take the same path; MSG → EML writes that message.
+// OutlookMessage) and take the same path; MSG → EML writes that message. MHTML web archives are MIME messages too:
+// MhtmlArchive turns the saved page into one HTML file with the same sanitizer.
 
 using System.Globalization;
 using System.IO.Compression;
@@ -18,7 +19,7 @@ using MimeKit;
 
 namespace Filee.Engines.Email;
 
-/// <summary>EML and MSG → HTML, TXT and ZIP (attachments); MSG → EML.</summary>
+/// <summary>EML and MSG → HTML, TXT and ZIP (attachments); MSG → EML; MHTML → HTML.</summary>
 public sealed partial class EmlConverter : IConverter
 {
     public string Id => "email";
@@ -35,15 +36,28 @@ public sealed partial class EmlConverter : IConverter
     [
         new("eml", "html"), new("eml", "txt"), new("eml", "zip"),
         new("msg", "eml"), new("msg", "html"), new("msg", "txt"), new("msg", "zip"),
+        // A web archive becomes its page; every HTML target follows from there. The HWPX and DOCX writers read it
+        // directly (DocumentReaders), one step shorter.
+        new("mhtml", "html"),
     ];
 
-    public EngineStatus GetStatus() => EngineStatus.Available("EML, MSG → HTML, TXT, ZIP (attachments); MSG → EML",
+    public EngineStatus GetStatus() => EngineStatus.Available("EML, MSG → HTML, TXT, ZIP (attachments); MSG → EML; MHTML → HTML",
         $"{EngineVersions.BuiltIn} · {EngineVersions.Library("MimeKitLite", typeof(MimeKit.MimeMessage))} · {EngineVersions.Library("MsgReader", typeof(MsgReader.Outlook.Storage))}");
 
     public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken) =>
         Task.Run<IReadOnlyList<string>>(() =>
         {
             progress?.Report(0.1);
+            if (step.From == "mhtml")
+            {
+                var page = MhtmlArchive.Html(MhtmlArchive.Load(step.InputPath, cancellationToken));
+                progress?.Report(0.8);
+                if (step.Output.Allocate("html") is not { } html)
+                    return [];
+                File.WriteAllText(html, page, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                progress?.Report(1);
+                return [html];
+            }
             var message = step.From == "msg" ? OutlookMessage.Load(step.InputPath) : Load(step.InputPath, cancellationToken);
             progress?.Report(0.5);
             if (step.To == "eml")
@@ -132,7 +146,7 @@ public sealed partial class EmlConverter : IConverter
 
         var sb = new StringBuilder();
         sb.Append("<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n");
-        sb.Append("<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\">\n");
+        sb.Append(ContentSecurityPolicy).Append('\n');
         sb.Append($"<title>{WebUtility.HtmlEncode(message.Subject ?? "")}</title>\n");
         sb.Append("<style>\n.filee-mail-headers { border-collapse: collapse; margin: 0 0 12px 0; font-family: sans-serif; font-size: 14px; }\n")
           .Append(".filee-mail-headers th { text-align: left; vertical-align: top; padding: 2px 16px 2px 0; color: #555; font-weight: 600; }\n")
@@ -147,6 +161,10 @@ public sealed partial class EmlConverter : IConverter
         sb.Append("\n</body>\n</html>\n");
         return sb.ToString();
     }
+
+    /// <summary>Only inline styles and data: pictures, should a browser meet anything the sanitizer let through.</summary>
+    internal const string ContentSecurityPolicy =
+        "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\">";
 
     /// <summary>"cid:" references → data URIs of the parts with that Content-ID, so the page needs no other files.</summary>
     private static string InlinePictures(string html, MimeMessage message)
@@ -171,7 +189,7 @@ public sealed partial class EmlConverter : IConverter
     }
 
     /// <summary>Keep readable mail markup while dropping browser-active elements, attributes and remote images.</summary>
-    private static (string Body, string Styles) SafeHtml(string html)
+    internal static (string Body, string Styles) SafeHtml(string html)
     {
         var document = new HtmlParser().ParseDocument(html);
         // Raw-text elements (noembed, xmp…) and comments go too: browsers read them as text, other HTML readers may not.
@@ -207,7 +225,7 @@ public sealed partial class EmlConverter : IConverter
         return (document.Body?.InnerHtml ?? "", styles);
     }
 
-    private static readonly HashSet<string> SafeHtmlAttributes = new(StringComparer.OrdinalIgnoreCase)
+    internal static readonly HashSet<string> SafeHtmlAttributes = new(StringComparer.OrdinalIgnoreCase)
     {
         "class", "id", "title", "lang", "dir", "style", "align", "valign", "width", "height", "colspan", "rowspan",
         "cellpadding", "cellspacing", "border", "bgcolor", "color", "face", "size", "nowrap", "start", "type",
@@ -218,7 +236,7 @@ public sealed partial class EmlConverter : IConverter
         || Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" or "mailto";
 
     /// <summary>Any raster data: image (old Outlook writes image/x-png, image/pjpeg…), never SVG, which can carry script.</summary>
-    private static bool SafeInlineImage(string value) => RasterDataImage().IsMatch(value);
+    internal static bool SafeInlineImage(string value) => RasterDataImage().IsMatch(value);
 
     // ───────────────────────── Text ─────────────────────────
 

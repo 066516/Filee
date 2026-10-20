@@ -385,7 +385,7 @@ public static class BuiltInData
         PresetIds = ["to-pdf", "to-png", "to-jpg", "to-pptx", "to-hwpx", "to-hwp", "merge-pdf"],
     };
 
-    /// <summary>Markdown, plain text and HTML (added in settings schema 4, see SettingsMigrations).</summary>
+    /// <summary>Markdown, plain text and HTML (added in settings schema 4, see SettingsMigrations); MHTML (schema 23).</summary>
     public static ToolbarProfile TextProfile() => new()
     {
         Id = "text",

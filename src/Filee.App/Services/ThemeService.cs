@@ -1,7 +1,9 @@
-// Applies ThemeSettings (light/dark, accent colour, corner radius, font order, reduced motion) at runtime by
-// writing resources into Application.Resources. All styles reference these with DynamicResource.
+// Applies ThemeSettings (light/dark, accent colour, corner radius, font order, reduced motion) and the user's
+// theme.json colours at runtime by writing resources into Application.Resources. All styles reference these with
+// DynamicResource.
 
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Filee.Core.Platform;
@@ -24,7 +26,24 @@ public sealed class ThemeService(IPlatformServices platform)
     private const string SystemFallbacks =
         "Segoe UI, Nirmala UI, Malgun Gothic, Microsoft YaHei, PingFang SC, Apple SD Gothic Neo, Kohinoor Devanagari, sans-serif";
 
-    public void Apply(ThemeSettings theme, string language)
+    /// <summary>
+    /// theme.json colour names → the brushes in Styles/Soft.axaml they replace. Must cover exactly
+    /// <see cref="CustomTheme.Keys"/> (a test checks).
+    /// </summary>
+    internal static readonly IReadOnlyDictionary<string, string> CustomBrushKeys = new Dictionary<string, string>
+    {
+        ["page"] = "PageBrush",
+        ["surface"] = "SurfaceBrush",
+        ["surfaceAlt"] = "SurfaceAltBrush",
+        ["border"] = "SubtleBorderBrush",
+        ["text"] = "TextPrimaryBrush",
+        ["textSecondary"] = "TextSecondaryBrush",
+        ["danger"] = "DangerBrush",
+        ["success"] = "SuccessBrush",
+        ["warning"] = "WarningBrush",
+    };
+
+    public void Apply(ThemeSettings theme, string language, CustomTheme? custom = null)
     {
         var app = Application.Current ?? throw new InvalidOperationException("No application.");
         var res = app.Resources;
@@ -66,7 +85,25 @@ public sealed class ThemeService(IPlatformServices platform)
             : $"{Korean}, {Chinese}";
         res["AppFontFamily"] = FontFamily.Parse($"{Latin}, {Devanagari}, {cjk}, {SystemFallbacks}");
 
+        // Application.Resources is searched before the styles, so these theme dictionaries win over Soft.axaml's.
+        ApplyCustom(res, ThemeVariant.Light, custom?.Light);
+        ApplyCustom(res, ThemeVariant.Dark, custom?.Dark);
+
         Motion.Configure(theme.ReduceMotion, () => platform.PrefersReducedMotion);
+    }
+
+    /// <summary>Replaces (or, with no colours, removes) the user's colours for one variant.</summary>
+    private static void ApplyCustom(IResourceDictionary res, ThemeVariant variant, IReadOnlyDictionary<string, string>? colors)
+    {
+        var dictionary = new ResourceDictionary();
+        foreach (var (name, value) in colors ?? new Dictionary<string, string>())
+            if (CustomBrushKeys.TryGetValue(name, out var key) && Color.TryParse(value, out var color))
+                dictionary[key] = new SolidColorBrush(color);
+
+        if (dictionary.Count == 0)
+            res.ThemeDictionaries.Remove(variant);
+        else
+            res.ThemeDictionaries[variant] = dictionary;
     }
 
     /// <summary>Lightens (amount &gt; 0) or darkens (amount &lt; 0) a colour.</summary>
