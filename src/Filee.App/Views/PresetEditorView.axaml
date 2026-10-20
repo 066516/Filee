@@ -24,6 +24,7 @@
       <StackPanel Grid.Column="2">
         <TextBlock Classes="label" Text="{DynamicResource presets.target}" />
         <ComboBox x:Name="TargetBox" Classes="targets" ItemsSource="{Binding Targets}" SelectedItem="{Binding Target}"
+                  IsEnabled="{Binding CanChangeTarget}"
                   HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MaxDropDownHeight="420">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="vm:IChoice">

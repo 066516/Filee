@@ -11,6 +11,7 @@ using Filee.Core.Localization;
 using Filee.Core.Presets;
 using Filee.Core.Settings;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Filee.App.Services;
 
@@ -27,7 +28,30 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
     internal FormatRequestNoticeWindow? FormatRequestNotice => _formatRequestNotice;
 
+    private CropOverlayWindow? _cropOverlay;
+
     public MainWindow? Main => _main;
+
+    /// <summary>Opens the interactive crop overlay for the files.</summary>
+    public void ShowCropOverlay(IReadOnlyList<string> files, Preset preset, PixelPoint? near = null)
+    {
+        if (files.Count == 0)
+            return;
+        _cropOverlay?.Close();
+        var store = services.GetRequiredService<UserDataStore>();
+        var log = services.GetService<ILogger<CropOverlayViewModel>>();
+        var vm = new CropOverlayViewModel(files, preset, loc, store, log);
+        var win = new CropOverlayWindow { DataContext = vm };
+        win.PositionOnScreen(near);
+        win.Closed += (_, _) =>
+        {
+            if (_cropOverlay == win)
+                _cropOverlay = null;
+        };
+        _cropOverlay = win;
+        win.Show();
+        win.Activate();
+    }
 
     /// <summary>
     /// Shows (or brings to front) the main window, optionally on a page. Going to the tray closes it
