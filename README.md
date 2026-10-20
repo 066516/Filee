@@ -67,7 +67,7 @@ Filee shows new releases in its menu and updates itself, keeping your settings a
 - **Many files at once**, in parallel. Routes with several steps (HWP → HWPX → DOCX) are found automatically.
 - **Watch folders** convert every file that lands in them.
 - **Other ways in**: the right-click menu, a keyboard shortcut, the drop zone and the [`filee` command](#command-line).
-- Light and dark themes, in English, Español, 한국어, 简体中文, Polski, हिन्दी and Русский.
+- Light and dark themes, in English, Español, 日本語, 한국어, 简体中文, Polski, हिन्दी and Русский.
 
 ## Screenshots
 

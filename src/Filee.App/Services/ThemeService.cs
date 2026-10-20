@@ -20,11 +20,15 @@ public sealed class ThemeService(IPlatformServices platform)
 
     /// <summary>Embedded Noto fonts (see build/fetch-fonts.ps1). Missing files fall back to system fonts.</summary>
     private const string Latin = "fonts:Filee#Noto Sans";
-    private const string Korean = "fonts:Filee#Noto Sans KR";
-    private const string Chinese = "fonts:Filee#Noto Sans SC";
     private const string Devanagari = "fonts:Filee#Noto Sans Devanagari";
-    private const string SystemFallbacks =
-        "Segoe UI, Nirmala UI, Malgun Gothic, Microsoft YaHei, PingFang SC, Apple SD Gothic Neo, Kohinoor Devanagari, sans-serif";
+
+    /// <summary>Each CJK region's embedded font and its system fonts (Windows, then macOS).</summary>
+    private static readonly (string Embedded, string System) Japanese =
+        ("fonts:Filee#Noto Sans JP", "Yu Gothic UI, Meiryo, Hiragino Sans");
+    private static readonly (string Embedded, string System) Korean =
+        ("fonts:Filee#Noto Sans KR", "Malgun Gothic, Apple SD Gothic Neo");
+    private static readonly (string Embedded, string System) Chinese =
+        ("fonts:Filee#Noto Sans SC", "Microsoft YaHei, PingFang SC");
 
     /// <summary>
     /// theme.json colour names → the brushes in Styles/Soft.axaml they replace. Must cover exactly
@@ -79,11 +83,7 @@ public sealed class ThemeService(IPlatformServices platform)
         res["ControlCornerRadius"] = new CornerRadius(Math.Round(r * 0.55));
         res["OverlayCornerRadius"] = new CornerRadius(r);
 
-        // Han characters look different in Korean and Chinese fonts: put the UI language's font first.
-        var cjk = language.StartsWith("zh", StringComparison.OrdinalIgnoreCase)
-            ? $"{Chinese}, {Korean}"
-            : $"{Korean}, {Chinese}";
-        res["AppFontFamily"] = FontFamily.Parse($"{Latin}, {Devanagari}, {cjk}, {SystemFallbacks}");
+        res["AppFontFamily"] = FontFamily.Parse(FontFamilies(language));
 
         // Application.Resources is searched before the styles, so these theme dictionaries win over Soft.axaml's.
         ApplyCustom(res, ThemeVariant.Light, custom?.Light);
@@ -93,6 +93,20 @@ public sealed class ThemeService(IPlatformServices platform)
     }
 
     /// <summary>Replaces (or, with no colours, removes) the user's colours for one variant.</summary>
+    /// <summary>
+    /// The UI font chain. Han characters look different in Japanese, Korean and Chinese fonts, so the UI language's
+    /// CJK fonts come first, embedded and system ones alike; other languages keep Korean first.
+    /// </summary>
+    internal static string FontFamilies(string language)
+    {
+        (string Embedded, string System)[] cjk =
+            language.StartsWith("ja", StringComparison.OrdinalIgnoreCase) ? [Japanese, Korean, Chinese]
+            : language.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? [Chinese, Korean, Japanese]
+            : [Korean, Chinese, Japanese];
+        return $"{Latin}, {Devanagari}, {string.Join(", ", cjk.Select(f => f.Embedded))}, Segoe UI, Nirmala UI, "
+            + $"{string.Join(", ", cjk.Select(f => f.System))}, Kohinoor Devanagari, sans-serif";
+    }
+
     private static void ApplyCustom(IResourceDictionary res, ThemeVariant variant, IReadOnlyDictionary<string, string>? colors)
     {
         var dictionary = new ResourceDictionary();
