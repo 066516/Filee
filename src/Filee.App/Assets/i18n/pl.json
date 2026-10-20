@@ -791,5 +791,25 @@
   "watch.status_watching": "Obserwuję",
   "watch.status_starting": "Uruchamianie…",
   "watch.status_error": "Nie można obserwować tego folderu: {0}",
-  "watch.cli_hint": "Także w wierszu poleceń: filee watch <folder> --to <format>"
+  "watch.cli_hint": "Także w wierszu poleceń: filee watch <folder> --to <format>",
+
+  "whats_new.title": "Nowości w Filee {0}",
+  "whats_new.previous": "Wstecz",
+  "whats_new.next": "Dalej",
+  "whats_new.done": "Zaczynamy",
+  "whats_new.about_link": "Nowości w Filee {0}",
+  "whats_new.2_0_0.browser.title": "Upuszczanie prosto z przeglądarki",
+  "whats_new.2_0_0.browser.text": "Przytrzymaj skrót i przeciągnij obraz lub link do pliku ze strony internetowej. Pasek-pierścień się otworzy, zapisze plik i go przekonwertuje.",
+  "whats_new.2_0_0.flip.title": "Pasek-pierścień ma drugą stronę",
+  "whats_new.2_0_0.flip.text": "Gdy pierścień jest otwarty, naciśnij Tab lub obróć kółko myszy, aby go odwrócić i zobaczyć więcej ustawień.",
+  "whats_new.2_0_0.formats.title": "Więcej formatów",
+  "whats_new.2_0_0.formats.text": "Archiwa stron (MHTML), e-faktury OFD, mapy Shapefile, GeoJSON, KML i GPX, JPEG XR, modele FBX i szablony POTM.",
+  "whats_new.2_0_0.crop.title": "Kadrowanie przed konwersją",
+  "whats_new.2_0_0.crop.text": "Wycinek Kadruj otwiera obrazy po kolei. Przeciągnij ramkę, wybierz proporcje, a zapisana zostanie tylko ta część.",
+  "whats_new.2_0_0.theme.title": "Łagodniej i w Twoich kolorach",
+  "whats_new.2_0_0.theme.text": "Wycinki pierścienia zaokrąglają się zgodnie z Zaokrągleniem, a plik theme.json może zmienić kolory całego Filee.",
+  "whats_new.2_0_0.languages.title": "Filee mówi w większej liczbie języków",
+  "whats_new.2_0_0.languages.text": "Do angielskiego, koreańskiego, chińskiego i polskiego dołączają hiszpański, hindi, japoński i rosyjski.",
+  "whats_new.2_0_0.more.title": "I jeszcze trochę",
+  "whats_new.2_0_0.more.text": "Przywróć domyślne ustawienia jednego pierścienia, przeszukuj całą historię i konwertuj dokumenty w gudżarati, hindi lub arabskim przez LibreOffice."
 }

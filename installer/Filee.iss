@@ -464,14 +464,14 @@ begin
 end;
 
 // Starts Filee as the signed-in user (not elevated) with the choices made in the wizard. An update starts it in
-// the tray, as it was running before.
+// the tray, as it was running before, and shows the new version's "What's new" slides (the user just updated).
 procedure StartFilee;
 var
   Parameters: String;
   ResultCode: Integer;
 begin
   if WasInstalled then
-    Parameters := '--background'
+    Parameters := '--background --whats-new'
   else
     Parameters := '--install-engines=' + SelectedEngines +
       ' --start-with-windows=' + OnOff(WizardIsTaskSelected('startup')) +

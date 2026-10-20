@@ -1,6 +1,8 @@
 // Command line options:
 //   Filee.exe                          open the main window
 //   Filee.exe --background             start in the tray only (used by "start with Windows")
+//   Filee.exe --whats-new              with --background: show this version's "What's new" slides anyway, if they
+//                                      are due (the installer after an update the user started)
 //   Filee.exe --settings               open the main window
 //   Filee.exe --convert a b ...        open the donut for these files (Explorer context menu / Send To)
 //   Filee.exe --convert-list <file>    same, with one path per line in a UTF-8 file (Windows 11 Explorer menu, for
@@ -22,6 +24,7 @@ namespace Filee.App.Services;
 /// <param name="InstallEngines">Engine packages chosen in the installer; null when the option is absent.</param>
 /// <param name="StartWithWindows">Value of <c>--start-with-windows</c>; null when absent.</param>
 /// <param name="ContextMenu">Value of <c>--context-menu</c>; null when absent.</param>
+/// <param name="WhatsNew"><c>--whats-new</c>: due slides show even when starting in the background.</param>
 public sealed record CommandLine(
     bool Background,
     bool ShowSettings,
@@ -31,7 +34,8 @@ public sealed record CommandLine(
     bool UninstallCleanup = false,
     IReadOnlyList<string>? InstallEngines = null,
     bool? StartWithWindows = null,
-    bool? ContextMenu = null)
+    bool? ContextMenu = null,
+    bool WhatsNew = false)
 {
     /// <summary>File name prefix of list files written by FileeExplorerMenu.dll (LIST_PREFIX there) into %TEMP%.</summary>
     public const string ListFilePrefix = "Filee-convert-";
@@ -49,6 +53,7 @@ public sealed record CommandLine(
         List<string>? engines = null;
         bool? startWithWindows = null;
         bool? contextMenu = null;
+        var whatsNew = false;
 
         foreach (var arg in args)
         {
@@ -81,6 +86,9 @@ public sealed record CommandLine(
                 case "--background":
                     background = true;
                     break;
+                case "--whats-new":
+                    whatsNew = true;
+                    break;
                 case "--settings":
                     settings = true;
                     break;
@@ -97,7 +105,7 @@ public sealed record CommandLine(
                     break;
             }
         }
-        return new CommandLine(background, settings, files, listFile, quit, cleanup, engines, startWithWindows, contextMenu);
+        return new CommandLine(background, settings, files, listFile, quit, cleanup, engines, startWithWindows, contextMenu, whatsNew);
     }
 
     /// <summary>"--Name=Value" → ("--name", "Value"); "--name" → ("--name", null).</summary>

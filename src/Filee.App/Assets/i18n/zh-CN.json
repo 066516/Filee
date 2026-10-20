@@ -791,5 +791,25 @@
   "watch.status_watching": "正在监视",
   "watch.status_starting": "正在启动…",
   "watch.status_error": "无法监视此文件夹：{0}",
-  "watch.cli_hint": "也可以在命令行中使用：filee watch <文件夹> --to <格式>"
+  "watch.cli_hint": "也可以在命令行中使用：filee watch <文件夹> --to <格式>",
+
+  "whats_new.title": "Filee {0} 新功能",
+  "whats_new.previous": "上一页",
+  "whats_new.next": "下一页",
+  "whats_new.done": "开始使用",
+  "whats_new.about_link": "Filee {0} 新功能",
+  "whats_new.2_0_0.browser.title": "直接从浏览器拖放",
+  "whats_new.2_0_0.browser.text": "按住快捷键，从网页拖出图片或文件链接。环形工具栏会打开，保存并转换它。",
+  "whats_new.2_0_0.flip.title": "环形工具栏有了背面",
+  "whats_new.2_0_0.flip.text": "工具栏打开时按 Tab 键或滚动鼠标滚轮，即可翻到背面使用更多预设。",
+  "whats_new.2_0_0.formats.title": "更多格式",
+  "whats_new.2_0_0.formats.text": "网页存档 (MHTML)、OFD 电子发票、Shapefile、GeoJSON、KML 和 GPX 地图、JPEG XR、FBX 模型和 POTM 模板。",
+  "whats_new.2_0_0.crop.title": "转换前先裁剪",
+  "whats_new.2_0_0.crop.text": "“裁剪”会逐张打开图片。拖动选框、选择比例，只保存选中的部分。",
+  "whats_new.2_0_0.theme.title": "更柔和，用你的颜色",
+  "whats_new.2_0_0.theme.text": "环形工具栏的扇区会随“圆角”变圆，用 theme.json 文件还能更改整个 Filee 的颜色。",
+  "whats_new.2_0_0.languages.title": "支持更多语言",
+  "whats_new.2_0_0.languages.text": "在英语、韩语、中文和波兰语之外，新增西班牙语、印地语、日语和俄语。",
+  "whats_new.2_0_0.more.title": "还有更多",
+  "whats_new.2_0_0.more.text": "可以只把一个环形工具栏恢复默认、搜索全部历史记录，并通过 LibreOffice 转换古吉拉特语、印地语或阿拉伯语文档。"
 }
