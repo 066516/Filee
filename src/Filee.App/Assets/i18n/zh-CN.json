@@ -663,6 +663,8 @@
   "common.delete": "删除",
   "common.yes": "是",
   "common.no": "否",
+  "common.on": "开",
+  "common.off": "关",
 
   "setup.title": "选择转换引擎",
   "setup.description": "图片、PDF、Office 文档、HWP、电子书、压缩文件、字体、CAD 和 3D 模型现在就能转换。\n只有视频、音频或少见格式才需要下载引擎。",

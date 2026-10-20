@@ -644,6 +644,8 @@
   "common.delete": "Eliminar",
   "common.yes": "Sí",
   "common.no": "No",
+  "common.on": "Activado",
+  "common.off": "Desactivado",
   "setup.title": "Elige motores de conversión",
   "setup.description": "Imágenes, PDF, documentos de Office, HWP, libros electrónicos, archivos comprimidos, tipografías, CAD y modelos 3D ya se convierten.\nDescarga motores solo para vídeo y audio o formatos poco habituales.",
   "setup.note": "Puedes instalar o quitar motores en cualquier momento en Ajustes → Motores.",
