@@ -4,7 +4,7 @@ using Filee.App.Services;
 
 namespace Filee.App.Tests;
 
-/// <summary>Keeps en / es / ja / ko / zh-CN / pl / hi / ru in sync so no language silently falls back to English.</summary>
+/// <summary>Keeps all registered catalogs in sync so no language silently falls back to English.</summary>
 public partial class LocalizationTests
 {
     private static string I18nDirectory
@@ -21,7 +21,26 @@ public partial class LocalizationTests
     private static Dictionary<string, string> Load(string code) =>
         JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(I18nDirectory, code + ".json")))!;
 
-    public static TheoryData<string> Languages => new() { "es", "ja", "ko", "zh-CN", "pl", "hi", "ru" };
+    public static TheoryData<string> Languages =>
+        new(LocalizationService.Languages.Where(l => l.Code != "en").Select(l => l.Code));
+
+    [Fact]
+    public void Every_catalog_is_registered_and_every_registered_language_has_a_catalog()
+    {
+        Assert.Equal(
+            Directory.EnumerateFiles(I18nDirectory, "*.json").Select(Path.GetFileNameWithoutExtension).Order(),
+            LocalizationService.Languages.Select(l => l.Code).Order());
+    }
+
+    [Theory]
+    [MemberData(nameof(Languages))]
+    public void Catalogs_have_no_duplicate_keys_or_empty_translations(string code)
+    {
+        using var json = JsonDocument.Parse(File.ReadAllText(Path.Combine(I18nDirectory, code + ".json")));
+        var entries = json.RootElement.EnumerateObject().ToList();
+        Assert.Equal(entries.Count, entries.Select(e => e.Name).Distinct().Count());
+        Assert.All(entries, e => Assert.False(string.IsNullOrWhiteSpace(e.Value.GetString()), $"{code}:{e.Name}"));
+    }
 
     [Theory]
     [MemberData(nameof(Languages))]

@@ -36,6 +36,10 @@ public class RenderTests
         { "presets", "ja" }, { "theme", "ja" }, { "engines", "ja" }, { "about", "ja" }, { "watch", "ja" },
         { "home", "ru" }, { "general", "ru" }, { "triggers", "ru" }, { "toolbar", "ru" }, { "presets", "ru" },
         { "theme", "ru" }, { "engines", "ru" }, { "about", "ru" }, { "watch", "ru" },
+        { "home", "pt-PT" }, { "general", "pt-PT" }, { "triggers", "pt-PT" }, { "toolbar", "pt-PT" },
+        { "presets", "pt-PT" }, { "theme", "pt-PT" }, { "engines", "pt-PT" }, { "about", "pt-PT" }, { "watch", "pt-PT" },
+        { "home", "pt-BR" }, { "general", "pt-BR" }, { "triggers", "pt-BR" }, { "toolbar", "pt-BR" },
+        { "presets", "pt-BR" }, { "theme", "pt-BR" }, { "engines", "pt-BR" }, { "about", "pt-BR" }, { "watch", "pt-BR" },
     };
 
     [AvaloniaTheory]

@@ -26,6 +26,8 @@ public sealed class LocalizationService : ILocalizer
         ("pl", "Polski"),
         ("hi", "हिन्दी"),
         ("ru", "Русский"),
+        ("pt-PT", "Português (Portugal)"),
+        ("pt-BR", "Português (Brasil)"),
     ];
 
     private readonly ResourceDictionary _resources = new();
@@ -92,12 +94,27 @@ public sealed class LocalizationService : ILocalizer
     /// <summary>Maps "auto" / a culture name to one of the shipped languages.</summary>
     public static string Resolve(string setting)
     {
+        // Keep a manual selection independent of the OS, including while its language changes.
+        if (Languages.FirstOrDefault(l => l.Code.Equals(setting, StringComparison.OrdinalIgnoreCase)).Code is { } code)
+            return code;
+
+        // macOS gives an app started from Finder no LANG: its language list comes from the system instead.
+        return Resolve(setting, Filee.Platform.MacOS.MacOSLocale.PreferredLanguage() ?? CultureInfo.InstalledUICulture.Name);
+    }
+
+    /// <summary>Resolves against a supplied OS language so automatic selection can be tested on any platform.</summary>
+    internal static string Resolve(string setting, string systemLanguage)
+    {
         if (!string.Equals(setting, "auto", StringComparison.OrdinalIgnoreCase) &&
             Languages.Any(l => l.Code.Equals(setting, StringComparison.OrdinalIgnoreCase)))
             return Languages.First(l => l.Code.Equals(setting, StringComparison.OrdinalIgnoreCase)).Code;
 
-        // macOS gives an app started from Finder no LANG: its language list comes from the system instead.
-        var ui = Filee.Platform.MacOS.MacOSLocale.PreferredLanguage() ?? CultureInfo.InstalledUICulture.Name;
+        var ui = systemLanguage;
+        // Neutral Portuguese and regions without a separate catalog use European Portuguese. Recognize the
+        // region subtag even if a script is present (pt-Latn-BR); never turn a manual pt-PT choice into pt-BR.
+        var parts = ui.Split('-');
+        if (parts[0].Equals("pt", StringComparison.OrdinalIgnoreCase))
+            return parts.Skip(1).Any(p => p.Equals("BR", StringComparison.OrdinalIgnoreCase)) ? "pt-BR" : "pt-PT";
         if (ui.StartsWith("ja", StringComparison.OrdinalIgnoreCase))
             return "ja";
         if (ui.StartsWith("ko", StringComparison.OrdinalIgnoreCase))
