@@ -4,7 +4,7 @@ using Filee.Setup.Installation;
 using Filee.Setup.Platform;
 
 [assembly: AvaloniaTestApplication(typeof(Filee.Setup.Tests.TestAppBuilder))]
-// One application for all tests (like Filee.App.Tests: reloading the embedded fonts per test crashed on Windows).
+// One application for all tests, like Filee.App.Tests.
 [assembly: AvaloniaTestIsolation(AvaloniaTestIsolationLevel.PerAssembly)]
 
 namespace Filee.Setup.Tests;
@@ -16,7 +16,6 @@ public static class TestAppBuilder
         AppBuilder.Configure<App>()
             .UseSkia()
             .UseHarfBuzz()
-            .ConfigureFonts(fonts => fonts.AddFontCollection(new SetupFontCollection()))
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
 }
 
@@ -154,7 +153,7 @@ public sealed class SetupBench : IDisposable
         var program = _temp.Write("program.exe", "MZ stand-in for the Setup program " + new string('p', 3000));
         var output = _temp.Sub($"Filee-{version}-win-Setup.exe");
         Filee.Setup.Payload.SetupPayload.Write(program, AppFolder, output, version,
-            [new Filee.Setup.Payload.EngineOffer("pandoc", ["pandoc"], 42_000_000, 236_000_000, true)], ".filee-component", quality: 5);
+            [new Filee.Setup.Payload.EngineOffer("pandoc", ["pandoc"], 42_000_000, 236_000_000, true)], ".filee-component", fast: true);
         return SetupExe = output;
     }
 

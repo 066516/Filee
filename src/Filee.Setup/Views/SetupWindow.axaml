@@ -127,7 +127,7 @@
                   <Border Classes="card" Padding="14,10">
                     <CheckBox Classes="option" IsChecked="{Binding Selected}" IsEnabled="{Binding CanSelect}">
                       <StackPanel Spacing="2">
-                        <TextBlock FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding Name}" />
+                        <TextBlock FontWeight="Bold" TextWrapping="Wrap" Text="{Binding Name}" />
                         <TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding Detail}" />
                       </StackPanel>
                     </CheckBox>

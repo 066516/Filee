@@ -36,6 +36,39 @@ public class PayloadTests
         Assert.True(payload.CompressedLength < payload.Manifest.TotalSize / 10);
     }
 
+    [Theory]
+    [InlineData("kernel32.dll")]
+    [InlineData("cmd.exe")]
+    [InlineData("random")]
+    public void The_x86_filter_gives_back_the_exact_bytes(string file)
+    {
+        var original = file == "random"
+            ? System.Security.Cryptography.RandomNumberGenerator.GetBytes(1_000_000)
+            : File.ReadAllBytes(Path.Combine(Environment.SystemDirectory, file));
+        var data = (byte[])original.Clone();
+        X86Filter.Encode(data);
+        if (file != "random")
+            Assert.False(data.AsSpan().SequenceEqual(original));
+        X86Filter.Decode(data);
+        Assert.Equal(original, data);
+        // Short buffers stay as they are.
+        var tiny = new byte[] { 0xE8, 1, 2, 3 };
+        X86Filter.Encode(tiny);
+        Assert.Equal(new byte[] { 0xE8, 1, 2, 3 }, tiny);
+    }
+
+    [Fact]
+    public void Programs_go_through_the_x86_filter()
+    {
+        using var bench = new SetupBench(app: (temp, _) => File.Copy(Path.Combine(Environment.SystemDirectory, "kernel32.dll"), temp.Sub(@"app\native.dll")));
+        using var payload = SetupPayload.Open(bench.SetupExe)!;
+        Assert.Equal(PayloadFile.X86, payload.Manifest.Files.Single(f => f.Path == "native.dll").Filter);
+        Assert.Equal("", payload.Manifest.Files.Single(f => f.Path == @"cli\filee.cmd").Filter);
+        var target = bench.Temp.Sub("out");
+        payload.ExtractTo(target, cancellation: TestContext.Current.CancellationToken);
+        Assert.Equal(File.ReadAllBytes(bench.Temp.Sub(@"app\native.dll")), File.ReadAllBytes(Path.Combine(target, "native.dll")));
+    }
+
     [Fact]
     public void Large_apps_are_packed_in_several_segments()
     {
@@ -150,7 +183,7 @@ public class PayloadTests
         var program = temp.Sub("program.exe");
         File.WriteAllBytes(program, MinimalPe(0, 0));
         var unsigned = temp.Sub("unsigned.exe");
-        SetupPayload.Write(program, app, unsigned, "2.0.0", [], "", quality: 1);
+        SetupPayload.Write(program, app, unsigned, "2.0.0", [], "", fast: true);
 
         var body = File.ReadAllBytes(unsigned);
         var signed = new byte[body.Length + 512];

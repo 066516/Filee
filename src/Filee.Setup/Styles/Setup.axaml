@@ -2,6 +2,12 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+  <!-- Windows' CJK UI fonts (Malgun Gothic, Yu Gothic UI, Microsoft YaHei) have no semibold face: titles are bold, so
+       Korean, Japanese and Chinese titles look as heavy as Latin ones. -->
+  <Style Selector="TextBlock.h1, TextBlock.h2">
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+
   <Style Selector="Border.steps">
     <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
   </Style>
@@ -12,7 +18,7 @@
   </Style>
   <Style Selector="TextBlock.step.current">
     <Setter Property="Foreground" Value="{DynamicResource AccentStrongBrush}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontWeight" Value="Bold" />
   </Style>
   <Style Selector="TextBlock.step.done">
     <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />

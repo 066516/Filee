@@ -7,21 +7,27 @@ using System.Text.Json;
 namespace Filee.Setup.Payload;
 
 /// <summary>One file of the app, relative to the install folder (backslashes).</summary>
-/// <param name="Segment">The Brotli stream it is in (files are in manifest order within it).</param>
-public sealed record PayloadFile(string Path, long Size, string Sha256, int Segment = 0);
+/// <param name="Segment">The LZMA stream it is in (files are in manifest order within it).</param>
+/// <param name="Filter">"x86" when it went through the x86 branch filter before compressing.</param>
+public sealed record PayloadFile(string Path, long Size, string Sha256, int Segment = 0, string Filter = "")
+{
+    public const string X86 = "x86";
+}
 
 /// <summary>An engine package of Settings → Engines, as Setup offers it on a fresh install.</summary>
 /// <param name="MarkerFolders">Folders under %LocalAppData%\Filee\engines that are all marked when it is installed.</param>
 public sealed record EngineOffer(string Id, IReadOnlyList<string> MarkerFolders, long DownloadSize, long InstalledSize, bool Suggested);
 
-/// <param name="Segments">Compressed length of each Brotli stream, one after the other in the payload.</param>
+/// <param name="Segments">Compressed length of each LZMA stream, one after the other in the payload.</param>
+/// <param name="LzmaProperties">The 5 bytes of LZMA properties every stream was written with (base64).</param>
 public sealed record PayloadManifest(
     string Version,
     IReadOnlyList<PayloadFile> Files,
     string CompressedSha256,
     IReadOnlyList<EngineOffer> Engines,
     string EngineMarker,
-    IReadOnlyList<long> Segments)
+    IReadOnlyList<long> Segments,
+    string LzmaProperties)
 {
     /// <summary>Format of the payload; a Setup refuses a payload with another one.</summary>
     public const int CurrentFormat = 1;
@@ -36,7 +42,8 @@ public sealed record PayloadManifest(
             writer.WriteStartObject();
             writer.WriteNumber("format", CurrentFormat);
             writer.WriteString("version", Version);
-            writer.WriteString("compression", "brotli");
+            writer.WriteString("compression", "lzma");
+            writer.WriteString("lzmaProperties", LzmaProperties);
             writer.WriteString("compressedSha256", CompressedSha256);
             writer.WriteString("engineMarker", EngineMarker);
             writer.WriteStartArray("segments");
@@ -66,6 +73,8 @@ public sealed record PayloadManifest(
                 writer.WriteNumber("size", file.Size);
                 writer.WriteString("sha256", file.Sha256);
                 writer.WriteNumber("segment", file.Segment);
+                if (file.Filter.Length > 0)
+                    writer.WriteString("filter", file.Filter);
                 writer.WriteEndObject();
             }
             writer.WriteEndArray();
@@ -81,13 +90,19 @@ public sealed record PayloadManifest(
         {
             using var document = JsonDocument.Parse(json.ToArray());
             var root = document.RootElement;
-            if (root.GetProperty("format").GetInt32() != CurrentFormat || root.GetProperty("compression").GetString() != "brotli")
+            if (root.GetProperty("format").GetInt32() != CurrentFormat || root.GetProperty("compression").GetString() != "lzma")
                 throw new InvalidDataException("Unknown payload format.");
             var segments = root.GetProperty("segments").EnumerateArray().Select(s => s.GetInt64()).ToList();
             var files = root.GetProperty("files").EnumerateArray()
                 .Select(f => new PayloadFile(f.GetProperty("path").GetString()!, f.GetProperty("size").GetInt64(),
-                    f.GetProperty("sha256").GetString()!, f.GetProperty("segment").GetInt32()))
+                    f.GetProperty("sha256").GetString()!, f.GetProperty("segment").GetInt32(),
+                    f.TryGetProperty("filter", out var filter) ? filter.GetString() ?? "" : ""))
                 .ToList();
+            if (files.Any(f => f.Filter is not ("" or PayloadFile.X86)))
+                throw new InvalidDataException("Unknown filter in the payload.");
+            var properties = root.GetProperty("lzmaProperties").GetString()!;
+            if (Convert.FromBase64String(properties).Length != 5)
+                throw new InvalidDataException("Bad LZMA properties in the payload.");
             if (segments.Count == 0 || segments.Any(s => s <= 0)
                 || files.Any(f => f.Segment < 0 || f.Segment >= segments.Count)
                 || files.Zip(files.Skip(1)).Any(p => p.Second.Segment < p.First.Segment))
@@ -110,9 +125,10 @@ public sealed record PayloadManifest(
                 root.GetProperty("compressedSha256").GetString()!,
                 engines,
                 root.TryGetProperty("engineMarker", out var marker) ? marker.GetString() ?? "" : "",
-                segments);
+                segments,
+                properties);
         }
-        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException or NullReferenceException)
+        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException or NullReferenceException or FormatException)
         {
             throw new InvalidDataException("The payload manifest can't be read.", ex);
         }

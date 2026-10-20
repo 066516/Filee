@@ -148,13 +148,17 @@ the entry up for new menus; if not, restart Explorer. To remove it by hand:
 `Filee-<version>-win-Setup.exe` is Filee's own installer, `src/Filee.Setup` (it replaced the Inno Setup script of
 1.x). It is an Avalonia program with the app's look and translations: it links `Styles/Soft.axaml` (which therefore
 styles only Avalonia's own controls; Filee's controls are in `Controls.axaml`), `SoftPalette` (accent, radii, font
-order), the Noto fonts and `Assets/i18n/*.json` (Setup's texts are the `installer.*` keys).
+order), `AppLanguages` and `Assets/i18n/*.json` (Setup's texts are the `installer.*` keys). To stay small it uses
+Windows' own UI fonts (Segoe UI, Nirmala UI and the UI language's CJK font first; titles bold, as those CJK fonts
+have no semibold) instead of the app's embedded Noto fonts.
 
 - **Build** (`build/build-installer.ps1`): Setup is published as one self-contained, trimmed file
   (`-p:FileeSetupPublish=true`), so it runs on Windows 10 1809+ x64 without .NET. `build/tools/make-setup.cs` appends
-  the app's publish folder as the payload: `[program][Brotli stream of every file][manifest JSON][72-byte trailer]`
-  (`SetupPayload`). The manifest lists every file with its size and SHA-256, the SHA-256 of the compressed stream, the
-  version and the engines to offer (from `EngineDownloads`). A future signature goes after the trailer (Setup looks
+  the app's publish folder as the payload: `[program][LZMA streams of all files][manifest JSON][72-byte trailer]`
+  (`SetupPayload`): ~48 MB segments compressed in parallel with SharpCompress's LZMA (48 MB dictionary), programs
+  first through the x86 branch filter (`X86Filter`, from the LZMA SDK) as 7-Zip and Inno Setup do. The manifest lists
+  every file with its size, SHA-256 and filter, the SHA-256 of the compressed data, the version and the engines to
+  offer (from `EngineDownloads`). A future signature goes after the trailer (Setup looks
   for the trailer in front of the certificate table), so sign after packing. The code is trim- and AOT-safe
   (compiled bindings, source-generated P/Invoke and COM); Native AOT would need the MSVC linker on the build machine
   and still couldn't link SkiaSharp's native libraries in.

@@ -10,7 +10,7 @@
   (fetch-engines.ps1); the large engines are downloaded by the app (engines.json).
 
   Setup itself (src/Filee.Setup) is published as one self-contained, trimmed program (no .NET needed on the PC);
-  build/tools/make-setup.cs appends the publish folder to it as a Brotli payload with a SHA-256 manifest, and the
+  build/tools/make-setup.cs appends the publish folder to it as an LZMA payload with a SHA-256 manifest, and the
   engines Setup offers from EngineDownloads. The portable zip is the publish folder as it is: without Setup's
   uninstall.exe next to Filee.exe, Filee knows it is a portable copy.
 
@@ -73,6 +73,9 @@ elseif (-not $PublishDir) {
         dotnet publish (Join-Path $root 'src\Filee.Cli\Filee.Cli.csproj') -c Release -r win-x64 --self-contained `
             "-p:Version=$Version" -p:PublishReadyToRun=true -p:FileeRelease=true -o $PublishDir
     }
+    # Native debug symbols from NuGet packages (libSkiaSharp.pdb, libHarfBuzzSharp.pdb: ~105 MB) are useless to users.
+    # Filee.App's publish removes them, but publishing the command line into the same folder brings them back.
+    Get-ChildItem $PublishDir -Filter 'lib*.pdb' | Remove-Item
     New-Item -ItemType Directory -Force -Path (Join-Path $PublishDir 'cli') | Out-Null
     Set-Content (Join-Path $PublishDir 'cli\filee.cmd') "@`"%~dp0..\filee-cli.exe`" %*" -Encoding ascii
     # Next to Filee.exe: the Explorer menu package's external location is the install folder.

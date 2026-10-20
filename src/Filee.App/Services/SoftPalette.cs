@@ -71,6 +71,19 @@ internal static class SoftPalette
             + $"{string.Join(", ", cjk.Select(f => f.System))}, Kohinoor Devanagari, sans-serif";
     }
 
+    /// <summary>
+    /// The font chain from Windows' own UI fonts only (no embedded fonts), with the UI language's CJK font first: what
+    /// the installer uses. Every Windows 10 1809+ has these, with bold faces.
+    /// </summary>
+    public static string SystemFontFamilies(string language)
+    {
+        (string Embedded, string System)[] cjk =
+            language.StartsWith("ja", StringComparison.OrdinalIgnoreCase) ? [Japanese, Korean, Chinese]
+            : language.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? [Chinese, Korean, Japanese]
+            : [Korean, Chinese, Japanese];
+        return $"Segoe UI, Nirmala UI, {string.Join(", ", cjk.Select(f => f.System))}, sans-serif";
+    }
+
     /// <summary>The UI font for <paramref name="language"/>.</summary>
     public static FontFamily FontFamilyFor(string language) => FontFamily.Parse(FontFamilies(language));
 

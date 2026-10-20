@@ -34,7 +34,7 @@ public sealed class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    /// <summary>Filee's look in <paramref name="texts"/>' language: default accent, radius and the font order; texts as resources.</summary>
+    /// <summary>Filee's look in <paramref name="texts"/>' language: default accent, radius, Windows' fonts in the language's order; texts as resources.</summary>
     internal static void ApplyLook(Application app, SetupTexts texts)
     {
         var res = app.Resources;
@@ -42,15 +42,10 @@ public sealed class App : Application
         SoftPalette.ApplyCornerRadius(res, SoftPalette.DefaultCornerRadius);
         void Apply()
         {
-            res["AppFontFamily"] = SoftPalette.FontFamilyFor(texts.Language);
+            res["AppFontFamily"] = FontFamily.Parse(SoftPalette.SystemFontFamilies(texts.Language));
             texts.Publish(res);
         }
         Apply();
         texts.LanguageChanged += (_, _) => Apply();
     }
 }
-
-/// <summary>The app's embedded Noto fonts: <c>fonts:Filee#Noto Sans</c> and the others (see SoftPalette).</summary>
-internal sealed class SetupFontCollection() : Avalonia.Media.Fonts.EmbeddedFontCollection(
-    new Uri("fonts:Filee", UriKind.Absolute),
-    new Uri("avares://Filee.Setup/Assets/Fonts", UriKind.Absolute));

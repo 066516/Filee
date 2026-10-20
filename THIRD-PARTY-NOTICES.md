@@ -94,8 +94,9 @@ Windows headers, without a C runtime. Pieces of these projects that can end up i
 ## Installer
 
 `Filee-<version>-win-Setup.exe` is Filee's own installer (`src/Filee.Setup`, MIT like the app). It contains the
-.NET runtime, Avalonia, SkiaSharp, HarfBuzzSharp, CommunityToolkit.Mvvm and the Noto fonts listed in this file, and
-the published app as its payload. Filee 1.x's installer was built with Inno Setup, which is no longer used.
+.NET runtime, Avalonia, SkiaSharp, HarfBuzzSharp, CommunityToolkit.Mvvm and SharpCompress (LZMA) listed in this file,
+the x86 branch filter of the LZMA SDK (public domain, Igor Pavlov, https://www.7-zip.org/sdk.html), and the published
+app as its payload. Filee 1.x's installer was built with Inno Setup, which is no longer used.
 
 ## Fonts and icons
 
