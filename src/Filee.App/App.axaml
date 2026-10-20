@@ -21,6 +21,11 @@
 
   <Application.Styles>
     <FluentTheme />
+    <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
+    <!-- ColorSpectrum handles arrow keys but does not enable keyboard focus by default. -->
+    <Style Selector="ColorSpectrum">
+      <Setter Property="Focusable" Value="True" />
+    </Style>
     <StyleInclude Source="avares://Filee/Styles/Soft.axaml" />
     <StyleInclude Source="avares://Filee/Styles/TagEditor.axaml" />
   </Application.Styles>

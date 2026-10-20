@@ -19,6 +19,7 @@ public sealed class LocalizationService : ILocalizer
     public static readonly IReadOnlyList<(string Code, string NativeName)> Languages =
     [
         ("en", "English"),
+        ("ar", "العربية"),
         ("es", "Español"),
         ("ja", "日本語"),
         ("ko", "한국어"),
@@ -92,12 +93,17 @@ public sealed class LocalizationService : ILocalizer
     /// <summary>Maps "auto" / a culture name to one of the shipped languages.</summary>
     public static string Resolve(string setting)
     {
+        // Regional Arabic preferences (ar-IQ, ar-SA, …) use the shared Arabic translation.
+        if (string.Equals(setting, "ar", StringComparison.OrdinalIgnoreCase) || setting?.StartsWith("ar-", StringComparison.OrdinalIgnoreCase) == true)
+            return "ar";
         if (!string.Equals(setting, "auto", StringComparison.OrdinalIgnoreCase) &&
             Languages.Any(l => l.Code.Equals(setting, StringComparison.OrdinalIgnoreCase)))
             return Languages.First(l => l.Code.Equals(setting, StringComparison.OrdinalIgnoreCase)).Code;
 
         // macOS gives an app started from Finder no LANG: its language list comes from the system instead.
         var ui = Filee.Platform.MacOS.MacOSLocale.PreferredLanguage() ?? CultureInfo.InstalledUICulture.Name;
+        if (ui.StartsWith("ar", StringComparison.OrdinalIgnoreCase))
+            return "ar";
         if (ui.StartsWith("ja", StringComparison.OrdinalIgnoreCase))
             return "ja";
         if (ui.StartsWith("ko", StringComparison.OrdinalIgnoreCase))
