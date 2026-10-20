@@ -109,6 +109,12 @@ public partial class App : Application
         };
         triggers.Start();
         log.LogInformation("Filee {Version} started", UpdateService.CurrentVersion);
+        // Which way the transparent windows (donut, toast) are drawn, for reports of one that isn't see-through (#269).
+        if (OperatingSystem.IsWindows())
+        {
+            log.LogInformation("{Rendering}", WindowsRendering.Describe(Environment.GetEnvironmentVariable(WindowsRendering.Variable)));
+            TransparentWindows.Watch(log);
+        }
         // macOS: ask for Accessibility with the system's own alert when the user opened Filee (not at sign-in) and
         // a drag gesture is on. The home page keeps a reminder until it is given. Asked once the main window is up:
         // asked earlier, the alert ends up behind it.
@@ -146,11 +152,13 @@ public partial class App : Application
             AppHost.Get<WatchFolderService>().DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
         };
 
-        // Before HandleCommandLine marks the first run complete: a fresh install gets no slides. Without the main
-        // window (sign-in, the Explorer menu) they wait until the user opens Filee, unless the installer asked for them.
+        // Before HandleCommandLine marks the first run complete: a fresh install gets no slides (an update by the
+        // installer does, even when its settings are gone). Without the main window (sign-in, the Explorer menu) they
+        // wait until the user opens Filee, unless the installer asked for them.
         AppHost.Get<WhatsNewService>().CheckAtStartup(
             background: Program.Options.Background && !Program.Options.ShowSettings && !Program.Options.WhatsNew
-                        || Program.Options.ConvertFiles.Count > 0);
+                        || Program.Options.ConvertFiles.Count > 0,
+            updated: Program.Options.WhatsNew, updatedFrom: Program.Options.UpdatedFrom);
         HandleCommandLine(Program.Options, firstLaunch: true);
         if (OperatingSystem.IsMacOS())
             this.TryGetFeature<IActivatableLifetime>()?.Activated += (_, e) =>

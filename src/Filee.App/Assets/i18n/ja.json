@@ -704,7 +704,7 @@
   "installer.install": "インストール",
   "installer.update": "更新",
   "installer.welcome.fresh": "このコンピューターにFilee {0}をインストールします。",
-  "installer.welcome.update": "Filee {0}がインストールされています。{1}に更新します。設定、プリセット、エンジンはそのまま残ります。",
+  "installer.welcome.update": "Filee {0}がインストールされています。\n{1}に更新します。設定、プリセット、エンジンはそのまま残ります。",
   "installer.welcome.license": "Fileeは無料のオープンソースソフトウェアです（MITライセンス）。",
   "installer.language": "言語",
   "installer.options.title": "オプション",

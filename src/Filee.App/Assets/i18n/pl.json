@@ -724,7 +724,7 @@
   "installer.install": "Zainstaluj",
   "installer.update": "Zaktualizuj",
   "installer.welcome.fresh": "Instalator zainstaluje Filee {0} na tym komputerze.",
-  "installer.welcome.update": "Filee {0} jest zainstalowany. Instalator zaktualizuje go do wersji {1}; ustawienia, ustawienia wstępne i silniki pozostaną bez zmian.",
+  "installer.welcome.update": "Filee {0} jest zainstalowany.\nInstalator zaktualizuje go do wersji {1}; ustawienia, ustawienia wstępne i silniki pozostaną bez zmian.",
   "installer.welcome.license": "Filee jest darmowy i ma otwarty kod źródłowy (licencja MIT).",
   "installer.language": "Język",
   "installer.options.title": "Opcje",

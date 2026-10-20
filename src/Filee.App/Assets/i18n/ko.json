@@ -724,7 +724,7 @@
   "installer.install": "설치",
   "installer.update": "업데이트",
   "installer.welcome.fresh": "이 컴퓨터에 Filee {0} 버전을 설치해요.",
-  "installer.welcome.update": "Filee {0} 버전이 설치되어 있어요. {1} 버전으로 업데이트하고, 설정·프리셋·엔진은 그대로 둬요.",
+  "installer.welcome.update": "Filee {0} 버전이 설치되어 있어요.\n{1} 버전으로 업데이트하고, 설정·프리셋·엔진은 그대로 둬요.",
   "installer.welcome.license": "Filee는 무료 오픈 소스예요 (MIT 라이선스).",
   "installer.language": "언어",
   "installer.options.title": "옵션",
