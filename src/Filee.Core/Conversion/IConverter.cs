@@ -30,12 +30,18 @@ namespace Filee.Core.Conversion;
 /// <param name="FrameSequence">
 /// The edge writes every frame of a video as numbered pictures into a folder (<see cref="Presets.MediaOptions.SaveEveryFrame"/>).
 /// It is never part of an ordinary route (a video → JPG stays one still frame), and with
-/// <see cref="RoutePlanner.Plan"/> asking for frames it is the whole route.
+/// <see cref="RoutePlanner.Plan(string, string, bool, bool, bool)"/> asking for frames it is the whole route.
+/// </param>
+/// <param name="Unshaped">
+/// The engine draws text one character after the other, left to right, without complex-script shaping (no joined
+/// Arabic letters, no right-to-left order, no reordered vowel signs, conjuncts or placed marks). A source whose text
+/// needs shaping is never routed through the edge: <see cref="JobQueue"/> asks the engine
+/// (<see cref="ITextShapingCheck"/>) and plans again without it.
 /// </param>
 /// <param name="MotionPhoto">Only taken when explicitly extracting a camera image's motion; never a still-image route.</param>
 public readonly record struct ConversionEdge(
     string From, string To, int Cost = 10, bool ImageSourcesOnly = false, bool NotForImageSources = false,
-    bool DirectOnly = false, bool FrameSequence = false, bool MotionPhoto = false);
+    bool DirectOnly = false, bool FrameSequence = false, bool Unshaped = false, bool MotionPhoto = false);
 
 /// <summary>
 /// A conversion an engine refuses with a reason the user can act on, shown in their language (the file's
@@ -140,6 +146,20 @@ public interface IImageTransformer
 {
     /// <summary>True if converting <paramref name="from"/> → <paramref name="to"/> applies the rotation and flip.</summary>
     bool Transforms(string from, string to);
+}
+
+/// <summary>
+/// An engine with <see cref="ConversionEdge.Unshaped"/> edges: tells whether a source file has text that needs
+/// complex-script shaping (Arabic, Hebrew, the Indic scripts, Thai, ...), which those edges would draw broken.
+/// </summary>
+public interface ITextShapingCheck
+{
+    /// <summary>
+    /// The name of the first script in the text of <paramref name="sourcePath"/> that needs shaping (e.g. "Gujarati"),
+    /// or null. Quick: it scans the file's text, it doesn't convert it.
+    /// </summary>
+    /// <param name="sourceFormat">Format id of the file.</param>
+    string? ScriptNeedingShaping(string sourcePath, string sourceFormat);
 }
 
 /// <summary>Merges several PDF files into one. Implemented by the PDF engine.</summary>

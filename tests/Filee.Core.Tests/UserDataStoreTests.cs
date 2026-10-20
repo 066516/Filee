@@ -146,6 +146,138 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Dock_and_menu_bar_preferences_round_trip_independently()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        Assert.True(store.Settings.ShowInDock);
+        Assert.True(store.Settings.ShowMenuBarIcon);
+
+        store.Settings.ShowInDock = false;
+        store.SaveSettings();
+        var dockOff = new UserDataStore(dir.Path);
+        dockOff.Load();
+        Assert.False(dockOff.Settings.ShowInDock);
+        Assert.True(dockOff.Settings.ShowMenuBarIcon);
+
+        dockOff.Settings.ShowInDock = true;
+        dockOff.Settings.ShowMenuBarIcon = false;
+        dockOff.SaveSettings();
+        var menuBarOff = new UserDataStore(dir.Path);
+        menuBarOff.Load();
+        Assert.True(menuBarOff.Settings.ShowInDock);
+        Assert.False(menuBarOff.Settings.ShowMenuBarIcon);
+
+        menuBarOff.Settings.ShowInDock = false;
+        menuBarOff.SaveSettings();
+        var bothOff = new UserDataStore(dir.Path);
+        bothOff.Load();
+        Assert.False(bothOff.Settings.ShowInDock);
+        Assert.False(bothOff.Settings.ShowMenuBarIcon);
+    }
+
+    [Fact]
+    public void Version_20_settings_upgrade_preserves_other_values_and_icon_defaults()
+    {
+        using var dir = new TempDir();
+        var path = Path.Combine(dir.Path, "settings.json");
+        File.WriteAllText(path, """{ "schemaVersion": 20, "language": "ko" }""");
+
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
+        Assert.Equal("ko", store.Settings.Language);
+        Assert.True(store.Settings.ShowInDock);
+        Assert.True(store.Settings.ShowMenuBarIcon);
+        var rewritten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        Assert.Equal(AppSettings.CurrentSchemaVersion, (int?)rewritten["schemaVersion"]);
+        Assert.True((bool?)rewritten["showInDock"]);
+        Assert.True((bool?)rewritten["showMenuBarIcon"]);
+        Assert.Equal("ko", (string?)rewritten["language"]);
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        Assert.Equal(AppSettings.CurrentSchemaVersion, reloaded.Settings.SchemaVersion);
+        Assert.Equal("ko", reloaded.Settings.Language);
+        Assert.True(reloaded.Settings.ShowInDock);
+        Assert.True(reloaded.Settings.ShowMenuBarIcon);
+    }
+
+    [Fact]
+    public void Older_Filee_round_trip_restores_missing_icon_defaults()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Settings.Language = "ko";
+        store.Settings.ShowInDock = false;
+        store.Settings.ShowMenuBarIcon = false;
+        store.SaveSettings();
+
+        var path = Path.Combine(dir.Path, "settings.json");
+        var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        json["schemaVersion"] = 20;
+        Assert.True(json.Remove("showInDock"));
+        Assert.True(json.Remove("showMenuBarIcon"));
+        File.WriteAllText(path, json.ToJsonString());
+
+        var migrated = new UserDataStore(dir.Path);
+        migrated.Load();
+
+        Assert.Equal(AppSettings.CurrentSchemaVersion, migrated.Settings.SchemaVersion);
+        Assert.True(migrated.Settings.ShowInDock);
+        Assert.True(migrated.Settings.ShowMenuBarIcon);
+        Assert.Equal("ko", migrated.Settings.Language);
+        Assert.False(File.Exists(path + ".broken"));
+
+        var rewritten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        Assert.Equal(AppSettings.CurrentSchemaVersion, (int?)rewritten["schemaVersion"]);
+        Assert.True((bool?)rewritten["showInDock"]);
+        Assert.True((bool?)rewritten["showMenuBarIcon"]);
+        Assert.Equal("ko", (string?)rewritten["language"]);
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        Assert.Equal(AppSettings.CurrentSchemaVersion, reloaded.Settings.SchemaVersion);
+        Assert.Equal("ko", reloaded.Settings.Language);
+        Assert.True(reloaded.Settings.ShowInDock);
+        Assert.True(reloaded.Settings.ShowMenuBarIcon);
+    }
+
+    [Theory]
+    [InlineData("showInDock", "null")]
+    [InlineData("showInDock", "\"future\"")]
+    [InlineData("showInDock", "42")]
+    [InlineData("showMenuBarIcon", "null")]
+    [InlineData("showMenuBarIcon", "\"future\"")]
+    [InlineData("showMenuBarIcon", "42")]
+    public void Unexpected_icon_preference_values_default_on_without_losing_settings(string field, string value)
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Settings.Language = "ko";
+        store.Settings.ShowInDock = field == "showInDock";
+        store.Settings.ShowMenuBarIcon = field == "showMenuBarIcon";
+        store.SaveSettings();
+
+        var path = Path.Combine(dir.Path, "settings.json");
+        var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        json[field] = System.Text.Json.Nodes.JsonNode.Parse(value);
+        File.WriteAllText(path, json.ToJsonString());
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+
+        Assert.Equal("ko", reloaded.Settings.Language);
+        Assert.True(field == "showInDock" ? reloaded.Settings.ShowInDock : reloaded.Settings.ShowMenuBarIcon);
+        Assert.False(field == "showInDock" ? reloaded.Settings.ShowMenuBarIcon : reloaded.Settings.ShowInDock);
+        Assert.False(File.Exists(path + ".broken"));
+    }
+
+    [Fact]
     public void Hardware_encoding_is_saved_and_stays_off_for_presets_from_before_it()
     {
         using var dir = new TempDir();
@@ -226,6 +358,34 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void History_keeps_the_newest_entries_up_to_the_limit()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        Assert.Equal(200, store.Settings.HistoryLimit);
+
+        store.Settings.HistoryLimit = 60;
+        for (var i = 0; i < 70; i++)
+            store.AddHistory(new Filee.Core.History.HistoryEntry { JobId = $"{i}" });
+        Assert.Equal(60, store.History.Count);
+        Assert.Equal("69", store.History[0].JobId);
+        Assert.Equal("10", store.History[^1].JobId);
+
+        // Lowered below the smallest limit: the oldest go with the next conversion, down to that smallest limit.
+        store.Settings.HistoryLimit = 0;
+        store.SaveSettings();
+        store.AddHistory(new Filee.Core.History.HistoryEntry { JobId = "70" });
+        Assert.Equal(AppSettings.MinHistoryLimit, store.History.Count);
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        Assert.Equal(0, reloaded.Settings.HistoryLimit);
+        Assert.Equal(AppSettings.MinHistoryLimit, reloaded.Settings.EffectiveHistoryLimit);
+        Assert.Equal(AppSettings.MinHistoryLimit, reloaded.History.Count);
+    }
+
+    [Fact]
     public void Version_1_settings_are_upgraded_to_the_current_engine_list()
     {
         using var dir = new TempDir();
@@ -235,7 +395,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "wic", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
         Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
     }
 
@@ -287,7 +447,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "wic", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
         var ids = store.Profiles.Select(p => p.Id).ToList();
         Assert.Equal(ids.IndexOf("office") + 1, ids.IndexOf("spreadsheets"));
         Assert.Equal(ids.IndexOf("office") + 2, ids.IndexOf("presentations"));
@@ -460,8 +620,8 @@ public class UserDataStoreTests
         store.Load();
 
         // ... and, from schema 15, the 3D model engine before Pandoc (no CAD or archive engine in this list), from
-        // schema 18 the PDF slides engine there too (no PDF text engine).
-        Assert.Equal(["magick", "email", "data", "vector", "model3d", "pdf-slides", "pandoc", "libreoffice"], store.Settings.EnginePriority);
+        // schema 18 the PDF slides engine there too (no PDF text engine), from schema 21 the WIC engine (no FFmpeg).
+        Assert.Equal(["magick", "email", "data", "vector", "model3d", "pdf-slides", "wic", "pandoc", "libreoffice"], store.Settings.EnginePriority);
     }
 
     [Fact]
@@ -565,7 +725,7 @@ public class UserDataStoreTests
         Assert.Equal(ids.IndexOf("data") + 1, ids.IndexOf("models"));
         Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("models"));
         var models = profiles.Single(p => p.Id == "models");
-        Assert.Equal(["glb", "gltf", "stl", "obj", "3mf", "ply"], models.Extensions);
+        Assert.Equal(["glb", "gltf", "stl", "obj", "3mf", "ply", "fbx"], models.Extensions);
         Assert.Equal(BuiltInData.ModelProfile().PresetIds, models.PresetIds);
         Assert.False(SettingsMigrations.ApplyToLibrary(14, presets, profiles)); // once only
     }
@@ -579,7 +739,100 @@ public class UserDataStoreTests
 
         Assert.True(SettingsMigrations.ApplyToLibrary(14, presets, profiles));
 
-        Assert.Equal(["glb", "gltf", "obj", "ply"], profiles.Single(p => p.Id == "models").Extensions);
+        Assert.Equal(["glb", "gltf", "obj", "ply", "fbx"], profiles.Single(p => p.Id == "models").Extensions);
+    }
+
+    [Fact]
+    public void Version_21_libraries_learn_fbx_on_the_3d_donut_and_nothing_else()
+    {
+        // As written with schema 21: no FBX, and the user took PLY off the 3D donut.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var models = profiles.Single(p => p.Id == "models");
+        models.Extensions.RemoveAll(e => e is "fbx" or "ply");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(21, presets, profiles));
+
+        Assert.Equal(["glb", "gltf", "stl", "obj", "3mf", "fbx"], models.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(21, presets, profiles)); // once only
+
+        // A donut of the user that already opens FBX files keeps them.
+        profiles = BuiltInData.CreateProfiles();
+        profiles.Single(p => p.Id == "models").Extensions.Remove("fbx");
+        profiles.Insert(0, new ToolbarProfile { Id = "games", Name = "Games", Extensions = ["fbx"] });
+        Assert.False(SettingsMigrations.ApplyToLibrary(21, presets, profiles));
+        Assert.DoesNotContain("fbx", profiles.Single(p => p.Id == "models").Extensions);
+    }
+
+    [Fact]
+    public void Version_22_libraries_learn_mhtml_on_the_text_donut_and_nothing_else()
+    {
+        // As written with schema 22: no MHTML, and the user took Markdown off the text donut.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var text = profiles.Single(p => p.Id == "text");
+        text.Extensions.RemoveAll(e => e is "mhtml" or "mht" or "md" or "markdown");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(22, presets, profiles));
+
+        Assert.Contains("mhtml", text.Extensions);
+        Assert.Contains("mht", text.Extensions);
+        Assert.DoesNotContain("md", text.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(22, presets, profiles)); // once only
+
+        // A donut of the user that already opens .mht files keeps them; .mhtml still goes to the text donut.
+        profiles = BuiltInData.CreateProfiles();
+        profiles.Single(p => p.Id == "text").Extensions.RemoveAll(e => e is "mhtml" or "mht");
+        profiles.Insert(0, new ToolbarProfile { Id = "web", Name = "Web", Extensions = ["mht"] });
+        Assert.True(SettingsMigrations.ApplyToLibrary(22, presets, profiles));
+        Assert.Equal(["mhtml"], profiles.Single(p => p.Id == "text").Extensions.Where(e => e.StartsWith("mht", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void Version_23_libraries_learn_potm_on_the_presentation_donut_and_nothing_else()
+    {
+        // As written with schema 23: no POTM, and the user took ODP off the presentation donut.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var slides = profiles.Single(p => p.Id == "presentations");
+        slides.Extensions.RemoveAll(e => e is "potm" or "odp");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(23, presets, profiles));
+
+        Assert.Contains("potm", slides.Extensions);
+        Assert.DoesNotContain("odp", slides.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(23, presets, profiles)); // once only
+
+        // A donut of the user that already opens .potm files keeps them.
+        profiles = BuiltInData.CreateProfiles();
+        profiles.Single(p => p.Id == "presentations").Extensions.Remove("potm");
+        profiles.Insert(0, new ToolbarProfile { Id = "templates", Name = "Templates", Extensions = ["potm"] });
+        Assert.False(SettingsMigrations.ApplyToLibrary(23, presets, profiles));
+        Assert.DoesNotContain("potm", profiles.Single(p => p.Id == "presentations").Extensions);
+    }
+
+    [Fact]
+    public void Version_27_libraries_get_one_zip_on_the_archives_donut_after_extract()
+    {
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var archives = profiles.Single(p => p.Id == "archives");
+        archives.PresetIds.Remove("zip-all");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(27, presets, profiles));
+        Assert.Equal(["extract", "zip-all", "to-zip", "to-7z", "to-tgz", "to-tar"], archives.PresetIds);
+        Assert.False(SettingsMigrations.ApplyToLibrary(27, presets, profiles)); // once only
+
+        // A library without the preset (the user deleted it) doesn't get it back, and a full donut stays full.
+        presets.RemoveAll(p => p.Id == "zip-all");
+        archives.PresetIds.Remove("zip-all");
+        Assert.False(SettingsMigrations.ApplyToLibrary(27, presets, profiles));
+        Assert.DoesNotContain("zip-all", archives.PresetIds);
+
+        presets = BuiltInData.CreatePresets();
+        archives.PresetIds = [.. presets.Where(p => p.Id != "zip-all").Take(ToolbarProfile.MaxSlices).Select(p => p.Id)];
+        Assert.False(SettingsMigrations.ApplyToLibrary(27, presets, profiles));
+        Assert.DoesNotContain("zip-all", archives.PresetIds);
     }
 
     [Fact]
@@ -700,8 +953,42 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "pdfium", "docx-writer", "pdf-text", "pdf-slides", "email", "pandoc", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "pdfium", "docx-writer", "pdf-text", "pdf-slides", "email", "wic", "pandoc", "libreoffice"], store.Settings.EnginePriority);
         Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
+    }
+
+    [Fact]
+    public void Version_20_settings_get_the_wic_engine_after_the_other_built_in_engines()
+    {
+        using var dir = new TempDir();
+        File.WriteAllText(Path.Combine(dir.Path, "settings.json"),
+            """{ "schemaVersion": 20, "enginePriority": ["magick", "pdfium", "hwpx-writer", "subtitle", "ffmpeg", "pandoc", "libreoffice"] }""");
+
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        // Not near the top: the HWPX writer stays among the ranks that win ties (see EbookTests).
+        Assert.Equal(["magick", "pdfium", "hwpx-writer", "subtitle", "wic", "ffmpeg", "pandoc", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
+    }
+
+    [Fact]
+    public void Version_20_libraries_open_jpeg_xr_on_the_images_donut()
+    {
+        // As written with schema 20: no JPEG XR yet; the user took PSD off the images donut and has a donut for .wdp.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var images = profiles.Single(p => p.Id == "images");
+        images.Extensions.RemoveAll(e => e is "jxr" or "wdp" or "hdp" or "psd");
+        profiles.Insert(0, new ToolbarProfile { Id = "photos", Name = "Windows Photo Gallery", Extensions = ["wdp"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(20, presets, profiles));
+
+        Assert.Contains("jxr", images.Extensions);
+        Assert.Contains("hdp", images.Extensions);
+        Assert.DoesNotContain("wdp", images.Extensions);
+        Assert.DoesNotContain("psd", images.Extensions); // only the new extensions are learnt
+        Assert.False(SettingsMigrations.ApplyToLibrary(20, presets, profiles)); // once only
     }
 
     [Fact]
@@ -788,6 +1075,42 @@ public class UserDataStoreTests
         Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("compress-pdf"));
         Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "pdf").PresetIds, profiles.Single(p => p.Id == "pdf").PresetIds);
         Assert.False(SettingsMigrations.ApplyToLibrary(17, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Version_25_libraries_get_crop_tool_preset_after_remove_background_on_no_donut()
+    {
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "tool-crop");
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(25, presets, profiles));
+
+        var crop = presets.Single(p => p.Id == "tool-crop");
+        Assert.Equal(PresetKind.Tool, crop.Kind);
+        Assert.Equal("remove-background", presets[presets.IndexOf(crop) - 1].Id);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("tool-crop"));
+        Assert.False(SettingsMigrations.ApplyToLibrary(25, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Back_from_an_older_Filee_tool_crop_works_again_and_keeps_the_users_changes()
+    {
+        // What a Filee before 26 leaves after saving: kind read as Group, TargetFormat dropped, SubPresetIds empty, the rest as it was.
+        var presets = BuiltInData.CreatePresets();
+        var crop = presets.Single(p => p.Id == "tool-crop");
+        crop.Kind = PresetKind.Group;
+        crop.TargetFormat = Preset.GroupTarget;
+        crop.SubPresetIds = [];
+        crop.Name = "Trim";
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(25, presets, BuiltInData.CreateProfiles()));
+
+        Assert.Equal(PresetKind.Tool, crop.Kind);
+        Assert.Equal(BuiltInData.SameAsSource, crop.TargetFormat);
+        Assert.Empty(crop.SubPresetIds);
+        Assert.Equal("Trim", crop.Name);
+        Assert.Single(presets, p => p.Id == "tool-crop");
     }
 
     [Fact]
@@ -927,12 +1250,16 @@ public class UserDataStoreTests
     {
         using var dir = new TempDir();
         File.WriteAllText(Path.Combine(dir.Path, "presets.json"), "{ not json");
+        File.WriteAllText(Path.Combine(dir.Path, "settings.json"), "{ not json");
 
         var store = new UserDataStore(dir.Path);
         store.Load();
 
         Assert.NotEmpty(store.Presets);
+        Assert.True(store.Settings.ShowInDock);
+        Assert.True(store.Settings.ShowMenuBarIcon);
         Assert.True(File.Exists(Path.Combine(dir.Path, "presets.json.broken")));
+        Assert.True(File.Exists(Path.Combine(dir.Path, "settings.json.broken")));
     }
 
     [Fact]

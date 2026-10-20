@@ -139,7 +139,8 @@ public sealed class JobQueue : IAsyncDisposable
             async (i, _) =>
             {
                 var file = job.Files[i];
-                if (FormatRegistry.Detect(file.SourcePath)?.Id == "pdf")
+                // An empty PDF goes the long way, where it fails as empty instead of breaking the whole merge.
+                if (FormatRegistry.Detect(file.SourcePath)?.Id == "pdf" && !IsEmptyFile(file.SourcePath))
                 {
                     // Already a PDF, merged as it is: its pages can't be turned (only images going into it can).
                     if (job.Preset.Image.TurnsOrMirrors)
@@ -189,6 +190,7 @@ public sealed class JobQueue : IAsyncDisposable
                 var file = job.Files[i];
                 // A TIFF joins as it is, unless it is to be turned: then it goes through the engine like the rest.
                 parts[i] = FormatRegistry.Detect(file.SourcePath)?.Id == "tiff" && !job.Preset.Image.TurnsOrMirrors
+                           && !IsEmptyFile(file.SourcePath)
                     ? [file.SourcePath]
                     : await RunFileAsync(job, file, i + 1, planner, workDir, finalOutput: false, intermediate: "tiff");
             });
@@ -303,6 +305,20 @@ public sealed class JobQueue : IAsyncDisposable
         }
     }
 
+    /// <summary>A file (not a folder) with nothing in it. Combining still packs such a file as it is.</summary>
+    private static bool IsEmptyFile(string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            return info.Exists && info.Length == 0;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>Gives the outputs the creation and modification dates of the source (<see cref="OutputRule.KeepDates"/>).</summary>
     private void CopyDates(string source, IEnumerable<string> outputs)
     {
@@ -344,6 +360,10 @@ public sealed class JobQueue : IAsyncDisposable
         var source = FormatRegistry.Detect(file.SourcePath);
         if (source is null)
             return Fail(file, "error.unsupported_source", "." + FormatRegistry.ExtensionOf(file.SourcePath));
+        // A file just made with "New" in the file manager stays 0 bytes until its app saves it: no engine can read it,
+        // and their errors ("Central Directory corrupt") don't say why.
+        if (IsEmptyFile(file.SourcePath))
+            return Fail(file, "error.empty_file", null);
 
         var target = !finalOutput ? intermediate
             : job.Preset.TargetFormat == BuiltInData.SameAsSource ? source.Id
@@ -351,10 +371,23 @@ public sealed class JobQueue : IAsyncDisposable
 
         // "Save every frame": a video becomes a folder of pictures in one step of its own. Never for an intermediate
         // file, and never on the way to another format (video → JPG is otherwise one still frame).
-        var route = planner.Plan(source.Id, target, frames: finalOutput && job.Preset.SavesFramesOf(source.Id),
-            motionPhoto: finalOutput && job.Preset.ExtractsMotionOf(source.Id));
+        var frames = finalOutput && job.Preset.SavesFramesOf(source.Id);
+        var motionPhoto = finalOutput && job.Preset.ExtractsMotionOf(source.Id);
+        var route = planner.Plan(source.Id, target, frames, motionPhoto: motionPhoto);
         if (route is null)
             return Fail(file, "error.no_route", $"{source.Id} → {target}");
+
+        // A step that draws text without shaping (rhwp) would break Arabic, Hebrew, Indic or Thai text: such a file
+        // takes a route without it (LibreOffice), or is refused with the reason rather than written broken.
+        if (route.Steps.FirstOrDefault(s => s.Unshaped)?.Converter is ITextShapingCheck check
+            && ScriptNeedingShaping(check, file.SourcePath, source.Id) is { } script)
+        {
+            _log.LogInformation("{File} has {Script} text, which {Engine} can't draw: planning a route without it",
+                file.SourcePath, script, route.Steps.First(s => s.Unshaped).Converter.DisplayName);
+            route = planner.Plan(source.Id, target, frames, shaping: true);
+            if (route is null)
+                return Fail(file, "error.needs_shaping", script);
+        }
 
         // Rotate / flip: only an engine that turns images does it. Without one the file would come out unturned
         // (a PDF or a video re-encoded "as rotated"); with two in the route (EPS → PNG → JPG) it would turn twice.
@@ -466,6 +499,20 @@ public sealed class JobQueue : IAsyncDisposable
             f.Progress = 1;
             Notify(job);
             return [];
+        }
+    }
+
+    /// <summary>The engine's check; a check that fails (an unreadable file) finds nothing, and the conversion reports the file.</summary>
+    private string? ScriptNeedingShaping(ITextShapingCheck check, string path, string format)
+    {
+        try
+        {
+            return check.ScriptNeedingShaping(path, format);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Could not check the scripts of {File}", path);
+            return null;
         }
     }
 

@@ -43,6 +43,11 @@ public static class BuiltInData
             Id = "remove-background", NameKey = "preset.remove_background", TargetFormat = "png",
             Image = { RemoveBackground = true }, Output = { FileNamePattern = "{name}_transparent" },
         },
+        new()
+        {
+            Id = "tool-crop", NameKey = "preset.crop", TargetFormat = SameAsSource,
+            Kind = PresetKind.Tool, Output = { FileNamePattern = "{name}_cropped" },
+        },
         .. ImageToolPresets(),
         new()
         {
@@ -391,7 +396,7 @@ public static class BuiltInData
         PresetIds = ["to-pdf", "to-png", "to-jpg", "to-pptx", "to-hwpx", "to-hwp", "merge-pdf"],
     };
 
-    /// <summary>Markdown, plain text and HTML (added in settings schema 4, see SettingsMigrations).</summary>
+    /// <summary>Markdown, plain text and HTML (added in settings schema 4, see SettingsMigrations); MHTML (schema 23).</summary>
     public static ToolbarProfile TextProfile() => new()
     {
         Id = "text",
@@ -431,7 +436,8 @@ public static class BuiltInData
         {
             Id = "archives", NameKey = "profile.archives",
             Extensions = ExtensionsOf(FormatCategory.Archive),
-            PresetIds = ["extract", "to-zip", "to-7z", "to-tgz", "to-tar"],
+            // "One ZIP" since settings schema 28.
+            PresetIds = ["extract", "zip-all", "to-zip", "to-7z", "to-tgz", "to-tar"],
         },
         new()
         {
@@ -472,7 +478,7 @@ public static class BuiltInData
         return profiles;
     }
 
-    /// <summary>3D models: GLB, glTF, STL, OBJ, 3MF, PLY (added in settings schema 15, after "data").</summary>
+    /// <summary>3D models: GLB, glTF, STL, OBJ, 3MF, PLY (added in settings schema 15, after "data"), FBX (schema 22).</summary>
     public static ToolbarProfile ModelProfile() => new()
     {
         Id = "models",

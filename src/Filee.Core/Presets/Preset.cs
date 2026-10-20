@@ -16,6 +16,12 @@ public enum PresetKind
     /// conversion is picked (preset list, watch folders, <c>filee --preset</c>).
     /// </summary>
     Group,
+
+    /// <summary>
+    /// Opens its own window on the dropped files instead of converting them (the interactive Crop). Like a group,
+    /// never offered where a conversion is picked.
+    /// </summary>
+    Tool,
 }
 
 /// <summary>
@@ -134,6 +140,10 @@ public sealed class Preset
     public bool ExtractsMotionOf(string sourceFormat) => Media.ExtractMotionPhoto
         && TargetFormat is "mp4" or "mov"
         && Formats.FormatRegistry.FindById(sourceFormat)?.Category == Formats.FormatCategory.Image;
+
+    /// <summary>True for a <see cref="PresetKind.Tool"/>.</summary>
+    [JsonIgnore]
+    public bool IsTool => Kind == PresetKind.Tool;
 
     /// <summary>Creates a new random preset id.</summary>
     public static string NewId() => Guid.NewGuid().ToString("N")[..12];

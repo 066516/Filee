@@ -25,8 +25,8 @@
 </p>
 
 <p align="center">
-  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/weekly?language=C%23" alt="Filee: #1 C# repository of the week on Trendshift" width="250" height="55"></a>
-  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23" alt="Filee: C# repository of the day on Trendshift" width="250" height="55"></a>
+  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/weekly?language=C%23&v=2" alt="Filee: #1 C# repository of the week on Trendshift" width="250" height="55"></a>
+  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
 <p align="center"><a href="README.md">English</a> · <b>한국어</b> · <a href="README.zh-CN.md">简体中文</a></p>
@@ -34,7 +34,7 @@
 <table>
   <tr>
     <td width="33%" valign="top"><b>커서 바로 옆에서</b><br>앱 창을 열 필요가 없어요. 끌고 있는 파일에 맞는 형식만 지금 있는 자리에 나타나요.</td>
-    <td width="33%" valign="top"><b>244가지 형식, 다른 프로그램 없이</b><br>이미지, PDF, 워드, 엑셀, 파워포인트, HWP, 전자책, 압축 파일, 글꼴, CAD, 3D 모델을 오피스·한컴오피스·LibreOffice 없이 변환해요.</td>
+    <td width="33%" valign="top"><b>248가지 형식, 다른 프로그램 없이</b><br>이미지, PDF, 워드, 엑셀, 파워포인트, HWP, 전자책, 압축 파일, 글꼴, CAD, 3D 모델을 오피스·한컴오피스·LibreOffice 없이 변환해요.</td>
     <td width="33%" valign="top"><b>내 컴퓨터 안에서만</b><br>아무것도 업로드하지 않아요. 오프라인으로 동작하고 결과는 원본 옆에 저장해요.</td>
   </tr>
 </table>
@@ -67,7 +67,7 @@
 - **여러 파일을 한 번에** 병렬로 변환해요. 여러 단계가 필요한 변환(HWP → HWPX → DOCX)도 알아서 찾아요.
 - **자동 변환 폴더**에 들어온 파일을 바로 변환해요.
 - **다른 방법**: 우클릭 메뉴, 키보드 단축키, 드롭 영역, [`filee` 명령](#명령줄)
-- 밝은·어두운 테마, English · 한국어 · 简体中文
+- 밝은·어두운 테마, English · Español · 한국어 · 简体中文 · Polski · हिन्दी
 
 ## 스크린샷
 
@@ -86,14 +86,14 @@
 
 | 원본 | 변환 대상 |
 |---|---|
-| **이미지**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR 등; GIMP XCF, 카메라 RAW(CR2, CR3, NEF, ARW, DNG 등), DICOM, OpenEXR, HDR은 읽기 | 위 형식끼리(HEIC⁵), PDF, SVG(벡터화), 크기 조정, 흑백 |
+| **이미지**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR 등; GIMP XCF, 카메라 RAW(CR2, CR3, NEF, ARW, DNG 등), DICOM, OpenEXR, HDR, JPEG XR(Windows)은 읽기 | 위 형식끼리(HEIC⁵), PDF, SVG(벡터화), 크기 조정, 흑백 |
 | **벡터**: SVG, SVGZ, EMF, WMF, AI · EPS, PS¹ · CDR, VSD, CGM, ODG, FODG² | PDF(벡터), PNG 등 이미지, SVG ↔ SVGZ, SVG → DXF/DWG, PDF → EPS/PS¹, SVG → EMF, WMF, ODG² |
 | **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, PPTX(페이지마다 그림 한 장), SVG²; 합치기, 나누기, 페이지 범위, 압축 (더 작은 PDF) |
 | **문서**: DOCX, DOCM, DOTX, EML, Outlook MSG · DOC, ODT, FODT, OTT, RTF, WPS, WPD, Pages, ClarisWorks, MacWrite, T602 등² | PDF, DOCX, HWPX, EPUB, TXT, HTML; MSG → EML · ODT, FODT, OTT² |
 | **스프레드시트**: XLSX, XLSM, XLS, XLT, ODS, CSV, TSV · OTS, FODS, Numbers, ET² | PDF, XLSX, ODS, CSV, TSV, JSON, HWPX, HTML · XLT, OTS² |
-| **프레젠테이션**: PPTX, PPTM, POTX, PPSX · PPT, ODP, OTP, FODP, Keynote² | PDF, PNG, JPG, DOCX, HWPX · OTP² |
+| **프레젠테이션**: PPTX, PPTM, POTX, POTM, PPSX · PPT, ODP, OTP, FODP, Keynote² | PDF, PNG, JPG, DOCX, HWPX · OTP² |
 | **한글**: HWP, HWPX | PDF, PNG, DOCX, HWPX ↔ HWP, TXT, 마크다운, HTML |
-| **텍스트**: TXT, 마크다운, HTML · reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML³ | PDF, DOCX, HWPX, EPUB · 서로 변환, PPTX 슬라이드³ |
+| **텍스트**: TXT, 마크다운, HTML; MHTML(저장한 웹 페이지)은 읽기 · reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML³ | PDF, DOCX, HWPX, EPUB · 서로 변환, PPTX 슬라이드³ |
 | **전자책**: EPUB, KEPUB, MOBI, AZW3, AZW, AZW4, FB2, CBZ, CBR, CB7, HTMLZ, TXTZ · LIT, LRF, CHM, PDB 등⁴ | PDF, EPUB, KEPUB(코보), DOCX, TXT, HTML, HWPX · MOBI, AZW3⁴ |
 | **동영상**⁵: MP4, MOV, MKV, WEBM, AVI, WMV, FLV, MPEG, TS, M2TS, 3GP, OGV, VOB 등 | MP4(H.264, HEVC, AV1), WEBM, MOV, MKV, AVI, GIF, APNG, MP3, M4A, 720p, 자막(SRT, ASS, WebVTT) |
 | **오디오**⁵: MP3, M4A, AAC, WAV, FLAC, OGG, OPUS, WMA, AIFF, AMR, APE, WavPack, TTA, DSD(DSF, DFF), DTS, AC3, E-AC3 등 | MP3, M4A(AAC, ALAC), WAV, FLAC, OGG, OPUS, AAC, WavPack, TTA, W64, AC3, E-AC3 |
@@ -102,7 +102,7 @@
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **글꼴**: TTF, OTF, WOFF, WOFF2, EOT | 서로 변환 |
 | **데이터**: JSON, JSON Lines, YAML, TOML, XML · vCard | 서로 변환, CSV·XLSX(표 모양 데이터); vCard ↔ CSV |
-| **3D 모델**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY | 서로 변환, PNG 미리보기 |
+| **3D 모델**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY; FBX는 읽기 | 서로 변환, PNG 미리보기 |
 
 표시가 없는 형식은 오피스·한컴오피스·LibreOffice 없이 바로 변환돼요.
 표시가 있는 형식은 추가 엔진이 필요하고, 필요할 때만 내려받아요: ¹ Ghostscript, ² LibreOffice, ³ Pandoc,

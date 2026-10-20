@@ -1,5 +1,6 @@
 // Root settings object persisted to settings.json.
 
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Filee.Core.Presets;
 
@@ -64,7 +65,7 @@ public sealed class DonutSettings
 public sealed class AppSettings
 {
     /// <summary>Current schema version. Increase when the format changes and add a migration.</summary>
-    public const int CurrentSchemaVersion = 21;
+    public const int CurrentSchemaVersion = 28;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -84,6 +85,28 @@ public sealed class AppSettings
 
     /// <summary>Record finished conversions in the history (home page). Off: nothing new is recorded.</summary>
     public bool KeepHistory { get; set; } = true;
+
+    /// <summary>
+    /// How many finished conversions the history keeps, newest first (<see cref="MinHistoryLimit"/> to
+    /// <see cref="MaxHistoryLimit"/>; a value outside is taken as the nearest end). The home page lists the latest
+    /// ones and searches all of them.
+    /// </summary>
+    public int HistoryLimit { get; set; } = 200;
+
+    public const int MinHistoryLimit = 50;
+    public const int MaxHistoryLimit = 2000;
+
+    /// <summary><see cref="HistoryLimit"/> within its range.</summary>
+    [JsonIgnore]
+    public int EffectiveHistoryLimit => Math.Clamp(HistoryLimit, MinHistoryLimit, MaxHistoryLimit);
+
+    /// <summary>Whether the macOS Dock shows Filee.</summary>
+    [JsonConverter(typeof(IconPreferenceJsonConverter))]
+    public bool ShowInDock { get; set; } = true;
+
+    /// <summary>Whether the macOS menu bar shows Filee's status icon.</summary>
+    [JsonConverter(typeof(IconPreferenceJsonConverter))]
+    public bool ShowMenuBarIcon { get; set; } = true;
 
     /// <summary>Newest version the user was already told about, so the update notice shows once per release.</summary>
     public string? NotifiedUpdateVersion { get; set; }
@@ -107,8 +130,8 @@ public sealed class AppSettings
     public List<string> EnginePriority { get; set; } =
     [
         "magick", "pdfium", "pdfsharp", "rhwp", "unhwp", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer",
-        "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "ffmpeg",
-        "pandoc", "ghostscript", "calibre", "libreoffice",
+        "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook",
+        "subtitle", "wic", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice",
     ];
 
     /// <summary>Set once the first-run welcome has been shown.</summary>
@@ -181,6 +204,22 @@ public sealed class AppSettings
             copy.Output.KeepDates = true;
         return copy;
     }
+}
+
+/// <summary>Reads unexpected icon preference values as enabled while preserving valid booleans.</summary>
+internal sealed class IconPreferenceJsonConverter : JsonConverter<bool>
+{
+    public override bool Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType is JsonTokenType.True or JsonTokenType.False)
+            return reader.GetBoolean();
+
+        reader.Skip();
+        return true;
+    }
+
+    public override void Write(Utf8JsonWriter writer, bool value, JsonSerializerOptions options) =>
+        writer.WriteBooleanValue(value);
 }
 
 /// <summary>The save location presets set to "Default" use. Starts as "next to the source file", as before 1.4.</summary>

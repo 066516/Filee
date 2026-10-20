@@ -49,6 +49,8 @@ public static class FormatRegistry
         new("pcd", "Photo CD", FormatCategory.Image, ["pcd"], Writable: false),
         new("exr", "OpenEXR", FormatCategory.Image, ["exr"], Writable: false),
         new("hdr", "Radiance HDR", FormatCategory.Image, ["hdr"], Writable: false),
+        // Read on Windows only, with its own codec (HDR screenshots of Windows are JPEG XR).
+        new("jxr", "JPEG XR", FormatCategory.Image, ["jxr", "wdp", "hdp"], Writable: false),
         new("xcf", "XCF", FormatCategory.Image, ["xcf"], Writable: false),
         new("raw", "RAW", FormatCategory.Image,
             ["dng", "cr2", "cr3", "crw", "nef", "nrw", "arw", "srf", "sr2", "orf", "rw2", "raf", "pef", "dcr", "kdc",
@@ -119,6 +121,7 @@ public static class FormatRegistry
         new("pptx", "PPTX", FormatCategory.Presentation, ["pptx"]),
         new("pptm", "PPTM", FormatCategory.Presentation, ["pptm"]),
         new("potx", "POTX", FormatCategory.Presentation, ["potx"]),
+        new("potm", "POTM", FormatCategory.Presentation, ["potm"]),
         new("ppsx", "PPSX", FormatCategory.Presentation, ["ppsx"]),
         new("ppt", "PPT", FormatCategory.Presentation, ["ppt", "pps", "pot"]),
         new("odp", "ODP", FormatCategory.Presentation, ["odp"]),
@@ -132,6 +135,8 @@ public static class FormatRegistry
         new("txt", "TXT", FormatCategory.Text, ["txt"]),
         new("md", "Markdown", FormatCategory.Text, ["md", "markdown"]),
         new("html", "HTML", FormatCategory.Text, ["html", "htm", "xhtml"]),
+        // A web page saved with its pictures in one MIME file (Chrome, Edge, Word); read as the page it holds.
+        new("mhtml", "MHTML", FormatCategory.Text, ["mhtml", "mht"], Writable: false),
         new("rst", "reStructuredText", FormatCategory.Text, ["rst"]),
         new("tex", "LaTeX", FormatCategory.Text, ["tex", "latex"]),
         // Read and written by Pandoc. Man pages claim only ".man": the section numbers (.1 … .9) are also the
@@ -298,6 +303,7 @@ public static class FormatRegistry
         new("obj", "OBJ", FormatCategory.Model3D, ["obj"]),
         new("3mf", "3MF", FormatCategory.Model3D, ["3mf"]),
         new("ply", "PLY", FormatCategory.Model3D, ["ply"]),
+        new("fbx", "FBX", FormatCategory.Model3D, ["fbx"], Writable: false),
     ];
 
     private static readonly Dictionary<string, FileFormat> ById =

@@ -13,9 +13,11 @@ using Filee.App.Services;
 using Filee.App.ViewModels;
 using Filee.App.ViewModels.Pages;
 using Filee.App.Views;
+using Filee.App.Views.Pages;
 using Filee.Core.Localization;
 using Filee.Core.Profiles;
 using Filee.Core.Settings;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Filee.App.Tests;
 
@@ -25,9 +27,11 @@ public class RenderTests
     {
         { "home", "en" }, { "general", "en" }, { "triggers", "en" }, { "toolbar", "en" },
         { "presets", "en" }, { "theme", "en" }, { "engines", "en" }, { "about", "en" },
-        { "toolbar", "ko" }, { "home", "ko" }, { "presets", "zh-CN" }, { "toolbar", "zh-CN" }, { "home", "zh-CN" },
-        { "toolbar", "pl" }, { "presets", "pl" }, { "home", "pl" },
+        { "general", "ko" }, { "toolbar", "ko" }, { "home", "ko" },
+        { "general", "zh-CN" }, { "presets", "zh-CN" }, { "toolbar", "zh-CN" }, { "home", "zh-CN" },
+        { "general", "pl" }, { "toolbar", "pl" }, { "presets", "pl" }, { "home", "pl" },
         { "home", "es" }, { "general", "es" }, { "toolbar", "es" }, { "presets", "es" }, { "engines", "es" },
+        { "home", "hi" }, { "general", "hi" }, { "toolbar", "hi" }, { "presets", "hi" }, { "engines", "hi" },
     };
 
     [AvaloniaTheory]
@@ -44,6 +48,51 @@ public class RenderTests
         Assert.NotNull(window.FindControl<ScrollViewer>("PageScroller"));
         Save(window, $"page-{page}-{language}.png");
         window.Close();
+    }
+
+    [AvaloniaFact]
+    public void General_page_icon_rows_follow_platform_and_saved_values()
+    {
+        TestServices.EnsureInitialized("en");
+        var directory = Directory.CreateTempSubdirectory("filee-icons-render-").FullName;
+        try
+        {
+            var store = new UserDataStore(directory);
+            store.Load();
+            store.Settings.ShowInDock = false;
+            store.Settings.ShowMenuBarIcon = true;
+            store.SaveSettings();
+            foreach (var supported in new[] { true, false })
+            {
+                var platform = new IconPlatform { SupportsDockVisibility = supported };
+                using var vm = new GeneralPageViewModel(store, AppHost.Get<ILocalizer>(), platform,
+                    NullLogger<GeneralPageViewModel>.Instance);
+                var page = new GeneralPage { DataContext = vm };
+                var window = new Window { Content = page, Width = 800, Height = 820 };
+                try
+                {
+                    window.Show();
+                    Pump();
+                    var dock = page.FindControl<ToggleSwitch>("ShowInDockSwitch")!;
+                    var menu = page.FindControl<ToggleSwitch>("ShowMenuBarIconSwitch")!;
+                    Assert.Equal(supported, dock.IsVisible);
+                    Assert.Equal(supported, menu.IsVisible);
+                    Assert.False(dock.IsChecked);
+                    Assert.True(menu.IsChecked);
+                    Assert.Empty(platform.DockCalls);
+                    if (supported)
+                        Save(window, "page-general-icons-en.png");
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
     }
 
     [AvaloniaTheory]
@@ -274,6 +323,131 @@ public class RenderTests
         }
     }
 
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("es")]
+    [InlineData("ko")]
+    [InlineData("zh-CN")]
+    [InlineData("pl")]
+    [InlineData("hi")]
+    public void Home_page_search_finds_old_conversions_in_a_long_history(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var store = AppHost.Get<Filee.Core.Settings.UserDataStore>();
+        var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+        store.ClearHistory();
+        // A full history (newest first), with the report far below what the page lists without a search.
+        var entries = Enumerable.Range(0, store.Settings.EffectiveHistoryLimit).Select(i => new Filee.Core.History.HistoryEntry
+        {
+            FinishedAt = DateTime.Now.AddMinutes(-i),
+            PresetName = i == 150 ? "PDF" : "PNG",
+            State = Filee.Core.Conversion.JobState.Completed,
+            Sources = i == 150 ? [@"C:\Work\Annual report.docx", @"C:\Work\notes.txt"] : [$@"C:\Photos\IMG_{i:0000}.heic"],
+        });
+        store.History.AddRange(entries);
+        try
+        {
+            var vm = new MainWindowViewModel(AppHost.Services, loc, AppHost.Get<UpdateService>());
+            vm.Navigate("home");
+            var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+            window.Show();
+            Pump();
+
+            var page = (HomePageViewModel)vm.CurrentPage;
+            Assert.Equal(HomePageViewModel.Shown, page.History.Count);
+            var search = window.GetVisualDescendants().OfType<TextBox>().Single(t => t.Classes.Contains("search"));
+            Assert.True(search.IsEffectivelyVisible);
+            Assert.Equal(loc["common.search"], search.PlaceholderText);
+
+            page.Search = " REPORT "; // any part of a source file name, ignoring case and spaces around
+            Pump();
+            var found = Assert.Single(page.History);
+            Assert.Equal("PDF", found.Title);
+            Assert.False(page.NoMatches);
+            Save(window, $"page-home-search-{language}.png");
+
+            page.Search = "PNG"; // the preset: the newest matches, no more than without a search
+            Assert.Equal(HomePageViewModel.Shown, page.History.Count);
+            Assert.All(page.History, item => Assert.Equal("PNG", item.Title));
+
+            page.Search = "zzz";
+            Pump();
+            Assert.Empty(page.History);
+            Assert.True(page.NoMatches);
+            Assert.False(page.IsEmpty);
+            Save(window, $"page-home-search-none-{language}.png");
+
+            page.Search = "";
+            Assert.Equal(HomePageViewModel.Shown, page.History.Count);
+            window.Close();
+        }
+        finally
+        {
+            store.ClearHistory(); // also on disk: the next test's application loads the history again
+        }
+    }
+
+    [AvaloniaFact]
+    public void A_new_preset_shows_in_the_list_whatever_was_searched()
+    {
+        TestServices.EnsureInitialized("en");
+        var store = AppHost.Get<Filee.Core.Settings.UserDataStore>();
+        var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+        vm.Navigate("presets");
+        var page = (PresetsPageViewModel)vm.CurrentPage;
+        page.Search = "zzz";
+        Assert.Empty(page.VisiblePresets);
+
+        page.AddCommand.Execute(null);
+        try
+        {
+            Assert.Equal("", page.Search);
+            Assert.Contains(page.SelectedPreset!, page.VisiblePresets);
+        }
+        finally
+        {
+            store.Presets.Remove(page.SelectedPreset!.Preset);
+            store.SaveLibrary();
+        }
+    }
+
+    [AvaloniaFact]
+    public void General_page_keeps_the_history_limit_within_its_range()
+    {
+        TestServices.EnsureInitialized("en");
+        var store = AppHost.Get<Filee.Core.Settings.UserDataStore>();
+        var before = store.Settings.HistoryLimit;
+        try
+        {
+            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            vm.Navigate("general");
+            var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+            window.Show();
+            Pump();
+
+            var page = (GeneralPageViewModel)vm.CurrentPage;
+            Assert.Equal(200, page.HistoryLimit);
+            var limit = window.GetVisualDescendants().OfType<NumericUpDown>().Single();
+            Assert.True(limit.IsEffectivelyVisible);
+
+            page.HistoryLimit = 500;
+            Assert.Equal(500, store.Settings.HistoryLimit);
+            page.HistoryLimit = 5000;
+            Assert.Equal(Filee.Core.Settings.AppSettings.MaxHistoryLimit, store.Settings.HistoryLimit);
+
+            page.NoHistory = true; // nothing is recorded: nothing to limit either
+            Pump();
+            Assert.False(limit.IsEffectivelyVisible);
+            page.NoHistory = false;
+            window.Close();
+        }
+        finally
+        {
+            store.Settings.HistoryLimit = before;
+            store.SaveSettings();
+        }
+    }
+
     [AvaloniaFact]
     public void Engines_page_shows_versions_descriptions_and_download_speed()
     {
@@ -301,6 +475,58 @@ public class RenderTests
         finally
         {
             (package.Status, package.Progress, package.ProgressDetail) = before;
+        }
+    }
+
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("es")]
+    [InlineData("ko")]
+    [InlineData("hi")]
+    public void Reset_to_default_sits_beside_delete_for_a_built_in_profile_only(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var store = AppHost.Get<UserDataStore>();
+        var profiles = store.Profiles.Select(p => p.Clone()).ToList();
+        try
+        {
+            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            vm.Navigate("toolbar");
+            var page = (ToolbarPageViewModel)vm.CurrentPage!;
+            var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+            window.Show();
+            page.SelectedProfile = page.Profiles.Single(p => p.Profile.Id == "images");
+            Pump();
+
+            var actions = window.GetVisualDescendants().OfType<StackPanel>().Single(s => s.Name == "ProfileActions");
+            var reset = (Button)actions.Children[0];
+            var delete = (Button)actions.Children[1];
+            Assert.Same(page.ResetProfileCommand, reset.Command);
+            Assert.Same(page.DeleteProfileCommand, delete.Command);
+            Assert.True(reset.IsVisible && delete.IsVisible);
+            // On one row, reset first, both inside the profile card.
+            var card = window.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "ProfileCard");
+            var resetBox = Avalonia.VisualExtensions.TranslatePoint(reset, default, card)!.Value;
+            var deleteBox = Avalonia.VisualExtensions.TranslatePoint(delete, default, card)!.Value;
+            Assert.Equal(resetBox.Y, deleteBox.Y);
+            Assert.True(resetBox.X + reset.Bounds.Width < deleteBox.X);
+            Assert.True(resetBox.X >= 0 && deleteBox.X + delete.Bounds.Width <= card.Bounds.Width);
+            actions.BringIntoView();
+            Pump();
+            Save(window, $"toolbar-reset-profile-{language}.png");
+
+            // A profile the user made has no default: only delete.
+            page.AddProfileCommand.Execute(null);
+            Pump();
+            Assert.False(reset.IsVisible);
+            Assert.True(delete.IsVisible);
+            window.Close();
+        }
+        finally
+        {
+            store.Profiles.Clear();
+            store.Profiles.AddRange(profiles);
+            store.SaveLibrary();
         }
     }
 
@@ -447,6 +673,78 @@ public class RenderTests
             images.PresetIds.Clear();
             images.PresetIds.AddRange(before);
             store.Presets.Remove(group);
+        }
+    }
+
+    /// <summary>
+    /// The theme's softness rounds the donut's slices (and a group's ring) too, live while it is open; the corners it
+    /// cuts away still belong to their slice for clicks and drops.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Donut_slices_follow_the_softness(bool dark)
+    {
+        TestServices.EnsureInitialized("en");
+        var theme = AppHost.Get<ThemeService>();
+        var store = AppHost.Get<UserDataStore>();
+        var images = store.Profiles.Single(p => p.Id == "images");
+        var before = images.PresetIds.ToList();
+        var group = new Filee.Core.Presets.Preset
+        {
+            Id = "render-soft-group",
+            Name = "Formats",
+            Kind = Filee.Core.Presets.PresetKind.Group,
+            SubPresetIds = ["to-png", "to-jpg", "to-webp"],
+        };
+        var mode = dark ? ThemeMode.Dark : ThemeMode.Light;
+        var suffix = dark ? "dark" : "light";
+        try
+        {
+            store.Presets.Add(group);
+            images.PresetIds.Add(group.Id);
+            theme.Apply(new ThemeSettings { Mode = mode, CornerRadius = 0 }, "en");
+            var vm = AppHost.Get<RadialViewModel>();
+            vm.Load([@"C:\photos\a.jpg", @"C:\photos\b.jpg"], clickMode: true);
+            vm.FitToThisDonut();
+            var window = new RadialWindow { DataContext = vm };
+            window.Show();
+            var donut = window.DonutControl;
+            donut.SetExternalHighlight(1);
+            Pump();
+            Assert.Equal(0, donut.SliceCornerRadius);
+            Save(window, $"donut-softness-0-{suffix}.png");
+
+            // Changing the setting while the donut is open rounds it at once.
+            theme.Apply(new ThemeSettings { Mode = mode, CornerRadius = 28 }, "en");
+            Pump();
+            Assert.Equal(14, donut.SliceCornerRadius);
+            Save(window, $"donut-softness-28-{suffix}.png");
+
+            // The sharp corner of slice 2, cut away now, still picks slice 2.
+            var n = vm.Items.Count;
+            var center = new Avalonia.Point(donut.Bounds.Width / 2, donut.Bounds.Height / 2);
+            var inner = vm.OuterRadius * vm.HoleRatio;
+            var corner = DonutGeometry.Wedge(center, inner, vm.OuterRadius, DonutGeometry.MidAngle(2, n), DonutGeometry.Span(n), 3).Start;
+            var inside = center + (corner - center) * 0.995;
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, 2), donut.HitTest(inside));
+
+            var index = n - 1;
+            donut.SetExternalHit(new DonutHit(DonutHitKind.Segment, index));
+            donut.ExpandPendingGroup();
+            donut.SetExternalHit(new DonutHit(DonutHitKind.SubSegment, index, 1));
+            vm.ShowHint(index, donut.ActiveSubIndex, centerHot: false);
+            Pump();
+            Assert.Equal(new DonutHit(DonutHitKind.SubSegment, index, 1), donut.HitTest(donut.SubSliceCenter(index, 1)));
+            Save(window, $"donut-softness-28-group-{suffix}.png");
+            window.Close();
+        }
+        finally
+        {
+            images.PresetIds.Clear();
+            images.PresetIds.AddRange(before);
+            store.Presets.Remove(group);
+            theme.Apply(new ThemeSettings(), "en");
         }
     }
 
@@ -598,6 +896,67 @@ public class RenderTests
         Save(window, "page-toolbar-dark.png");
         window.Close();
         AppHost.Get<ThemeService>().Apply(new ThemeSettings(), "en");
+    }
+
+    [AvaloniaFact]
+    public void Custom_theme_colours_replace_the_built_in_ones_and_go_away_with_the_file()
+    {
+        TestServices.EnsureInitialized("en");
+        var service = AppHost.Get<ThemeService>();
+        var dark = new ThemeSettings { Mode = ThemeMode.Dark };
+        var custom = new CustomTheme
+        {
+            Dark = { ["page"] = "#101820", ["surface"] = "#18222C", ["surfaceAlt"] = "#22303C", ["text"] = "#E8E4D8" },
+        };
+        try
+        {
+            service.Apply(dark, "en", custom);
+            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            vm.Navigate("theme");
+            var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+            window.Show();
+            Pump();
+
+            Assert.Equal(Avalonia.Media.Color.Parse("#101820"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(window.Background).Color);
+            Assert.Equal(Avalonia.Media.Color.Parse("#E8E4D8"), BrushColor(window, "TextPrimaryBrush"));
+            // Colours the file does not set, and the other variant, keep Filee's own.
+            Assert.Equal(Avalonia.Media.Color.Parse("#AEACA4"), BrushColor(window, "TextSecondaryBrush"));
+            Assert.Equal(Avalonia.Media.Color.Parse("#F6F5F1"), BrushColor(window, "PageBrush", Avalonia.Styling.ThemeVariant.Light));
+            Save(window, "page-theme-custom.png");
+
+            // Applying without a theme file (deleted, or emptied) restores the built-in colours on the open window.
+            service.Apply(dark, "en");
+            Pump();
+            Assert.Equal(Avalonia.Media.Color.Parse("#1B1B19"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(window.Background).Color);
+            window.Close();
+
+            service.Apply(dark, "en", custom);
+            var radial = AppHost.Get<RadialViewModel>();
+            radial.Load([@"C:\photos\a.jpg"], clickMode: true);
+            var donut = new RadialWindow { DataContext = radial };
+            donut.Show();
+            donut.DonutControl.SetExternalHighlight(1);
+            Pump();
+            Assert.Equal(Avalonia.Media.Color.Parse("#18222C"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(donut.DonutControl.SliceBrush).Color);
+            Save(donut, "donut-custom-theme.png");
+            donut.Close();
+        }
+        finally
+        {
+            service.Apply(new ThemeSettings(), "en");
+        }
+    }
+
+    [Fact]
+    public void Every_custom_theme_name_maps_to_a_brush()
+    {
+        Assert.Equal(CustomTheme.Keys.Order(), ThemeService.CustomBrushKeys.Keys.Order());
+    }
+
+    private static Avalonia.Media.Color BrushColor(Window window, string key, Avalonia.Styling.ThemeVariant? variant = null)
+    {
+        Assert.True(window.TryFindResource(key, variant ?? window.ActualThemeVariant, out var value), key);
+        return Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(value).Color;
     }
 
     [AvaloniaFact]

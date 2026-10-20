@@ -10,7 +10,8 @@ namespace Filee.Core.Conversion;
 
 /// <summary>One hop of a route.</summary>
 /// <param name="FrameSequence">The hop saves every frame of a video (<see cref="ConversionEdge.FrameSequence"/>).</param>
-public sealed record RouteStep(IConverter Converter, string From, string To, bool FrameSequence = false);
+/// <param name="Unshaped">The hop draws text without complex-script shaping (<see cref="ConversionEdge.Unshaped"/>).</param>
+public sealed record RouteStep(IConverter Converter, string From, string To, bool FrameSequence = false, bool Unshaped = false);
 
 /// <summary>A planned conversion from one format to another.</summary>
 public sealed record Route(IReadOnlyList<RouteStep> Steps, int Cost)
@@ -57,8 +58,11 @@ public sealed class RoutePlanner
     /// <see cref="ConversionEdge.FrameSequence"/> edge from <paramref name="from"/> to <paramref name="to"/>, or none.
     /// Without it those edges are never taken.
     /// </param>
+    /// <param name="shaping">
+    /// The source has text that needs complex-script shaping: <see cref="ConversionEdge.Unshaped"/> edges are left out.
+    /// </param>
     /// <param name="motionPhoto">Extract motion from a camera image through a dedicated direct edge.</param>
-    public Route? Plan(string from, string to, bool frames = false, bool motionPhoto = false)
+    public Route? Plan(string from, string to, bool frames = false, bool shaping = false, bool motionPhoto = false)
     {
         from = from.ToLowerInvariant();
         to = to.ToLowerInvariant();
@@ -109,6 +113,7 @@ public sealed class RoutePlanner
             {
                 if (edge.To == edge.From || edge.FrameSequence || edge.MotionPhoto
                     || (edge.ImageSourcesOnly && !imageSource) || (edge.NotForImageSources && imageSource)
+                    || (edge.Unshaped && shaping)
                     || (edge.DirectOnly && (node != from || edge.To != to)))
                     continue;
                 var next = cost + edgeCost;
@@ -117,7 +122,7 @@ public sealed class RoutePlanner
 
                 dist[edge.To] = next;
                 hops[edge.To] = hops[node] + 1;
-                prev[edge.To] = (node, new RouteStep(converter, edge.From, edge.To));
+                prev[edge.To] = (node, new RouteStep(converter, edge.From, edge.To, Unshaped: edge.Unshaped));
                 queue.Enqueue(edge.To, next);
             }
         }
@@ -134,7 +139,8 @@ public sealed class RoutePlanner
 
     /// <summary>True if <paramref name="from"/> can be converted to <paramref name="to"/>.</summary>
     /// <param name="frames">Every frame of a video as pictures (see <see cref="Plan"/>).</param>
-    public bool CanConvert(string from, string to, bool frames = false, bool motionPhoto = false) => Plan(from, to, frames, motionPhoto) is not null;
+    public bool CanConvert(string from, string to, bool frames = false, bool motionPhoto = false) =>
+        Plan(from, to, frames, motionPhoto: motionPhoto) is not null;
 
     private IReadOnlyList<(IConverter Converter, ConversionEdge Edge, int Cost)> EdgesFrom(string format) =>
         _edgesFrom.TryGetValue(format, out var edges) ? edges : [];

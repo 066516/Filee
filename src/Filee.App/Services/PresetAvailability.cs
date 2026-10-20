@@ -9,12 +9,23 @@ namespace Filee.App.Services;
 
 public sealed class PresetAvailability(ConverterCatalog catalog, ILocalizer loc, EngineDownloadService downloads)
 {
+    private static readonly HashSet<string> WritableSingleFrameRasterFormats =
+    [
+        "jpg", "png", "webp", "bmp", "avif", "jxl", "jp2", "tga", "qoi", "dds", "pcx",
+    ];
     /// <summary>
     /// Returns <c>null</c> when at least one of <paramref name="formats"/> can be converted with the preset,
     /// otherwise a localized reason — naming the optional engine to download when that would help.
     /// </summary>
     public string? Check(Preset preset, IReadOnlyList<FileFormat> formats)
     {
+        if (preset.IsTool)
+        {
+            if (formats.Count > 0 && formats.All(f => WritableSingleFrameRasterFormats.Contains(f.Id)))
+                return null;
+            return loc["error.unsupported_source"];
+        }
+
         // "Compress into one archive" packs the files as they are, so any file works, even of an unknown type.
         if (preset.Archive.CombineIntoOne
             && FormatRegistry.FindById(preset.TargetFormat) is { Category: FormatCategory.Archive } archive
@@ -38,9 +49,9 @@ public sealed class PresetAvailability(ConverterCatalog catalog, ILocalizer loc,
             var frames = preset.SavesFramesOf(f.Id);
             var motion = preset.ExtractsMotionOf(f.Id);
             if (!turns)
-                return planner.CanConvert(f.Id, target, frames, motion);
+                return planner.CanConvert(f.Id, target, frames, motionPhoto: motion);
             // Rotate / flip: a route only counts when an engine on it turns images (not a PDF or a video copied).
-            if (planner.Plan(f.Id, target, frames, motion) is not { } route)
+            if (planner.Plan(f.Id, target, frames, motionPhoto: motion) is not { } route)
                 return false;
             if (route.FirstTransformStep() >= 0)
                 return true;
