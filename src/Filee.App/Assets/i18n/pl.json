@@ -79,6 +79,7 @@
   "error.rhwp_timeout": "rhwp nie zdążył przetworzyć tego długiego dokumentu",
   "error.rhwp_timeout_calibre": "rhwp nie zdążył przetworzyć tego długiego dokumentu. Dla e-booka przenieś Calibre nad HWPX writer w Ustawienia → Silniki, a Calibre zrobi PDF znacznie szybciej",
   "error.needs_shaping": "To pismo wymaga LibreOffice do poprawnej konwersji. Zainstaluj go w Ustawienia → Silniki",
+  "error.runtime_missing": "Brakuje pliku środowiska Microsoft Visual C++ potrzebnego temu silnikowi albo jest on nieaktualny. Zaktualizuj lub zainstaluj ponownie Filee albo zainstaluj Microsoft Visual C++ Redistributable (x64)",
   "error.conversion_failed": "Silnik zgłosił błąd",
   "notice.pdf_not_smaller": "Nie udało się zmniejszyć pliku, więc skopiowano go bez zmian",
 
@@ -133,6 +134,15 @@
   "profile.data": "Dane",
   "profile.models": "Modele 3D",
   "profile.mixed": "Różne pliki",
+
+  "preset.crop": "Kadruj",
+  "crop.save": "Kadruj i zapisz",
+  "crop.reset": "Resetuj",
+  "crop.skip": "Pomiń",
+  "crop.aspect_title": "Proporcje:",
+  "crop.aspect_free": "Dowolne",
+  "crop.aspect_original": "Oryginalne",
+  "crop.page_counter": "{0} z {1}",
 
   "preset.half_size": "Połowa rozmiaru",
   "preset.grayscale": "Skala szarości",

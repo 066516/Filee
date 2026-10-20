@@ -79,6 +79,7 @@
   "error.rhwp_timeout": "rhwp couldn't finish this long document in time",
   "error.rhwp_timeout_calibre": "rhwp couldn't finish this long document in time. For an e-book, move Calibre above the HWPX writer in Settings → Engines, and Calibre makes the PDF much faster",
   "error.needs_shaping": "This script needs LibreOffice to convert correctly. Install it in Settings → Engines",
+  "error.runtime_missing": "A Microsoft Visual C++ runtime file this engine needs is missing or outdated. Update or reinstall Filee, or install the Microsoft Visual C++ Redistributable (x64)",
   "error.conversion_failed": "The engine reported an error",
   "notice.pdf_not_smaller": "Couldn't make it smaller, so it was copied as it is",
 
@@ -133,6 +134,15 @@
   "profile.data": "Data",
   "profile.models": "3D models",
   "profile.mixed": "Mixed files",
+
+  "preset.crop": "Crop",
+  "crop.save": "Crop & Save",
+  "crop.reset": "Reset",
+  "crop.skip": "Skip",
+  "crop.aspect_title": "Aspect:",
+  "crop.aspect_free": "Free",
+  "crop.aspect_original": "Original",
+  "crop.page_counter": "{0} of {1}",
 
   "preset.half_size": "Half size",
   "preset.grayscale": "Grayscale",
