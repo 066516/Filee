@@ -93,12 +93,10 @@ Windows headers, without a C runtime. Pieces of these projects that can end up i
 
 ## Installer
 
-`Filee-<version>-win-Setup.exe` is built with Inno Setup (a build tool, not part of the app); the setup and uninstall
-programs inside it are Inno Setup's.
-
-| Component | License | Project |
-|---|---|---|
-| Inno Setup (Copyright (C) 1997-2026 Jordan Russell, portions Copyright (C) 2000-2026 Martijn Laan) | Inno Setup License | https://jrsoftware.org/isinfo.php |
+`Filee-<version>-win-Setup.exe` is Filee's own installer (`src/Filee.Setup`, MIT like the app). It contains the
+.NET runtime, Avalonia, SkiaSharp, HarfBuzzSharp, CommunityToolkit.Mvvm and SharpCompress (LZMA) listed in this file,
+the x86 branch filter of the LZMA SDK (public domain, Igor Pavlov, https://www.7-zip.org/sdk.html), and the published
+app as its payload. Filee 1.x's installer was built with Inno Setup, which is no longer used.
 
 ## Fonts and icons
 

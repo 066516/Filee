@@ -51,7 +51,9 @@
 Download from [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
 
 - **Windows 10/11**: run `Filee-<version>-win-Setup.exe`, or unzip the `win-Portable.zip` and run `Filee.exe`.
-  Setup can add the Explorer menu, start at sign-in, the `filee` command and optional engines.
+  Setup is Filee's own installer, in Filee's languages, and needs nothing else on the PC. It can add the Explorer
+  menu, start at sign-in, the `filee` command and optional engines; silent installs take Inno Setup's switches
+  (`/VERYSILENT /SUPPRESSMSGBOXES`).
 - **macOS 14+** (preview): unpack the `osx-arm64` or `osx-x64` package and run `./install.sh`.
   The build isn't notarized yet, so allow the first start in System Settings → Privacy & Security → **Open Anyway**.
 - **Linux x64/ARM64** (preview, Ubuntu 22.04+): unpack the package and run `./install.sh` (no root, needs Python 3).
