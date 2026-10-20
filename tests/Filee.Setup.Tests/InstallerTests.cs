@@ -141,8 +141,8 @@ public class InstallerTests
         Assert.Equal(@"%SystemRoot%\system32;" + folder + @"\cli", path);
         Assert.True(File.Exists(Path.Combine(bench.Paths.CommonDesktop, "Filee.lnk")));
         Assert.Contains($"register-menu {folder} False", bench.System.Calls);
-        // Back to the tray, as before the update.
-        Assert.Equal("--background", result.Launch!.Arguments);
+        // Back to the tray, as before the update, with the new version's "What's new" slides.
+        Assert.Equal("--background --whats-new", result.Launch!.Arguments);
     }
 
     [Fact]
@@ -300,6 +300,9 @@ public class InstallerTests
         Assert.Null(CommandLine.Parse(Installer.LaunchArguments(fresh with { LanguagePicked = false }, update: false).Split(' ')).Language);
         // Nothing picked is an answer too: Filee then doesn't ask on first run.
         Assert.Empty(CommandLine.Parse(Installer.LaunchArguments(fresh with { Engines = [] }, update: false).Split(' ')).InstallEngines!);
-        Assert.True(CommandLine.Parse(Installer.LaunchArguments(fresh, update: true).Split(' ')).Background);
+        var updated = CommandLine.Parse(Installer.LaunchArguments(fresh, update: true).Split(' '));
+        Assert.True(updated.Background);
+        Assert.True(updated.WhatsNew);
+        Assert.False(CommandLine.Parse(Installer.LaunchArguments(fresh, update: false).Split(' ')).WhatsNew);
     }
 }

@@ -13,6 +13,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Filee.App.Controls;
 using Filee.Setup.Controls;
 using Filee.Setup.Installation;
 using Filee.Setup.Payload;
@@ -100,7 +101,9 @@ public class SetupWindowTests
         Assert.True(model.IsProgress);
         Assert.False(model.OptionsOpen);
         Assert.Equal(62, model.Percent);
-        Assert.NotNull(window.GetVisualDescendants().OfType<AnimatedWebp>().SingleOrDefault());
+        var slides = window.GetVisualDescendants().OfType<SlideShow>().Single();
+        Assert.True(slides.IsEffectivelyVisible);
+        Assert.Equal(model.Deck!.Slides.Count, slides.Slides.Count);
         Check(window, $"setup-3-installing-{language}.png");
 
         runner.Result = new InstallResult(new LaunchRequest(@"C:\Program Files\Filee\Filee.exe", "--install-engines=pandoc"),
@@ -124,15 +127,13 @@ public class SetupWindowTests
             {
                 var (model, _, runner) = Model(language);
                 var window = Show(model);
-                Assert.True(model.Dark);
+                Assert.Equal(ThemeVariant.Dark, window.ActualThemeVariant);
                 Check(window, $"setup-dark-1-welcome-{language}.png");
                 model.ToggleOptionsCommand.Execute(null);
                 Check(window, $"setup-dark-2-options-{language}.png", sheetMayScroll: true);
                 runner.Hold = new TaskCompletionSource();
                 var install = model.InstallAsync();
                 Pump();
-                // The donut clip has a dark version.
-                Assert.Contains("expand-dark", window.GetVisualDescendants().OfType<AnimatedWebp>().Single().Source);
                 Check(window, $"setup-dark-3-installing-{language}.png");
                 runner.Hold.SetResult();
                 await install;
@@ -193,48 +194,40 @@ public class SetupWindowTests
     }
 
     [AvaloniaFact]
-    public void The_clips_take_turns_with_their_captions()
+    public void The_whats_new_slides_take_turns_while_installing()
     {
         var (model, texts, runner) = Model("en");
+        Assert.Equal(new Version(2, 0, 0), model.Deck!.Version);
         var window = Show(model);
         runner.Hold = new TaskCompletionSource();
         _ = model.InstallAsync();
         Pump();
-        var seen = new HashSet<string>();
-        for (var i = 0; i < SetupViewModel.Clips.Count + 1; i++)
+        var slides = window.GetVisualDescendants().OfType<SlideShow>().Single();
+        Assert.Equal(TimeSpan.FromSeconds(6), slides.AutoAdvance);
+        // Still pictures without animations (the poster frame), the texts in Setup's language.
+        Assert.False(slides.PlayAnimations);
+        for (var i = 0; i < slides.Slides.Count; i++)
         {
-            // The clip on the card and its caption are the current ones (the 6-second timer may move on meanwhile).
-            var shown = window.GetVisualDescendants().OfType<AnimatedWebp>().Last().Source!;
-            Assert.Equal(SetupViewModel.Clips[model.ClipIndex].Clip, shown);
-            Assert.Equal(texts[SetupViewModel.Clips[model.ClipIndex].CaptionKey], model.CurrentCaption);
-            seen.Add(shown);
-            var before = model.ClipIndex;
-            model.NextClip();
-            Assert.Equal((before + 1) % SetupViewModel.Clips.Count, model.ClipIndex);
+            Assert.Equal(i, slides.Index);
+            Assert.True(slides.Media.HasPicture);
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == texts[slides.Slides[i].TitleKey]);
+            slides.AdvanceNow();
             Pump();
         }
-        Assert.Equal(SetupViewModel.Clips.Count, seen.Count);
+        Assert.Equal(0, slides.Index);
         runner.Hold.SetResult();
         window.Close();
     }
 
     [AvaloniaFact]
-    public void A_clip_plays_frame_after_frame()
+    public void Silent_and_uninstall_show_no_slides()
     {
-        var clip = new AnimatedWebp { Source = SetupViewModel.Clips[1].Clip };
-        Assert.True(clip.FrameCount > 30);
-        var window = new Window { Content = clip, Width = 640, Height = 360 };
-        window.Show();
-        foreach (var frame in new[] { 0, 1, 2, clip.FrameCount - 1, 0 })
-        {
-            clip.ShowFrame(frame);
-            Assert.Equal(frame, clip.Frame);
-        }
-        // Jumping ahead decodes the frames it builds on.
-        clip.ShowFrame(clip.FrameCount / 2);
-        Assert.Equal(clip.FrameCount / 2, clip.Frame);
-        window.Close();
-        clip.Dispose();
+        var (model, _, _) = Model("en");
+        model.Silent = true;
+        model.Page = SetupPage.Progress;
+        Assert.False(model.ShowShowcase);
+        var (uninstall, _, _) = Model("en", uninstall: true);
+        Assert.Null(uninstall.Deck);
     }
 
     [AvaloniaFact]
@@ -370,7 +363,15 @@ public class SetupWindowTests
             text.Measure(new Size(text.Bounds.Width + text.Margin.Left + text.Margin.Right, double.PositiveInfinity));
             Assert.True(text.DesiredSize.Height - text.Margin.Top - text.Margin.Bottom <= text.Bounds.Height + 1, $"{name}: \"{text.Text}\" is cut off");
         }
+        // The slides (picture, the tallest slide's text, the dots) fit in the space they get.
+        foreach (var slides in state.GetVisualDescendants().OfType<SlideShow>().Where(s => s.IsEffectivelyVisible))
+        {
+            slides.Measure(new Size(slides.Bounds.Width, double.PositiveInfinity));
+            Assert.True(slides.DesiredSize.Height <= slides.Bounds.Height + 1, $"{name}: the slides need {slides.DesiredSize.Height:0} px, they get {slides.Bounds.Height:0}");
+            slides.InvalidateMeasure();
+        }
         // Nothing may overlap the buttons at the bottom of the card.
+
         if (state.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "PrimaryButton" && b.IsEffectivelyVisible) is { } primary
             && state is Grid { RowDefinitions.Count: 2 } grid
             && grid.Children.OfType<Control>().First(c => Grid.GetRow(c) == 0 && c.IsEffectivelyVisible) is { } content

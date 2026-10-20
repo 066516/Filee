@@ -8,7 +8,8 @@
 //     PATH; on Windows 11 registers the top-level Explorer menu package;
 //  7. deletes the backup, or on any failure in 4-6 puts everything back.
 // Filee's own settings (Explorer menu entry, start at sign-in, engines, language) are handed to Filee when Setup
-// starts it, as before: Filee applies them for the signed-in user.
+// starts it, as before: Filee applies them for the signed-in user. After an update Filee goes back to the tray and
+// shows the new version's "What's new" slides (--background --whats-new).
 
 using Filee.Platform.Windows;
 using Filee.Setup.Payload;
@@ -167,9 +168,12 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
         }
     }
 
-    /// <summary>The arguments Filee starts with: the choices of a fresh install, or "back to the tray" after an update.</summary>
+    /// <summary>
+    /// The arguments Filee starts with: the choices of a fresh install, or "back to the tray" after an update, with the
+    /// new version's "What's new" slides.
+    /// </summary>
     public static string LaunchArguments(InstallChoices choices, bool update) => update
-        ? "--background"
+        ? "--background --whats-new"
         : $"--install-engines={string.Join(',', choices.Engines)} " +
           $"--start-with-windows={OnOff(choices.Tasks.Startup)} --context-menu={OnOff(choices.Tasks.ContextMenu)}" +
           (choices.LanguagePicked ? $" --language={choices.Language}" : "");

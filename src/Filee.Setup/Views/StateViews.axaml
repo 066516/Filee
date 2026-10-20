@@ -2,7 +2,8 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:vm="using:Filee.Setup.ViewModels"
-                    xmlns:c="using:Filee.Setup.Controls">
+                    xmlns:c="using:Filee.Setup.Controls"
+                    xmlns:shared="using:Filee.App.Controls">
 
   <!-- Welcome: the logo assembling, one big button, Options. -->
   <DataTemplate x:Key="Setup.Welcome" x:DataType="vm:SetupViewModel">
@@ -30,15 +31,11 @@
     </Grid>
   </DataTemplate>
 
-  <!-- Installing (and uninstalling): feature clips, one status line, a thin bar. -->
+  <!-- Installing (and uninstalling): the new version's "What's new" slides, one status line, a thin bar. -->
   <DataTemplate x:Key="Setup.Progress" x:DataType="vm:SetupViewModel">
     <Grid RowDefinitions="*,Auto" Margin="32,0,32,26">
-      <StackPanel VerticalAlignment="Center" Spacing="12" IsVisible="{Binding ShowShowcase}">
-        <Border Classes="clip" Width="448" Height="252" HorizontalAlignment="Center">
-          <TransitioningContentControl x:Name="ClipHost" />
-        </Border>
-        <TransitioningContentControl x:Name="CaptionHost" HorizontalAlignment="Center" MaxWidth="500" Height="40" />
-      </StackPanel>
+      <shared:SlideShow x:Name="Slides" VerticalAlignment="Center" MaxWidth="520" MediaWidth="304" MediaHeight="171"
+                        AutoAdvance="0:0:6" IsVisible="{Binding ShowShowcase}" />
       <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="14" IsVisible="{Binding !ShowShowcase}">
         <c:DonutLogo Width="84" Height="84" HorizontalAlignment="Center" />
         <TextBlock Classes="heading" TextAlignment="Center" TextWrapping="Wrap" Text="{Binding ProgressTitle}" />

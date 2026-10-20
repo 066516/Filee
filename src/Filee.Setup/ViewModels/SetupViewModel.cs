@@ -1,5 +1,5 @@
 // One compact card in a few states: Welcome (the logo, one Install button and an Options sheet with the folder, the
-// options, the engines and the language) → Progress (feature clips while the files go in) → Done ("Launch Filee") or
+// options, the engines and the language) → Progress (the new version's "What's new" slides while the files go in) → Done ("Launch Filee") or
 // Failed ("Copy details"). An update shows only what it may change (desktop icon, PATH); Filee's own settings stay as
 // they are. The uninstaller uses the same card: Uninstall (keep or delete the settings) → Progress → Uninstalled.
 
@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Filee.App.Controls;
 using Filee.Setup.Installation;
 using Filee.Setup.Payload;
 
@@ -50,24 +51,8 @@ public sealed partial class EngineItem(EngineOffer offer, bool installed) : Obse
     [ObservableProperty] private string _detail = "";
 }
 
-/// <summary>A feature clip shown while installing.</summary>
-/// <param name="Clip">avares:// URI of the light clip.</param>
-/// <param name="DarkClip">The clip for dark mode, when there is one.</param>
-public sealed record Showcase(string Clip, string? DarkClip, string CaptionKey);
-
 public sealed partial class SetupViewModel : ObservableObject
 {
-    /// <summary>The feature clips (Assets/Showcase), in the order they play.</summary>
-    public static readonly IReadOnlyList<Showcase> Clips =
-    [
-        new("avares://Filee.Setup/Assets/Showcase/expand-640.webp", "avares://Filee.Setup/Assets/Showcase/expand-dark-640.webp", "installer.showcase.expand"),
-        new("avares://Filee.Setup/Assets/Showcase/flip-640.webp", null, "installer.showcase.flip"),
-        new("avares://Filee.Setup/Assets/Showcase/browser-640.webp", null, "installer.showcase.browser"),
-    ];
-
-    /// <summary>How long each clip stays before the next one crossfades in.</summary>
-    public static readonly TimeSpan ClipTime = TimeSpan.FromSeconds(6);
-
     private readonly SetupTexts _texts;
     private readonly ISetupRunner _runner;
     private readonly PreviousInstall? _previous;
@@ -75,7 +60,6 @@ public sealed partial class SetupViewModel : ObservableObject
     private readonly long _neededSpace;
     private bool _languagePicked;
     private InstallResult? _result;
-    private DispatcherTimer? _clipTimer;
 
     /// <param name="version">The Filee version Setup installs (or the uninstaller removes).</param>
     /// <param name="initial">The choices from the command line and the defaults.</param>
@@ -113,6 +97,8 @@ public sealed partial class SetupViewModel : ObservableObject
                     UpdateEngineSelection();
             };
         }
+        if (!uninstall)
+            Deck = SlideDeck.Newest(SlideDeck.LoadAll("Filee.Setup"), seen: null, SlideDeck.TryParseVersion(version) ?? new Version(0, 0, 0));
         _page = uninstall ? SetupPage.Uninstall : SetupPage.Welcome;
         texts.LanguageChanged += (_, _) => RefreshTexts();
         RefreshTexts();
@@ -129,21 +115,14 @@ public sealed partial class SetupViewModel : ObservableObject
     /// <summary>Fresh installs offer the engines that aren't downloaded yet.</summary>
     public bool HasEngines => IsFresh && Engines.Any(e => !e.Installed);
 
-    /// <summary>/SILENT: the progress card only, no clips.</summary>
+    /// <summary>/SILENT: the progress card only, no slides.</summary>
     public bool Silent { get; set; }
 
-    /// <summary>Dark mode: the clips with a dark variant use it.</summary>
-    public bool Dark
-    {
-        get;
-        set
-        {
-            if (field == value)
-                return;
-            field = value;
-            OnPropertyChanged(nameof(CurrentClip));
-        }
-    }
+    /// <summary>
+    /// The newest "What's new" slides up to the version being installed (Assets/WhatsNew, shared with the app), shown
+    /// while the files go in; null when there are none.
+    /// </summary>
+    public SlideDeck? Deck { get; init; }
 
     /// <summary>Raised when the window should close (finished, cancelled).</summary>
     public event EventHandler? CloseRequested;
@@ -166,8 +145,8 @@ public sealed partial class SetupViewModel : ObservableObject
     public bool IsUninstallPage => Page == SetupPage.Uninstall;
     public bool IsUninstalled => Page == SetupPage.Uninstalled;
 
-    /// <summary>The progress card plays feature clips (not for /SILENT or the uninstaller).</summary>
-    public bool ShowShowcase => IsProgress && !Silent && !IsUninstall;
+    /// <summary>The progress card shows the "What's new" slides (not for /SILENT or the uninstaller).</summary>
+    public bool ShowShowcase => IsProgress && !Silent && !IsUninstall && Deck is { Slides.Count: > 0 };
 
     [ObservableProperty] private bool _optionsOpen;
     [ObservableProperty] private LanguageItem _selectedLanguage;
@@ -195,15 +174,6 @@ public sealed partial class SetupViewModel : ObservableObject
     [ObservableProperty] private string _logText = "";
     [ObservableProperty] private string _settingsText = "";
     [ObservableProperty] private bool _copied;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CurrentClip), nameof(CurrentCaption))]
-    private int _clipIndex;
-
-    /// <summary>The clip playing now.</summary>
-    public string CurrentClip => Dark && Clips[ClipIndex].DarkClip is { } dark ? dark : Clips[ClipIndex].Clip;
-
-    public string CurrentCaption => _texts[Clips[ClipIndex].CaptionKey];
 
     /// <summary>The big button of the Welcome card.</summary>
     public string PrimaryText => _texts[IsUpdate ? "installer.update" : "installer.install"];
@@ -251,22 +221,8 @@ public sealed partial class SetupViewModel : ObservableObject
 
     partial void OnContextMenuChanged(bool value) => OnPropertyChanged(nameof(ModernMenuEnabled));
 
-    partial void OnPageChanged(SetupPage value)
-    {
-        if (ShowShowcase)
-        {
-            ClipIndex = 0;
-            _clipTimer ??= new DispatcherTimer(ClipTime, DispatcherPriority.Background, (_, _) => NextClip());
-            _clipTimer.Start();
-        }
-        else
-        {
-            _clipTimer?.Stop();
-        }
-    }
-
-    /// <summary>The next feature clip (every <see cref="ClipTime"/> while installing).</summary>
-    public void NextClip() => ClipIndex = (ClipIndex + 1) % Clips.Count;
+    /// <summary>A translated text for the current language (the slides' titles and texts).</summary>
+    public string Text(string key) => _texts[key];
 
     /// <summary>Recomputes the texts with arguments (after a language change).</summary>
     private void RefreshTexts()
@@ -290,7 +246,6 @@ public sealed partial class SetupViewModel : ObservableObject
         ProgressTitle = _texts[IsUninstall ? "installer.uninstall.progress" : IsUpdate ? "installer.progress.update" : "installer.progress.install"];
         DoneTitle = _texts["installer.done.title"];
         OnPropertyChanged(nameof(PrimaryText));
-        OnPropertyChanged(nameof(CurrentCaption));
     }
 
     private void UpdateEngineSelection()

@@ -10,6 +10,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
+using Filee.App.Controls;
 using Filee.Setup.Controls;
 using Filee.Setup.ViewModels;
 
@@ -98,7 +99,6 @@ public partial class SetupWindow : Window
     private void ApplyTheme()
     {
         var dark = ActualThemeVariant == ThemeVariant.Dark;
-        _model.Dark = dark;
         // Links and the version pill: the deeper accent on light, the accent itself on dark (enough contrast on both).
         if (Application.Current?.FindResource(dark ? "AccentBrush" : "AccentStrongBrush") is { } link)
             Resources["Setup.LinkBrush"] = link;
@@ -111,12 +111,6 @@ public partial class SetupWindow : Window
         {
             case nameof(SetupViewModel.Page):
                 ShowState();
-                break;
-            case nameof(SetupViewModel.ClipIndex) or nameof(SetupViewModel.CurrentClip):
-                ShowClip();
-                break;
-            case nameof(SetupViewModel.CurrentCaption):
-                ShowCaption();
                 break;
             case nameof(SetupViewModel.OptionsOpen) when _model.OptionsOpen:
                 LanguageBox.Focus();
@@ -137,37 +131,29 @@ public partial class SetupWindow : Window
             return;
         state.DataContext = _model;
         Host.Content = state;
-        ShowClip();
-        ShowCaption();
+        ShowSlides();
         FocusPrimary();
     }
 
     private T? Find<T>(string name) where T : Control =>
         State?.GetLogicalDescendants().OfType<T>().FirstOrDefault(c => c.Name == name);
 
-    private void ShowClip()
+    /// <summary>The "What's new" slides on the progress card, fading in at each change.</summary>
+    private void ShowSlides()
     {
-        if (!_model.ShowShowcase || Find<TransitioningContentControl>("ClipHost") is not { } host)
+        if (!_model.ShowShowcase || _model.Deck is not { } deck || Find<SlideShow>("Slides") is not { } slides)
             return;
+        slides.PlayAnimations = SetupMotion.Enabled;
         if (SetupMotion.Enabled)
-            host.PageTransition ??= new CrossFade(TimeSpan.FromMilliseconds(600));
-        (host.Content as AnimatedWebp)?.Dispose();
-        host.Content = new AnimatedWebp { Source = _model.CurrentClip };
-    }
-
-    private void ShowCaption()
-    {
-        if (!_model.ShowShowcase || Find<TransitioningContentControl>("CaptionHost") is not { } host)
-            return;
-        if (SetupMotion.Enabled)
-            host.PageTransition ??= new CrossFade(TimeSpan.FromMilliseconds(600));
-        host.Content = new TextBlock
         {
-            Text = _model.CurrentCaption,
-            TextWrapping = TextWrapping.Wrap,
-            TextAlignment = TextAlignment.Center,
-            Classes = { "muted" },
-        };
+            slides.Media.Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = TimeSpan.FromMilliseconds(450) }];
+            slides.IndexChanged += (_, _) =>
+            {
+                slides.Media.Opacity = 0;
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => slides.Media.Opacity = 1, Avalonia.Threading.DispatcherPriority.Render);
+            };
+        }
+        slides.Show(deck.Slides, _model.Text);
     }
 
     private void FocusPrimary()

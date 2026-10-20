@@ -54,11 +54,15 @@
   <ItemGroup>
     <Compile Include="..\Filee.App\Services\SoftPalette.cs" Link="Shared\SoftPalette.cs" />
     <Compile Include="..\Filee.App\Services\AppLanguages.cs" Link="Shared\AppLanguages.cs" />
+    <!-- The "What's new" slides on the progress card: the app's slideshow, its player and deck reader, and the media. -->
+    <Compile Include="..\Filee.App\Controls\AnimatedImage.cs" Link="Shared\AnimatedImage.cs" />
+    <Compile Include="..\Filee.App\Controls\AnimatedImageDecoder.cs" Link="Shared\AnimatedImageDecoder.cs" />
+    <Compile Include="..\Filee.App\Controls\SlideDeck.cs" Link="Shared\SlideDeck.cs" />
+    <Compile Include="..\Filee.App\Controls\SlideShow.cs" Link="Shared\SlideShow.cs" />
+    <AvaloniaResource Include="..\Filee.App\Assets\WhatsNew\**" Link="Assets\WhatsNew\%(RecursiveDir)%(Filename)%(Extension)" />
     <AvaloniaResource Include="..\Filee.App\Styles\Soft.axaml" Link="Styles\Soft.axaml" />
     <AvaloniaResource Include="..\Filee.App\Assets\Icons\filee.ico" Link="Assets\Icons\filee.ico" />
     <AvaloniaResource Include="..\Filee.App\Assets\Icons\filee.png" Link="Assets\Icons\filee.png" />
-    <!-- Feature clips shown while installing (640 px animated WebP, ~330 KB each). -->
-    <AvaloniaResource Include="Assets\Showcase\*.webp" />
     <EmbeddedResource Include="..\Filee.App\Assets\i18n\*.json" Link="i18n\%(Filename)%(Extension)" LogicalName="i18n.%(Filename)%(Extension)" />
   </ItemGroup>
 
