@@ -319,10 +319,11 @@ public sealed partial class DonutMenu
         using var _ = context.PushTransform(ringTransform);
         using var __ = context.PushOpacity(opacity);
 
-        var plateRadius = RingRadius + RingStroke + 2;
+        var stroke = IsMaterialYou ? 10.0 : RingStroke;
+        var plateRadius = RingRadius + stroke + 2;
         DrawPlateShadow(context, center, plateRadius);
         context.DrawEllipse(CenterBrush, BorderPen(), center, plateRadius, plateRadius);
-        context.DrawEllipse(null, new Pen(WithOpacity(SecondaryForeground, 0.22), RingStroke), center, RingRadius, RingRadius);
+        context.DrawEllipse(null, new Pen(WithOpacity(SecondaryForeground, IsMaterialYou ? 0.16 : 0.22), stroke), center, RingRadius, RingRadius);
 
         var arcBrush = _outcome switch
         {
@@ -331,7 +332,7 @@ public sealed partial class DonutMenu
             _ => AccentBrush,
         };
         var sweep = _outcome == DonutProgressOutcome.Failed ? Math.Max(_shownProgress, 0.02) : _shownProgress;
-        DrawArc(context, center, RingRadius, sweep, new Pen(arcBrush, RingStroke, lineCap: PenLineCap.Round));
+        DrawArc(context, center, RingRadius, sweep, new Pen(arcBrush, stroke, lineCap: PenLineCap.Round));
 
         var badge = _outcome is null ? 0 : Math.Max(0, _badge.Value);
         if (badge < 0.98)
