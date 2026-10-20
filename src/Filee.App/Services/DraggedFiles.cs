@@ -11,14 +11,14 @@ namespace Filee.App.Services;
 
 internal static class DraggedFiles
 {
-    /// <summary>Whether the drag offers files in a form Filee reads (they may still turn out to be folders).</summary>
+    /// <summary>Whether the drag offers files or folders in a form Filee reads (they may still be missing).</summary>
     public static bool Offered(IDataTransfer data) =>
         data.Contains(DataFormat.File) || data.Items.Any(item => item.Formats.Any(IsFilenames));
 
     /// <summary>
     /// Local file and folder paths in the drag (virtual items are ignored). A shortcut counts as the file or folder it
     /// points to. Folders go into "Compress into one archive" like on the command line (issue #186); other presets
-    /// report them as unsupported.
+    /// leave them out. A trailing separator is removed, and a drive or the file system root is ignored.
     /// </summary>
     public static IReadOnlyList<string> Local(IDataTransfer data) =>
         Local(data, IsFileOrFolder, AppHost.Get<IPlatformServices>().ResolveShortcuts);
@@ -30,11 +30,18 @@ internal static class DraggedFiles
         Func<IReadOnlyList<string>, IReadOnlyList<string>>? resolveShortcuts = null)
     {
         IReadOnlyList<string> Usable(IReadOnlyList<string> paths) =>
-            (resolveShortcuts?.Invoke(paths) ?? paths).Where(exists).Distinct(FileSystemPaths.Comparer).ToList();
+            (resolveShortcuts?.Invoke(paths) ?? paths)
+                .Select(path => Path.TrimEndingDirectorySeparator(path))
+                .Where(path => exists(path) && !IsRoot(path))
+                .Distinct(FileSystemPaths.Comparer).ToList();
 
         var files = Usable((data.TryGetFiles() ?? []).Select(item => item.TryGetLocalPath()).OfType<string>().ToList());
         return files.Count > 0 ? files : Usable(Filenames(data).ToList());
     }
+
+    /// <summary>Whether <paramref name="path"/> is a drive or the file system root ("C:\", "/").</summary>
+    internal static bool IsRoot(string path) =>
+        string.Equals(Path.GetPathRoot(path), path, FileSystemPaths.Comparison);
 
     /// <summary>The formats a drag offers, for the log when Filee finds no files in it.</summary>
     public static string Describe(IDataTransfer data) =>

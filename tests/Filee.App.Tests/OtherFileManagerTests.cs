@@ -52,11 +52,20 @@ public class OtherFileManagerTests
         {
             Directory.Delete(folder, recursive: true);
         }
+    }
 
-        // Issue #186: files and folders dragged together all stay in the list.
-        using var data = Drag(PasteboardPaths.FilenamesType, Encoding.UTF8.GetBytes(Plist));
-        HashSet<string> existing = ["/Users/a/1.png", "/Users/a/folder"];
-        Assert.Equal(["/Users/a/1.png", "/Users/a/folder"], DraggedFiles.Local(data, existing.Contains));
+    [Fact]
+    public void A_dragged_folder_loses_its_trailing_slash_and_a_dragged_root_is_ignored()
+    {
+        const string plist = """
+            <plist version="1.0"><array><string>/Users/a/folder/</string><string>/</string><string>/Users/a/1.png</string></array></plist>
+            """;
+        using var data = Drag(PasteboardPaths.FilenamesType, Encoding.UTF8.GetBytes(plist));
+        HashSet<string> existing = ["/Users/a/folder", "/", "/Users/a/1.png"];
+
+        Assert.Equal(["/Users/a/folder", "/Users/a/1.png"], DraggedFiles.Local(data, existing.Contains));
+        Assert.True(DraggedFiles.IsRoot(Path.GetPathRoot(Path.GetTempPath())!));
+        Assert.False(DraggedFiles.IsRoot(Path.GetTempPath()));
     }
 
     [Fact]

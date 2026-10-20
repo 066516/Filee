@@ -265,7 +265,11 @@ public sealed class RadialController(
     /// <summary>Converts with slice <paramref name="index"/>, or with slice <paramref name="sub"/> of that group's ring.</summary>
     private void Convert(int index, int sub, IReadOnlyList<string> files)
     {
-        if (viewModel.PresetAt(index, sub) is not { } preset || files.Count == 0)
+        var preset = viewModel.PresetAt(index, sub);
+        // Folders only go into "Compress into one archive"; any other preset converts the files beside them (#186).
+        if (preset is { PacksIntoOneArchive: false })
+            files = files.Where(path => !Directory.Exists(path)).ToList();
+        if (preset is null || files.Count == 0)
         {
             Close();
             return;
