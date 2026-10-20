@@ -7,12 +7,12 @@ namespace Filee.Core.Tests;
 public class UserDataStoreTests
 {
     [Fact]
-    public void Version_30_learns_reported_text_and_video_extensions_without_taking_custom_claims()
+    public void Version_31_learns_text_video_cd_and_workbench_extensions_without_taking_custom_claims()
     {
         using var dir = new TempDir();
         var store = new UserDataStore(dir.Path);
         store.Load();
-        store.Settings.SchemaVersion = 30;
+        store.Settings.SchemaVersion = 31;
         foreach (var profile in store.Profiles)
             profile.Extensions.RemoveAll(e => e is "log" or "py" or "pac" or "bat" or "command" or "dat" or "wbpz");
         store.Profiles.Insert(0, new ToolbarProfile { Id = "my-python", Name = "My code", Extensions = ["py"] });
