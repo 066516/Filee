@@ -31,7 +31,11 @@ public class RenderTests
         { "general", "zh-CN" }, { "presets", "zh-CN" }, { "toolbar", "zh-CN" }, { "home", "zh-CN" },
         { "general", "pl" }, { "toolbar", "pl" }, { "presets", "pl" }, { "home", "pl" },
         { "home", "es" }, { "general", "es" }, { "toolbar", "es" }, { "presets", "es" }, { "engines", "es" },
-        { "home", "hi" }, { "toolbar", "hi" }, { "presets", "hi" }, { "engines", "hi" },
+        { "home", "hi" }, { "general", "hi" }, { "toolbar", "hi" }, { "presets", "hi" }, { "engines", "hi" },
+        { "home", "ja" }, { "general", "ja" }, { "triggers", "ja" }, { "toolbar", "ja" },
+        { "presets", "ja" }, { "theme", "ja" }, { "engines", "ja" }, { "about", "ja" }, { "watch", "ja" },
+        { "home", "ru" }, { "general", "ru" }, { "triggers", "ru" }, { "toolbar", "ru" }, { "presets", "ru" },
+        { "theme", "ru" }, { "engines", "ru" }, { "about", "ru" }, { "watch", "ru" },
     };
 
     [AvaloniaTheory]
@@ -97,7 +101,9 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
+    [InlineData("ru")]
     public void Watch_folders_page_renders_a_rule(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -130,6 +136,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     public void Watch_folder_card_shows_recent_results_and_retries_in_the_folder(string language)
     {
@@ -191,7 +198,9 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
+    [InlineData("ru")]
     public void Watch_folder_options_rename_and_filter_with_a_preview(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -279,7 +288,9 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
+    [InlineData("ru")]
     public void Home_page_lists_failed_files_with_a_retry_button(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -323,6 +334,132 @@ public class RenderTests
         }
     }
 
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("es")]
+    [InlineData("ko")]
+    [InlineData("zh-CN")]
+    [InlineData("pl")]
+    [InlineData("hi")]
+    [InlineData("ru")]
+    public void Home_page_search_finds_old_conversions_in_a_long_history(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var store = AppHost.Get<Filee.Core.Settings.UserDataStore>();
+        var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+        store.ClearHistory();
+        // A full history (newest first), with the report far below what the page lists without a search.
+        var entries = Enumerable.Range(0, store.Settings.EffectiveHistoryLimit).Select(i => new Filee.Core.History.HistoryEntry
+        {
+            FinishedAt = DateTime.Now.AddMinutes(-i),
+            PresetName = i == 150 ? "PDF" : "PNG",
+            State = Filee.Core.Conversion.JobState.Completed,
+            Sources = i == 150 ? [@"C:\Work\Annual report.docx", @"C:\Work\notes.txt"] : [$@"C:\Photos\IMG_{i:0000}.heic"],
+        });
+        store.History.AddRange(entries);
+        try
+        {
+            var vm = new MainWindowViewModel(AppHost.Services, loc, AppHost.Get<UpdateService>());
+            vm.Navigate("home");
+            var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+            window.Show();
+            Pump();
+
+            var page = (HomePageViewModel)vm.CurrentPage;
+            Assert.Equal(HomePageViewModel.Shown, page.History.Count);
+            var search = window.GetVisualDescendants().OfType<TextBox>().Single(t => t.Classes.Contains("search"));
+            Assert.True(search.IsEffectivelyVisible);
+            Assert.Equal(loc["common.search"], search.PlaceholderText);
+
+            page.Search = " REPORT "; // any part of a source file name, ignoring case and spaces around
+            Pump();
+            var found = Assert.Single(page.History);
+            Assert.Equal("PDF", found.Title);
+            Assert.False(page.NoMatches);
+            Save(window, $"page-home-search-{language}.png");
+
+            page.Search = "PNG"; // the preset: the newest matches, no more than without a search
+            Assert.Equal(HomePageViewModel.Shown, page.History.Count);
+            Assert.All(page.History, item => Assert.Equal("PNG", item.Title));
+
+            page.Search = "zzz";
+            Pump();
+            Assert.Empty(page.History);
+            Assert.True(page.NoMatches);
+            Assert.False(page.IsEmpty);
+            Save(window, $"page-home-search-none-{language}.png");
+
+            page.Search = "";
+            Assert.Equal(HomePageViewModel.Shown, page.History.Count);
+            window.Close();
+        }
+        finally
+        {
+            store.ClearHistory(); // also on disk: the next test's application loads the history again
+        }
+    }
+
+    [AvaloniaFact]
+    public void A_new_preset_shows_in_the_list_whatever_was_searched()
+    {
+        TestServices.EnsureInitialized("en");
+        var store = AppHost.Get<Filee.Core.Settings.UserDataStore>();
+        var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+        vm.Navigate("presets");
+        var page = (PresetsPageViewModel)vm.CurrentPage;
+        page.Search = "zzz";
+        Assert.Empty(page.VisiblePresets);
+
+        page.AddCommand.Execute(null);
+        try
+        {
+            Assert.Equal("", page.Search);
+            Assert.Contains(page.SelectedPreset!, page.VisiblePresets);
+        }
+        finally
+        {
+            store.Presets.Remove(page.SelectedPreset!.Preset);
+            store.SaveLibrary();
+        }
+    }
+
+    [AvaloniaFact]
+    public void General_page_keeps_the_history_limit_within_its_range()
+    {
+        TestServices.EnsureInitialized("en");
+        var store = AppHost.Get<Filee.Core.Settings.UserDataStore>();
+        var before = store.Settings.HistoryLimit;
+        try
+        {
+            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            vm.Navigate("general");
+            var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+            window.Show();
+            Pump();
+
+            var page = (GeneralPageViewModel)vm.CurrentPage;
+            Assert.Equal(200, page.HistoryLimit);
+            var limit = window.GetVisualDescendants().OfType<NumericUpDown>().Single();
+            Assert.True(limit.IsEffectivelyVisible);
+
+            page.HistoryLimit = 500;
+            Assert.Equal(500, store.Settings.HistoryLimit);
+            page.HistoryLimit = 5000;
+            Assert.Equal(Filee.Core.Settings.AppSettings.MaxHistoryLimit, store.Settings.HistoryLimit);
+
+            page.NoHistory = true; // nothing is recorded: nothing to limit either
+            Pump();
+            Assert.False(limit.IsEffectivelyVisible);
+            page.NoHistory = false;
+            window.Close();
+        }
+        finally
+        {
+            store.Settings.HistoryLimit = before;
+            store.SaveSettings();
+        }
+    }
+
     [AvaloniaFact]
     public void Engines_page_shows_versions_descriptions_and_download_speed()
     {
@@ -358,6 +495,7 @@ public class RenderTests
     [InlineData("es")]
     [InlineData("ko")]
     [InlineData("hi")]
+    [InlineData("ru")]
     public void Reset_to_default_sits_beside_delete_for_a_built_in_profile_only(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -443,9 +581,11 @@ public class RenderTests
     /// default): their presets' names fit their ring slices, in every language.
     /// </summary>
     [AvaloniaTheory]
+    [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("en")]
     [InlineData("zh-CN")]
+    [InlineData("ru")]
     public void The_rotate_and_flip_groups_fan_out_names_that_fit(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -490,8 +630,10 @@ public class RenderTests
     /// under the pointer there is what a drop or click converts with.
     /// </summary>
     [AvaloniaTheory]
+    [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("en")]
+    [InlineData("ru")]
     public void A_group_slice_fans_out_its_presets(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -623,6 +765,42 @@ public class RenderTests
         }
     }
 
+    /// <summary>The geospatial donut opens for Shapefiles with its six slices, rounded by the softness like the others.</summary>
+    [AvaloniaFact]
+    public void Geospatial_donut_opens_for_shapefiles_with_rounded_slices()
+    {
+        TestServices.EnsureInitialized("en");
+        var theme = AppHost.Get<ThemeService>();
+        try
+        {
+            theme.Apply(new ThemeSettings { Mode = ThemeMode.Light, CornerRadius = 28 }, "en");
+            var vm = AppHost.Get<RadialViewModel>();
+            vm.Load([@"C:\gis\roads.shp", @"C:\gis\parcels.shp"], clickMode: true);
+            vm.FitToThisDonut();
+            Assert.Equal(["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz"], vm.Presets.Select(p => p.Id));
+            Assert.All(vm.Items, item => Assert.True(item.IsEnabled));
+            var window = new RadialWindow { DataContext = vm };
+            window.Show();
+            var donut = window.DonutControl;
+            donut.SetExternalHighlight(1);
+            Pump();
+            Assert.Equal(14, donut.SliceCornerRadius);
+
+            // A corner the rounding cut away still picks its slice.
+            var n = vm.Items.Count;
+            var center = new Avalonia.Point(donut.Bounds.Width / 2, donut.Bounds.Height / 2);
+            var inner = vm.OuterRadius * vm.HoleRatio;
+            var corner = DonutGeometry.Wedge(center, inner, vm.OuterRadius, DonutGeometry.MidAngle(4, n), DonutGeometry.Span(n), 3).Start;
+            Assert.Equal(new DonutHit(DonutHitKind.Segment, 4), donut.HitTest(center + (corner - center) * 0.995));
+            Save(window, "donut-geospatial-soft.png");
+            window.Close();
+        }
+        finally
+        {
+            theme.Apply(new ThemeSettings(), "en");
+        }
+    }
+
     /// <summary>The middle of slot <paramref name="slot"/> of a donut with <paramref name="slots"/> slices.</summary>
     private static Avalonia.Point DonutPoint(DonutMenu donut, int slot, int slots)
     {
@@ -631,10 +809,12 @@ public class RenderTests
         return DonutGeometry.PointAt(center, radius, DonutGeometry.MidAngle(slot, slots));
     }
 
-    [AvaloniaFact]
-    public void Donut_toolbar_renders_for_images()
+    [AvaloniaTheory]
+    [InlineData("ko", "JPG 3개")]
+    [InlineData("ru", "3 × JPG")]
+    public void Donut_toolbar_renders_for_images(string language, string title)
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized(language);
         var files = new[] { @"C:\photos\a.jpg", @"C:\photos\b.jpg", @"C:\photos\c.jpg" };
         var vm = AppHost.Get<RadialViewModel>();
         vm.Load(files, clickMode: true);
@@ -644,8 +824,8 @@ public class RenderTests
         Pump();
 
         Assert.Equal(10, vm.Items.Count); // with "Trace to SVG" and "Line art to SVG"
-        Assert.Equal("JPG 3개", vm.CenterTitle);
-        Save(window, "donut-images-ko.png");
+        Assert.Equal(title, vm.CenterTitle);
+        Save(window, $"donut-images-{language}.png");
         window.Close();
     }
 
@@ -664,7 +844,9 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
+    [InlineData("ru")]
     public void Sponsor_window_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -717,7 +899,9 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
+    [InlineData("ru")]
     public void First_run_engine_setup_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1025,7 +1209,9 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
+    [InlineData("ru")]
     public void Sidebar_shows_the_version_and_a_new_release(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1115,6 +1301,7 @@ public class RenderTests
     [InlineData("zh-CN", false)]
     [InlineData("en", true)]
     [InlineData("ko", true)]
+    [InlineData("ru", false)]
     public void Toolbar_extension_editor_renders(string language, bool dark)
     {
         var photos = new ToolbarProfile
@@ -1193,6 +1380,7 @@ public class RenderTests
     [InlineData("ko", false)]
     [InlineData("zh-CN", false)]
     [InlineData("ko", true)]
+    [InlineData("ru", false)]
     public void Preset_editor_shows_media_and_archive_options(string language, bool dark)
     {
         TestServices.EnsureInitialized(language);
@@ -1272,8 +1460,10 @@ public class RenderTests
     /// <summary>The preset popup of "Trace to SVG": mode, colours and detail; colours only in colour mode.</summary>
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("zh-CN")]
+    [InlineData("ru")]
     public void Preset_editor_shows_tracing_options(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1315,8 +1505,10 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("zh-CN")]
+    [InlineData("ru")]
     public void Preset_editor_offers_markdown_without_pictures(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1342,6 +1534,28 @@ public class RenderTests
         Assert.False(vm.ShowLeaveOutPictures);
         Assert.True(vm.Apply());
         Assert.False(preset.Document.LeaveOutPictures);
+    }
+
+    [AvaloniaFact]
+    public void Preset_editor_offers_save_as_zip_for_geospatial_targets_only()
+    {
+        TestServices.EnsureInitialized("en");
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "shp", Name = "Shapefile" };
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowZipResult);
+        Assert.Equal("Geospatial", vm.Target.Detail);
+
+        vm.ZipResult = true;
+        Assert.True(vm.Apply());
+        Assert.True(preset.Output.ZipResult);
+
+        vm.Target = vm.Targets.Single(t => t.Value == "kml");
+        Assert.True(vm.ShowZipResult);
+        vm.Target = vm.Targets.Single(t => t.Value == "png");
+        Assert.False(vm.ShowZipResult);
+        // The box ticked for Shapefile, hidden for PNG, doesn't zip the PNG.
+        Assert.True(vm.Apply());
+        Assert.False(preset.Output.ZipResult);
     }
 
     [AvaloniaFact]
@@ -1452,6 +1666,22 @@ public class RenderTests
         Assert.Equal("Subtitle", vm.Target.Detail);
     }
 
+    /// <summary>The geospatial donut in the toolbar editor: GeoJSON, Shapefile, KML, CSV, GPX and KMZ for geo files.</summary>
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    public void Toolbar_geospatial_donut_renders(string language)
+    {
+        WithProfiles(language, false, 1240, _ => { }, (window, vm) =>
+        {
+            vm.SelectedProfile = vm.Profiles.Single(p => p.Profile.Id == "geo");
+            Pump();
+            Assert.Equal(["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz"], vm.SelectedProfile.Profile.PresetIds);
+            Assert.Contains("shp", vm.ExtensionTags!.Tags.Select(t => t.Text.TrimStart('.')));
+            Save(window, $"toolbar-geospatial-{language}.png");
+        });
+    }
+
     /// <summary>Shows the toolbar page (tall, so the profile card is visible) with temporarily changed profiles.</summary>
     private static void WithProfiles(string language, bool dark, double height, Action<List<ToolbarProfile>> change, Action<Window, ToolbarPageViewModel> act)
     {
@@ -1485,7 +1715,9 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
+    [InlineData("ru")]
     public void Excluded_apps_render_as_tags(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1512,8 +1744,10 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("zh-CN")]
+    [InlineData("ru")]
     public void Close_dialog_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1526,8 +1760,10 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
+    [InlineData("ja")]
     [InlineData("ko")]
     [InlineData("zh-CN")]
+    [InlineData("ru")]
     public void Format_request_notice_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1539,7 +1775,36 @@ public class RenderTests
         notice.Close();
     }
 
-    private static void Pump()
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    [InlineData("zh-CN")]
+    public void Extract_live_photo_video_option_renders_and_saves_for_mp4_and_mov_only(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var preset = Filee.Core.Presets.BuiltInData.MotionPhotoPresets().Single();
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowExtractMotionPhoto);
+        Assert.True(vm.ExtractMotionPhoto);
+        var window = new PresetEditorWindow { DataContext = vm, Height = 980 };
+        window.Show();
+        Pump();
+        Save(window, $"preset-extract-motion-{language}.png");
+        window.Close();
+
+        vm.Target = vm.Targets.Single(t => t.Value == "mov");
+        Assert.True(vm.ShowExtractMotionPhoto);
+        Assert.True(vm.Apply());
+        Assert.True(preset.Media.ExtractMotionPhoto);
+        // A box ticked for MP4 and left behind by another target saves nothing.
+        var restored = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        restored.Target = restored.Targets.Single(t => t.Value == "webm");
+        Assert.False(restored.ShowExtractMotionPhoto);
+        Assert.True(restored.Apply());
+        Assert.False(preset.Media.ExtractMotionPhoto);
+    }
+
+    internal static void Pump()
     {
         // Let layout, bindings and a few animation frames run.
         for (var i = 0; i < 40; i++)
@@ -1549,7 +1814,7 @@ public class RenderTests
         }
     }
 
-    private static void Save(TopLevel window, string name)
+    internal static void Save(TopLevel window, string name)
     {
         // Disposed at the end, so the frame stays alive while Skia encodes it: a collection in between (the idle memory
         // trim runs one on another thread) would otherwise finalize its image under the encoder.

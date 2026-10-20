@@ -331,6 +331,34 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void History_keeps_the_newest_entries_up_to_the_limit()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        Assert.Equal(200, store.Settings.HistoryLimit);
+
+        store.Settings.HistoryLimit = 60;
+        for (var i = 0; i < 70; i++)
+            store.AddHistory(new Filee.Core.History.HistoryEntry { JobId = $"{i}" });
+        Assert.Equal(60, store.History.Count);
+        Assert.Equal("69", store.History[0].JobId);
+        Assert.Equal("10", store.History[^1].JobId);
+
+        // Lowered below the smallest limit: the oldest go with the next conversion, down to that smallest limit.
+        store.Settings.HistoryLimit = 0;
+        store.SaveSettings();
+        store.AddHistory(new Filee.Core.History.HistoryEntry { JobId = "70" });
+        Assert.Equal(AppSettings.MinHistoryLimit, store.History.Count);
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        Assert.Equal(0, reloaded.Settings.HistoryLimit);
+        Assert.Equal(AppSettings.MinHistoryLimit, reloaded.Settings.EffectiveHistoryLimit);
+        Assert.Equal(AppSettings.MinHistoryLimit, reloaded.History.Count);
+    }
+
+    [Fact]
     public void Version_1_settings_are_upgraded_to_the_current_engine_list()
     {
         using var dir = new TempDir();
@@ -340,7 +368,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "wic", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "geo", "archive", "ebook", "subtitle", "wic", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
         Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
     }
 
@@ -392,7 +420,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "archive", "ebook", "subtitle", "wic", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "markdown", "spreadsheet", "ooxml", "hwpx-writer", "docx-writer", "pdf-text", "pdf-slides", "email", "data", "vector", "icns", "font", "cad", "model3d", "geo", "archive", "ebook", "subtitle", "wic", "ffmpeg", "pandoc", "ghostscript", "calibre", "libreoffice"], store.Settings.EnginePriority);
         var ids = store.Profiles.Select(p => p.Id).ToList();
         Assert.Equal(ids.IndexOf("office") + 1, ids.IndexOf("spreadsheets"));
         Assert.Equal(ids.IndexOf("office") + 2, ids.IndexOf("presentations"));
@@ -407,8 +435,8 @@ public class UserDataStoreTests
     {
         // As written by 1.0.x with schema 5: no catalog presets, donuts or extensions.
         var presets = BuiltInData.CreatePresets()
-            .Where(p => BuiltInData.CatalogPresets().Concat(BuiltInData.CodecAndSubtitlePresets()).Concat(BuiltInData.ModelPresets()).All(c => c.Id != p.Id)).ToList();
-        var catalogIds = BuiltInData.CatalogProfiles().Select(p => p.Id).Append("subtitles").Append("models").ToHashSet();
+            .Where(p => BuiltInData.CatalogPresets().Concat(BuiltInData.CodecAndSubtitlePresets()).Concat(BuiltInData.ModelPresets()).Concat(BuiltInData.GeoPresets()).All(c => c.Id != p.Id)).ToList();
+        var catalogIds = BuiltInData.CatalogProfiles().Select(p => p.Id).Append("subtitles").Append("models").Append("geo").ToHashSet();
         var profiles = BuiltInData.CreateProfiles().Where(p => !catalogIds.Contains(p.Id)).ToList();
         profiles.Single(p => p.Id == "images").Extensions = ["png", "jpg"];
         profiles.Single(p => p.Id == "pdf").PresetIds.Remove("to-docx");
@@ -422,7 +450,8 @@ public class UserDataStoreTests
         Assert.Equal(ids.IndexOf("text") + 1, ids.IndexOf("ebooks"));
         Assert.Equal(ids.IndexOf("fonts") + 1, ids.IndexOf("data")); // schema 14
         Assert.Equal(ids.IndexOf("data") + 1, ids.IndexOf("models")); // schema 15
-        Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("models"));
+        Assert.Equal(ids.IndexOf("models") + 1, ids.IndexOf("geo")); // schema 25
+        Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("geo"));
         Assert.Equal(ids.IndexOf("audio") + 1, ids.IndexOf("subtitles"));
         Assert.Contains("cr2", profiles.Single(p => p.Id == "images").Extensions);
         Assert.DoesNotContain("mp3", profiles.Single(p => p.Id == "audio").Extensions);
@@ -565,8 +594,9 @@ public class UserDataStoreTests
         store.Load();
 
         // ... and, from schema 15, the 3D model engine before Pandoc (no CAD or archive engine in this list), from
-        // schema 18 the PDF slides engine there too (no PDF text engine), from schema 21 the WIC engine (no FFmpeg).
-        Assert.Equal(["magick", "email", "data", "vector", "model3d", "pdf-slides", "wic", "pandoc", "libreoffice"], store.Settings.EnginePriority);
+        // schema 18 the PDF slides engine there too (no PDF text engine), from schema 21 the WIC engine (no FFmpeg),
+        // from schema 25 the geospatial engine after the 3D models engine.
+        Assert.Equal(["magick", "email", "data", "vector", "model3d", "geo", "pdf-slides", "wic", "pandoc", "libreoffice"], store.Settings.EnginePriority);
     }
 
     [Fact]
@@ -660,15 +690,17 @@ public class UserDataStoreTests
     {
         // As written with schema 14: no 3D formats.
         var modelIds = BuiltInData.ModelPresets().Select(p => p.Id).ToHashSet();
-        var presets = BuiltInData.CreatePresets().Where(p => !modelIds.Contains(p.Id)).ToList();
-        var profiles = BuiltInData.CreateProfiles().Where(p => p.Id != "models").ToList();
+        var geoIds = BuiltInData.GeoPresets().Select(p => p.Id).ToHashSet();
+        var presets = BuiltInData.CreatePresets().Where(p => !modelIds.Contains(p.Id) && !geoIds.Contains(p.Id)).ToList();
+        var profiles = BuiltInData.CreateProfiles().Where(p => p.Id is not ("models" or "geo")).ToList();
 
         Assert.True(SettingsMigrations.ApplyToLibrary(14, presets, profiles));
 
         Assert.Equal(["to-glb", "to-stl", "to-obj", "to-3mf", "to-ply", "to-gltf"], presets.Where(p => modelIds.Contains(p.Id)).Select(p => p.Id));
         var ids = profiles.Select(p => p.Id).ToList();
         Assert.Equal(ids.IndexOf("data") + 1, ids.IndexOf("models"));
-        Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("models"));
+        Assert.Equal(ids.IndexOf("models") + 1, ids.IndexOf("geo")); // and, from schema 25, the geospatial donut
+        Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("geo"));
         var models = profiles.Single(p => p.Id == "models");
         Assert.Equal(["glb", "gltf", "stl", "obj", "3mf", "ply", "fbx"], models.Extensions);
         Assert.Equal(BuiltInData.ModelProfile().PresetIds, models.PresetIds);
@@ -679,7 +711,7 @@ public class UserDataStoreTests
     public void The_3d_donut_leaves_out_extensions_a_profile_of_the_user_takes()
     {
         var presets = BuiltInData.CreatePresets();
-        var profiles = BuiltInData.CreateProfiles().Where(p => p.Id != "models").ToList();
+        var profiles = BuiltInData.CreateProfiles().Where(p => p.Id is not ("models" or "geo")).ToList();
         profiles.Insert(0, new ToolbarProfile { Id = "printing", Name = "Printing", Extensions = ["stl", "3mf"] });
 
         Assert.True(SettingsMigrations.ApplyToLibrary(14, presets, profiles));
@@ -754,6 +786,172 @@ public class UserDataStoreTests
         profiles.Insert(0, new ToolbarProfile { Id = "templates", Name = "Templates", Extensions = ["potm"] });
         Assert.False(SettingsMigrations.ApplyToLibrary(23, presets, profiles));
         Assert.DoesNotContain("potm", profiles.Single(p => p.Id == "presentations").Extensions);
+    }
+
+    [Fact]
+    public void Version_26_libraries_learn_ofd_on_the_office_donut_and_nothing_else()
+    {
+        // As written with schema 26: no OFD, and the user took RTF off the office donut.
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var office = profiles.Single(p => p.Id == "office");
+        office.Extensions.RemoveAll(e => e is "ofd" or "rtf");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(26, presets, profiles));
+
+        Assert.Contains("ofd", office.Extensions);
+        Assert.DoesNotContain("rtf", office.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(26, presets, profiles)); // once only
+
+        // A donut of the user that already opens .ofd files keeps them.
+        profiles = BuiltInData.CreateProfiles();
+        profiles.Single(p => p.Id == "office").Extensions.Remove("ofd");
+        profiles.Insert(0, new ToolbarProfile { Id = "invoices", Name = "Invoices", Extensions = ["ofd"] });
+        Assert.False(SettingsMigrations.ApplyToLibrary(26, presets, profiles));
+        Assert.DoesNotContain("ofd", profiles.Single(p => p.Id == "office").Extensions);
+    }
+
+    [Fact]
+    public void Version_24_libraries_get_geospatial_presets_and_their_donut_after_models()
+    {
+        // As written with schema 24: no geospatial formats.
+        var geoIds = BuiltInData.GeoPresets().Select(p => p.Id).ToHashSet();
+        var presets = BuiltInData.CreatePresets().Where(p => !geoIds.Contains(p.Id)).ToList();
+        var profiles = BuiltInData.CreateProfiles().Where(p => p.Id != "geo").ToList();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(24, presets, profiles));
+
+        Assert.Equal(["to-geojson", "to-shp", "to-kml", "to-gpx", "to-kmz"], presets.Where(p => geoIds.Contains(p.Id)).Select(p => p.Id));
+        Assert.Equal(["geojson", "shp", "kml", "gpx"], presets.Where(p => geoIds.Contains(p.Id)).Select(p => p.TargetFormat).Take(4));
+        var ids = profiles.Select(p => p.Id).ToList();
+        Assert.Equal(ids.IndexOf("models") + 1, ids.IndexOf("geo"));
+        Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("geo"));
+        var geo = profiles.Single(p => p.Id == "geo");
+        Assert.Equal(["geojson", "kml", "kmz", "gpx", "shp"], geo.Extensions);
+        Assert.Equal(BuiltInData.GeoProfile().PresetIds, geo.PresetIds);
+        Assert.All(geo.PresetIds, id => Assert.Contains(presets, p => p.Id == id));
+        Assert.False(SettingsMigrations.ApplyToLibrary(24, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void The_geospatial_donut_leaves_out_extensions_a_profile_of_the_user_takes_and_is_skipped_when_all_are_taken()
+    {
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles().Where(p => p.Id != "geo").ToList();
+        profiles.Insert(0, new ToolbarProfile { Id = "earth", Name = "Earth", Extensions = ["kml", "kmz"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(24, presets, profiles));
+        Assert.Equal(["geojson", "gpx", "shp"], profiles.Single(p => p.Id == "geo").Extensions);
+
+        var taken = BuiltInData.CreateProfiles().Where(p => p.Id != "geo").ToList();
+        taken.Insert(0, new ToolbarProfile { Id = "all", Name = "All", Extensions = ["geojson", "kml", "kmz", "gpx", "shp"] });
+        var geoIds = BuiltInData.GeoPresets().Select(p => p.Id).ToHashSet();
+        var withoutPresets = BuiltInData.CreatePresets().Where(p => !geoIds.Contains(p.Id)).ToList();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(24, withoutPresets, taken)); // the presets are still added
+        Assert.DoesNotContain(taken, p => p.Id == "geo");
+        Assert.Contains(withoutPresets, p => p.Id == "to-shp");
+    }
+
+    [Fact]
+    public void A_geospatial_donut_of_the_user_is_not_replaced()
+    {
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var mine = profiles.Single(p => p.Id == "geo");
+        mine.PresetIds = ["to-kml"];
+        mine.Extensions = ["kml"];
+
+        SettingsMigrations.ApplyToLibrary(24, presets, profiles);
+
+        var geo = profiles.Single(p => p.Id == "geo");
+        Assert.Equal(["to-kml"], geo.PresetIds);
+        // The extensions of the default donut that no donut takes yet are added to it, after the user's own.
+        Assert.Equal(["kml", "geojson", "kmz", "gpx", "shp"], geo.Extensions);
+    }
+
+    [Fact]
+    public void Version_24_settings_get_the_geo_engine_after_the_3d_models_engine()
+    {
+        using var dir = new TempDir();
+        File.WriteAllText(Path.Combine(dir.Path, "settings.json"),
+            """{ "schemaVersion": 24, "enginePriority": ["magick", "cad", "model3d", "archive", "pandoc", "libreoffice"] }""");
+
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        Assert.Equal(["magick", "cad", "model3d", "geo", "archive", "pandoc", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
+    }
+
+    [Fact]
+    public void A_new_library_has_the_geospatial_donut_with_presets_that_exist()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        var ids = store.Profiles.Select(p => p.Id).ToList();
+        Assert.Equal(ids.IndexOf("models") + 1, ids.IndexOf("geo"));
+        var geo = store.Profiles.Single(p => p.Id == "geo");
+        Assert.All(geo.PresetIds, id => Assert.NotNull(store.FindPreset(id)));
+        Assert.Equal("shp", store.FindPreset("to-shp")!.TargetFormat);
+        Assert.Equal("csv", store.FindPreset("to-csv")!.TargetFormat);
+    }
+
+    [Fact]
+    public void Version_27_libraries_get_one_zip_on_the_archives_donut_after_extract()
+    {
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var archives = profiles.Single(p => p.Id == "archives");
+        archives.PresetIds.Remove("zip-all");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(27, presets, profiles));
+        Assert.Equal(["extract", "zip-all", "to-zip", "to-7z", "to-tgz", "to-tar"], archives.PresetIds);
+        Assert.False(SettingsMigrations.ApplyToLibrary(27, presets, profiles)); // once only
+
+        // A library without the preset (the user deleted it) doesn't get it back, and a full donut stays full.
+        presets.RemoveAll(p => p.Id == "zip-all");
+        archives.PresetIds.Remove("zip-all");
+        Assert.False(SettingsMigrations.ApplyToLibrary(27, presets, profiles));
+        Assert.DoesNotContain("zip-all", archives.PresetIds);
+
+        presets = BuiltInData.CreatePresets();
+        archives.PresetIds = [.. presets.Where(p => p.Id != "zip-all").Take(ToolbarProfile.MaxSlices).Select(p => p.Id)];
+        Assert.False(SettingsMigrations.ApplyToLibrary(27, presets, profiles));
+        Assert.DoesNotContain("zip-all", archives.PresetIds);
+    }
+
+    [Fact]
+    public void Version_28_libraries_get_extract_live_video_on_no_donut_and_learn_livp()
+    {
+        // As written with schema 28: no "Extract Live Photo video", no .livp on the images donut, and the user took
+        // HEIC off it.
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "extract-motion");
+        var profiles = BuiltInData.CreateProfiles();
+        var images = profiles.Single(p => p.Id == "images");
+        images.Extensions.RemoveAll(e => e is "livp" or "heic");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(28, presets, profiles));
+
+        var motion = presets.Single(p => p.Id == "extract-motion");
+        Assert.True(motion.Media.ExtractMotionPhoto);
+        Assert.Equal("mp4", motion.TargetFormat);
+        Assert.Equal("extract-frames-jpg", presets[presets.IndexOf(motion) - 1].Id);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("extract-motion"));
+        Assert.Contains("livp", images.Extensions);
+        Assert.DoesNotContain("heic", images.Extensions);
+        Assert.False(SettingsMigrations.ApplyToLibrary(28, presets, profiles)); // once only
+
+        // Back from an older Filee, which dropped the option it didn't know: the preset extracts again, its name stays.
+        motion.Media.ExtractMotionPhoto = false;
+        motion.Name = "Live video";
+        Assert.True(SettingsMigrations.ApplyToLibrary(28, presets, profiles));
+        Assert.True(motion.Media.ExtractMotionPhoto);
+        Assert.Equal("Live video", motion.Name);
+        Assert.Single(presets, p => p.Id == "extract-motion");
     }
 
     [Fact]
@@ -874,7 +1072,7 @@ public class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(["magick", "pdfium", "docx-writer", "pdf-text", "pdf-slides", "email", "wic", "pandoc", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "pdfium", "docx-writer", "pdf-text", "pdf-slides", "email", "geo", "wic", "pandoc", "libreoffice"], store.Settings.EnginePriority);
         Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
     }
 
@@ -889,7 +1087,7 @@ public class UserDataStoreTests
         store.Load();
 
         // Not near the top: the HWPX writer stays among the ranks that win ties (see EbookTests).
-        Assert.Equal(["magick", "pdfium", "hwpx-writer", "subtitle", "wic", "ffmpeg", "pandoc", "libreoffice"], store.Settings.EnginePriority);
+        Assert.Equal(["magick", "pdfium", "hwpx-writer", "subtitle", "wic", "ffmpeg", "geo", "pandoc", "libreoffice"], store.Settings.EnginePriority);
         Assert.Equal(AppSettings.CurrentSchemaVersion, store.Settings.SchemaVersion);
     }
 
@@ -999,6 +1197,42 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_25_libraries_get_crop_tool_preset_after_remove_background_on_no_donut()
+    {
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "tool-crop");
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(25, presets, profiles));
+
+        var crop = presets.Single(p => p.Id == "tool-crop");
+        Assert.Equal(PresetKind.Tool, crop.Kind);
+        Assert.Equal("remove-background", presets[presets.IndexOf(crop) - 1].Id);
+        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("tool-crop"));
+        Assert.False(SettingsMigrations.ApplyToLibrary(25, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Back_from_an_older_Filee_tool_crop_works_again_and_keeps_the_users_changes()
+    {
+        // What a Filee before 26 leaves after saving: kind read as Group, TargetFormat dropped, SubPresetIds empty, the rest as it was.
+        var presets = BuiltInData.CreatePresets();
+        var crop = presets.Single(p => p.Id == "tool-crop");
+        crop.Kind = PresetKind.Group;
+        crop.TargetFormat = Preset.GroupTarget;
+        crop.SubPresetIds = [];
+        crop.Name = "Trim";
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(25, presets, BuiltInData.CreateProfiles()));
+
+        Assert.Equal(PresetKind.Tool, crop.Kind);
+        Assert.Equal(BuiltInData.SameAsSource, crop.TargetFormat);
+        Assert.Empty(crop.SubPresetIds);
+        Assert.Equal("Trim", crop.Name);
+        Assert.Single(presets, p => p.Id == "tool-crop");
+    }
+
+    [Fact]
     public void Back_from_an_older_Filee_compress_pdf_compresses_again_and_keeps_the_users_changes()
     {
         // What a Filee before 20 leaves after saving: the compression level dropped, the rest as it was.
@@ -1044,7 +1278,7 @@ public class UserDataStoreTests
         // Schema-5 data where the user already limited a mixed-files donut to MP3 and JPG: those checks must not
         // count as "taken" when the catalog donuts and extensions are added.
         var presets = BuiltInData.CreatePresets().Where(p => BuiltInData.CatalogPresets().All(c => c.Id != p.Id)).ToList();
-        var catalogIds = BuiltInData.CatalogProfiles().Select(p => p.Id).Append("models").ToHashSet();
+        var catalogIds = BuiltInData.CatalogProfiles().Select(p => p.Id).Append("models").Append("geo").ToHashSet();
         var profiles = BuiltInData.CreateProfiles().Where(p => !catalogIds.Contains(p.Id)).ToList();
         profiles.Single(p => p.Id == "images").Extensions = ["png"];
         profiles.Add(new ToolbarProfile { Id = "music-mix", Name = "Music mix", IsFallback = true, Extensions = ["mp3", "jpg"] });

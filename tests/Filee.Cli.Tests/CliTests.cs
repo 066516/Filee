@@ -49,6 +49,20 @@ public sealed class CliTests : IDisposable
     }
 
     [Fact]
+    public async Task Zip_saves_the_result_of_each_file_as_one_zip()
+    {
+        var geojson = Path.Combine(_folder, "places.geojson");
+        File.WriteAllText(geojson, """{"type":"Feature","properties":{"n":1},"geometry":{"type":"Point","coordinates":[1,2]}}""");
+
+        var (code, _, _) = await Run("convert", geojson, "--to", "shp", "--zip");
+
+        Assert.Equal(Cli.Success, code);
+        using var zip = System.IO.Compression.ZipFile.OpenRead(Path.Combine(_folder, "places.zip"));
+        Assert.Equal(["places.cpg", "places.dbf", "places.prj", "places.shp", "places.shx"], zip.Entries.Select(e => e.Name).Order().ToArray());
+        Assert.False(File.Exists(Path.Combine(_folder, "places.shp")));
+    }
+
+    [Fact]
     public async Task Keep_dates_copies_the_dates_of_the_originals()
     {
         var source = Png("old.png");
@@ -325,5 +339,15 @@ public sealed class CliTests : IDisposable
         Assert.Contains("한글 report's", Path.GetFileName(result));
         Assert.True(File.Exists(result));
         Assert.True(File.Exists(source));
+    }
+
+    [Fact]
+    public async Task Refuses_tool_presets()
+    {
+        var source = Png("photo.png");
+        var (code, _, errors) = await Run("convert", source, "--preset", "tool-crop");
+
+        Assert.Equal(Cli.UsageError, code);
+        Assert.Contains("is an interactive tool, not a conversion", errors);
     }
 }

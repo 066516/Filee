@@ -15,16 +15,8 @@ namespace Filee.App.Services;
 /// <summary>JSON based localization with live language switching.</summary>
 public sealed class LocalizationService : ILocalizer
 {
-    /// <summary>Languages shipped with Filee: code → native name (shown in the language picker).</summary>
-    public static readonly IReadOnlyList<(string Code, string NativeName)> Languages =
-    [
-        ("en", "English"),
-        ("es", "Español"),
-        ("ko", "한국어"),
-        ("zh-CN", "简体中文"),
-        ("pl", "Polski"),
-        ("hi", "हिन्दी"),
-    ];
+    /// <summary>Languages shipped with Filee: code → native name (shown in the language picker; see AppLanguages).</summary>
+    public static readonly IReadOnlyList<(string Code, string NativeName)> Languages = AppLanguages.All;
 
     private readonly ResourceDictionary _resources = new();
     private readonly Dictionary<string, string> _english;
@@ -96,6 +88,8 @@ public sealed class LocalizationService : ILocalizer
 
         // macOS gives an app started from Finder no LANG: its language list comes from the system instead.
         var ui = Filee.Platform.MacOS.MacOSLocale.PreferredLanguage() ?? CultureInfo.InstalledUICulture.Name;
+        if (ui.StartsWith("ja", StringComparison.OrdinalIgnoreCase))
+            return "ja";
         if (ui.StartsWith("ko", StringComparison.OrdinalIgnoreCase))
             return "ko";
         if (ui.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
@@ -106,6 +100,8 @@ public sealed class LocalizationService : ILocalizer
             return "es";
         if (ui.StartsWith("hi", StringComparison.OrdinalIgnoreCase))
             return "hi";
+        if (ui.StartsWith("ru", StringComparison.OrdinalIgnoreCase))
+            return "ru";
         return "en";
     }
 

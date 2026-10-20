@@ -6,6 +6,7 @@ using Filee.Core.Conversion;
 using Filee.Core.Localization;
 using Filee.Core.Platform;
 using Filee.Core.Settings;
+using Filee.Core.Web;
 using Filee.Engines;
 using Filee.Engines.Infrastructure;
 using Filee.Platform.Linux;
@@ -57,6 +58,8 @@ public static class AppHost
             EngineRegistry.FindFileCombiner(sp.GetRequiredService<IReadOnlyList<IConverter>>()),
             EngineRegistry.FindTiffMerger(sp.GetRequiredService<IReadOnlyList<IConverter>>())));
 
+        // Files dragged from a browser with only an address are downloaded without the browser's cookies.
+        services.AddSingleton(_ => new WebDownloader(userAgent: $"Filee/{typeof(AppHost).Assembly.GetName().Version?.ToString(3)}"));
         services.AddSingleton<EngineDownloadService>();
         services.AddSingleton<PresetAvailability>();
         services.AddSingleton<RadialViewModel>();
@@ -68,6 +71,7 @@ public static class AppHost
         services.AddSingleton<UpdateService>();
         services.AddSingleton<MemoryTrimmer>();
         services.AddSingleton<WindowService>();
+        services.AddSingleton<WhatsNewService>();
 
         _services = services.BuildServiceProvider();
         return _services;

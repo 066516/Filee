@@ -16,6 +16,12 @@ public enum PresetKind
     /// conversion is picked (preset list, watch folders, <c>filee --preset</c>).
     /// </summary>
     Group,
+
+    /// <summary>
+    /// Opens its own window on the dropped files instead of converting them (the interactive Crop). Like a group,
+    /// never offered where a conversion is picked.
+    /// </summary>
+    Tool,
 }
 
 /// <summary>
@@ -120,6 +126,13 @@ public sealed class Preset
     [JsonIgnore]
     public bool IsGroup => Kind == PresetKind.Group;
 
+    /// <summary>True for "Compress into one archive": files and folders go into one archive as they are.</summary>
+    [JsonIgnore]
+    public bool PacksIntoOneArchive =>
+        Archive.CombineIntoOne
+        && Formats.FormatRegistry.FindById(TargetFormat) is { Category: Formats.FormatCategory.Archive } archive
+        && archive.Id != Formats.FormatRegistry.Folder;
+
     /// <summary>
     /// True if converting a <paramref name="sourceFormat"/> file saves every frame as a picture
     /// (<see cref="MediaOptions.SaveEveryFrame"/>): the file is a video and the target one of
@@ -129,6 +142,21 @@ public sealed class Preset
         Media.SaveEveryFrame
         && MediaOptions.FrameTargets.Contains(TargetFormat)
         && Formats.FormatRegistry.FindById(sourceFormat)?.Category == Formats.FormatCategory.Video;
+
+    /// <summary>
+    /// True if converting a <paramref name="sourceFormat"/> file takes the video of a Live / Motion Photo instead of a
+    /// video of the still picture: the target is one of <see cref="MediaOptions.MotionPhotoTargets"/> and the source one
+    /// of <see cref="MediaOptions.MotionPhotoSources"/>, with <see cref="MediaOptions.ExtractMotionPhoto"/> on. A LIVP
+    /// (an iPhone photo and its MOV in one ZIP) always gives its video. Other pictures (GIF, PNG, …) convert as usual.
+    /// </summary>
+    public bool ExtractsMotionOf(string sourceFormat) =>
+        MediaOptions.MotionPhotoTargets.Contains(TargetFormat)
+        && MediaOptions.MotionPhotoSources.Contains(sourceFormat)
+        && (Media.ExtractMotionPhoto || sourceFormat == "livp");
+
+    /// <summary>True for a <see cref="PresetKind.Tool"/>.</summary>
+    [JsonIgnore]
+    public bool IsTool => Kind == PresetKind.Tool;
 
     /// <summary>Creates a new random preset id.</summary>
     public static string NewId() => Guid.NewGuid().ToString("N")[..12];
@@ -447,6 +475,23 @@ public sealed class MediaOptions
     /// sources and a target in <see cref="FrameTargets"/> (<see cref="Preset.SavesFramesOf"/>).
     /// </summary>
     public bool SaveEveryFrame { get; set; }
+
+    /// <summary>Formats a Live / Motion Photo video can be taken into (<see cref="ExtractMotionPhoto"/>).</summary>
+    public static readonly IReadOnlyList<string> MotionPhotoTargets = ["mp4", "mov"];
+
+    /// <summary>
+    /// Photos that can hold a video (<see cref="ExtractMotionPhoto"/>): Android Motion Photos (JPEG with the video
+    /// appended, HEIC / AVIF with an <c>mpvd</c> box), iPhone Live Photos (a JPEG or HEIC with its MOV next to it) and
+    /// LIVP packages.
+    /// </summary>
+    public static readonly IReadOnlyList<string> MotionPhotoSources = ["jpg", "heic", "avif", "livp"];
+
+    /// <summary>
+    /// MP4 / MOV: a Live / Motion Photo becomes its video (with sound) instead of a video of the still picture. Only
+    /// for sources in <see cref="MotionPhotoSources"/> (<see cref="Preset.ExtractsMotionOf"/>); a photo without a video
+    /// fails with <c>error.no_motion_photo</c>.
+    /// </summary>
+    public bool ExtractMotionPhoto { get; set; }
 
     /// <summary>With <see cref="SaveEveryFrame"/>: extract every Nth frame (1 = every frame).</summary>
     public int FrameInterval { get; set; } = 1;

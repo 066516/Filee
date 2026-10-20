@@ -121,6 +121,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _archiveLevel = ArchiveLevels.First(l => l.Value == _edit.Archive.Level);
         _combineIntoOne = _edit.Archive.CombineIntoOne;
         _saveEveryFrame = _edit.Media.SaveEveryFrame;
+        _extractMotionPhoto = _edit.Media.ExtractMotionPhoto;
         _frameInterval = _edit.Media.FrameInterval > 0 ? _edit.Media.FrameInterval : 1;
         _traceMode = TraceModes.First(m => m.Value == _edit.Trace.Mode);
         _animationSpeed = AnimationSpeeds.First(s => s.Value == _edit.Image.PlaybackSpeed);
@@ -156,9 +157,12 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _customFolder = _edit.Output.CustomFolder;
         _pattern = _edit.Output.FileNamePattern;
         _keepDates = _edit.Output.KeepDates;
+        _zipResult = _edit.Output.ZipResult;
     }
 
     public string PresetId => _original.Id;
+    public bool IsTool => _original.IsTool;
+    public bool CanChangeTarget => !IsTool;
 
     public IReadOnlyList<Choice<string>> Targets { get; }
     public IReadOnlyList<Choice<ResizeMode>> ResizeModes { get; }
@@ -190,13 +194,13 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowImage), nameof(ShowTurnForPdf), nameof(ShowQuality), nameof(ShowTiff), nameof(ShowMultiPageTiff), nameof(ShowWebp), nameof(ShowIco),
-        nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowLeaveOutPictures), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
+        nameof(ShowZipResult), nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowLeaveOutPictures), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
         nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions),
         nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec), nameof(ShowHardwareEncoding),
         nameof(AudioCodecs), nameof(AudioCodecChoice), nameof(ShowAudioCodec),
         nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote),
-        nameof(ShowSaveEveryFrame), nameof(ShowAnimationSpeed), nameof(ShowTrace))]
+        nameof(ShowSaveEveryFrame), nameof(ShowAnimationSpeed), nameof(ShowTrace), nameof(ShowExtractMotionPhoto))]
     private Choice<string> _target;
 
     private VideoCodec _videoCodecValue;
@@ -330,6 +334,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private string _customFolder;
     [ObservableProperty] private string _pattern;
     [ObservableProperty] private bool _keepDates;
+    /// <summary>Geospatial targets: the result is saved as one ZIP (OutputRule.ZipResult).</summary>
+    [ObservableProperty] private bool _zipResult;
     [ObservableProperty] private Choice<MediaQuality> _mediaQuality;
     [ObservableProperty] private Choice<int> _maxHeight;
     [ObservableProperty] private Choice<int> _audioBitrate;
@@ -343,6 +349,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private Choice<ArchiveLevel> _archiveLevel;
     [ObservableProperty] private bool _combineIntoOne;
     [ObservableProperty] private bool _saveEveryFrame;
+    [ObservableProperty] private bool _extractMotionPhoto;
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(FrameEstimate))]
     private int _frameInterval = 1;
@@ -389,19 +396,22 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     private bool TargetIsLossyMedia => TargetIsVideo
         || (TargetIsAudio && !LosslessAudioTargets.Contains(TargetId) && MediaCodecs.Effective(TargetId, _audioCodecValue) != AudioCodec.Alac);
 
-    public bool ShowImage => TargetIsImage;
+    /// <summary>A tool (Crop) keeps the source as it is: none of the image options apply.</summary>
+    public bool ShowImage => !IsTool && TargetIsImage;
     /// <summary>Images and PDFs (pictures placed on pages) can be turned and flipped.</summary>
     private bool CanTurn => TargetIsImage || TargetId == "pdf";
     /// <summary>Rotate and flip for a PDF target, which has no image card to show them in.</summary>
     public bool ShowTurnForPdf => TargetId == "pdf";
-    public bool ShowQuality => TargetId == BuiltInData.SameAsSource || LossyTargets.Contains(TargetId);
+    public bool ShowQuality => !IsTool && (TargetId == BuiltInData.SameAsSource || LossyTargets.Contains(TargetId));
     public bool ShowTiff => TargetId is "tiff" or BuiltInData.SameAsSource;
     public bool ShowWebp => TargetId is "webp" or BuiltInData.SameAsSource;
     public bool ShowMultiPageTiff => TargetId is "tiff";
     public bool ShowIco => TargetId == "ico";
-    /// <summary>PDF options (also used when a PDF source becomes images) mean nothing for media, archive, font, subtitle, data, e-mail and 3D targets.</summary>
-    public bool ShowPdf => TargetCategory is not (FormatCategory.Video or FormatCategory.Audio or FormatCategory.Archive or FormatCategory.Font
-        or FormatCategory.Subtitle or FormatCategory.Data or FormatCategory.Model3D) && TargetId != "eml";
+    /// <summary>PDF options (also used when a PDF source becomes images) mean nothing for media, archive, font, subtitle, data, e-mail, 3D and geospatial targets.</summary>
+    public bool ShowPdf => !IsTool && TargetCategory is not (FormatCategory.Video or FormatCategory.Audio or FormatCategory.Archive or FormatCategory.Font
+        or FormatCategory.Subtitle or FormatCategory.Data or FormatCategory.Model3D or FormatCategory.Geo) && TargetId != "eml";
+    /// <summary>"Save as ZIP" is offered for geospatial targets, whose results are several files (a Shapefile) or travel zipped.</summary>
+    public bool ShowZipResult => TargetCategory == FormatCategory.Geo;
     public bool ShowPdfBuild => TargetId == "pdf";
     public bool ShowPdfSplit => TargetId == "pdf";
 
@@ -435,7 +445,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     /// <summary>"Extract" has nothing to set; a line says what it does instead.</summary>
     public bool ShowExtractNote => TargetId == FormatRegistry.Folder;
     /// <summary>"Save every frame" of a video: PNG and JPG (format ids, <see cref="MediaOptions.FrameTargets"/>).</summary>
-    public bool ShowSaveEveryFrame => MediaOptions.FrameTargets.Contains(TargetId);
+    public bool ShowSaveEveryFrame => !IsTool && MediaOptions.FrameTargets.Contains(TargetId);
+    /// <summary>The video of a Live / Motion Photo: MP4 and MOV (<see cref="MediaOptions.MotionPhotoTargets"/>).</summary>
+    public bool ShowExtractMotionPhoto => !IsTool && MediaOptions.MotionPhotoTargets.Contains(TargetId);
     /// <summary>
     /// Playback speed: for the formats an animation stays animated in (an animated GIF, WebP, APNG or MNG, or a video
     /// made into a GIF or APNG). Other targets get one frame.
@@ -529,6 +541,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         // Only where the option is shown: a box ticked for PNG and left behind by another target saves nothing.
         media.SaveEveryFrame = ShowSaveEveryFrame && SaveEveryFrame;
         media.FrameInterval = media.SaveEveryFrame ? Math.Clamp(FrameInterval, 1, 1000) : 1;
+        media.ExtractMotionPhoto = ShowExtractMotionPhoto && ExtractMotionPhoto;
         _original.Archive.Level = ArchiveLevel.Value;
         _original.Archive.CombineIntoOne = CombineIntoOne;
         _original.Trace.Mode = TraceMode.Value;
@@ -542,6 +555,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         output.FileNamePattern = string.IsNullOrWhiteSpace(Pattern) ? "{name}" : Pattern.Trim();
         output.Conflict = Conflict.Value;
         output.KeepDates = KeepDates;
+        // Only for geospatial targets, where it is offered: a box ticked for Shapefile must not zip a later PNG.
+        output.ZipResult = ShowZipResult && ZipResult;
         return true;
     }
 
