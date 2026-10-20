@@ -65,7 +65,18 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
         _loading = false;
 
         SelectedProfile = Profiles.FirstOrDefault();
+
+        // How the open donut flips, as set in Settings → Shortcuts: "Flip the open donut: Tab / mouse wheel".
+        var ways = new List<string>();
+        if (store.Settings.Donut.EffectiveFlipKey(store.Settings.Triggers) is { } key)
+            ways.Add(KeyNames.Display(key));
+        if (store.Settings.Donut.FlipWithWheel)
+            ways.Add(loc["toolbar.face_hint_wheel"]);
+        FaceHint = ways.Count == 0 ? loc["toolbar.face_hint_off"] : loc.Format("toolbar.face_hint", string.Join(" / ", ways));
     }
+
+    /// <summary>Under the Front / Back switch: what flips the open donut (or that nothing does).</summary>
+    public string FaceHint { get; }
 
     public ObservableCollection<ProfileItemViewModel> Profiles { get; } = [];
     public ObservableCollection<PaletteChip> Palette { get; } = [];

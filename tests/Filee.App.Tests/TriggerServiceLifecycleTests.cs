@@ -261,6 +261,19 @@ public sealed class TriggerServiceLifecycleTests
             }
         }
 
+        public void PostWheel(short rotation, MouseWheelScrollDirection direction = MouseWheelScrollDirection.Vertical)
+        {
+            lock (_gate)
+            {
+                var e = new UioHookEvent
+                {
+                    Type = EventType.MouseWheel,
+                    Wheel = new MouseWheelEventData { Rotation = rotation, Delta = 1, Direction = direction },
+                };
+                _callback?.Invoke(ref e, _data);
+            }
+        }
+
         public void PressKey()
         {
             lock (_gate)

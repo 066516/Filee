@@ -4,8 +4,8 @@
 //   Pointer / drag  → resting on a group's slice (ExpandDelay), or moving outward on it, opens its ring; the ring
 //                     stays open on its way out to it (the gap, the neighbours' outer half) and folds on another slice,
 //                     the hole, or going round the outside away from it.
-//   Keyboard        → arrows move, Enter opens a group or converts, Esc / Backspace fold a ring first, Tab flips
-//                     the donut (DonutMenu.Flip.cs).
+//   Keyboard        → arrows move, Enter opens a group or converts, Esc / Backspace fold a ring first, the flip key
+//                     (Tab unless set otherwise) flips the donut (DonutMenu.Flip.cs).
 //   See-through     → Windows and macOS let the pointer and drags through fully transparent pixels: a nearly
 //                     transparent backdrop and LeftThroughSeam keep a group from folding when it only seems to leave.
 
@@ -13,6 +13,7 @@ using Avalonia;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Filee.App.Services;
 
 namespace Filee.App.Controls;
 
@@ -201,15 +202,16 @@ public sealed partial class DonutMenu
 
     /// <summary>
     /// Keyboard (click mode): arrows move around the donut, Enter converts or opens a group; in a group's ring the
-    /// arrows move between its slices, Enter converts and Esc / Backspace go back to the donut. Tab and Shift+Tab flip
-    /// the donut to its other face (<see cref="Flip"/>). Returns false for keys left to the window (Esc on the donut
-    /// closes it).
+    /// arrows move between its slices, Enter converts and Esc / Backspace go back to the donut. The flip key
+    /// (<see cref="FlipKey"/>, Tab by default; with Shift or any other modifier too) flips the donut to its other face
+    /// (<see cref="Flip"/>). Returns false for keys left to the window (Esc on the donut closes it).
     /// </summary>
     public bool HandleKey(Key key, KeyModifiers modifiers = KeyModifiers.None)
     {
-        if (key == Key.Tab && !IsEditMode && !_progressMode)
+        if (!IsEditMode && !_progressMode && FlipKey is { } flipKey &&
+            string.Equals(KeyNames.ToHookName(key), flipKey, StringComparison.OrdinalIgnoreCase))
         {
-            // Also when there is nothing to flip to: Tab never takes the focus off the donut.
+            // Also when there is nothing to flip to: the key never does something else (Tab: move the focus).
             Flip();
             return true;
         }

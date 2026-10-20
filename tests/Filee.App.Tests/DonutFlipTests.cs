@@ -41,15 +41,20 @@ public class DonutFlipTests
     /// Runs <paramref name="test"/> with animations on or off and the image donut's back face as given (null: the
     /// built-in one); everything is put back afterwards.
     /// </summary>
-    private static void With(bool animations, List<string>? back, Action test, string language = "en")
+    private static void With(bool animations, List<string>? back, Action test, string language = "en", string? flipKey = null,
+        bool? wheel = null)
     {
         TestServices.EnsureInitialized(language);
         var images = Images;
         var (front, before) = (images.PresetIds.ToList(), images.BackPresetIds?.ToList());
+        var donut = Store.Settings.Donut;
+        var (keyBefore, wheelBefore) = (donut.FlipKey, donut.FlipWithWheel);
         try
         {
             if (back is not null)
                 images.BackPresetIds = back;
+            donut.FlipKey = flipKey ?? DonutSettings.DefaultFlipKey;
+            donut.FlipWithWheel = wheel ?? true;
             Motion.Configure(!animations, () => false);
             test();
         }
@@ -58,6 +63,7 @@ public class DonutFlipTests
             Motion.Configure(false, () => false);
             images.PresetIds = front;
             images.BackPresetIds = before;
+            (donut.FlipKey, donut.FlipWithWheel) = (keyBefore, wheelBefore);
         }
     }
 
@@ -85,7 +91,7 @@ public class DonutFlipTests
         var (vm, window, donut) = OpenClickMode();
         var front = vm.Items.Select(i => i.Id).ToList();
         Assert.True(vm.CanFlip);
-        Assert.Equal(loc["donut.flip_to_back"], vm.FlipHint);
+        Assert.Equal(loc.Format("donut.flip_to_back", "Tab"), vm.FlipHint);
         Assert.Equal(vm.FlipHint, donut.CenterHint);
 
         Assert.True(donut.HandleKey(Key.Tab));
@@ -98,7 +104,7 @@ public class DonutFlipTests
         donut.Advance(DonutMenu.FlipDuration * 0.3); // past edge-on: the back
         Assert.True(vm.IsBackFace);
         Assert.Equal(ImageBack, vm.Items.Select(i => i.Id));
-        Assert.Equal(loc["donut.flip_to_front"], donut.CenterHint);
+        Assert.Equal(loc.Format("donut.flip_to_front", "Tab"), donut.CenterHint);
         Assert.Equal(loc["donut.close_hint"], vm.CenterSubtitle);
         donut.Advance(DonutMenu.FlipDuration);
         Assert.False(donut.IsFlipping);
@@ -334,6 +340,241 @@ public class DonutFlipTests
             folder.Delete(recursive: true);
         }
     });
+
+    /// <summary>Another flip key from Settings → Shortcuts: it flips, Tab no longer does, and the hub names it.</summary>
+    [AvaloniaFact]
+    public void A_flip_key_from_the_settings_flips_in_click_mode_and_tab_no_longer_does() =>
+        With(animations: false, back: null, flipKey: "F2", test: () =>
+        {
+            var loc = AppHost.Get<ILocalizer>();
+            var (vm, window, donut) = OpenClickMode();
+            Assert.Equal("F2", donut.FlipKey);
+            Assert.Equal(loc.Format("donut.flip_to_back", "F2"), vm.FlipHint);
+            Assert.False(vm.FlipHintWheel);
+
+            Assert.False(donut.HandleKey(Key.Tab)); // the window's again
+            Assert.False(vm.IsBackFace);
+            Assert.True(donut.HandleKey(Key.F2, KeyModifiers.Shift));
+            Assert.True(vm.IsBackFace);
+            Assert.Equal(loc.Format("donut.flip_to_front", "F2"), vm.FlipHint);
+            window.Close();
+        });
+
+    /// <summary>No key, the wheel on: the hub shows a mouse; neither: no hint and the donut doesn't flip by input.</summary>
+    [AvaloniaFact]
+    public void The_hub_shows_a_mouse_when_only_the_wheel_flips_and_nothing_when_nothing_does() =>
+        With(animations: false, back: null, flipKey: "", wheel: true, test: () =>
+        {
+            var (vm, window, donut) = OpenClickMode();
+            Assert.Null(donut.FlipKey);
+            Assert.True(vm.FlipHintWheel);
+            Assert.Equal(AppHost.Get<ILocalizer>().Format("donut.flip_to_back", "").Trim(), vm.FlipHint);
+            Assert.False(donut.HandleKey(Key.Tab));
+            RenderTests.Pump();
+            RenderTests.Save(window, "donut-front-hint-wheel-en.png");
+            window.Close();
+
+            Store.Settings.Donut.FlipWithWheel = false;
+            (vm, window, donut) = OpenClickMode();
+            Assert.True(vm.CanFlip);
+            Assert.Null(vm.FlipHint);
+            Assert.False(vm.FlipHintWheel);
+            Assert.False(donut.FlipWithWheel);
+            window.MouseWheel(new Point(window.Bounds.Width / 2, window.Bounds.Height / 2), new Vector(0, -1));
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(vm.IsBackFace);
+            window.Close();
+        });
+
+    /// <summary>
+    /// One flip per turn of the wheel: the notches of one turn (and a touchpad's many small steps) come close together,
+    /// and a fast scroll mustn't flip back and forth. A pause starts a new turn.
+    /// </summary>
+    [AvaloniaFact]
+    public void The_wheel_flips_once_per_turn() => With(animations: false, back: null, test: () =>
+    {
+        var (vm, window, donut) = OpenClickMode();
+        Assert.True(donut.FlipWithWheel);
+        Assert.True(donut.FlipFromWheel(10_000));
+        Assert.True(vm.IsBackFace);
+        Assert.False(donut.FlipFromWheel(10_040)); // the same turn
+        Assert.False(donut.FlipFromWheel(10_200));
+        Assert.False(donut.FlipFromWheel(10_450)); // still: 250 ms after the last notch
+        Assert.True(vm.IsBackFace);
+        Assert.True(donut.FlipFromWheel(10_450 + DonutMenu.WheelQuietMs)); // a new turn after a pause
+        Assert.False(vm.IsBackFace);
+
+        // Click mode: the wheel over the donut, as the window gets it.
+        var over = new Point(window.Bounds.Width / 2, window.Bounds.Height / 2);
+        Thread.Sleep((int)DonutMenu.WheelQuietMs + 50); // a new turn by the clock the window's wheel uses
+        window.MouseWheel(over, new Vector(0, -1));
+        window.MouseWheel(over, new Vector(0, -1));
+        window.MouseWheel(over, new Vector(0, 1));
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(vm.IsBackFace);
+        window.Close();
+    });
+
+    /// <summary>Drag mode: the wheel and another flip key come from the global hook while the drag donut shows files.</summary>
+    [AvaloniaFact]
+    public void In_drag_mode_the_wheel_and_the_set_key_from_the_global_hook_flip_the_donut() =>
+        With(animations: false, back: null, flipKey: "F2", test: () =>
+        {
+            var provider = new TriggerServiceLifecycleTests.DelayedProvider();
+            provider.AllowExit.Set();
+            using var triggers = TriggerServiceLifecycleTests.Create(provider, () => { });
+            triggers.Apply(Store.Settings);
+            triggers.Start();
+            Assert.True(SpinWait.SpinUntil(() => provider.Runs == 1, 2000));
+            var vm = AppHost.Get<RadialViewModel>();
+            var radial = new RadialController(vm, AppHost.Get<ConversionService>(), AppHost.Get<WindowService>(), Store,
+                AppHost.Get<IPlatformServices>(), triggers, NullLogger<RadialController>.Instance);
+            var folder = Directory.CreateTempSubdirectory("filee-flip-");
+            try
+            {
+                var file = Path.Combine(folder.FullName, "photo.jpg");
+                File.WriteAllBytes(file, [0xFF, 0xD8, 0xFF]);
+                radial.ShowForDrag(400, 400);
+                var window = radial.Window!;
+                RenderTests.Pump(); // laid out: the drag enters where the donut is
+                var data = new DataTransfer();
+                data.Add(DataTransferItem.CreateFile(window.StorageProvider.TryGetFileFromPathAsync(file).GetAwaiter().GetResult()!));
+                window.DragDrop(new Point(window.Bounds.Width / 2 + 60, window.Bounds.Height / 2), RawDragEventType.DragEnter, data,
+                    DragDropEffects.Copy, RawInputModifiers.Control);
+                Dispatcher.UIThread.RunJobs();
+                Assert.True(triggers.WatchFlipKey);
+
+                // Tab isn't the flip key now; F2 is.
+                provider.PostKey(EventType.KeyPressed, KeyCode.VcTab, EventMask.LeftCtrl);
+                Assert.False(TriggerServiceLifecycleTests.Settle(() => vm.IsBackFace));
+                provider.PostKey(EventType.KeyPressed, KeyCode.VcF2, EventMask.LeftCtrl);
+                Assert.True(TriggerServiceLifecycleTests.Settle(() => vm.IsBackFace));
+                provider.PostKey(EventType.KeyReleased, KeyCode.VcF2, EventMask.LeftCtrl);
+
+                // A fast turn of the wheel, many notches: one flip. Sideways scrolling doesn't flip.
+                Thread.Sleep((int)DonutMenu.WheelQuietMs + 50);
+                for (var i = 0; i < 6; i++)
+                    provider.PostWheel(-120);
+                Assert.False(TriggerServiceLifecycleTests.Settle(() => vm.IsBackFace));
+                Thread.Sleep((int)DonutMenu.WheelQuietMs + 50);
+                provider.PostWheel(120, MouseWheelScrollDirection.Horizontal);
+                Assert.False(TriggerServiceLifecycleTests.Settle(() => vm.IsBackFace));
+                Thread.Sleep((int)DonutMenu.WheelQuietMs + 50);
+                provider.PostWheel(120);
+                Assert.True(TriggerServiceLifecycleTests.Settle(() => vm.IsBackFace));
+
+                // The wheel switched off in the settings: it is left alone.
+                Store.Settings.Donut.FlipWithWheel = false;
+                triggers.Apply(Store.Settings);
+                Thread.Sleep((int)DonutMenu.WheelQuietMs + 50);
+                provider.PostWheel(-120);
+                Assert.True(TriggerServiceLifecycleTests.Settle(() => vm.IsBackFace));
+
+                radial.Close(animate: false);
+                window.Close();
+            }
+            finally
+            {
+                folder.Delete(recursive: true);
+            }
+        });
+
+    /// <summary>
+    /// Settings → Shortcuts records the flip key: modifiers alone wait for a key; Esc, Enter, Space, the arrows and the
+    /// key of a keyboard shortcut are refused with the reason; another key is saved. "Use Tab", "Clear" and the wheel
+    /// switch are saved too.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData("en", false)]
+    [InlineData("ko", false)]
+    [InlineData("ja", true)]
+    public void The_flip_key_is_recorded_and_checked_in_the_shortcut_settings(string language, bool dark) =>
+        With(animations: false, back: null, language: language, test: () =>
+        {
+            var loc = AppHost.Get<ILocalizer>();
+            var theme = AppHost.Get<ThemeService>();
+            var triggersBefore = Store.Settings.Triggers.Select(t => t.Clone()).ToList();
+            Avalonia.Controls.Window? window = null;
+            try
+            {
+                Store.Settings.Triggers.Add(new TriggerGesture { Kind = TriggerKind.KeyChord, Modifiers = Filee.Core.Settings.ModifierKeys.Ctrl, Key = "K" });
+                if (dark)
+                    theme.Apply(new ThemeSettings { Mode = ThemeMode.Dark }, language);
+                var page = new TriggersPageViewModel(Store, loc);
+                var flip = page.Flip;
+                Assert.Equal("Tab", flip.KeyText);
+                Assert.True(flip.FlipWithWheel);
+
+                flip.IsRecording = true;
+                Assert.Equal(loc["triggers.recording_key"], flip.KeyText);
+                Assert.False(flip.Record(Key.LeftCtrl)); // waits for a real key
+                Assert.True(flip.IsRecording);
+                foreach (var refused in new[] { Key.Escape, Key.Enter, Key.Space, Key.Left, Key.K })
+                {
+                    flip.IsRecording = true;
+                    Assert.True(flip.Record(refused));
+                    Assert.False(flip.IsRecording);
+                    Assert.NotNull(flip.Error);
+                    Assert.Equal("Tab", Store.Settings.Donut.FlipKey);
+                }
+                Assert.Equal(loc.Format("triggers.flip_key_taken", "K"), flip.Error);
+
+                window = new Avalonia.Controls.Window
+                {
+                    Content = new Filee.App.Views.Pages.TriggersPage { DataContext = page }, Width = 820, Height = 1500,
+                };
+                window.Show();
+                RenderTests.Pump();
+                Assert.Single(window.GetVisualDescendants().OfType<Avalonia.Controls.Border>(), b => b.Name == "FlipCard");
+                RenderTests.Save(window, $"triggers-flip-refused-{language}{(dark ? "-dark" : "")}.png");
+
+                // Recorded on the button itself, as the user does it.
+                var recorder = window.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.ToggleButton>().Single(b => b.Name == "FlipRecorder");
+                flip.IsRecording = true;
+                recorder.Focus();
+                window.KeyPress(Key.F2, RawInputModifiers.Control, PhysicalKey.F2, null);
+                Dispatcher.UIThread.RunJobs();
+                Assert.False(flip.IsRecording);
+                Assert.Null(flip.Error);
+                Assert.Equal("F2", Store.Settings.Donut.FlipKey);
+                Assert.Equal("F2", flip.KeyText);
+                Assert.Equal("F2", new UserDataStoreProbe(TestServices.DataDirectory).FlipKey); // saved
+                RenderTests.Pump();
+                RenderTests.Save(window, $"triggers-flip-{language}{(dark ? "-dark" : "")}.png");
+
+                var wheel = window.GetVisualDescendants().OfType<Avalonia.Controls.ToggleSwitch>().Single(t => t.Name == "FlipWheel");
+                wheel.IsChecked = false;
+                Assert.False(Store.Settings.Donut.FlipWithWheel);
+                flip.ClearKeyCommand.Execute(null);
+                Assert.Equal("", Store.Settings.Donut.FlipKey);
+                Assert.Equal("—", flip.KeyText);
+                flip.ResetKeyCommand.Execute(null);
+                Assert.Equal("Tab", Store.Settings.Donut.FlipKey);
+            }
+            finally
+            {
+                window?.Close();
+                if (dark)
+                    theme.Apply(new ThemeSettings(), language);
+                Store.Settings.Triggers.Clear();
+                Store.Settings.Triggers.AddRange(triggersBefore);
+                Store.Settings.Donut.FlipWithWheel = true;
+                Store.SaveSettings();
+            }
+        });
+
+    /// <summary>The settings as saved on disk, read by a second store.</summary>
+    private sealed class UserDataStoreProbe(string directory)
+    {
+        public string FlipKey { get; } = Load(directory).Settings.Donut.FlipKey;
+
+        private static UserDataStore Load(string directory)
+        {
+            var store = new UserDataStore(directory);
+            store.Load();
+            return store;
+        }
+    }
 
     /// <summary>The image donut's back face, light and dark, and the ring halfway through its turn.</summary>
     [AvaloniaTheory]

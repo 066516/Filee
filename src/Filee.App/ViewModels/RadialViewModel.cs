@@ -25,8 +25,20 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
     /// <summary>The other face has a slice for these files: Tab flips to it.</summary>
     [ObservableProperty] private bool _canFlip;
 
-    /// <summary>"Tab ↻ back" / "Tab ↻ front" in the hub while <see cref="CanFlip"/>, else null.</summary>
+    /// <summary>
+    /// "Tab ↻ back" / "Tab ↻ front" in the hub (with the flip key of the settings) while <see cref="CanFlip"/> and a key
+    /// or the wheel flips; else null.
+    /// </summary>
     [ObservableProperty] private string? _flipHint;
+
+    /// <summary>The hint shows a mouse instead of a key: only the wheel flips.</summary>
+    [ObservableProperty] private bool _flipHintWheel;
+
+    /// <summary>The key that flips the donut (settings name, "Tab"), or null for none.</summary>
+    [ObservableProperty] private string? _flipKey;
+
+    /// <summary>A turn of the mouse wheel flips the donut.</summary>
+    [ObservableProperty] private bool _flipWithWheel;
 
     /// <summary>
     /// The window keeps room for the ring a group fans out. Dragging, the donut is placed before the files (and so
@@ -192,7 +204,11 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
         }
         var other = back ? _front : checkBack ? BackFace() : _back;
         CanFlip = other?.IsUsable == true;
-        FlipHint = CanFlip ? loc[back ? "donut.flip_to_front" : "donut.flip_to_back"] : null;
+        var how = FlipKey is { } key ? KeyNames.Display(key) : "";
+        FlipHint = CanFlip && (FlipKey is not null || FlipWithWheel)
+            ? loc.Format(back ? "donut.flip_to_front" : "donut.flip_to_back", how).Trim()
+            : null;
+        FlipHintWheel = FlipHint is not null && FlipKey is null;
     }
 
     /// <summary>The back face's slices for the files, checked now if they weren't yet.</summary>
@@ -281,5 +297,7 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
         OuterRadius = Math.Clamp(store.Settings.Donut.OuterRadius, 100, 240);
         HoleRatio = store.Settings.Donut.HoleRatio;
         SliceOpacity = store.Settings.Donut.Opacity;
+        FlipKey = store.Settings.Donut.EffectiveFlipKey(store.Settings.Triggers);
+        FlipWithWheel = store.Settings.Donut.FlipWithWheel;
     }
 }

@@ -189,7 +189,7 @@
               </StackPanel>
             </Border>
             <TextBlock Classes="caption" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
-                       Margin="12,6,12,0" Text="{DynamicResource toolbar.face_hint}" />
+                       Margin="12,6,12,0" Text="{Binding FaceHint}" />
             <c:DonutMenu x:Name="Donut" IsEditMode="True" HorizontalAlignment="Center"
                          Items="{Binding DonutItems}"
                          CenterTitle="{Binding CenterTitle}"

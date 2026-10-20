@@ -6,7 +6,7 @@
 // Motion.Enabled == false every value jumps straight to its target.
 //
 // After a drop the donut turns into a progress ring: see DonutMenu.Progress.cs. Group slices, which fan out a ring
-// of presets, and the keyboard: DonutMenu.Groups.cs. Tab flips the donut to its other face: DonutMenu.Flip.cs.
+// of presets, and the keyboard: DonutMenu.Groups.cs. Tab (or the wheel) flips the donut over: DonutMenu.Flip.cs.
 
 using System.Globalization;
 using Avalonia;
@@ -132,7 +132,7 @@ public sealed partial class DonutMenu : Control
         AffectsRender<DonutMenu>(HoleRatioProperty, SliceOpacityProperty, CenterTitleProperty, CenterSubtitleProperty,
             IsEditModeProperty, SliceBrushProperty, SliceBorderBrushProperty, CenterBrushProperty, AccentBrushProperty,
             OnAccentBrushProperty, ForegroundProperty, SecondaryForegroundProperty, SuccessBrushProperty, CornerRadiusProperty,
-            CenterHintProperty);
+            CenterHintProperty, CenterHintWheelProperty);
         ItemsProperty.Changed.AddClassHandler<DonutMenu>((d, _) => d.OnItemsChanged());
     }
 
@@ -936,8 +936,29 @@ public sealed partial class DonutMenu : Control
         if (hint is not null)
         {
             using (context.PushOpacity(0.85))
-                DrawCentered(context, hint, center.X, y + 5);
+            {
+                if (!CenterHintWheel)
+                {
+                    DrawCentered(context, hint, center.X, y + 5);
+                }
+                else
+                {
+                    // A small mouse in front: "🖱 ↻ back" when the wheel flips and no key does.
+                    const double iconWidth = 7, gap = 4;
+                    var left = center.X - (hint.Width + iconWidth + gap) / 2;
+                    DrawMouse(context, new Rect(left, y + 5 + (hint.Height - 10) / 2, iconWidth, 10), SecondaryForeground);
+                    DrawCentered(context, hint, center.X + (iconWidth + gap) / 2, y + 5);
+                }
+            }
         }
+    }
+
+    /// <summary>An outline of a mouse with its wheel, filling <paramref name="box"/>.</summary>
+    private static void DrawMouse(DrawingContext context, Rect box, IBrush? brush)
+    {
+        var pen = new Pen(brush, 1.1);
+        context.DrawRectangle(null, pen, box, box.Width / 2, box.Width / 2);
+        context.DrawLine(pen, new Point(box.Center.X, box.Top + 2), new Point(box.Center.X, box.Top + 4.5));
     }
 
     private void DrawLabel(DrawingContext context, DonutItem item, Point center, double radius, double angle,

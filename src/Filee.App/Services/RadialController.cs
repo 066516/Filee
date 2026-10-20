@@ -7,8 +7,9 @@
 // Click mode (keyboard shortcut, context menu, drop zone):
 //   files are known up front → donut appears activated → click a slice to convert, right-click to edit,
 //   Esc / click outside closes.
-// Tab flips the open donut to its other face (DonutMenu.Flip.cs): in click mode the focused window gets the key, in
-// drag mode (no focus during an OS drag) the global hook reports it while the donut shows files.
+// The flip key (Tab) and the mouse wheel flip the open donut to its other face (DonutMenu.Flip.cs): in click mode the
+// focused window gets them, in drag mode (no focus during an OS drag) the global hook reports them while the donut
+// shows files.
 // After a drop / click the donut becomes a progress ring at the same spot (DonutMenu.Progress.cs):
 //   finished quickly → ✓ pops up in the centre, then the ring fades out;
 //   still running after HandOffAfter, failed, Esc, click elsewhere or a new gesture → the toast takes over.
@@ -256,11 +257,16 @@ public sealed class RadialController(
         };
 
         donut.ActiveIndexChanged += (_, index) => viewModel.ShowHint(index, donut.ActiveSubIndex, donut.IsCenterHot);
-        // Drag mode: Tab seen by the global hook (click mode gets it as a key of the focused window).
+        // Drag mode: the flip key and the wheel seen by the global hook (click mode gets them in the focused window).
         triggers.FlipKeyPressed += (_, _) =>
         {
-            if (_visible && !_dropped && !viewModel.IsClickMode && viewModel.HasFiles)
+            if (FlipsFromHook)
                 donut.Flip();
+        };
+        triggers.FlipWheelTurned += (_, _) =>
+        {
+            if (FlipsFromHook)
+                donut.FlipFromWheel(Environment.TickCount64);
         };
         donut.SegmentInvoked += (_, index) => Convert(index, -1, viewModel.Files);
         donut.SubSegmentInvoked += (_, hit) => Convert(hit.Group, hit.Sub, viewModel.Files);
@@ -410,11 +416,13 @@ public sealed class RadialController(
     }
 
     /// <summary>
-    /// Has the global hook report Tab only while a drag-mode donut shows files that could flip; Tab is left alone
-    /// otherwise (see <see cref="TriggerService.WatchFlipKey"/>).
+    /// Has the global hook report the flip key and the wheel only while a drag-mode donut shows files that could flip;
+    /// they are left alone otherwise (see <see cref="TriggerService.WatchFlipKey"/>).
     /// </summary>
-    private void WatchFlipKey() =>
-        triggers.WatchFlipKey = _visible && !_dropped && !viewModel.IsClickMode && viewModel.HasFiles;
+    private void WatchFlipKey() => triggers.WatchFlipKey = FlipsFromHook;
+
+    /// <summary>A drag-mode donut shows files and nothing was dropped yet: the hook's flip key and wheel flip it.</summary>
+    private bool FlipsFromHook => _visible && !_dropped && !viewModel.IsClickMode && viewModel.HasFiles;
 
     /// <summary>
     /// Top-left corner of a <paramref name="sidePx"/> square window centred on <paramref name="cursor"/>, moved into

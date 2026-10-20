@@ -29,6 +29,9 @@
                  SliceOpacity="{Binding SliceOpacity}"
                  ReserveSubRing="{Binding ReserveSubRing}"
                  CanFlip="{Binding CanFlip}"
-                 CenterHint="{Binding FlipHint}" />
+                 CenterHint="{Binding FlipHint}"
+                 CenterHintWheel="{Binding FlipHintWheel}"
+                 FlipKey="{Binding FlipKey}"
+                 FlipWithWheel="{Binding FlipWithWheel}" />
   </Panel>
 </Window>

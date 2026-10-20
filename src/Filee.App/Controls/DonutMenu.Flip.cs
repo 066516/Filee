@@ -1,15 +1,17 @@
 // Flipping the donut to its other face: every profile has a front and a back list of slices, and Tab turns the open
 // donut over. The ring turns about the vertical axis like a coin (its width goes 1 → 0, the faces swap while it is
-// edge-on, 0 → 1); the hub stays where it is and says what Tab does ("Tab ↻ back").
+// edge-on, 0 → 1); the hub stays where it is and says how to flip ("Tab ↻ back").
 //
-//   Click mode → Tab / Shift+Tab reach the focused window (HandleKey).
-//   Drag mode  → the window has no keyboard focus during an OS drag: RadialController calls Flip when the global
-//                hook sees Tab (TriggerService.FlipKeyPressed).
+// The flip key (Tab unless the user records another in Settings → Shortcuts) and the mouse wheel flip it:
+//   Click mode → the key reaches the focused window (HandleKey), the wheel the donut (OnPointerWheelChanged).
+//   Drag mode  → the window has no keyboard focus during an OS drag: RadialController flips when the global hook
+//                sees the key or the wheel (TriggerService.FlipKeyPressed / FlipWheelTurned).
 //
 // The control only animates: the owner swaps Items when FaceSwapping is raised (RadialWindow → RadialViewModel), so
 // the slices, hit-testing and what a drop converts with always belong to the face that is drawn.
 
 using Avalonia;
+using Avalonia.Input;
 using Avalonia.Media;
 using Filee.App.Services;
 
@@ -17,13 +19,33 @@ namespace Filee.App.Controls;
 
 public sealed partial class DonutMenu
 {
-    /// <summary>There is another face with slices for these files: Tab flips to it.</summary>
+    /// <summary>There is another face with slices for these files: the flip key or the wheel turns to it.</summary>
     public static readonly StyledProperty<bool> CanFlipProperty =
         AvaloniaProperty.Register<DonutMenu, bool>(nameof(CanFlip));
 
     /// <summary>Small line at the bottom of the hub, e.g. "Tab ↻ back" (null for none).</summary>
     public static readonly StyledProperty<string?> CenterHintProperty =
         AvaloniaProperty.Register<DonutMenu, string?>(nameof(CenterHint));
+
+    /// <summary>A small mouse in front of <see cref="CenterHint"/>: the wheel flips (and no key does).</summary>
+    public static readonly StyledProperty<bool> CenterHintWheelProperty =
+        AvaloniaProperty.Register<DonutMenu, bool>(nameof(CenterHintWheel));
+
+    /// <summary>The key that flips the donut in click mode, as the settings name it ("Tab", "F2"); null for none.</summary>
+    public static readonly StyledProperty<string?> FlipKeyProperty =
+        AvaloniaProperty.Register<DonutMenu, string?>(nameof(FlipKey));
+
+    /// <summary>A turn of the mouse wheel over the donut flips it (click mode; drag mode reads the wheel globally).</summary>
+    public static readonly StyledProperty<bool> FlipWithWheelProperty =
+        AvaloniaProperty.Register<DonutMenu, bool>(nameof(FlipWithWheel));
+
+    /// <summary>
+    /// A wheel event this soon after the previous one belongs to the same turn of the wheel: one flip per turn, however
+    /// many notches (or a touchpad's many small steps) it has, so a fast scroll doesn't flip back and forth.
+    /// </summary>
+    internal const long WheelQuietMs = 300;
+
+    private long? _lastWheel;
 
     /// <summary>How long a flip takes, there and back: the faces swap halfway.</summary>
     internal const double FlipDuration = 0.2;
@@ -36,6 +58,30 @@ public sealed partial class DonutMenu
 
     public bool CanFlip { get => GetValue(CanFlipProperty); set => SetValue(CanFlipProperty, value); }
     public string? CenterHint { get => GetValue(CenterHintProperty); set => SetValue(CenterHintProperty, value); }
+    public bool CenterHintWheel { get => GetValue(CenterHintWheelProperty); set => SetValue(CenterHintWheelProperty, value); }
+    public string? FlipKey { get => GetValue(FlipKeyProperty); set => SetValue(FlipKeyProperty, value); }
+    public bool FlipWithWheel { get => GetValue(FlipWithWheelProperty); set => SetValue(FlipWithWheelProperty, value); }
+
+    /// <summary>
+    /// A wheel event at <paramref name="nowMs"/> (milliseconds, any clock): flips on the first one of a turn of the wheel
+    /// and ignores the rest of it (<see cref="WheelQuietMs"/>). Returns true when it flipped.
+    /// </summary>
+    public bool FlipFromWheel(long nowMs)
+    {
+        var sameTurn = _lastWheel is { } last && nowMs - last < WheelQuietMs;
+        _lastWheel = nowMs;
+        return !sameTurn && Flip();
+    }
+
+    /// <summary>Click mode: the wheel over the donut flips it; nothing under the donut scrolls meanwhile.</summary>
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        base.OnPointerWheelChanged(e);
+        if (!FlipWithWheel || IsEditMode || _progressMode || e.Delta.Y == 0)
+            return;
+        FlipFromWheel(Environment.TickCount64);
+        e.Handled = true;
+    }
 
     /// <summary>
     /// The donut is edge-on (at once without animations): the owner shows the other face now by changing

@@ -217,6 +217,61 @@ public class BackFaceTests
     }
 
     [Fact]
+    public void The_flip_key_and_the_wheel_are_saved_and_older_settings_get_tab_and_the_wheel()
+    {
+        using var dir = new TempDir();
+        var path = Path.Combine(dir.Path, "settings.json");
+        File.WriteAllText(path, """{ "schemaVersion": 24, "donut": { "outerRadius": 180 } }""");
+        var store = NewStore(dir);
+        Assert.Equal("Tab", store.Settings.Donut.FlipKey);
+        Assert.True(store.Settings.Donut.FlipWithWheel);
+        Assert.Equal(180, store.Settings.Donut.OuterRadius);
+
+        store.Settings.Donut.FlipKey = "F2";
+        store.Settings.Donut.FlipWithWheel = false;
+        store.SaveSettings();
+        var reloaded = NewStore(dir);
+        Assert.Equal("F2", reloaded.Settings.Donut.FlipKey);
+        Assert.False(reloaded.Settings.Donut.FlipWithWheel);
+
+        // Cleared: no key, saved as such (not back to Tab).
+        reloaded.Settings.Donut.FlipKey = "";
+        reloaded.SaveSettings();
+        Assert.Null(NewStore(dir).Settings.Donut.EffectiveFlipKey([]));
+    }
+
+    [Theory]
+    [InlineData("Tab", true)]
+    [InlineData("F2", true)]
+    [InlineData("Q", true)]
+    [InlineData("Escape", false)]   // closes the donut
+    [InlineData("Enter", false)]    // converts / opens a group
+    [InlineData("Space", false)]
+    [InlineData("Left", false)]     // moves between slices
+    [InlineData("Backspace", false)] // folds a group's ring
+    [InlineData("K", false)]        // the key of a keyboard shortcut below
+    [InlineData("", false)]
+    public void Keys_the_donut_or_a_shortcut_uses_do_not_flip(string key, bool allowed)
+    {
+        TriggerGesture[] gestures =
+        [
+            new() { Kind = TriggerKind.Drag, Modifiers = ModifierKeys.Ctrl },
+            new() { Kind = TriggerKind.KeyChord, Modifiers = ModifierKeys.Ctrl | ModifierKeys.Shift, Key = "K" },
+        ];
+        Assert.Equal(allowed, DonutSettings.IsFlipKeyAllowed(key, gestures));
+    }
+
+    [Fact]
+    public void A_flip_key_that_is_not_allowed_falls_back_to_tab()
+    {
+        TriggerGesture[] chordOnF2 = [new() { Kind = TriggerKind.KeyChord, Key = "F2" }];
+        Assert.Equal("Tab", new DonutSettings { FlipKey = "Escape" }.EffectiveFlipKey([]));
+        Assert.Equal("Tab", new DonutSettings { FlipKey = "F2" }.EffectiveFlipKey(chordOnF2)); // a shortcut took it since
+        Assert.Equal("F2", new DonutSettings { FlipKey = "F2" }.EffectiveFlipKey([]));
+        Assert.Null(new DonutSettings { FlipKey = "Escape" }.EffectiveFlipKey([new() { Kind = TriggerKind.KeyChord, Key = "Tab" }]));
+    }
+
+    [Fact]
     public void A_bundle_from_before_back_faces_imports_built_in_donuts_with_theirs()
     {
         using var dir = new TempDir();
