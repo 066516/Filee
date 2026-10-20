@@ -658,6 +658,8 @@
   "common.delete": "Usuń",
   "common.yes": "Tak",
   "common.no": "Nie",
+  "common.on": "Wł.",
+  "common.off": "Wył.",
 
   "setup.title": "Wybierz silniki konwersji",
   "setup.description": "Obrazy, PDF, dokumenty Office, HWP, e-booki, archiwa, czcionki, CAD i modele 3D już się konwertują.\nPobieraj silniki tylko dla wideo i audio lub rzadkich formatów.",

@@ -658,6 +658,8 @@
   "common.delete": "Delete",
   "common.yes": "Yes",
   "common.no": "No",
+  "common.on": "On",
+  "common.off": "Off",
 
   "setup.title": "Choose conversion engines",
   "setup.description": "Images, PDF, Office documents, HWP, e-books, archives, fonts, CAD and 3D models already convert.\nDownload engines only for video and audio or rare formats.",

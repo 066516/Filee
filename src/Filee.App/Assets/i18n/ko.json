@@ -658,6 +658,8 @@
   "common.delete": "삭제",
   "common.yes": "예",
   "common.no": "아니요",
+  "common.on": "켬",
+  "common.off": "끔",
 
   "setup.title": "변환 엔진 선택",
   "setup.description": "이미지, PDF, 오피스 문서, HWP, 전자책, 압축 파일, 글꼴, CAD, 3D 모델은 지금 바로 변환돼요.\n동영상·오디오나 드문 형식이 필요할 때만 엔진을 받으세요.",
