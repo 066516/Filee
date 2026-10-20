@@ -165,11 +165,13 @@ public class MergeOrderTests
     [Fact]
     public void Files_start_in_name_order_counting_numbers_and_browser_files_show_no_folder()
     {
+        var root = Path.Combine(Path.GetTempPath(), "filee-merge-names");
+        string In(string folder, string name) => Path.Combine(root, folder, name);
         var browser = Path.Combine(Filee.Core.Web.WebDrop.DefaultWorkRoot, "abc", "drop", "1", "page 1.pdf");
-        var vm = new MergeOrderViewModel([@"C:\b\page 10.pdf", @"C:\a\page 2.pdf", browser, @"C:\a\page 10.pdf"]);
-        Assert.Equal([browser, @"C:\a\page 2.pdf", @"C:\a\page 10.pdf", @"C:\b\page 10.pdf"], vm.OrderedFiles);
+        var vm = new MergeOrderViewModel([In("b", "page 10.pdf"), In("a", "page 2.pdf"), browser, In("a", "page 10.pdf")]);
+        Assert.Equal([browser, In("a", "page 2.pdf"), In("a", "page 10.pdf"), In("b", "page 10.pdf")], vm.OrderedFiles);
         Assert.Equal("", vm.Files[0].Folder);
-        Assert.Equal(Path.GetDirectoryName(@"C:\a\page 2.pdf"), vm.Files[1].Folder);
+        Assert.Equal(Path.Combine(root, "a"), vm.Files[1].Folder);
         Assert.False(vm.MoveUpCommand.CanExecute(null));
         Assert.True(vm.MoveDownCommand.CanExecute(null));
     }
