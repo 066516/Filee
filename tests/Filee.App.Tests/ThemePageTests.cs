@@ -66,6 +66,12 @@ public class ThemePageTests
             Assert.Equal(vm.Accent, picker.Color);
             Assert.Equal(vm.Accent, swatches.SelectedItem);
 
+            // A colour typed as #RRGGBB moves the picker too.
+            vm.AccentHex = "#2E8B57";
+            RenderTests.Pump();
+            Assert.Equal(Color.Parse("#2E8B57"), picker.Color);
+            Assert.Equal("#2E8B57", store.Settings.Theme.Accent);
+
             // Open the actual flyout with the keyboard and capture the spectrum for visual review.
             var button = picker.GetVisualDescendants().OfType<Button>().First();
             Assert.True(button.Focus());

@@ -64,12 +64,7 @@
                          MinHeight="44" MinWidth="90"
                          IsAlphaVisible="False" IsColorSpectrumVisible="True" IsColorPaletteVisible="False"
                          IsColorComponentsVisible="False" IsColorModelVisible="False" IsColorPreviewVisible="True"
-                         FlowDirection="LeftToRight" AutomationProperties.Name="{DynamicResource theme.custom_color}">
-              <ColorPicker.Resources>
-                <!-- There is only one panel: no empty tab header above the spectrum. -->
-                <x:Double x:Key="ColorViewTabStripHeight">0</x:Double>
-              </ColorPicker.Resources>
-            </ColorPicker>
+                         FlowDirection="LeftToRight" AutomationProperties.Name="{DynamicResource theme.custom_color}" />
             <TextBox Text="{Binding AccentHex}" Width="120" PlaceholderText="#7F77DD" FlowDirection="LeftToRight"
                      AutomationProperties.Name="{DynamicResource theme.custom_color}" />
           </StackPanel>
