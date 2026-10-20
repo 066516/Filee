@@ -122,6 +122,17 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.NotNull(Planner().Plan("mp4", to)); // a video still gives its sound
     }
 
+    [Theory]
+    [InlineData("jpg", "srt")]
+    [InlineData("png", "vtt")]
+    [InlineData("gif", "ass")]
+    public void A_picture_never_becomes_subtitles(string from, string to)
+    {
+        // Picture → video → subtitles would only find none.
+        Assert.Null(Planner().Plan(from, to));
+        Assert.NotNull(Planner().Plan("mkv", to)); // a video still gives its subtitle track
+    }
+
     [Fact]
     public void A_video_to_jpg_is_still_turned_by_the_image_engine()
     {
