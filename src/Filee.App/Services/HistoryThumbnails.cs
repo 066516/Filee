@@ -161,6 +161,10 @@ internal static class HistoryThumbnails
     {
         try
         {
+            var fileInfo = new FileInfo(path);
+            if (!fileInfo.Exists || fileInfo.Length < 8)
+                return null;
+
             byte[] bytes;
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete,
                        64 * 1024, FileOptions.SequentialScan))
@@ -170,7 +174,11 @@ internal static class HistoryThumbnails
                 bytes = ms.ToArray();
             }
 
-            if (bytes.Length == 0)
+            if (bytes.Length < 8)
+                return null;
+
+            // Verify PDF header magic bytes "%PDF"
+            if (bytes[0] != 0x25 || bytes[1] != 0x50 || bytes[2] != 0x44 || bytes[3] != 0x46)
                 return null;
 
             using var pageBitmap = PDFtoImage.Conversion.ToImage(bytes, page: 0, password: null, options: new PDFtoImage.RenderOptions(Dpi: 72));
@@ -448,7 +456,7 @@ internal static class HistoryThumbnails
             if (!process.Start())
                 return null;
 
-            if (!process.WaitForExit(5_000))
+            if (!process.WaitForExit(15_000))
             {
                 try
                 {
