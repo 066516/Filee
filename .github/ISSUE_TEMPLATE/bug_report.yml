@@ -24,7 +24,7 @@ body:
         2.
     validations:
 
-  - type: file
+  - type: textarea
     id: files
     attributes:
       label: Files involved
