@@ -750,6 +750,10 @@ internal static class SettingsMigrations
         // v32: logs and script source, Video CD DAT and Workbench archives learn their donuts; custom claims stay put.
         if (from < 32)
             changed |= LearnExtensions(profiles, out _, ["log", "py", "pac", "bat", "command", "dat", "wbpz"]);
+        // v33: HAR network logs (read as JSON) and raw H.265 / H.264 camera streams learn their donuts; custom claims
+        //      stay put.
+        if (from < 33)
+            changed |= LearnExtensions(profiles, out _, ["har", "h265", "265", "hevc", "h264", "264"]);
         return changed;
     }
 
