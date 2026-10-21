@@ -209,6 +209,7 @@
   "crop.state_failed": "Falhou",
 
   "preset.half_size": "Metade do tamanho",
+  "preset.half_size.donut": "Tamanho 50 %",
   "preset.grayscale": "Escala de cinzentos",
   "preset.remove_background": "Remover fundo",
   "preset.group_rotate": "Rodar",
@@ -234,7 +235,9 @@
   "preset.zip_all": "Um só ZIP",
   "preset.extract_subtitles": "Extrair legendas",
   "preset.trace_svg": "Vetorizar para SVG",
+  "preset.trace_svg.donut": "Vetorizar",
   "preset.trace_line_art": "Traços para SVG",
+  "preset.trace_line_art.donut": "Traços",
   "preset.extract_frames_png": "Extrair fotogramas (PNG)",
   "preset.extract_frames_jpg": "Extrair fotogramas (JPG)",
   "preset.extract_motion": "Extrair vídeo da Live Photo",

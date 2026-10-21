@@ -30,6 +30,16 @@ public static class LocalizerExtensions
         : preset.NameKey is not null ? loc[preset.NameKey]
         : preset.TargetFormat.ToUpperInvariant();
 
+    /// <summary>A compact name on the donut, where the target format is already shown underneath.</summary>
+    public static string DonutName(this ILocalizer loc, Preset preset)
+    {
+        if (!string.IsNullOrWhiteSpace(preset.Name) || preset.NameKey is null)
+            return loc.DisplayName(preset);
+        var key = preset.NameKey + ".donut";
+        var text = loc[key];
+        return text == key ? loc.DisplayName(preset) : text;
+    }
+
     /// <summary>
     /// The name on a slice of a group's ring, where the group's name already says what it is about: a built-in
     /// preset's short name (its <see cref="Preset.NameKey"/> + <c>.short</c>, "Left" for "Rotate left") when it has one,

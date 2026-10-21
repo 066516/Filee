@@ -209,6 +209,7 @@
   "crop.state_failed": "실패",
 
   "preset.half_size": "50% 축소",
+  "preset.half_size.donut": "50% 축소",
   "preset.grayscale": "흑백",
   "preset.remove_background": "배경 제거",
   "preset.group_rotate": "회전",
@@ -234,7 +235,9 @@
   "preset.zip_all": "ZIP 하나로",
   "preset.extract_subtitles": "자막 추출",
   "preset.trace_svg": "벡터화",
+  "preset.trace_svg.donut": "벡터화",
   "preset.trace_line_art": "흑백 선화",
+  "preset.trace_line_art.donut": "흑백 선화",
   "preset.extract_frames_png": "프레임 추출 (PNG)",
   "preset.extract_frames_jpg": "프레임 추출 (JPG)",
   "preset.extract_motion": "라이브 포토 동영상 추출",

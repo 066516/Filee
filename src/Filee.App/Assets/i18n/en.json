@@ -209,6 +209,7 @@
   "crop.state_failed": "Failed",
 
   "preset.half_size": "Half size",
+  "preset.half_size.donut": "Half size",
   "preset.grayscale": "Grayscale",
   "preset.remove_background": "Remove background",
   "preset.group_rotate": "Rotate",
@@ -234,7 +235,9 @@
   "preset.zip_all": "One ZIP",
   "preset.extract_subtitles": "Extract subtitles",
   "preset.trace_svg": "Trace to SVG",
+  "preset.trace_svg.donut": "Trace",
   "preset.trace_line_art": "Line art to SVG",
+  "preset.trace_line_art.donut": "Line art",
   "preset.extract_frames_png": "Extract frames (PNG)",
   "preset.extract_frames_jpg": "Extract frames (JPG)",
   "preset.extract_motion": "Extract Live Photo video",

@@ -209,6 +209,7 @@
   "crop.state_failed": "Ошибка",
 
   "preset.half_size": "Вдвое меньше",
+  "preset.half_size.donut": "Вдвое меньше",
   "preset.grayscale": "Оттенки серого",
   "preset.remove_background": "Убрать фон",
   "preset.group_rotate": "Повернуть",
@@ -234,7 +235,9 @@
   "preset.zip_all": "Один ZIP",
   "preset.extract_subtitles": "Извлечь субтитры",
   "preset.trace_svg": "Обвести в SVG",
+  "preset.trace_svg.donut": "Обвести в SVG",
   "preset.trace_line_art": "Линии в SVG",
+  "preset.trace_line_art.donut": "Линии в SVG",
   "preset.extract_frames_png": "Кадры в картинки (PNG)",
   "preset.extract_frames_jpg": "Кадры в картинки (JPG)",
   "preset.extract_motion": "Видео из Live Photo",

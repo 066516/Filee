@@ -209,6 +209,7 @@
   "crop.state_failed": "失败",
 
   "preset.half_size": "缩小 50%",
+  "preset.half_size.donut": "缩小 50%",
   "preset.grayscale": "灰度",
   "preset.remove_background": "去除背景",
   "preset.group_rotate": "旋转",
@@ -234,7 +235,9 @@
   "preset.zip_all": "打包成一个 ZIP",
   "preset.extract_subtitles": "提取字幕",
   "preset.trace_svg": "描摹",
+  "preset.trace_svg.donut": "描摹",
   "preset.trace_line_art": "黑白描摹",
+  "preset.trace_line_art.donut": "黑白描摹",
   "preset.extract_frames_png": "提取帧 (PNG)",
   "preset.extract_frames_jpg": "提取帧 (JPG)",
   "preset.extract_motion": "提取实况/动态照片视频",

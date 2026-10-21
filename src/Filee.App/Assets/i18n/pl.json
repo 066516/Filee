@@ -209,6 +209,7 @@
   "crop.state_failed": "Błąd",
 
   "preset.half_size": "Połowa rozmiaru",
+  "preset.half_size.donut": "Połowa rozmiaru",
   "preset.grayscale": "Skala szarości",
   "preset.remove_background": "Usuń tło",
   "preset.group_rotate": "Obróć",
@@ -234,7 +235,9 @@
   "preset.zip_all": "Jeden ZIP",
   "preset.extract_subtitles": "Wyodrębnij napisy",
   "preset.trace_svg": "Wektoryzuj do SVG",
+  "preset.trace_svg.donut": "Wektoryzuj do SVG",
   "preset.trace_line_art": "Rysunek do SVG",
+  "preset.trace_line_art.donut": "Rysunek do SVG",
   "preset.extract_frames_png": "Wyodrębnij klatki (PNG)",
   "preset.extract_frames_jpg": "Wyodrębnij klatki (JPG)",
   "preset.extract_motion": "Wyodrębnij wideo z Live Photo",
