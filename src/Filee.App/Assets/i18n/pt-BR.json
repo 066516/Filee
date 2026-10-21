@@ -900,7 +900,7 @@
   "whats_new.2_0_0.formats.title": "Mais formatos",
   "whats_new.2_0_0.formats.text": "Páginas da web arquivadas (MHTML), faturas eletrônicas OFD, mapas Shapefile, GeoJSON, KML e GPX, JPEG XR, modelos 3D FBX e modelos do PowerPoint (POTM).",
   "whats_new.2_0_0.crop.title": "Recorte antes de converter",
-  "whats_new.2_0_0.crop.text": "A fatia Recortar abre as imagens uma a uma. Arraste a moldura, escolha uma proporção no seletor e clique em Recortar e avançar.",
+  "whats_new.2_0_0.crop.text": "Solte imagens na fatia Recortar. Pressione A sobre a imagem para escolher a proporção ali mesmo e depois Recortar e avançar.",
   "whats_new.2_0_0.theme.title": "Mais suave, e nas suas cores",
   "whats_new.2_0_0.theme.text": "Escolha qualquer cor de destaque, arredonde as formas com Suavidade e deixe o menu circular translúcido.",
   "whats_new.2_0_0.languages.title": "O Filee fala mais idiomas",
