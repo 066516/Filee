@@ -263,14 +263,24 @@ internal static class Program
     }
 
     /// <summary>Also used by the XAML previewer.</summary>
-    public static AppBuilder BuildAvaloniaApp() =>
-        AppBuilder.Configure<App>()
-            .UsePlatformDetect()
+    public static AppBuilder BuildAvaloniaApp()
+    {
+        var builder = AppBuilder.Configure<App>();
+        if (OperatingSystem.IsLinux() && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")))
+        {
+            builder.UseWayland().UseSkia().UseHarfBuzz();
+        }
+        else
+        {
+            builder.UsePlatformDetect();
+        }
+        return builder
             .ConfigureFonts(fonts => fonts.AddFontCollection(new FileeFontCollection()))
 #if DEBUG
             .WithDeveloperTools()
 #endif
             .LogToTrace();
+    }
 }
 
 /// <summary>Embedded Noto fonts: <c>fonts:Filee#Noto Sans</c>, <c>#Noto Sans KR</c>, <c>#Noto Sans SC</c>,
