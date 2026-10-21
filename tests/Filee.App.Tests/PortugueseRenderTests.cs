@@ -60,6 +60,11 @@ public class PortugueseRenderTests
                             text.TextLayout.Height <= text.Bounds.Height + 1,
                     $"{language} at {width}px: '{text.Text}' is cut off ({text.TextLayout.Width}×{text.TextLayout.Height} in {text.Bounds.Size})");
             }
+            foreach (var label in window.GetVisualDescendants().OfType<TextBlock>()
+                         .Where(t => t.IsEffectivelyVisible && t.Classes.Contains("label")))
+                Assert.True(label.TextLayout.Width <= label.Bounds.Width + 1 &&
+                            label.TextLayout.Height <= label.Bounds.Height + 1,
+                    $"{language} at {width}px: field label '{label.Text}' is cut off");
         }
         finally
         {

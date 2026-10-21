@@ -8,6 +8,9 @@
              x:Class="Filee.App.Views.PresetEditorView"
              x:DataType="vm:PresetEditorViewModel">
   <UserControl.Styles>
+    <Style Selector="TextBlock.label">
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
     <!-- Translated choices can need more than one line, particularly in the 440 px preset dialog. -->
     <Style Selector="ComboBox:not(.targets)">
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
