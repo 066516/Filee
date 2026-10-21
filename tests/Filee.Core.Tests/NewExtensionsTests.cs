@@ -2,6 +2,7 @@
 // streams (issue #301).
 
 using Filee.Core.Formats;
+using Filee.Core.Presets;
 using Filee.Core.Profiles;
 using Filee.Core.Settings;
 
@@ -53,5 +54,21 @@ public class NewExtensionsTests
         Assert.Contains("hevc", video);
         Assert.DoesNotContain("h264", video); // the user's own donut has it
         Assert.Equal(AppSettings.CurrentSchemaVersion, upgraded.Settings.SchemaVersion);
+    }
+
+    [Fact]
+    public void Version_32_libraries_get_trim_transparent_borders_after_remove_background()
+    {
+        var presets = BuiltInData.CreatePresets().Where(p => p.Id != "trim-transparent").ToList();
+        var profiles = BuiltInData.CreateProfiles();
+        var back = profiles.Single(p => p.Id == "images").BackPresetIds!;
+        back.Remove("trim-transparent");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(32, presets, profiles));
+
+        Assert.Equal("trim-transparent", presets[presets.FindIndex(p => p.Id == "remove-background") + 1].Id);
+        Assert.Equal("trim-transparent", back[back.IndexOf("remove-background") + 1]);
+        Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "images").BackPresetIds, back);
+        Assert.False(SettingsMigrations.ApplyToLibrary(32, presets, profiles)); // once only
     }
 }
