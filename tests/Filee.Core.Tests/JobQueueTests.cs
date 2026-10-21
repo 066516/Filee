@@ -571,6 +571,30 @@ public class JobQueueTests
     }
 
     [Fact]
+    public void A_link_named_like_a_job_is_never_followed_by_the_work_folder_sweep()
+    {
+        using var root = new TempDir();
+        using var elsewhere = new TempDir();
+        var precious = Path.Combine(elsewhere.Path, "keep.txt");
+        File.WriteAllText(precious, "the user's");
+        File.SetLastWriteTimeUtc(precious, DateTime.UtcNow.AddDays(-30));
+        Directory.SetLastWriteTimeUtc(elsewhere.Path, DateTime.UtcNow.AddDays(-30));
+        var link = Path.Combine(root.Path, "0123456789");
+        try
+        {
+            Directory.CreateSymbolicLink(link, elsewhere.Path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Assert.Skip("This machine doesn't let the test make a symbolic link.");
+        }
+
+        JobQueue.DeleteStaleWorkFolders(root.Path, TimeSpan.FromDays(1));
+
+        Assert.True(File.Exists(precious));
+    }
+
+    [Fact]
     public async Task Enqueue_runs_in_background_and_raises_finished()
     {
         using var dir = new TempDir();

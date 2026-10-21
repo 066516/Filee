@@ -712,12 +712,23 @@ public sealed class JobQueue : IAsyncDisposable
     {
         try
         {
-            if (!Directory.Exists(workRoot))
+            var root = new DirectoryInfo(workRoot);
+            // A temp folder everyone can write in (/tmp on Linux) may hold a link to somewhere else: never follow one.
+            if (!root.Exists || root.LinkTarget is not null)
                 return;
-            foreach (var folder in Directory.EnumerateDirectories(workRoot))
+            foreach (var folder in root.EnumerateDirectories())
             {
-                if (IsJobId(Path.GetFileName(folder)) && DateTime.UtcNow - LastWrite(folder) > age)
-                    TryDelete(folder);
+                if (!IsJobId(folder.Name) || folder.LinkTarget is not null)
+                    continue;
+                try
+                {
+                    if (DateTime.UtcNow - LastWrite(folder) > age)
+                        TryDelete(folder.FullName);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    // Something in it can't be read: it stays, and the other folders are still looked at.
+                }
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -726,11 +737,18 @@ public sealed class JobQueue : IAsyncDisposable
 
         static bool IsJobId(string name) => name.Length == 10 && name.All(char.IsAsciiHexDigitLower);
 
-        // A folder's own time changes only when an entry right inside it does: a long job writes deeper down.
-        static DateTime LastWrite(string folder)
+        // A folder's own time changes only when an entry right inside it does: a long job writes deeper down. Links
+        // inside are not followed, and a folder that can't be read throws (the job's folder then stays).
+        static DateTime LastWrite(DirectoryInfo folder)
         {
-            var last = Directory.GetLastWriteTimeUtc(folder);
-            foreach (var entry in new DirectoryInfo(folder).EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+            var last = folder.LastWriteTimeUtc;
+            var everything = new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                AttributesToSkip = FileAttributes.ReparsePoint,
+                IgnoreInaccessible = false,
+            };
+            foreach (var entry in folder.EnumerateFileSystemInfos("*", everything))
             {
                 if (entry.LastWriteTimeUtc > last)
                     last = entry.LastWriteTimeUtc;
