@@ -118,6 +118,29 @@ the drag donut shows files and flips on `FlipKeyPressed` / `FlipWheelTurned`: th
 can't hold an event back; Explorer and Finder ignore Tab during a drag) and reports one flip per key press.
 The editor's Front / Back switch (`ToolbarPageViewModel.EditingBack`) edits either list with the same drag and drop.
 
+## Crop overlay
+
+The Crop tool (`tool-crop`) opens `Views/CropOverlayWindow` instead of running a job: the files one after another,
+each cropped by hand and saved by `CropService` (the preset's output rule, the source's quality kept, animated or
+multi-frame pictures refused, the EXIF thumbnail dropped), one history entry for the run.
+
+- `CropOverlayViewModel` walks the queue (Enter saves and opens the next file, Skip, Esc closes), keeps a
+  `CropQueueItem` per file for the strip of thumbnails (waiting, current, done, skipped, failed; a thumbnail is a
+  small copy of the preview, made once) and, after the last file, shows the summary when something failed or was
+  skipped. Every file starts free and whole, its portrait/landscape choice following the picture.
+- `Controls/CropCanvas` is the stage: the picture inside `ImagePadding`, the part outside the frame frosted (a copy at
+  most 40 px across, drawn large) under a veil of the page colour, the frame in the accent colour with round handles,
+  a rule-of-thirds grid while dragging and a size chip that follows the frame. The preview is downscaled once by
+  `CropService.LoadPreviewAsync`; nothing is decoded again while dragging. Programmatic changes (reset, a ratio, a
+  new picture) ease in with tweens read against the clock, so a lost frame never leaves one half done; dragging and
+  arrow-key nudges follow at once, and `PlayAnimations` (from `Motion.Enabled`) turns all of it off.
+- `Controls/AspectDial` is a small donut of the ratios (free, original, 1:1, 4:3, 3:2, 16:9): each slice a
+  `RingSegment` button that answers only inside its wedge (`DonutGeometry.Wedge`, rounded by the softness), the hub
+  swaps portrait and landscape. `AspectGlyph` is the dial in miniature on the toolbar button that opens it, and
+  `CropSummaryRing` the end summary's donut (a slice per file).
+- `Controls/CropMath` holds the arithmetic (ratios and their portrait forms, nudging by whole pixels, the frame in
+  pixels, where the size chip goes) and is unit tested.
+
 ## Settings and data
 
 `UserDataStore` owns `settings.json`, `presets.json`, `profiles.json` and `history.json`

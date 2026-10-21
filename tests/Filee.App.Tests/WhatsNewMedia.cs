@@ -245,6 +245,7 @@ public class WhatsNewMedia
             };
             window.Show();
             WaitFor(() => vm.PreviewImage is not null && !vm.IsBusy);
+            window.SettleForCapture(); // each frame of the clip is drawn where it ends
             Pump();
             var canvas = window.GetVisualDescendants().OfType<CropCanvas>().Single();
             try
