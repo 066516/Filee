@@ -90,6 +90,8 @@ public partial class LocalizationTests
     [InlineData("en-US", "en")]
     [InlineData("pl-PL", "pl")]
     [InlineData("ar-EG", "ar")]
+    [InlineData("pt-BR", "pt-BR")]
+    [InlineData("pt-PT", "pt-BR")]
     [InlineData("de-DE", "en")]
     [InlineData("", "en")] // Linux without LANG: the invariant culture
     public void Auto_follows_the_language_the_user_reads_the_os_in(string os, string expected) =>
