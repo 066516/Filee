@@ -108,6 +108,10 @@ public class SetupWindowTests
         var slides = window.GetVisualDescendants().OfType<SlideShow>().Single();
         Assert.True(slides.IsEffectivelyVisible);
         Assert.Equal(model.Deck!.Slides.Count, slides.Slides.Count);
+        Assert.Equal(model.Deck.Slides[0].MediaFor(language).Source, slides.Media.Source);
+        Assert.True(slides.Media.HasPicture);
+        if (language is "pt-PT" or "pt-BR")
+            Assert.Contains($"/{language}/", slides.Media.Source!.AbsolutePath);
         Check(window, $"setup-3-installing-{language}.png");
 
         runner.Result = new InstallResult(new LaunchRequest(@"C:\Program Files\Filee\Filee.exe", "--install-engines=pandoc"),
