@@ -254,11 +254,138 @@
     </Style.Animations>
   </Style>
 
+  <!-- ───────── Material You Controls ───────── -->
+
+  <!-- Seekbars / Sliders: Authentic Material 3 rounded pill track & capsule thumb -->
+  <Style Selector="Window.material-you Slider:horizontal">
+    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="Height" Value="36" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Window.material-you Slider:horizontal /template/ Border#TrackBackground">
+    <Setter Property="Height" Value="16" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+  </Style>
+  <Style Selector="Window.material-you Slider:horizontal /template/ RepeatButton#PART_DecreaseButton">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Window.material-you Slider:horizontal /template/ RepeatButton#PART_DecreaseButton /template/ Border">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="CornerRadius" Value="999" />
+  </Style>
+  <Style Selector="Window.material-you Slider:horizontal /template/ RepeatButton#PART_IncreaseButton">
+    <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Window.material-you Slider:horizontal /template/ RepeatButton#PART_IncreaseButton /template/ Border">
+    <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="CornerRadius" Value="999" />
+  </Style>
+  <Style Selector="Window.material-you Slider:horizontal /template/ Thumb#PART_Thumb">
+    <Setter Property="Width" Value="8" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="BorderThickness" Value="1.5" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18" Easing="{StaticResource SoftEase}" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Window.material-you Slider:horizontal /template/ Thumb#PART_Thumb:pointerover">
+    <Setter Property="RenderTransform" Value="scale(1.25, 1.08)" />
+  </Style>
+  <Style Selector="Window.material-you Slider:horizontal /template/ Thumb#PART_Thumb:pressed">
+    <Setter Property="RenderTransform" Value="scale(1.4, 1.15)" />
+  </Style>
+
+  <!-- ToggleButtons (Filter chips / Modifier keys) -->
+  <Style Selector="Window.material-you ToggleButton">
+    <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusSmall}" />
+    <Setter Property="Padding" Value="14,6" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SubtleBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Window.material-you ToggleButton:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentStrongBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Window.material-you ToggleButton:checked">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentStrongBrush}" />
+  </Style>
+
+  <!-- ToggleSwitch: M3 track, knob and hover color -->
+  <Style Selector="Window.material-you ToggleSwitch">
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18" Easing="{StaticResource SoftEase}" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Window.material-you ToggleSwitch:pointerover">
+    <Setter Property="RenderTransform" Value="scale(1.02)" />
+  </Style>
+  <Style Selector="Window.material-you ToggleSwitch /template/ Border#SwitchKnobBounds">
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.18" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.18" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Window.material-you ToggleSwitch:pointerover /template/ Border#SwitchKnobBounds">
+    <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="Window.material-you ToggleSwitch:checked /template/ Border#SwitchKnobBounds">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="Window.material-you ToggleSwitch:checked:pointerover /template/ Border#SwitchKnobBounds">
+    <Setter Property="Background" Value="{DynamicResource AccentStrongBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentStrongBrush}" />
+  </Style>
+  <Style Selector="Window.material-you ToggleSwitch:checked /template/ Ellipse#SwitchKnob">
+    <Setter Property="Fill" Value="{DynamicResource OnAccentBrush}" />
+  </Style>
+
+  <!-- CheckBox: M3 accent states -->
+  <Style Selector="Window.material-you CheckBox /template/ Border#NormalRectangle">
+    <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusSmall}" />
+  </Style>
+  <Style Selector="Window.material-you CheckBox:checked /template/ Border#NormalRectangle">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="Window.material-you CheckBox:checked /template/ Path#CheckGlyph">
+    <Setter Property="Fill" Value="{DynamicResource OnAccentBrush}" />
+    <Setter Property="Stroke" Value="{DynamicResource OnAccentBrush}" />
+  </Style>
+
   <!-- ───────── Reduced motion: remove every transition and animation above ───────── -->
-  <Style Selector="Window.reduced-motion :is(Button), Window.reduced-motion :is(ToggleButton), Window.reduced-motion Border.chip, Window.reduced-motion ListBoxItem">
+  <Style Selector="Window.reduced-motion :is(Button), Window.reduced-motion :is(ToggleButton), Window.reduced-motion Border.chip, Window.reduced-motion ListBoxItem, Window.reduced-motion Slider /template/ Thumb#PART_Thumb">
     <Setter Property="Transitions" Value="{x:Null}" />
   </Style>
-  <Style Selector="Window.reduced-motion Button:pressed, Window.reduced-motion ToggleButton:pressed, Window.reduced-motion Border.chip:pointerover, Window.reduced-motion ListBox.nav ListBoxItem:pointerover">
+  <Style Selector="Window.reduced-motion Button:pressed, Window.reduced-motion ToggleButton:pressed, Window.reduced-motion Border.chip:pointerover, Window.reduced-motion ListBox.nav ListBoxItem:pointerover, Window.reduced-motion Slider /template/ Thumb#PART_Thumb:pointerover">
     <Setter Property="RenderTransform" Value="none" />
   </Style>
   <Style Selector="Window.reduced-motion ContentControl.page > :is(Control), Window.reduced-motion Border.history-card">

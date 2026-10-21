@@ -12,8 +12,16 @@ using Filee.Core.Settings;
 namespace Filee.App.Services;
 
 /// <summary>Runtime theming.</summary>
-public sealed class ThemeService(IPlatformServices platform)
+public sealed class ThemeService
 {
+    private readonly IPlatformServices _platform;
+
+    public ThemeService(IPlatformServices platform)
+    {
+        _platform = platform;
+        Motion.WindowTracked = window => window.Classes.Set("material-you", IsMaterialYou);
+    }
+
     /// <summary>Accent swatches offered in the Theme page.</summary>
     public static readonly IReadOnlyList<string> Swatches =
         ["#7F77DD", "#1D9E75", "#D85A30", "#378ADD", "#D4537E", "#BA7517", "#639922", "#5F5E5A"];
@@ -118,7 +126,15 @@ public sealed class ThemeService(IPlatformServices platform)
             }
         }
 
-        Motion.Configure(theme.ReduceMotion, () => platform.PrefersReducedMotion);
+        var isMaterialYou = theme.Style == ThemeStyle.MaterialYou;
+        Motion.ForEachTracked(w => w.Classes.Set("material-you", isMaterialYou));
+        if (app.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            foreach (var window in desktop.Windows)
+                window.Classes.Set("material-you", isMaterialYou);
+        }
+
+        Motion.Configure(theme.ReduceMotion, () => _platform.PrefersReducedMotion);
     }
 
     /// <summary>The UI font chain for <paramref name="language"/> (see <see cref="SoftPalette.FontFamilies"/>).</summary>
