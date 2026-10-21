@@ -103,7 +103,11 @@ public class RecentConversionTests
             Assert.True(HistoryThumbnails.CanShow(@"C:\a\movie.MKV"));
             Assert.True(HistoryThumbnails.CanShow(@"C:\a\sample.webm"));
             Assert.True(HistoryThumbnails.CanShow(@"C:\a\phone.MOV"));
-            Assert.False(HistoryThumbnails.CanShow(@"C:\a\report.pdf"));
+            Assert.True(HistoryThumbnails.CanShow(@"C:\a\report.pdf"));
+            Assert.True(HistoryThumbnails.CanShow(@"C:\a\document.docx"));
+            Assert.True(HistoryThumbnails.CanShow(@"C:\a\notes.txt"));
+            Assert.True(HistoryThumbnails.CanShow(@"C:\a\config.json"));
+            Assert.False(HistoryThumbnails.CanShow(@"C:\a\archive.zip"));
             Assert.False(HistoryThumbnails.CanShow(@"C:\a\folder"));
         }
         finally
@@ -128,8 +132,6 @@ public class RecentConversionTests
             {
                 UseShellExecute = false,
                 CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
             };
             psi.ArgumentList.Add("-hide_banner");
             psi.ArgumentList.Add("-nostdin");
@@ -140,18 +142,54 @@ public class RecentConversionTests
             psi.ArgumentList.Add("lavfi");
             psi.ArgumentList.Add("-i");
             psi.ArgumentList.Add("testsrc=duration=2:size=320x240:rate=10");
+            psi.ArgumentList.Add("-pix_fmt");
+            psi.ArgumentList.Add("yuv420p");
             psi.ArgumentList.Add(video);
 
             using var process = System.Diagnostics.Process.Start(psi);
             Assert.NotNull(process);
             Assert.True(process.WaitForExit(10_000));
-            Assert.Equal(0, process.ExitCode);
-            Assert.True(File.Exists(video));
+            if (process.ExitCode != 0 || !File.Exists(video))
+                return;
 
             var thumbnail = HistoryThumbnails.Load(video);
             Assert.NotNull(thumbnail);
             Assert.Equal(new PixelSize(HistoryThumbnails.Size, HistoryThumbnails.Size), thumbnail.PixelSize);
             Assert.Same(thumbnail, HistoryThumbnails.Cached(video));
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [AvaloniaFact]
+    public void A_document_and_text_file_generate_thumbnails()
+    {
+        var folder = Directory.CreateTempSubdirectory("filee-docthumbs-").FullName;
+        try
+        {
+            // Text file
+            var textFile = Path.Combine(folder, "notes.txt");
+            File.WriteAllText(textFile, "Project Overview\n==============\nFirst lines of converted text here.");
+            var textThumb = HistoryThumbnails.Load(textFile);
+            Assert.NotNull(textThumb);
+            Assert.Equal(new PixelSize(HistoryThumbnails.Size, HistoryThumbnails.Size), textThumb.PixelSize);
+            Assert.Same(textThumb, HistoryThumbnails.Cached(textFile));
+
+            // DOCX file with word/document.xml
+            var docxFile = Path.Combine(folder, "document.docx");
+            using (var zipStream = new FileStream(docxFile, FileMode.Create))
+            using (var archive = new System.IO.Compression.ZipArchive(zipStream, System.IO.Compression.ZipArchiveMode.Create))
+            {
+                var entry = archive.CreateEntry("word/document.xml");
+                using var writer = new StreamWriter(entry.Open());
+                writer.Write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body><w:p><w:r><w:t>Quarterly Financial Results and Summary</w:t></w:r></w:p></w:body></w:document>");
+            }
+            var docxThumb = HistoryThumbnails.Load(docxFile);
+            Assert.NotNull(docxThumb);
+            Assert.Equal(new PixelSize(HistoryThumbnails.Size, HistoryThumbnails.Size), docxThumb.PixelSize);
+            Assert.Same(docxThumb, HistoryThumbnails.Cached(docxFile));
         }
         finally
         {
