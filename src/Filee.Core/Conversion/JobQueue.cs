@@ -245,7 +245,7 @@ public sealed class JobQueue : IAsyncDisposable
             return;
 
         var first = job.Files[0];
-        var allocator = CreateFinalAllocator(job, first.SourcePath, 1);
+        var allocator = CreateFinalAllocator(job, first.SourcePath, 1, oneFile: true);
         var output = allocator.Allocate("pdf");
         if (output is null)
         {
@@ -297,7 +297,7 @@ public sealed class JobQueue : IAsyncDisposable
             return;
 
         var first = job.Files[0];
-        var allocator = CreateFinalAllocator(job, first.SourcePath, 1);
+        var allocator = CreateFinalAllocator(job, first.SourcePath, 1, oneFile: true);
         var output = allocator.Allocate("tiff");
         if (output is null)
         {
@@ -352,7 +352,7 @@ public sealed class JobQueue : IAsyncDisposable
             return;
         }
 
-        var allocator = CreateFinalAllocator(job, inputs[0].SourcePath, 1);
+        var allocator = CreateFinalAllocator(job, inputs[0].SourcePath, 1, oneFile: true);
         var output = allocator.Allocate(format.PrimaryExtension);
         if (output is null)
         {
@@ -514,7 +514,8 @@ public sealed class JobQueue : IAsyncDisposable
         Notify(job);
         // A file saved from a browser first has part of its progress already.
         var floor = file.Progress;
-        // The last step's outputs: what a failed or cancelled conversion started there is undone.
+        // The last step's allocator: how many paths it handed out tells a single output from several, and what a
+        // failed or cancelled conversion started there is undone through it.
         FinalAllocator? final = null;
 
         try
@@ -570,6 +571,9 @@ public sealed class JobQueue : IAsyncDisposable
 
             if (zipResult && inputs.Count > 0)
                 inputs = PackZip(job, file, index, inputs, ct);
+            // One output, and nothing else handed out for it (a Markdown file's picture folder goes with it).
+            else if (finalOutput && inputs.Count == 1 && final is { Handed: 1 })
+                inputs = [NextToSource(job, file, index, inputs[0])];
 
             // A name the engine took but wrote nothing to is free again.
             final?.Release(except: inputs);
@@ -637,7 +641,7 @@ public sealed class JobQueue : IAsyncDisposable
     /// </summary>
     private IReadOnlyList<string> PackZip(ConversionJob job, FileResult file, int index, IReadOnlyList<string> files, CancellationToken ct)
     {
-        var allocator = CreateFinalAllocator(job, file.SourcePath, index);
+        var allocator = CreateFinalAllocator(job, file.SourcePath, index, oneFile: true);
         if (allocator.Allocate("zip") is not { } zipPath)
             return [];
         try
@@ -690,8 +694,78 @@ public sealed class JobQueue : IAsyncDisposable
             return new SemaphoreSlim(max, max);
         });
 
-    private FinalAllocator CreateFinalAllocator(ConversionJob job, string sourcePath, int index) =>
-        new(this, job.Preset.Output, new OutputPathResolver.Tokens(sourcePath, job.PresetDisplayName, index, job.CreatedAt));
+    /// <param name="oneFile">The output is one file whatever happens (a merged PDF, a multi-page TIFF, an archive).</param>
+    private FinalAllocator CreateFinalAllocator(ConversionJob job, string sourcePath, int index, bool oneFile = false) =>
+        new(this, oneFile ? ForOneFile(job.Preset.Output) : job.Preset.Output,
+            new OutputPathResolver.Tokens(sourcePath, job.PresetDisplayName, index, job.CreatedAt));
+
+    /// <summary>
+    /// The rule for a single output file: with <see cref="OutputRule.SubfolderOnlyForSeveralFiles"/> it is saved next to
+    /// the source instead of in the subfolder.
+    /// </summary>
+    private static OutputRule ForOneFile(OutputRule rule)
+    {
+        if (!rule.SubfolderOnlyForSeveralFiles || rule.Location != OutputLocation.Subfolder)
+            return rule;
+        var single = rule.Clone();
+        single.Location = OutputLocation.SameFolder;
+        return single;
+    }
+
+    /// <summary>
+    /// With <see cref="OutputRule.SubfolderOnlyForSeveralFiles"/>: moves the one file a source became out of the
+    /// subfolder to the folder next to the source, keeping its name (the conflict policy applies there), and removes
+    /// the subfolder if that left it empty. A file that can't be moved (the policy skips an existing file, or the file
+    /// is in use) stays in the subfolder.
+    /// </summary>
+    private string NextToSource(ConversionJob job, FileResult file, int index, string output)
+    {
+        var rule = ForOneFile(job.Preset.Output);
+        if (ReferenceEquals(rule, job.Preset.Output) || !File.Exists(output)
+            // Pandoc writes a document's pictures into "<name>_files" beside it, outside the allocator: they stay together.
+            || Directory.Exists(Path.Combine(Path.GetDirectoryName(output)!, Path.GetFileNameWithoutExtension(output) + "_files")))
+            return output;
+        // The name was already made from the pattern and renames: it is kept as it is.
+        rule.FileNamePattern = Path.GetFileNameWithoutExtension(output);
+        rule.Renames = [];
+
+        lock (_reservedOutputs)
+        {
+            var tokens = new OutputPathResolver.Tokens(file.SourcePath, job.PresetDisplayName, index, job.CreatedAt);
+            var target = OutputPathResolver.Resolve(rule, tokens, Path.GetExtension(output),
+                p => !PathsEqual(p, output) && (File.Exists(p) || Directory.Exists(p) || _reservedOutputs.Contains(p)));
+            if (target is null || PathsEqual(target, output))
+                return output;
+            try
+            {
+                // Over an existing file only when the policy says so: one that appeared since is never replaced.
+                File.Move(output, target, overwrite: rule.Conflict == ConflictPolicy.Overwrite);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                _log.LogWarning(ex, "Could not move {Output} next to its source", output);
+                return output;
+            }
+            _reservedOutputs.Remove(output);
+            _reservedOutputs.Add(target);
+
+            // Another file of this or a running job may still be written into the same subfolder.
+            var subfolder = Path.GetDirectoryName(output)!;
+            if (!_reservedOutputs.Any(p => PathsEqual(Path.GetDirectoryName(p) ?? "", subfolder)))
+            {
+                try
+                {
+                    if (!Directory.EnumerateFileSystemEntries(subfolder).Any())
+                        Directory.Delete(subfolder);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            }
+            return target;
+        }
+
+        static bool PathsEqual(string a, string b) =>
+            string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), Platform.FileSystemPaths.Comparison);
+    }
 
     private void Notify(ConversionJob job)
     {
@@ -750,6 +824,9 @@ public sealed class JobQueue : IAsyncDisposable
     {
         /// <summary>Every path handed out, and whether nothing was there before (not a file it overwrites).</summary>
         private readonly List<(string Path, bool New)> _allocated = [];
+
+        /// <summary>How many paths were handed out: an output and the picture folder that goes with it are two.</summary>
+        public int Handed => _allocated.Count;
 
         public string? Allocate(string extension, string? suffix = null)
         {
