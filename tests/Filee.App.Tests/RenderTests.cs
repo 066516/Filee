@@ -1067,10 +1067,14 @@ public class RenderTests
         Assert.Equal("jpg", preset.TargetFormat);
     }
 
-    [AvaloniaFact]
-    public void Preset_editor_offers_the_subfolder_only_for_several_files_with_a_subfolder()
+    [AvaloniaTheory]
+    [InlineData("en", false)]
+    [InlineData("ru", false)]
+    [InlineData("ar", true)]
+    public void Preset_editor_offers_the_subfolder_only_for_several_files_with_a_subfolder(string language, bool dark)
     {
-        TestServices.EnsureInitialized("en");
+        TestServices.EnsureInitialized(language);
+        var theme = AppHost.Get<ThemeService>();
         var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
         // PDF → page images saves into a folder per document.
         var preset = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "pdf-split");
@@ -1079,11 +1083,21 @@ public class RenderTests
         Assert.False(vm.SubfolderOnlyForSeveralFiles);
 
         vm.SubfolderOnlyForSeveralFiles = true;
-        var window = new PresetEditorWindow { DataContext = vm, Height = 1400 };
-        window.Show();
-        Pump();
-        Save(window, "preset-subfolder-en.png");
-        window.Close();
+        if (dark)
+            theme.Apply(new ThemeSettings { Mode = ThemeMode.Dark }, language);
+        try
+        {
+            var window = new PresetEditorWindow { DataContext = vm, Height = 1400 };
+            window.Show();
+            Pump();
+            Save(window, $"preset-subfolder-{language}{(dark ? "-dark" : "")}.png");
+            window.Close();
+        }
+        finally
+        {
+            if (dark)
+                theme.Apply(new ThemeSettings(), language);
+        }
         Assert.True(vm.Apply());
         Assert.True(preset.Output.SubfolderOnlyForSeveralFiles);
 

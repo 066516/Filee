@@ -494,6 +494,8 @@ public sealed class JobQueue : IAsyncDisposable
         Notify(job);
         // A file saved from a browser first has part of its progress already.
         var floor = file.Progress;
+        // The last step's allocator: how many paths it handed out tells a single output from several.
+        FinalAllocator? final = null;
 
         try
         {
@@ -505,7 +507,7 @@ public sealed class JobQueue : IAsyncDisposable
                 var step = route.Steps[s];
                 var isLast = s == route.Steps.Count - 1;
                 IOutputAllocator allocator = isLast && finalOutput && !zipResult
-                    ? CreateFinalAllocator(job, file.SourcePath, index)
+                    ? final = CreateFinalAllocator(job, file.SourcePath, index)
                     : new TempAllocator(workDir, FormatRegistry.NameWithoutExtension(file.SourcePath));
 
                 var outputs = new List<string>();
@@ -548,7 +550,8 @@ public sealed class JobQueue : IAsyncDisposable
 
             if (zipResult && inputs.Count > 0)
                 inputs = PackZip(job, file, index, inputs, ct);
-            else if (finalOutput && inputs.Count == 1)
+            // One output, and nothing else handed out for it (a Markdown file's picture folder goes with it).
+            else if (finalOutput && inputs.Count == 1 && final is { Handed: 1 })
                 inputs = [NextToSource(job, file, index, inputs[0])];
 
             if (finalOutput)
@@ -690,7 +693,9 @@ public sealed class JobQueue : IAsyncDisposable
     private string NextToSource(ConversionJob job, FileResult file, int index, string output)
     {
         var rule = ForOneFile(job.Preset.Output);
-        if (ReferenceEquals(rule, job.Preset.Output) || !File.Exists(output))
+        if (ReferenceEquals(rule, job.Preset.Output) || !File.Exists(output)
+            // Pandoc writes a document's pictures into "<name>_files" beside it, outside the allocator: they stay together.
+            || Directory.Exists(Path.Combine(Path.GetDirectoryName(output)!, Path.GetFileNameWithoutExtension(output) + "_files")))
             return output;
         // The name was already made from the pattern and renames: it is kept as it is.
         rule.FileNamePattern = Path.GetFileNameWithoutExtension(output);
@@ -705,7 +710,8 @@ public sealed class JobQueue : IAsyncDisposable
                 return output;
             try
             {
-                File.Move(output, target, overwrite: true);
+                // Over an existing file only when the policy says so: one that appeared since is never replaced.
+                File.Move(output, target, overwrite: rule.Conflict == ConflictPolicy.Overwrite);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
@@ -730,7 +736,7 @@ public sealed class JobQueue : IAsyncDisposable
         }
 
         static bool PathsEqual(string a, string b) =>
-            string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
+            string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), Platform.FileSystemPaths.Comparison);
     }
 
     private void Notify(ConversionJob job)
@@ -788,6 +794,9 @@ public sealed class JobQueue : IAsyncDisposable
     /// <summary>Allocates final output paths according to the preset's <see cref="OutputRule"/>.</summary>
     private sealed class FinalAllocator(JobQueue queue, OutputRule rule, OutputPathResolver.Tokens tokens) : IOutputAllocator
     {
+        /// <summary>How many paths were handed out: an output and the picture folder that goes with it are two.</summary>
+        public int Handed { get; private set; }
+
         public string? Allocate(string extension, string? suffix = null)
         {
             // Reserve under a lock so two parallel files never pick the same name.
@@ -799,6 +808,7 @@ public sealed class JobQueue : IAsyncDisposable
                     return null;
 
                 queue._reservedOutputs.Add(path);
+                Handed++;
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 // An empty extension asks for a folder (archive extraction): the converter creates it.
                 return path;

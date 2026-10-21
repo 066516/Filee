@@ -627,6 +627,50 @@ public class JobQueueTests
         Assert.False(Directory.Exists(Path.Combine(dir.Path, "a")));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Subfolder_only_for_several_files_keeps_a_markdown_file_with_its_picture_folder(bool reserved)
+    {
+        using var dir = new TempDir();
+        var converter = new FakeConverter("pandoc", new ConversionEdge("docx", "md")) { PictureFolder = true, ReservesPictureFolder = reserved };
+        await using var queue = new JobQueue(new ConverterCatalog([converter]));
+        var preset = new Preset
+        {
+            TargetFormat = "md",
+            Output = { Location = OutputLocation.Subfolder, SubfolderName = "{name}", SubfolderOnlyForSeveralFiles = true },
+        };
+
+        var job = await Run(queue, [dir.File("report.docx")], preset);
+
+        // Its links point into the folder beside it: the two stay together in the subfolder.
+        Assert.Equal([Path.Combine(dir.Path, "report", "report.md")], job.Outputs);
+        Assert.True(File.Exists(Path.Combine(dir.Path, "report", "report_files", "img0001.png")));
+    }
+
+    [Fact]
+    public async Task Subfolder_only_for_several_files_leaves_the_file_in_the_subfolder_when_skip_meets_an_existing_one()
+    {
+        using var dir = new TempDir();
+        var photo = dir.File("photo.jpg");
+        dir.File("photo.png", "older");
+        await using var queue = new JobQueue(new ConverterCatalog([new FakeConverter("magick", new ConversionEdge("jpg", "png"))]));
+        var preset = new Preset
+        {
+            TargetFormat = "png",
+            Output =
+            {
+                Location = OutputLocation.Subfolder, SubfolderName = "{name}", SubfolderOnlyForSeveralFiles = true,
+                Conflict = ConflictPolicy.Skip,
+            },
+        };
+
+        var job = await Run(queue, [photo], preset);
+
+        Assert.Equal([Path.Combine(dir.Path, "photo", "photo.png")], job.Outputs);
+        Assert.Equal("older", File.ReadAllText(Path.Combine(dir.Path, "photo.png")));
+    }
+
     [Fact]
     public async Task Without_subfolder_only_for_several_files_a_single_output_stays_in_the_subfolder()
     {
