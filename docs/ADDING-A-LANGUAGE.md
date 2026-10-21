@@ -21,6 +21,7 @@ Missing keys fall back to English at runtime, but the test suite requires every 
 
 Portuguese ships as `pt-PT` and `pt-BR`. Automatic selection uses `pt-BR` for Brazil (including `pt-Latn-BR`),
 and `pt-PT` for neutral `pt` and other Portuguese regions. An explicit selection always wins.
+Only the region subtag counts: a private-use suffix in `pt-PT-x-br` must not select Brazil.
 The UI language changes `CurrentUICulture`; number and date formatting continue to use the user's regional
 `CurrentCulture`. Do not change machine-readable filenames, pattern tokens or command-line switches when translating.
 
