@@ -24,8 +24,8 @@ Any IDE works (Visual Studio 2022+, Rider, VS Code with C# Dev Kit).
 
 ## Linux and macOS development
 
-These ports are development builds until native desktop tests are complete. Install .NET 10 and PowerShell 7,
-then build on the target OS. Supported package targets are `linux-x64`, `linux-arm64`, `osx-x64` and `osx-arm64`.
+Linux packages (x64, ARM64) are released like Windows; macOS stays a preview until it is notarized. Install .NET 10
+and PowerShell 7, then build on the target OS. Supported package targets are `linux-x64`, `linux-arm64`, `osx-x64` and `osx-arm64`.
 
 ```sh
 pwsh build/fetch-fonts.ps1
@@ -63,12 +63,12 @@ machine that built it. Check a package with
 
 The reusable `portable.yml` workflow builds and tests all four targets and starts the Linux packages on Ubuntu 22.04.
 Native platform tests skip on other OSes.
-Before calling a port ready, verify the installed package, CLI conversion, Finder/Thunar selection with Unicode
+Before releasing a port's packages, verify the installed package, CLI conversion, Finder/Thunar selection with Unicode
 and spaced paths, drag and keyboard gestures, permissions denied/granted, Retina/scaling, tray, login startup,
 engine downloads, watch folders, and uninstall. CI GUI startup alone does not validate these interactions.
 
 The website lives in the adjacent `../filee-web` repository. Its downloads must match real release assets and
-keep development status visible until native validation is complete.
+keep macOS marked as a preview until it is notarized.
 
 ## Where things live
 
@@ -86,7 +86,7 @@ Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) first. In short:
   - Every file starts with a short comment saying what it is for.
   - Public types and members get `///` XML docs.
   - Explain *why* for anything non-obvious (workarounds, engine quirks) — see `LibreOfficeConverter.cs` for the tone.
-- Keep UI strings out of code: add a key to all three `i18n/*.json` files (a test checks they match).
+- Keep UI strings out of code: add a key to every `i18n/*.json` file (a test checks they match).
 - Prefer small, focused pull requests.
 
 ## Tests
