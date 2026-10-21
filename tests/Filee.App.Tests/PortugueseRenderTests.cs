@@ -10,12 +10,63 @@ using Filee.App.Services;
 using Filee.App.ViewModels;
 using Filee.App.Views;
 using Filee.Core.Localization;
+using Filee.Core.Presets;
 using Filee.Core.Settings;
 
 namespace Filee.App.Tests;
 
 public class PortugueseRenderTests
 {
+    [AvaloniaTheory]
+    [InlineData("pt-PT", 440, "mp4-720")]
+    [InlineData("pt-BR", 440, "mp4-720")]
+    [InlineData("pt-PT", 560, "mp4-720")]
+    [InlineData("pt-BR", 560, "mp4-720")]
+    [InlineData("pt-PT", 440, "compress-pdf")]
+    [InlineData("pt-BR", 440, "compress-pdf")]
+    [InlineData("pt-PT", 560, "compress-pdf")]
+    [InlineData("pt-BR", 560, "compress-pdf")]
+    [InlineData("pt-PT", 440, "half-size")]
+    [InlineData("pt-BR", 440, "half-size")]
+    [InlineData("pt-PT", 560, "half-size")]
+    [InlineData("pt-BR", 560, "half-size")]
+    [InlineData("en", 440, "mp4-720")]
+    [InlineData("en", 440, "compress-pdf")]
+    [InlineData("en", 440, "half-size")]
+    public void Translated_choices_fit_in_the_preset_dialog(string language, int width, string preset)
+    {
+        TestServices.EnsureInitialized(language);
+        var loc = AppHost.Get<ILocalizer>();
+        var vm = new PresetEditorViewModel(AppHost.Get<UserDataStore>().FindPreset(preset)!, loc);
+        if (vm.ShowMediaQuality)
+            vm.MediaQuality = vm.MediaQualities.Single(q => q.Value == MediaQuality.Small);
+        if (vm.ShowPdfCompression)
+            vm.CompressionLevel = vm.CompressionLevels.Single(q => q.Value == PdfCompression.Screen);
+        var window = new PresetEditorWindow { DataContext = vm, Width = width, Height = 820 };
+        try
+        {
+            window.Show();
+            RenderTests.Pump();
+            RenderTests.Save(window, $"portuguese-preset-{preset}-{language}-{width}.png");
+            var boxes = window.GetVisualDescendants().OfType<ComboBox>()
+                .Where(c => c.IsEffectivelyVisible && !c.Classes.Contains("targets"));
+            Assert.NotEmpty(boxes);
+            foreach (var box in boxes)
+            {
+                var choice = Assert.IsAssignableFrom<IChoice>(box.SelectedItem);
+                var text = box.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == choice.Label);
+                // A wrapped line may retain a trailing space outside its width; only the rendered text matters.
+                Assert.True(text.TextLayout.Width <= text.Bounds.Width + 1 &&
+                            text.TextLayout.Height <= text.Bounds.Height + 1,
+                    $"{language} at {width}px: '{text.Text}' is cut off ({text.TextLayout.Width}×{text.TextLayout.Height} in {text.Bounds.Size})");
+            }
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
     [AvaloniaTheory]
     [InlineData("pt-PT")]
     [InlineData("pt-BR")]
