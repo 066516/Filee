@@ -30,8 +30,28 @@ The Windows installer embeds the same JSON files, including the `installer.*` ke
 currently has a separate, English-only text provider.
 
 
+Native macOS text also needs `<language>.lproj/ServicesMenu.strings` and, for permission explanations,
+`InfoPlist.strings`, plus a `CFBundleLocalizations` entry in `installer/macos/Info.plist`. Keep the English service
+identifier on the left of `ServicesMenu.strings`; translate its value. The packaging loop copies all `.lproj` folders
+and validates their strings files with `plutil`. These system texts follow macOS language preferences.
+Keep technical identifiers such as the KWin `Filee Donut` window title stable.
+
+
 Optional, but welcome in the same or a later pull request: a translated README. Add `README.<code>.md` and link
 it from the language line at the top of the other READMEs.
+
+## Demonstration recordings
+
+A slide may supply `localizedMedia` entries, for example
+`"pt-PT": { "media": "pt-PT/crop.webp", "poster": 57 }`. The code uses the exact UI language, otherwise the shared
+recording; regional variants do not borrow each other's recordings. Poster indices belong to each recording.
+The optional `FILEE_WHATSNEW_LANGUAGE` environment variable makes `WhatsNewMedia.Generate_2_0_0` generate a
+language's recordings and register them in the shared manifest. Rebuild App and Setup after generating them.
+The language-showcase slide intentionally demonstrates several languages and stays shared.
+
+Compact action names can use `preset.<name>.donut` when the donut already shows the target format underneath.
+Keep the full action name for the preset editor; custom names always take priority. `.short` is for a group's inner
+choices, whose group supplies additional context (Rotate → Left), and is a separate contract.
 
 ## Adding a UI string
 
