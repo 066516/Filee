@@ -882,7 +882,7 @@
   "whats_new.2_0_0.formats.title": "対応形式が増えました",
   "whats_new.2_0_0.formats.text": "Web アーカイブ (MHTML)、OFD 電子請求書、Shapefile・GeoJSON・KML・GPX の地図、JPEG XR、FBX モデル、POTM テンプレート。",
   "whats_new.2_0_0.crop.title": "変換の前にトリミング",
-  "whats_new.2_0_0.crop.text": "「トリミング」で画像を 1 枚ずつ開けます。枠をドラッグし、ダイヤルで比率を選んで「トリミングして次へ」。",
+  "whats_new.2_0_0.crop.text": "画像を「トリミング」にドロップ。画像の上で A を押すとその場で比率を選べます。続けて「トリミングして次へ」。",
   "whats_new.2_0_0.theme.title": "やわらかく、好きな色に",
   "whats_new.2_0_0.theme.text": "好きなアクセントカラーを選び、「角の丸み」で丸くして、ドーナツメニューを半透明にできます。",
   "whats_new.2_0_0.languages.title": "対応言語が増えました",
