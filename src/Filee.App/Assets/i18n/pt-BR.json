@@ -190,7 +190,7 @@
   "crop.state_skipped": "Pulado",
   "crop.state_failed": "Falhou",
 
-  "preset.half_size": "Metade do tamanho",
+  "preset.half_size": "Reduzir 50%",
   "preset.grayscale": "Tons de cinza",
   "preset.remove_background": "Remover fundo",
   "preset.group_rotate": "Girar",
@@ -216,7 +216,7 @@
   "preset.zip_all": "Um ZIP",
   "preset.extract_subtitles": "Extrair legendas",
   "preset.trace_svg": "Vetorizar em SVG",
-  "preset.trace_line_art": "Desenho a traço em SVG",
+  "preset.trace_line_art": "Traço em SVG",
   "preset.extract_frames_png": "Extrair quadros (PNG)",
   "preset.extract_frames_jpg": "Extrair quadros (JPG)",
   "preset.extract_motion": "Extrair vídeo da Live Photo",
