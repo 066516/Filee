@@ -105,8 +105,6 @@ public sealed class LocalizationService : ILocalizer
             return "pl";
         if (ui.StartsWith("es", StringComparison.OrdinalIgnoreCase))
             return "es";
-        if (ui.StartsWith("pt", StringComparison.OrdinalIgnoreCase))
-            return "pt-BR";
         if (ui.StartsWith("hi", StringComparison.OrdinalIgnoreCase))
             return "hi";
         if (ui.StartsWith("ru", StringComparison.OrdinalIgnoreCase))
@@ -114,6 +112,9 @@ public sealed class LocalizationService : ILocalizer
         // "ar" and every region ("ar-SA", "ar-EG", …), but not other codes starting with "ar".
         if (ui.Equals("ar", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("ar-", StringComparison.OrdinalIgnoreCase))
             return "ar";
+        // Brazilian Portuguese is the only Portuguese, so Portugal's "pt-PT" gets it too.
+        if (ui.StartsWith("pt", StringComparison.OrdinalIgnoreCase))
+            return "pt-BR";
         return "en";
     }
 

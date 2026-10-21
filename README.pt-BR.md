@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <b>Português (Brasil)</b> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <b>Português (Brasil)</b></p>
 
 <table>
   <tr>
@@ -53,7 +53,7 @@ Baixe em [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
 
 - **Windows 10/11**: execute `Filee-<version>-win-Setup.exe`, ou descompacte o `win-Portable.zip` e execute `Filee.exe`.
   A instalação é o instalador do próprio Filee, nos idiomas do Filee, e não precisa de mais nada no PC. Ela pode adicionar o menu do
-  Explorador, iniciar ao entrar, o comando `filee` e motores opcionais; instalações silenciosas usam as opções do Inno Setup
+  Explorador, iniciar com o Windows, o comando `filee` e motores opcionais; instalações silenciosas usam as opções do Inno Setup
   (`/VERYSILENT /SUPPRESSMSGBOXES`).
 - **macOS 13+** (prévia): descompacte o pacote `osx-arm64` ou `osx-x64` e execute `./install.sh`.
   A build ainda não é notarizada, então permita a primeira abertura em Ajustes do Sistema → Privacidade e Segurança → **Abrir Mesmo Assim**.
@@ -69,7 +69,7 @@ slides mostram o que há de novo.
 - **Direto do navegador**: arraste uma imagem, um link de arquivo ou um download do Chrome, Edge, Firefox ou Safari do mesmo
   jeito. O Filee salva na pasta Downloads (ou guarda só o arquivo convertido) e converte. Links são baixados
   sem o login do navegador.
-- **Um menu por tipo de arquivo**, organizado arrastando e soltando, com predefinições de qualidade, tamanho, DPI, páginas e compactação de PDF,
+- **Um menu por tipo de arquivo**, organizado arrastando e soltando, com predefinições de qualidade, tamanho, DPI, páginas e compressão de PDF,
   vídeo e áudio, pasta de saída e nomes de arquivo.
 - **Dois lados em cada menu**: pressione <kbd>Tab</kbd> ou gire a roda do mouse com ele aberto para virar e ver formatos e ferramentas menos comuns.
 - **Recortar antes de converter**: a fatia Recortar abre as imagens uma a uma. Arraste a moldura, escolha uma proporção, e só essa parte é salva.
@@ -77,7 +77,7 @@ slides mostram o que há de novo.
 - **Pastas monitoradas** convertem cada arquivo que chega nelas.
 - **Conversões recentes** no Início, cada uma com uma miniatura: abra o resultado, ou abra com outro aplicativo.
 - **Outras entradas**: o menu do botão direito, um atalho de teclado, a área de soltar e o [comando `filee`](#linha-de-comando).
-- Temas claro e escuro, com a sua cor de destaque e a opacidade do menu circular, em English, Español, Português (Brasil), 日本語, 한국어, 简体中文, Polski, हिन्दी, Русский e العربية (da direita para a esquerda).
+- Temas claro e escuro, com sua cor de destaque e a opacidade do menu circular, em English, Español, 日本語, 한국어, 简体中文, Polski, हिन्दी, Русский, العربية (da direita para a esquerda) e Português (Brasil).
 
 ## Capturas de tela
 
@@ -96,9 +96,9 @@ slides mostram o que há de novo.
 
 | De | Para |
 |---|---|
-| **Imagens**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …; leitura de GIMP XCF, RAW de câmera (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, JPEG XR (Windows), Live Photo do iPhone (LIVP) | qualquer um destes (HEIC⁵), PDF, SVG (traçado), redimensionado, tons de cinza; Live/Motion Photos (iPhone, Android) → o vídeo delas (MP4, MOV⁵), e um vídeo → Live Photo (iPhone) ou Motion Photo (Android)⁵, experimental |
+| **Imagens**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …; leitura de GIMP XCF, RAW de câmera (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, JPEG XR (Windows), Live Photo do iPhone (LIVP) | qualquer um destes (HEIC⁵), PDF, SVG (vetorizado), redimensionado, tons de cinza; Live/Motion Photos (iPhone, Android) → o vídeo delas (MP4, MOV⁵), e um vídeo → Live Photo (iPhone) ou Motion Photo (Android)⁵, experimental |
 | **Vetor**: SVG, SVGZ, EMF, WMF, AI · EPS, PS¹ · CDR, VSD, CGM, ODG, FODG² | PDF (vetorial), PNG e outras imagens, SVG ↔ SVGZ, SVG → DXF/DWG, PDF → EPS/PS¹, SVG → EMF, WMF, ODG² |
-| **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, PPTX (uma imagem de cada página), SVG²; mesclar (numa ordem que você escolhe antes), dividir, intervalos de páginas, compactar (PDFs menores) |
+| **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, PPTX (uma imagem de cada página), SVG²; mesclar (numa ordem que você escolhe antes), dividir, intervalos de páginas, comprimir (PDFs menores) |
 | **Documentos**: DOCX, DOCM, DOTX, EML, MSG do Outlook; leitura de OFD (faturas eletrônicas e documentos oficiais chineses) · DOC, ODT, FODT, OTT, RTF, WPS, WPD, Pages, ClarisWorks, MacWrite, T602, …² | PDF, DOCX, HWPX, EPUB, TXT, HTML; MSG → EML · ODT, FODT, OTT² |
 | **Planilhas**: XLSX, XLSM, XLS, XLT, ODS, CSV, TSV · OTS, FODS, Numbers, ET² | PDF, XLSX, ODS, CSV, TSV, JSON, HWPX, HTML · XLT, OTS² |
 | **Apresentações**: PPTX, PPTM, POTX, POTM, PPSX · PPT, ODP, OTP, FODP, Keynote² | PDF, PNG, JPG, DOCX, HWPX · OTP² |

@@ -349,6 +349,7 @@ public class RenderTests
     [InlineData("hi")]
     [InlineData("ru")]
     [InlineData("ar")]
+    [InlineData("pt-BR")]
     public void Home_page_search_finds_old_conversions_in_a_long_history(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1397,6 +1398,7 @@ public class RenderTests
     [InlineData("ko", true)]
     [InlineData("ru", false)]
     [InlineData("ar", true)]
+    [InlineData("pt-BR", false)]
     public void Preset_editor_shows_media_and_archive_options(string language, bool dark)
     {
         TestServices.EnsureInitialized(language);
@@ -1832,6 +1834,7 @@ public class RenderTests
     [InlineData("zh-CN")]
     [InlineData("ru")]
     [InlineData("ar")]
+    [InlineData("pt-BR")]
     public void Live_photo_options_render_for_jpg_and_heic_and_save_only_there(string language)
     {
         TestServices.EnsureInitialized(language);
