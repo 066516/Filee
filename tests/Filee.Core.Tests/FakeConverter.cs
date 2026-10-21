@@ -165,11 +165,13 @@ internal sealed class FakeJoiner : IMediaJoiner
 
     public bool Throw { get; set; }
 
-    public bool CanJoinInto(string format) => true;
+    /// <summary>Called when the join starts, before anything is written.</summary>
+    public Action? Joining { get; set; }
 
     public Task JoinAsync(IReadOnlyList<string> inputPaths, string outputPath, string format, Filee.Core.Presets.Preset preset,
         string workDirectory, IProgress<double>? progress, CancellationToken cancellationToken)
     {
+        Joining?.Invoke();
         if (Throw)
             throw new InvalidOperationException("boom");
         Inputs.AddRange(inputPaths);

@@ -55,8 +55,9 @@ public class MediaToolTests
     [Fact]
     public void Slides_and_fades_stay_within_their_limits()
     {
-        var media = new MediaOptions { SlideSeconds = 2, CrossfadeSeconds = 5 };
-        Assert.Equal(1, media.FadeDuration); // at most half of the time a picture is shown
+        var media = new MediaOptions { SlideSeconds = 1.5 };
+        Assert.Equal(0.75, media.FadeDuration); // at most half of the time a picture is shown
+        Assert.Equal(1, new MediaOptions { SlideSeconds = 3 }.FadeDuration);
         media.Crossfade = false;
         Assert.Equal(0, media.FadeDuration);
         Assert.Equal(MediaOptions.MaxSlideSeconds, new MediaOptions { SlideSeconds = 1e9 }.SlideDuration);
@@ -181,6 +182,42 @@ public class MediaToolTests
         Assert.Equal(drawing, joiner.Inputs[1]);
         Assert.Equal(Path.Combine(dir.Path, "a_video.mp4"), job.Outputs.Single());
         Assert.False(File.Exists(Path.Combine(dir.Path, "a.png"))); // no picture left beside the source
+    }
+
+    [Fact]
+    public async Task A_slideshow_is_not_shown_as_done_while_its_video_is_made()
+    {
+        using var dir = new TempDir();
+        var photos = new[] { dir.File("a.jpg"), dir.File("b.jpg") };
+        var job = new ConversionJob(photos, BuiltIn("video-from-images"), "Test");
+        double atJoin = -1;
+        var joiner = new FakeJoiner { Joining = () => atJoin = job.Progress };
+        await using var queue = new JobQueue(new ConverterCatalog([new FakeConverter("magick", new ConversionEdge("jpg", "png"))]),
+            mediaJoiner: joiner);
+
+        await queue.RunAsync(job);
+
+        Assert.Equal(JobState.Completed, job.State);
+        Assert.InRange(atJoin, 0.01, 0.5); // the pictures are ready, the video isn't
+        Assert.Equal(1, job.Progress);
+    }
+
+    [Fact]
+    public async Task Compressing_keeps_the_original_when_the_copy_would_not_be_smaller()
+    {
+        using var dir = new TempDir();
+        // The fake engine writes a short line: smaller than the big file, bigger than the tiny one.
+        var big = dir.File("big.jpg", new string('x', 10_000));
+        var tiny = dir.File("tiny.jpg", "x");
+        await using var queue = new JobQueue(new ConverterCatalog([new FakeConverter("magick", new ConversionEdge("jpg", "jpg"))]));
+
+        var job = await Run(queue, [big, tiny], BuiltIn("compress-image"));
+
+        Assert.Equal(JobState.Completed, job.State);
+        Assert.Null(job.Files[0].NoticeKey);
+        Assert.True(new FileInfo(Path.Combine(dir.Path, "big_compressed.jpg")).Length < 10_000);
+        Assert.Equal("notice.pdf_not_smaller", job.Files[1].NoticeKey);
+        Assert.Equal("x", File.ReadAllText(Path.Combine(dir.Path, "tiny_compressed.jpg"))); // the original, copied
     }
 
     [Fact]

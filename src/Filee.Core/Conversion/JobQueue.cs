@@ -340,6 +340,9 @@ public sealed class JobQueue : IAsyncDisposable
         Notify(job);
     }
 
+    /// <summary>Share of a slideshow's progress that preparing its pictures takes; encoding the video fills the rest.</summary>
+    private const double SlidesReadyShare = 0.3;
+
     /// <summary>
     /// "Merge videos" / "Merge audio": the videos or audio files go into one file as they are. "Video from images":
     /// every picture becomes PNG in the work directory first (a PNG is taken as it is), with its orientation applied by
@@ -372,7 +375,8 @@ public sealed class JobQueue : IAsyncDisposable
                 {
                     parts[i] = source.Id == "png" && !job.Preset.Image.TurnsOrMirrors
                         ? [file.SourcePath]
-                        : await RunFileAsync(job, file, i + 1, planner, workDir, finalOutput: false, intermediate: "png");
+                        : await RunFileAsync(job, file, i + 1, planner, workDir, finalOutput: false, intermediate: "png",
+                            ceiling: SlidesReadyShare);
                     return;
                 }
                 // A video's sound can join an audio file; a picture or a document joins nothing.
@@ -597,11 +601,12 @@ public sealed class JobQueue : IAsyncDisposable
     /// <summary>
     /// Converts one source file along its planned route.
     /// With <paramref name="finalOutput"/> false, results stay in the work directory as <paramref name="intermediate"/>
-    /// files (PDF for merging, TIFF pages for a multi-page TIFF).
+    /// files (PDF for merging, TIFF pages for a multi-page TIFF). <paramref name="ceiling"/> is the file's progress once
+    /// the route is done (a slideshow's pictures leave the rest to the video).
     /// </summary>
     private async Task<IReadOnlyList<string>> RunFileAsync(
         ConversionJob job, FileResult file, int index, RoutePlanner planner, string workDir, bool finalOutput,
-        string intermediate = "pdf")
+        string intermediate = "pdf", double ceiling = 1)
     {
         var ct = job.CancellationToken;
         if (Stopped(file))
@@ -652,6 +657,7 @@ public sealed class JobQueue : IAsyncDisposable
         Notify(job);
         // A file saved from a browser first has part of its progress already.
         var floor = file.Progress;
+        ceiling = Math.Max(ceiling, floor);
         // The last step's allocator: how many paths it handed out tells a single output from several, and what a
         // failed or cancelled conversion started there is undone through it.
         FinalAllocator? final = null;
@@ -677,7 +683,7 @@ public sealed class JobQueue : IAsyncDisposable
                     var progress = new Progress<double>(p =>
                     {
                         // Reports arrive on the thread pool, possibly out of order: progress only moves forward.
-                        var value = floor + (1 - floor) * (stepIndex + Math.Clamp(p, 0, 1)) / route.Steps.Count;
+                        var value = floor + (ceiling - floor) * (stepIndex + Math.Clamp(p, 0, 1)) / route.Steps.Count;
                         if (value <= file.Progress)
                             return;
                         file.Progress = value;
@@ -709,6 +715,8 @@ public sealed class JobQueue : IAsyncDisposable
 
             if (zipResult && inputs.Count > 0)
                 inputs = PackZip(job, file, index, inputs, ct);
+            else if (finalOutput && job.Preset.Output.OnlyIfSmaller && inputs.Count == 1 && CopyIfNotSmaller(file.SourcePath, inputs[0]))
+                file.NoticeKey = "notice.pdf_not_smaller";
             // One output, and nothing else handed out for it (a Markdown file's picture folder goes with it).
             else if (finalOutput && inputs.Count == 1 && final is { Handed: 1 })
                 inputs = [NextToSource(job, file, index, inputs[0], final)];
@@ -722,7 +730,7 @@ public sealed class JobQueue : IAsyncDisposable
                     CopyDates(file.SourcePath, inputs);
             }
             file.State = inputs.Count == 0 && finalOutput ? FileState.Skipped : FileState.Done;
-            file.Progress = 1;
+            file.Progress = ceiling;
             Notify(job);
             return inputs;
         }
@@ -809,6 +817,19 @@ public sealed class JobQueue : IAsyncDisposable
             throw;
         }
         return [zipPath];
+    }
+
+    /// <summary>
+    /// Puts the source in place of <paramref name="output"/> when both have the same format and the output is not
+    /// smaller (<see cref="OutputRule.OnlyIfSmaller"/>). True when it did.
+    /// </summary>
+    private static bool CopyIfNotSmaller(string source, string output)
+    {
+        if (!string.Equals(FormatRegistry.Detect(source)?.Id, FormatRegistry.Detect(output)?.Id, StringComparison.Ordinal)
+            || !File.Exists(output) || new FileInfo(output).Length < new FileInfo(source).Length)
+            return false;
+        File.Copy(source, output, overwrite: true);
+        return true;
     }
 
     /// <summary>The engine's check; a check that fails (an unreadable file) finds nothing, and the conversion reports the file.</summary>

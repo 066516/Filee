@@ -201,8 +201,6 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
         return [output];
     }
 
-    public bool CanJoinInto(string format) => MediaOptions.JoinTargets.Contains(format) && (_tools ?? Locate()) is not null;
-
     public async Task JoinAsync(IReadOnlyList<string> inputPaths, string outputPath, string format, Preset preset,
         string workDirectory, IProgress<double>? progress, CancellationToken cancellationToken)
     {
@@ -267,7 +265,7 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
     {
         if (pictures.Count > MediaJoining.MaxSlides)
             throw new ConversionRefusedException("error.too_many_pictures", $"{pictures.Count} > {MediaJoining.MaxSlides}");
-        var (width, height) = MediaJoining.SlideshowFrame(media);
+        var (width, height) = (MediaJoining.SlideshowWidth, MediaJoining.SlideshowHeight);
         var slides = new List<string>();
         for (var i = 0; i < pictures.Count; i++)
         {

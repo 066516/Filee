@@ -203,9 +203,6 @@ public interface ITiffMerger
 /// </summary>
 public interface IMediaJoiner
 {
-    /// <summary>True if files can be joined into <paramref name="format"/> now (FFmpeg is installed).</summary>
-    bool CanJoinInto(string format);
-
     /// <summary>
     /// Writes every file of <paramref name="inputPaths"/>, in order, into <paramref name="outputPath"/>: video or audio
     /// clips back to back, or pictures shown one after the other (<see cref="MediaOptions.Slideshow"/>).

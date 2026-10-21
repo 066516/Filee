@@ -588,6 +588,10 @@ internal static class MediaEncoding
         if (info.Video?.Codec == "hevc" && target is "mp4" or "m4v" or "mov")
             args.AddRange(["-tag:v", "hvc1"]);
         args.AddRange(["-map_metadata", "-1", "-map_metadata:s", "-1", "-map_chapters", "-1", "-fflags", "+bitexact"]);
+        // Attachments are an MKV's subtitle fonts (without them styled subtitles fall back to another font); each needs
+        // its own file name and type tags. Only when there are any: FFmpeg refuses a specifier that matches nothing.
+        if (info.HasAttachments)
+            args.AddRange(["-map", "0:t", "-map_metadata:s:t", "0:s:t"]);
         args.AddRange(ContainerArguments(target));
         args.AddRange(["-max_muxing_queue_size", "4096", "-f", spec.Muxer, "-progress", "pipe:1", output]);
         return args;

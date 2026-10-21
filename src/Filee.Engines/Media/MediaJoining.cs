@@ -30,8 +30,8 @@ internal static class MediaJoining
 
     /// <summary>
     /// True when the clips can be joined without an encode: every one is a video MP4 takes as it is, all with the same
-    /// codec, picture size, pixel format, turn and pixel shape, and the same kind of sound (or none at all). Videos from
-    /// one phone usually are.
+    /// codec setup (parameter sets: the MP4 keeps only the first clip's), picture size, pixel format, frame rate, turn
+    /// and pixel shape, and the same kind of sound (or none at all). Videos from one phone usually are.
     /// </summary>
     public static bool CanCopyVideos(IReadOnlyList<MediaInfo> clips, MediaOptions options)
     {
@@ -39,7 +39,8 @@ internal static class MediaJoining
             return false;
         var sameVideo = clips.All(c => c.Video is { } v && MediaEncoding.CanCopyVideo("mp4", v, options)
             && v.Codec == first.Codec && v.Width == first.Width && v.Height == first.Height && v.PixelFormat == first.PixelFormat
-            && v.Rotation == first.Rotation && Math.Abs(v.SampleAspect - first.SampleAspect) < 0.01);
+            && v.Rotation == first.Rotation && Math.Abs(v.SampleAspect - first.SampleAspect) < 0.01
+            && Math.Abs(v.FrameRate - first.FrameRate) < 0.01 && v.HeaderHash is not null && v.HeaderHash == first.HeaderHash);
         if (!sameVideo)
             return false;
         if (clips[0].Audio is not { } sound)
@@ -184,9 +185,8 @@ internal static class MediaJoining
 
     // ───────────────────────── Pictures ─────────────────────────
 
-    /// <summary>The slideshow frame of a preset: even, between 16 and 8K, 1080p by default.</summary>
-    public static (int Width, int Height) SlideshowFrame(MediaOptions options) =>
-        (MediaEncoding.Even(Math.Clamp(options.SlideshowWidth, 16, 7680)), MediaEncoding.Even(Math.Clamp(options.SlideshowHeight, 16, 4320)));
+    /// <summary>The frame every slideshow picture is fitted into: 1080p.</summary>
+    public const int SlideshowWidth = 1920, SlideshowHeight = 1080;
 
     /// <summary>How long a slideshow of <paramref name="count"/> pictures plays: the fades overlap the pictures.</summary>
     public static TimeSpan SlideshowDuration(int count, MediaOptions options) => count <= 0
@@ -213,7 +213,7 @@ internal static class MediaJoining
     /// <param name="workDirectory">Where a long filter graph is written (<see cref="MaxInlineGraph"/>).</param>
     public static List<string> Slideshow(IReadOnlyList<string> slides, string output, MediaOptions options, string encoder, string workDirectory)
     {
-        var (width, height) = SlideshowFrame(options);
+        var (width, height) = (SlideshowWidth, SlideshowHeight);
         var show = Seconds(options.SlideDuration);
         var fade = options.FadeDuration;
         var graph = new List<string>();

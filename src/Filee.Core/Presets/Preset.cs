@@ -581,8 +581,8 @@ public sealed class MediaOptions
     public bool JoinIntoOne { get; set; }
 
     /// <summary>
-    /// MP4: the dropped pictures become one video, each shown for <see cref="SlideSeconds"/>, fitted into
-    /// <see cref="SlideshowWidth"/> × <see cref="SlideshowHeight"/> with black bars.
+    /// MP4: the dropped pictures become one 1080p video, each shown for <see cref="SlideSeconds"/>, fitted in with
+    /// black bars.
     /// </summary>
     public bool Slideshow { get; set; }
 
@@ -596,13 +596,7 @@ public sealed class MediaOptions
     public bool Crossfade { get; set; } = true;
 
     /// <summary>With <see cref="Crossfade"/>: how long a fade takes, in seconds (at most half a picture's time).</summary>
-    public double CrossfadeSeconds { get; set; } = 1;
-
-    /// <summary>Frame size of a <see cref="Slideshow"/> (1080p unless the preset says otherwise).</summary>
-    public int SlideshowWidth { get; set; } = 1920;
-
-    /// <inheritdoc cref="SlideshowWidth"/>
-    public int SlideshowHeight { get; set; } = 1080;
+    public const double CrossfadeSeconds = 1;
 
     /// <summary>
     /// Audio target: copy the sound as it is when the target takes its codec (AAC from a phone video into M4A), with
@@ -622,9 +616,7 @@ public sealed class MediaOptions
 
     /// <summary>The fade between two pictures in seconds: 0 without <see cref="Crossfade"/>, never over half a picture's time.</summary>
     [JsonIgnore]
-    public double FadeDuration => Crossfade && double.IsFinite(CrossfadeSeconds) && CrossfadeSeconds > 0
-        ? Math.Min(CrossfadeSeconds, SlideDuration / 2)
-        : 0;
+    public double FadeDuration => Crossfade ? Math.Min(CrossfadeSeconds, SlideDuration / 2) : 0;
 
     public MediaOptions Clone() => (MediaOptions)MemberwiseClone();
 }

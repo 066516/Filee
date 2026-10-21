@@ -110,6 +110,13 @@ public class MediaToolRealTests(EngineFixture fx) : IClassFixture<EngineFixture>
         return result.StandardOutput.Split('=', 2)[^1].Trim();
     }
 
+    /// <summary>The MD5 of every video packet of a file, in order.</summary>
+    private static async Task<List<string>> PacketHashesAsync(string path)
+    {
+        var result = await FfmpegAsync(["-hide_banner", "-nostdin", "-v", "error", "-i", path, "-map", "0:v:0", "-c", "copy", "-f", "framemd5", "-"]);
+        return [.. result.StandardOutput.Split('\n').Where(l => l.Length > 0 && l[0] != '#').Select(l => l.Split(',')[^1].Trim())];
+    }
+
     // ───────────────────────── Merge videos ─────────────────────────
 
     [Fact]
@@ -126,8 +133,32 @@ public class MediaToolRealTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal(Path.Combine(folder, "a_merged.mp4"), output);
         var probed = await ProbeAsync(output);
         Assert.InRange(probed.Duration, 3.3, 3.7);
+        // Copied, not encoded again: the merged file starts with the first clip's packets, byte for byte (FFmpeg puts
+        // the stream's parameter sets into each clip's first packet, so that one is skipped).
+        var firstPackets = await PacketHashesAsync(first);
+        Assert.Equal(firstPackets.Skip(1), (await PacketHashesAsync(output)).Take(firstPackets.Count).Skip(1));
         Assert.Equal(("h264", 320, 240), (probed.Video!.Codec, probed.Video.Width, probed.Video.Height));
         Assert.Equal("aac", probed.Audio!.Codec);
+    }
+
+    [Fact]
+    public async Task Clips_of_one_size_but_other_encoder_settings_still_play_after_merging()
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        // Same codec, size and pixel format; another profile and header, as from two different phones.
+        var first = await MakeClipAsync(folder, "a.mp4", 2, extra: ["-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-c:a", "aac"]);
+        var second = await MakeClipAsync(folder, "b.mp4", 2, extra:
+            ["-c:v", "libx264", "-profile:v", "baseline", "-pix_fmt", "yuv420p", "-c:a", "aac"]);
+
+        var output = await RunAsync([first, second], BuiltIn("merge-videos"));
+
+        var decode = await ProcessRunner.RunAsync(Tools!.Value.Ffmpeg,
+            ["-hide_banner", "-nostdin", "-v", "error", "-i", output, "-f", "null", "-"], TimeSpan.FromMinutes(2), CancellationToken.None);
+        Assert.True(decode.ExitCode == 0 && decode.StandardError.Trim().Length == 0, decode.StandardError);
+        Assert.InRange((await ProbeAsync(output)).Duration, 3.8, 4.2);
+        // Not copied: the first clip's packets are encoded again.
+        Assert.NotEqual((await PacketHashesAsync(first)).Skip(1).Take(10), (await PacketHashesAsync(output)).Skip(1).Take(10));
     }
 
     [Fact]
@@ -272,6 +303,42 @@ public class MediaToolRealTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.DoesNotContain("+37.5665", bytes);
         Assert.Equal(await StreamHashAsync(clip, "v"), await StreamHashAsync(output, "v"));
         Assert.Equal(await StreamHashAsync(clip, "a"), await StreamHashAsync(output, "a"));
+    }
+
+    [Fact]
+    public async Task A_portrait_phone_video_stays_upright()
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        var plain = await MakeClipAsync(folder, "plain.mov", 1, audio: false, extra: ["-c:v", "libx264"]);
+        var clip = Path.Combine(folder, "IMG_0003.mov");
+        // Phones store portrait video landscape, with a display matrix that turns it 90° (set on a copy: an encode would
+        // turn the pixels instead).
+        await FfmpegAsync(["-hide_banner", "-nostdin", "-v", "error", "-y", "-display_rotation", "90", "-i", plain, "-c", "copy",
+            "-metadata", "location=+37.5+127.0/", clip]);
+        Assert.Equal(90, Math.Abs((await MediaInfo.ProbeAsync(Tools!.Value.Ffprobe, clip, CancellationToken.None)).Video!.Rotation));
+
+        var output = await RunAsync([clip], BuiltIn("remove-metadata"));
+
+        Assert.Equal(90, Math.Abs((await MediaInfo.ProbeAsync(Tools!.Value.Ffprobe, output, CancellationToken.None)).Video!.Rotation));
+        Assert.False((await ProbeAsync(output)).Tags.ContainsKey("location"));
+    }
+
+    [Fact]
+    public async Task An_mkv_keeps_its_subtitle_fonts()
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        var font = Path.Combine(folder, "Sub Font.ttf");
+        await File.WriteAllBytesAsync(font, Enumerable.Range(0, 2048).Select(i => (byte)i).ToArray(), TestContext.Current.CancellationToken);
+        var clip = await MakeClipAsync(folder, "episode.mkv", 1, extra:
+            ["-c:v", "libx264", "-c:a", "aac", "-metadata", "title=Episode 1", "-attach", font,
+             "-metadata:s:t", "mimetype=application/x-truetype-font"]);
+
+        var after = await ProbeAsync(await RunAsync([clip], BuiltIn("remove-metadata")));
+
+        Assert.EndsWith("Sub Font.ttf", Assert.Single(after.Streams, s => s.Type == "attachment").Tags["filename"]);
+        Assert.False(after.Tags.ContainsKey("title"));
     }
 
     [Fact]

@@ -8,7 +8,7 @@ namespace Filee.Engines.Tests;
 
 public class MediaJoiningTests
 {
-    private static readonly VideoStreamInfo PhoneVideo = new(1920, 1080, 1, 0, 30, "h264", "yuv420p");
+    private static readonly VideoStreamInfo PhoneVideo = new(1920, 1080, 1, 0, 30, "h264", "yuv420p", HeaderHash: "MD5:1");
 
     private static MediaInfo Clip(VideoStreamInfo? video = null, AudioStreamInfo? audio = null, double seconds = 10) =>
         new(TimeSpan.FromSeconds(seconds), video, audio, null);
@@ -37,6 +37,11 @@ public class MediaJoiningTests
         Assert.False(MediaJoining.CanCopyVideos([clip, clip with { Audio = new AudioStreamInfo(2, 44100, "aac") }], options));
         Assert.False(MediaJoining.CanCopyVideos([clip, clip with { Audio = null }], options));
         Assert.False(MediaJoining.CanCopyVideos([clip, clip], new MediaOptions { Quality = MediaQuality.Small }));
+        // Same size and codec from another encoder (other parameter sets), another frame rate, or no setup data to compare.
+        Assert.False(MediaJoining.CanCopyVideos([clip, clip with { Video = PhoneVideo with { HeaderHash = "MD5:2" } }], options));
+        Assert.False(MediaJoining.CanCopyVideos([clip, clip with { Video = PhoneVideo with { FrameRate = 60 } }], options));
+        var unknown = clip with { Video = PhoneVideo with { HeaderHash = null } };
+        Assert.False(MediaJoining.CanCopyVideos([unknown, unknown], options));
     }
 
     [Fact]
@@ -108,7 +113,7 @@ public class MediaJoiningTests
     [Fact]
     public void Slides_fade_into_each_other_at_the_right_times()
     {
-        var options = new MediaOptions { Slideshow = true, SlideSeconds = 3, CrossfadeSeconds = 1 };
+        var options = new MediaOptions { Slideshow = true, SlideSeconds = 3 };
 
         var args = MediaJoining.Slideshow(["1.jpg", "2.jpg", "3.jpg"], "out.mp4", options, "libx264", "work");
 
@@ -140,7 +145,6 @@ public class MediaJoiningTests
         Assert.Contains("scale=1920:1080:force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos,pad=1920:1080",
             After(args, "-vf"));
         Assert.Equal("mjpeg", After(args, "-c:v"));
-        Assert.Equal((1920, 1080), MediaJoining.SlideshowFrame(new MediaOptions()));
     }
 
     [Fact]
@@ -202,6 +206,12 @@ public class MediaJoiningTests
         Assert.DoesNotContain("0", args.Where((a, i) => i > 0 && args[i - 1] == "-map")); // never every stream (data tracks)
         Assert.Equal("hvc1", After(args, "-tag:v"));
         Assert.Equal("mov", After(args, "-f"));
+        Assert.DoesNotContain("0:t", args); // FFmpeg refuses an attachment specifier that matches nothing
+
+        var episode = new MediaInfo(TimeSpan.FromSeconds(10), PhoneVideo, null, null, HasAttachments: true);
+        var mkv = MediaEncoding.WithoutMetadata("in.mkv", "out.mkv", "mkv", episode);
+        Assert.Contains("0:t", mkv); // subtitle fonts stay, with their file name and type
+        Assert.Equal("0:s:t", After(mkv, "-map_metadata:s:t"));
 
         var song = new MediaInfo(TimeSpan.FromSeconds(10), null, new AudioStreamInfo(2, 44100, "mp3"), 1);
         var audio = MediaEncoding.WithoutMetadata("in.mp3", "out.mp3", "mp3", song);

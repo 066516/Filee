@@ -124,13 +124,13 @@ public static class BuiltInData
             // Quality 75 like most photo apps' "smaller"; a JPEG saved below it stays at its own quality.
             Id = "compress-image", NameKey = "preset.compress_image", TargetFormat = SameAsSource,
             Image = { Quality = 75, MaxCompression = true, TiffCompression = TiffCompression.Zip },
-            Output = { FileNamePattern = "{name}_compressed" },
+            Output = { FileNamePattern = "{name}_compressed", OnlyIfSmaller = true },
         },
         new()
         {
             // H.264 at the Small quality, at most 1080p: plays everywhere, a fraction of a phone video's size.
             Id = "compress-video", NameKey = "preset.compress_video", TargetFormat = "mp4",
-            Media = { Quality = MediaQuality.Small, MaxHeight = 1080 }, Output = { FileNamePattern = "{name}_compressed" },
+            Media = { Quality = MediaQuality.Small, MaxHeight = 1080 }, Output = { FileNamePattern = "{name}_compressed", OnlyIfSmaller = true },
         },
         new()
         {
@@ -151,7 +151,7 @@ public static class BuiltInData
         {
             // AAC at the Small quality: 128 kbit/s for stereo.
             Id = "compress-audio", NameKey = "preset.compress_audio", TargetFormat = "m4a",
-            Media = { Quality = MediaQuality.Small }, Output = { FileNamePattern = "{name}_compressed" },
+            Media = { Quality = MediaQuality.Small }, Output = { FileNamePattern = "{name}_compressed", OnlyIfSmaller = true },
         },
         new()
         {
