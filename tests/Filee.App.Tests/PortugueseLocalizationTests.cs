@@ -16,6 +16,30 @@ namespace Filee.App.Tests;
 
 public class PortugueseLocalizationTests
 {
+    [AvaloniaTheory]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
+    public void The_KWin_window_identifier_stays_compatible_when_the_ui_language_changes(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var window = new Filee.App.Views.RadialWindow();
+        try
+        {
+            var title = window.Title;
+            Assert.False(string.IsNullOrWhiteSpace(title));
+            var script = File.ReadAllText(Path.Combine(WhatsNewMedia.RepositoryRoot,
+                "installer", "linux", "kwin", "filee-donut", "contents", "code", "main.js"));
+            Assert.Contains($"w.caption === \"{title}\"", script);
+            AppHost.Get<LocalizationService>().SetLanguage(language == "pt-PT" ? "pt-BR" : "pt-PT");
+            Assert.Equal(title, window.Title);
+        }
+        finally
+        {
+            window.Close();
+            TestServices.EnsureInitialized("en");
+        }
+    }
+
     [Theory]
     [InlineData("auto", "pt-PT", "pt-PT")]
     [InlineData("AUTO", "pt-BR", "pt-BR")]
