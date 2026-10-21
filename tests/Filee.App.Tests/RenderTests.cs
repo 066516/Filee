@@ -1613,7 +1613,7 @@ public class RenderTests
     }
 
     [AvaloniaFact]
-    public void Preset_editor_offers_hardware_encoding_for_h264_and_hevc()
+    public void Preset_editor_offers_hardware_encoding_for_h264_hevc_and_av1()
     {
         TestServices.EnsureInitialized("en");
         var preset = new Filee.Core.Presets.Preset { TargetFormat = "mp4", Name = "Fast" };
@@ -1622,9 +1622,9 @@ public class RenderTests
         Assert.False(vm.HardwareEncoding); // off unless asked for
         vm.HardwareEncoding = true;
 
-        // AV1 and VP9 have no hardware path; HEVC does.
+        // HEVC and AV1 have a hardware path; VP9 (WebM's usual codec) has none.
         vm.VideoCodecChoice = vm.VideoCodecs.Single(c => c.Value == Filee.Core.Presets.VideoCodec.Av1);
-        Assert.False(vm.ShowHardwareEncoding);
+        Assert.True(vm.ShowHardwareEncoding);
         vm.VideoCodecChoice = vm.VideoCodecs.Single(c => c.Value == Filee.Core.Presets.VideoCodec.Hevc);
         Assert.True(vm.ShowHardwareEncoding);
         vm.Target = vm.Targets.Single(t => t.Value == "webm");
@@ -1641,6 +1641,12 @@ public class RenderTests
         Assert.Equal(Filee.Core.Presets.VideoCodec.Hevc, preset.Media.VideoCodec);
 
         Assert.True(new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>()).HardwareEncoding);
+
+        // WebM written as AV1 (the "MP4 AV1" kind of preset, in WebM) offers it too.
+        var webm = new PresetEditorViewModel(new Filee.Core.Presets.Preset { TargetFormat = "webm", Name = "AV1" }, AppHost.Get<ILocalizer>());
+        Assert.False(webm.ShowHardwareEncoding);
+        webm.VideoCodecChoice = webm.VideoCodecs.Single(c => c.Value == Filee.Core.Presets.VideoCodec.Av1);
+        Assert.True(webm.ShowHardwareEncoding);
     }
 
     [AvaloniaFact]
