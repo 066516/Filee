@@ -89,6 +89,7 @@ public class SetupWindowTests
     {
         var (model, _, runner) = Model(language);
         var window = Show(model);
+        Assert.Equal(language == "ar" ? FlowDirection.RightToLeft : FlowDirection.LeftToRight, window.FlowDirection);
         Check(window, $"setup-1-welcome-{language}.png");
 
         model.ToggleOptionsCommand.Execute(null);
@@ -126,7 +127,7 @@ public class SetupWindowTests
         try
         {
             app.RequestedThemeVariant = ThemeVariant.Dark;
-            foreach (var language in new[] { "en", "ko", "ru" })
+            foreach (var language in new[] { "en", "ko", "ru", "ar" })
             {
                 var (model, _, runner) = Model(language);
                 var window = Show(model);
@@ -157,7 +158,7 @@ public class SetupWindowTests
     [AvaloniaFact]
     public async Task Updates_and_failures_render()
     {
-        foreach (var language in new[] { "en", "ko", "ru" })
+        foreach (var language in new[] { "en", "ko", "ru", "ar" })
         {
             var (model, texts, runner) = Model(language, update: true);
             var window = Show(model);
@@ -178,7 +179,7 @@ public class SetupWindowTests
     [AvaloniaFact]
     public async Task Uninstall_renders_and_keeps_the_settings_by_default()
     {
-        foreach (var language in new[] { "en", "ko", "ru", "zh-CN" })
+        foreach (var language in new[] { "en", "ko", "ru", "zh-CN", "ar" })
         {
             var (model, _, runner) = Model(language, uninstall: true);
             var window = Show(model);
@@ -258,18 +259,22 @@ public class SetupWindowTests
         }
     }
 
-    [AvaloniaFact]
-    public void Picking_a_language_changes_every_text_and_is_handed_to_filee()
+    [AvaloniaTheory]
+    [InlineData("ko")]
+    [InlineData("ar")]
+    public void Picking_a_language_changes_every_text_and_is_handed_to_filee(string language)
     {
         var (model, texts, _) = Model("en");
         var window = Show(model);
-        model.SelectedLanguage = model.Languages.Single(l => l.Code == "ko");
+        model.SelectedLanguage = model.Languages.Single(l => l.Code == language);
         Pump();
-        Assert.Equal("ko", texts.Language);
+        Assert.Equal(language, texts.Language);
+        // Picking Arabic mirrors the card at once.
+        Assert.Equal(language == "ar" ? FlowDirection.RightToLeft : FlowDirection.LeftToRight, window.FlowDirection);
         Assert.Equal(texts["installer.install"], model.PrimaryText);
         Assert.Contains("2.0.0", model.WelcomeText);
         var choices = model.Choices();
-        Assert.Equal("ko", choices.Language);
+        Assert.Equal(language, choices.Language);
         Assert.True(choices.LanguagePicked);
         window.Close();
     }

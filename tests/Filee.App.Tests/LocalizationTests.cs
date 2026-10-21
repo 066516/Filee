@@ -4,7 +4,7 @@ using Filee.App.Services;
 
 namespace Filee.App.Tests;
 
-/// <summary>Keeps en / es / ja / ko / zh-CN / pl / hi / ru in sync so no language silently falls back to English.</summary>
+/// <summary>Keeps shipped languages in sync so none silently falls back to English.</summary>
 public partial class LocalizationTests
 {
     private static string I18nDirectory
@@ -21,7 +21,25 @@ public partial class LocalizationTests
     private static Dictionary<string, string> Load(string code) =>
         JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(I18nDirectory, code + ".json")))!;
 
-    public static TheoryData<string> Languages => new() { "es", "ja", "ko", "zh-CN", "pl", "hi", "ru" };
+    public static TheoryData<string> Languages => new(LocalizationService.Languages.Where(l => l.Code != "en").Select(l => l.Code));
+
+    [Fact]
+    public void Shared_language_registry_covers_every_shipped_translation_once()
+    {
+        var codes = LocalizationService.Languages.Select(l => l.Code).ToList();
+        Assert.Equal(codes.Count, codes.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Equal(Directory.GetFiles(I18nDirectory, "*.json").Select(Path.GetFileNameWithoutExtension).Order(), codes.Order());
+    }
+
+    [Fact]
+    public void Arabic_is_offered_under_its_own_name_and_reads_right_to_left()
+    {
+        Assert.Contains(("ar", "العربية"), LocalizationService.Languages);
+        Assert.Equal("ar", LocalizationService.Resolve("AR"));
+        Assert.Contains("fonts:Filee#Noto Sans Arabic", ThemeService.FontFamilies("ar"));
+        Assert.True(SoftPalette.IsRightToLeft("ar"));
+        Assert.All(LocalizationService.Languages.Where(l => l.Code != "ar"), l => Assert.False(SoftPalette.IsRightToLeft(l.Code)));
+    }
 
     [Theory]
     [MemberData(nameof(Languages))]

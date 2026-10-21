@@ -245,6 +245,7 @@ public class WhatsNewMedia
             };
             window.Show();
             WaitFor(() => vm.PreviewImage is not null && !vm.IsBusy);
+            window.SettleForCapture(); // each frame of the clip is drawn where it ends
             Pump();
             var canvas = window.GetVisualDescendants().OfType<CropCanvas>().Single();
             try
@@ -328,7 +329,7 @@ public class WhatsNewMedia
     private static Clip Languages(string version)
     {
         var clip = new Clip();
-        foreach (var language in new[] { "es", "hi", "ja", "ru", "en", "ko", "zh-CN", "pl" })
+        foreach (var language in new[] { "es", "hi", "ja", "ru", "ar", "en", "ko", "zh-CN", "pl" })
         {
             TestServices.EnsureInitialized(language);
             AppHost.Get<ThemeService>().Apply(new ThemeSettings { ReduceMotion = false, Mode = ThemeMode.Light }, language);

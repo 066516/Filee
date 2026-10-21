@@ -61,7 +61,7 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
         _loading = true;
         OuterRadius = store.Settings.Donut.OuterRadius;
         HoleRatio = store.Settings.Donut.HoleRatio * 100;
-        SliceOpacity = store.Settings.Donut.Opacity * 100;
+        SliceOpacity = Math.Clamp(store.Settings.Donut.Opacity, DonutSettings.MinOpacity, 1) * 100;
         _loading = false;
 
         SelectedProfile = Profiles.FirstOrDefault();

@@ -263,7 +263,7 @@
                                 <ToggleButton DockPanel.Dock="Left" Classes="expander" IsChecked="{Binding IsExpanded}"
                                               ToolTip.Tip="{DynamicResource toolbar.mixed_expand}"
                                               AutomationProperties.Name="{Binding Name}">
-                                  <PathIcon Data="{StaticResource Icon.ChevronRight}" />
+                                  <PathIcon Classes="reading" Data="{StaticResource Icon.ChevronRight}" />
                                 </ToggleButton>
                                 <TextBlock DockPanel.Dock="Right" Classes="caption" Text="{Binding Count}" VerticalAlignment="Center" />
                                 <CheckBox Content="{Binding Name}" IsChecked="{Binding State, Mode=OneWay}"
@@ -319,7 +319,7 @@
             </Grid>
             <Grid ColumnDefinitions="90,*">
               <TextBlock Classes="label" VerticalAlignment="Center" Text="{DynamicResource toolbar.opacity}" />
-              <Slider Grid.Column="1" Minimum="50" Maximum="100" Value="{Binding SliceOpacity}" />
+              <Slider Grid.Column="1" Minimum="10" Maximum="100" Value="{Binding SliceOpacity}" />
             </Grid>
           </StackPanel>
         </Border>

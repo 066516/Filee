@@ -54,7 +54,7 @@
 - **Windows 10/11** 运行 `Filee-<version>-win-Setup.exe`，或解压 `win-Portable.zip` 后运行 `Filee.exe`。
   安装程序是 Filee 自己的，使用与 Filee 相同的语言，电脑上无需另外安装任何组件。
   安装时可以添加资源管理器菜单、登录时启动、`filee` 命令和可选引擎。
-- **macOS 14 及以上**（预览）解压 `osx-arm64` 或 `osx-x64` 包并运行 `./install.sh`。
+- **macOS 13 及以上**（预览）解压 `osx-arm64` 或 `osx-x64` 包并运行 `./install.sh`。
   目前尚未公证，首次启动时请在系统设置 → 隐私与安全性中点 **仍要打开**。
 - **Linux x64、ARM64**（Ubuntu 22.04 及以上）解压后运行 `./install.sh`（无需 root，需要 Python 3）。
   拖动手势需要 X11，Wayland 下请使用拖放区域和文件管理器的右键菜单。
@@ -70,7 +70,7 @@
 - **一次转换多个文件**，并行处理。需要多步的转换（HWP → HWPX → DOCX）会自动找到路线。
 - **监视文件夹**，放入的文件自动转换。
 - **其他方式** 右键菜单、键盘快捷键、拖放区域和 [`filee` 命令](#命令行)。
-- 浅色和深色主题，支持 English、Español、日本語、한국어、简体中文、Polski、हिन्दी、Русский。
+- 浅色和深色主题，支持 English、Español、日本語、한국어、简体中文、Polski、हिन्दी、Русский、العربية（从右到左）。
 
 ## 截图
 
@@ -91,17 +91,17 @@
 |---|---|
 | **图片**：JPG、PNG、WEBP、AVIF、TIFF、BMP、GIF、APNG、ICO、ICNS、JPEG XL、JPEG 2000、PSD/PSB、TGA、PPM、HEIC、QOI、DDS、PCX、MNG、CUR 等；GIMP XCF、相机 RAW（CR2、CR3、NEF、ARW、DNG 等）、DICOM、OpenEXR、HDR、JPEG XR（Windows）、iPhone 实况照片（LIVP）仅读取 | 上述格式互转（HEIC⁵）、PDF、SVG（描摹）、缩放、灰度；实况/动态照片（iPhone、安卓）→ 其中的视频（MP4、MOV⁵），以及视频 → 实况照片（iPhone）或动态照片（安卓）⁵（实验功能） |
 | **矢量图**：SVG、SVGZ、EMF、WMF、AI · EPS、PS¹ · CDR、VSD、CGM、ODG、FODG² | PDF（矢量）、PNG 等图片、SVG ↔ SVGZ、SVG → DXF/DWG、PDF → EPS/PS¹、SVG → EMF、WMF、ODG² |
-| **PDF** | DOCX、HWPX、TXT、PNG、JPG、TIFF、CBZ、PPTX（每页一张图片）、SVG²；合并、拆分、页码范围、压缩（更小的 PDF） |
+| **PDF** | DOCX、HWPX、TXT、PNG、JPG、TIFF、CBZ、PPTX（每页一张图片）、SVG²；合并（先选择顺序）、拆分、页码范围、压缩（更小的 PDF） |
 | **文档**：DOCX、DOCM、DOTX、EML、Outlook MSG；OFD（电子发票、公文）仅读取 · DOC、ODT、FODT、OTT、RTF、WPS、WPD、Pages、ClarisWorks、MacWrite、T602 等² | PDF、DOCX、HWPX、EPUB、TXT、HTML、MSG → EML · ODT、FODT、OTT² |
 | **表格**：XLSX、XLSM、XLS、XLT、ODS、CSV、TSV · OTS、FODS、Numbers、ET² | PDF、XLSX、ODS、CSV、TSV、JSON、HWPX、HTML · XLT、OTS² |
 | **演示文稿**：PPTX、PPTM、POTX、POTM、PPSX · PPT、ODP、OTP、FODP、Keynote² | PDF、PNG、JPG、DOCX、HWPX · OTP² |
 | **HWP**：HWP、HWPX | PDF、PNG、DOCX、HWPX ↔ HWP、TXT、Markdown、HTML |
-| **文本**：TXT、Markdown、HTML；MHTML（保存的网页）仅读取 · reStructuredText、LaTeX、Org、AsciiDoc、Typst、MediaWiki、DocBook、Jupyter、Textile、man、OPML³ | PDF、DOCX、HWPX、EPUB · 互相转换、PPTX 幻灯片³ |
+| **文本**：TXT、LOG、脚本源码（PY、PAC、BAT、COMMAND；只读取，从不运行）、Markdown、HTML；MHTML（保存的网页）仅读取 · reStructuredText、LaTeX、Org、AsciiDoc、Typst、MediaWiki、DocBook、Jupyter、Textile、man、OPML³ | UTF-8 TXT、PDF、DOCX、HWPX、EPUB · 互相转换、PPTX 幻灯片³ |
 | **电子书**：EPUB、KEPUB、MOBI、AZW3、AZW、AZW4、FB2、CBZ、CBR、CB7、HTMLZ、TXTZ · LIT、LRF、CHM、PDB 等⁴ | PDF、EPUB、KEPUB（Kobo）、DOCX、TXT、HTML、HWPX · MOBI、AZW3⁴ |
-| **视频**⁵：MP4、MOV、MKV、WEBM、AVI、WMV、FLV、MPEG、TS、M2TS、3GP、OGV、VOB 等 | MP4（H.264、HEVC、AV1）、WEBM、MOV、MKV、AVI、GIF、APNG、MP3、M4A、720p、字幕（SRT、ASS、WebVTT） |
+| **视频**⁵：MP4、MOV、MKV、WEBM、AVI、WMV、FLV、MPEG、VCD（DAT）、TS、M2TS、3GP、OGV、VOB 等 | MP4（H.264、HEVC、AV1）、WEBM、MOV、MKV、AVI、GIF、APNG、MP3、M4A、720p、字幕（SRT、ASS、WebVTT） |
 | **音频**⁵：MP3、M4A、AAC、WAV、FLAC、OGG、OPUS、WMA、AIFF、AMR、APE、WavPack、TTA、DSD（DSF、DFF）、DTS、AC3、E-AC3 等 | MP3、M4A（AAC、ALAC）、WAV、FLAC、OGG、OPUS、AAC、WavPack、TTA、W64、AC3、E-AC3 |
 | **字幕**：SRT、ASS/SSA、WebVTT、SAMI（SMI）、LRC、TTML、MicroDVD、SCC | 互相转换，保存为 UTF-8（也能读取 CP949 韩文字幕） |
-| **压缩包**：ZIP、7Z、RAR、TAR、TAR.GZ、TAR.BZ2、TAR.XZ、GZ、ISO、CAB、DMG、ALZ、EGG 等 | 解压、ZIP、7Z、TAR、TAR.GZ；多个文件 → 一个 ZIP |
+| **压缩包**：ZIP、ANSYS Workbench（WBPZ）、7Z、RAR、TAR、TAR.GZ、TAR.BZ2、TAR.XZ、GZ、ISO、CAB、DMG、ALZ、EGG 等 | 解压、ZIP、7Z、TAR、TAR.GZ；多个文件 → 一个 ZIP |
 | **CAD**：DWG、DXF | PDF、SVG、PNG、DWG ↔ DXF |
 | **字体**：TTF、OTF、WOFF、WOFF2、EOT | 互相转换 |
 | **数据**：JSON、JSON Lines、YAML、TOML、XML · vCard | 互相转换、CSV 和 XLSX（表格数据）、vCard ↔ CSV |
