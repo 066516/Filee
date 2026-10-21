@@ -483,6 +483,10 @@ public class WhatsNewTests
     [InlineData("pl", false)]
     [InlineData("ru", false)]
     [InlineData("ru", true)]
+    [InlineData("pt-BR", false)]
+    [InlineData("pt-BR", true)]
+    [InlineData("pt-PT", false)]
+    [InlineData("pt-PT", true)]
     public void Window_renders(string language, bool dark)
     {
         TestServices.EnsureInitialized(language);

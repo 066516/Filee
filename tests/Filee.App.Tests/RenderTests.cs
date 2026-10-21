@@ -354,6 +354,7 @@ public class RenderTests
     [InlineData("hi")]
     [InlineData("ru")]
     [InlineData("ar")]
+    [InlineData("pt-BR")]
     public void Home_page_search_finds_old_conversions_in_a_long_history(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1445,6 +1446,7 @@ public class RenderTests
     [InlineData("ko", true)]
     [InlineData("ru", false)]
     [InlineData("ar", true)]
+    [InlineData("pt-BR", false)]
     public void Preset_editor_shows_media_and_archive_options(string language, bool dark)
     {
         TestServices.EnsureInitialized(language);

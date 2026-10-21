@@ -1,7 +1,8 @@
 # Portuguese localization review
 
-Reviewed on 21 October 2026 against upstream `259c5ecd83c57ed155bbe475f1a5315f2a1b5ef6`.
+Reviewed on 21 October 2026 against upstream `941b01bf5440bc2ff9a10dd00a4b9967d848d2ad`.
 The first implementation used `c63a261`, then integrated the installer at `85f7e56` on 20 October.
+The 21 October review integrated `259c5ec`, then the newly merged Brazilian contribution at `941b01b`.
 This report covers Phase 1. Security, conversion fidelity and performance still require the separate Phase 2 audit.
 
 ## Coverage and editorial review
@@ -107,21 +108,24 @@ Recorded on Linux x64 with .NET SDK 10.0.402 and all **15 pinned Noto font files
 | Check | Passed | Failed | Skipped |
 | --- | ---: | ---: | ---: |
 | Release solution build (14 projects) | — | 0 errors | — |
-| App localization, Portuguese UI, crop, merge-order and preset contracts | 261 | 0 | 0 |
-| Setup texts, UI states and language handoff | 63 | 0 | 1 |
+| App localization, Portuguese UI and release/README contracts | 321 | 0 | 0 |
+| Setup texts, UI states and language handoff | 66 | 0 | 1 |
 | Core, full suite | 456 | 0 | 0 |
 | CLI, full suite | 28 | 0 | 0 |
 | Platform, full suite | 46 | 0 | 5 |
 
-These checks total **854 passed tests and 6 platform-specific skips**. The build reports ten existing warnings.
-The Windows-only installer-path assertion stays enabled on Windows. A final editor-caption adjustment is followed
-by a focused rerun of the preset-dialog, media/archive and Live Photo cases: all 29 passed. They are not counted again in that total.
+These checks total **917 passed tests and 6 platform-specific skips**. The build reports ten existing warnings.
+The Windows-only installer-path assertion stays enabled on Windows. The final App selection includes caption
+wrapping and #322 integration (318 passes), plus three added Portuguese light/dark release-window cases. The
+seventeen-case release-window rerun also verifies existing languages; repeated cases are not counted again.
+An earlier targeted editor-caption rerun passed all 29 cases. Core/CLI/Platform production code did not change
+when #322 was integrated, so their completed full-suite results remain applicable.
 
 Reproduce the main checks from the repository root after fetching fonts with `build/fetch-fonts.ps1`:
 
 ```sh
 dotnet build Filee.slnx -m:1 -c Release
-dotnet test tests/Filee.App.Tests -m:1 -c Release --filter "FullyQualifiedName~Localization|FullyQualifiedName~Portuguese|FullyQualifiedName~InstallerTests|FullyQualifiedName~Watch_folder_options_rename_and_filter_with_a_preview|FullyQualifiedName~Preset_editor_shows_media_and_archive_options|FullyQualifiedName~One_picture_shows_the_frame_its_size_and_the_aspect_dial|FullyQualifiedName~Several_files_show_a_strip_with_how_each_went|FullyQualifiedName~Chooser_fits_long_paths_at_its_minimum_width|FullyQualifiedName~Live_photo_options_render_for_jpg_and_heic_and_save_only_there"
+dotnet test tests/Filee.App.Tests -m:1 -c Release --filter "FullyQualifiedName~Localization|FullyQualifiedName~Portuguese|FullyQualifiedName~InstallerTests|FullyQualifiedName~SupportersTests|FullyQualifiedName~ReleaseNotesTests|FullyQualifiedName~WhatsNewTests|FullyQualifiedName~Home_page_search_finds_old_conversions_in_a_long_history|FullyQualifiedName~Watch_folder_options_rename_and_filter_with_a_preview|FullyQualifiedName~Preset_editor_shows_media_and_archive_options|FullyQualifiedName~One_picture_shows_the_frame_its_size_and_the_aspect_dial|FullyQualifiedName~Several_files_show_a_strip_with_how_each_went|FullyQualifiedName~Chooser_fits_long_paths_at_its_minimum_width|FullyQualifiedName~Live_photo_options_render_for_jpg_and_heic_and_save_only_there"
 dotnet test tests/Filee.Setup.Tests -m:1 -c Release --filter "FullyQualifiedName~SetupTextsTests|FullyQualifiedName~SetupWindowTests|FullyQualifiedName~What_setup_hands_to_filee_is_what_filee_reads"
 dotnet test tests/Filee.Core.Tests -m:1 -c Release
 dotnet test tests/Filee.Cli.Tests -m:1 -c Release
@@ -129,12 +133,12 @@ dotnet test tests/Filee.Platform.Tests -m:1 -c Release
 ```
 
 The full solution formatter cannot connect to Roslyn's build-host pipe here (`SocketException (13): Permission
-denied`, host exit 137). Folder-based whitespace verification of all fourteen changed C# files and
+denied`, host exit 137). Folder-based whitespace verification of all changed C# files and
 `git diff --check` pass. The fork's CI has now started; its remote result must be checked independently.
 
 This is not a clean full-solution test result. Earlier broad engine checks on `c63a261` recorded 1,139 passes,
 6 failures and 40 skips; five failures reproduced on an untouched checkout, while the remaining LibreOffice case
-passed in isolation. That is historical evidence, not validation of the newer engine code in `259c5ec`. Earlier
+passed in isolation. That is historical evidence, not validation of the newer engine code in the current baseline. Earlier
 unfiltered App runs also did not complete and encountered denied named-pipe sockets. The current completed App
 run is the focused selection above. The CLI keeps its separate, English-only text provider.
 
@@ -143,7 +147,7 @@ run is the focused selection above. The CLI keeps its separate, English-only tex
 Headless Skia screenshots cover nine app pages in both variants at the 820 px minimum, light/dark themes and
 100%/200% render scaling, including the bottom/right portions of scrollable editors. Additional captures cover
 image/PDF/video preset dialogs at 440/560 px, Live Photo options in both Portuguese variants, rename-rule previews, PDF merge ordering,
-and crop single/multiple/summary/aspect-dial states in both themes. Setup captures welcome, options, progress,
+crop single/multiple/summary/aspect-dial states, and the release-notes window in both themes. Setup captures welcome, options, progress,
 done, update-failure and uninstall states in light/dark themes. Targeted screenshots were inspected after rendering.
 
 Screenshots are generated under each test project's `bin/Release/net10.0/screenshots/` directory, outside the
@@ -154,13 +158,19 @@ that integration. The PR remains a draft for these checks and complete CI valida
 
 ## Upstream coordination and next phase
 
-Merged upstream fixes/features are integrated through `259c5ec`; no open feature branch is imported. Existing
+Merged upstream fixes/features are integrated through `941b01b`; no open feature branch is imported. Existing
 PRs #242, #249, #275, #282, #283 and #291 were checked earlier and have since been merged or closed.
 
-On 21 October a separate pt-BR contribution, [KnifeLemon/Filee#322](https://github.com/KnifeLemon/Filee/pull/322),
-was found. Its catalog/resolver were read: it offers only pt-BR and routes Portuguese systems, including pt-PT,
-to that variant. This fork's work predates it and stays in [Blackspirits/Filee#1](https://github.com/Blackspirits/Filee/pull/1).
-Coordinate the Brazilian catalog before any upstream submission; retain separate pt-PT selection and detection.
+[KnifeLemon/Filee#322](https://github.com/KnifeLemon/Filee/pull/322) merged during this review. Its Brazilian
+README, release announcements and added coverage are integrated. The fork keeps the independently reviewed
+Brazilian catalog, with the same 889 upstream keys plus the 18 engine-name keys. Tests added by #322 that assumed
+pt-PT should use Brazilian Portuguese are updated to distinguish the variants. Existing Brazilian UI cases are
+retained without duplicating the render-data entries already present here.
+
+The contribution in [Blackspirits/Filee#1](https://github.com/Blackspirits/Filee/pull/1) now adds European Portuguese
+and refines the Brazilian localization already present upstream. It targets this fork; any later upstream submission
+should describe that final scope. The broad `pt` prefix fallback is replaced by the shared region policy, so an
+unsupported code such as `ptx` does not accidentally select Portuguese.
 
 French is absent from current upstream catalogs and no open French PR was found. Adding it is reasonable as a
 separate localization contribution after the Portuguese/native checks. It is not part of this change.
