@@ -368,11 +368,11 @@
     <Setter Property="Fill" Value="{DynamicResource OnAccentBrush}" />
   </Style>
 
-  <!-- CheckBox: M3 accent states & crisp 2dp corners -->
+  <!-- CheckBox: M3 accent states & soft rounded squircle -->
   <Style Selector="Window.material-you CheckBox /template/ Border#NormalRectangle">
-    <Setter Property="CornerRadius" Value="2" />
-    <Setter Property="Width" Value="18" />
-    <Setter Property="Height" Value="18" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Width" Value="20" />
+    <Setter Property="Height" Value="20" />
     <Setter Property="BorderThickness" Value="1.5" />
     <Setter Property="Transitions">
       <Transitions>
@@ -392,8 +392,8 @@
 
   <!-- Cards: M3 elevated tonal surface with generous rounded corners -->
   <Style Selector="Window.material-you Border.card">
-    <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusLarge}" />
-    <Setter Property="Padding" Value="20,18" />
+    <Setter Property="CornerRadius" Value="24" />
+    <Setter Property="Padding" Value="22,20" />
   </Style>
 
   <!-- Buttons: M3 full pill with spring press (excluding multi-line choice cards) -->
@@ -415,23 +415,23 @@
 
   <!-- DropZone tile: generous M3 rounded shape -->
   <Style Selector="Window.material-you Border#DropZone">
-    <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusLarge}" />
+    <Setter Property="CornerRadius" Value="24" />
   </Style>
 
   <!-- Dropdowns (ComboBox): Material 3 rounded container & popups -->
   <Style Selector="Window.material-you ComboBox">
     <Setter Property="MinHeight" Value="38" />
-    <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusSmall}" />
+    <Setter Property="CornerRadius" Value="20" />
     <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource SubtleBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Padding" Value="14,7" />
+    <Setter Property="Padding" Value="16,8" />
   </Style>
   <Style Selector="Window.material-you ComboBox:pointerover">
     <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
   </Style>
   <Style Selector="Window.material-you ComboBox /template/ Border#PopupBorder">
-    <Setter Property="CornerRadius" Value="{DynamicResource SoftRadius}" />
+    <Setter Property="CornerRadius" Value="18" />
     <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource SubtleBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
@@ -439,8 +439,8 @@
     <Setter Property="BoxShadow" Value="{DynamicResource CardShadow}" />
   </Style>
   <Style Selector="Window.material-you ComboBoxItem">
-    <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusSmall}" />
-    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="CornerRadius" Value="14" />
+    <Setter Property="Padding" Value="14,8" />
     <Setter Property="Margin" Value="0,1" />
   </Style>
   <Style Selector="Window.material-you ComboBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
@@ -452,11 +452,11 @@
   <!-- Text inputs: clean rounded corners following M3 SoftRadiusSmall -->
   <Style Selector="Window.material-you TextBox">
     <Setter Property="MinHeight" Value="38" />
-    <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusSmall}" />
+    <Setter Property="CornerRadius" Value="20" />
     <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource SubtleBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Padding" Value="14,7" />
+    <Setter Property="Padding" Value="16,8" />
   </Style>
   <Style Selector="Window.material-you TextBox:focus">
     <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
@@ -465,7 +465,7 @@
   <!-- NumericUpDown: clean rounded corners and seamless spinner buttons -->
   <Style Selector="Window.material-you NumericUpDown">
     <Setter Property="MinHeight" Value="38" />
-    <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusSmall}" />
+    <Setter Property="CornerRadius" Value="20" />
     <Setter Property="ClipToBounds" Value="True" />
     <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource SubtleBorderBrush}" />
@@ -477,12 +477,13 @@
   <Style Selector="Window.material-you NumericUpDown /template/ ButtonSpinner#PART_Spinner">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusSmall}" />
+    <Setter Property="CornerRadius" Value="20" />
   </Style>
   <Style Selector="Window.material-you NumericUpDown /template/ TextBox#PART_TextBox">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusSmall}" />
+    <Setter Property="CornerRadius" Value="20" />
+    <Setter Property="Padding" Value="16,8" />
   </Style>
   <Style Selector="Window.material-you ButtonSpinner /template/ RepeatButton">
     <Setter Property="Background" Value="Transparent" />
