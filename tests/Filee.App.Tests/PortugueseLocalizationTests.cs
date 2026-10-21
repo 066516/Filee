@@ -35,7 +35,7 @@ public class PortugueseLocalizationTests
     [InlineData("auto", "ja-JP", "ja")]
     [InlineData("auto", "es-MX", "es")]
     public void Language_selection_respects_the_region_and_manual_override(string setting, string system, string expected) =>
-        Assert.Equal(expected, LocalizationService.Resolve(setting, system));
+        Assert.Equal(expected, LocalizationService.Resolve(setting, () => system));
 
     [Theory]
     [InlineData("pt-PT", "Português (Portugal)")]

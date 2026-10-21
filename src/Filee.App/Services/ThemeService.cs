@@ -1,4 +1,4 @@
-// Applies ThemeSettings (light/dark, accent colour, corner radius, font order, reduced motion) and the user's
+// Applies ThemeSettings (light/dark, accent colour, corner radius, font order and reading direction, reduced motion) and the user's
 // theme.json colours at runtime by writing resources into Application.Resources. All styles reference these with
 // DynamicResource.
 
@@ -51,6 +51,7 @@ public sealed class ThemeService(IPlatformServices platform)
         SoftPalette.ApplyAccent(res, Color.TryParse(theme.Accent, out var parsed) ? parsed : Color.Parse(SoftPalette.DefaultAccent));
         SoftPalette.ApplyCornerRadius(res, theme.CornerRadius);
         res["AppFontFamily"] = SoftPalette.FontFamilyFor(language);
+        SoftPalette.ApplyFlowDirection(res, language);
 
         // Application.Resources is searched before the styles, so these theme dictionaries win over Soft.axaml's.
         ApplyCustom(res, ThemeVariant.Light, custom?.Light);

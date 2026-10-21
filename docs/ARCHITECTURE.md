@@ -45,6 +45,9 @@
    own (`DirectOnly`), never a step of a longer one.
 5. **Run** – `JobQueue` runs steps with per-engine concurrency limits. Intermediate files live in a temp folder;
    final outputs are named by `OutputPathResolver` (pattern, folder, conflict policy; the source is never overwritten).
+   Each name stays reserved while a conversion holds it. A conversion that fails or is cancelled deletes what it began
+   writing, but only at a path that was its alone: nothing was there before and no other conversion was handed the
+   same name ("Overwrite"). It frees its names and removes an output folder it made if that is left empty.
    "Merge into one PDF" converts each file to PDF and merges with PDFsharp.
    "Compress into one archive" packs the dropped files, unconverted, with the archive engine (`IFileCombiner`).
 6. **Report** – progress and results appear in the toast window and in Home → Recent conversions.
@@ -52,6 +55,8 @@
 ## Files dragged from a web browser
 
 A picture, a link to a file or a download dragged out of a browser opens the donut like a file from the file manager.
+A drag gesture over a browser (`WebBrowsers`, by process name) counts as over the file manager, so the default scope
+covers it; click and key gestures don't, as they read the file manager's selection.
 `DraggedFiles.Read` asks `BrowserDrags` (App, reads Avalonia's drag data) first; `BrowserDrag` (Core, pure rules)
 decides what in the drag is a file:
 
@@ -116,6 +121,31 @@ the drag donut shows files and flips on `FlipKeyPressed` / `FlipWheelTurned`: th
 can't hold an event back; Explorer and Finder ignore Tab during a drag) and reports one flip per key press.
 The editor's Front / Back switch (`ToolbarPageViewModel.EditingBack`) edits either list with the same drag and drop.
 
+## Crop overlay
+
+The Crop tool (`tool-crop`) opens `Views/CropOverlayWindow` instead of running a job: the files one after another,
+each cropped by hand and saved by `CropService` (the preset's output rule, the source's quality kept, animated or
+multi-frame pictures refused, the EXIF thumbnail dropped), one history entry for the run.
+
+- `CropOverlayViewModel` walks the queue (Enter saves and opens the next file, Skip, Esc closes), keeps a
+  `CropQueueItem` per file for the strip of thumbnails (waiting, current, done, skipped, failed; a thumbnail is a
+  small copy of the preview, made once) and, after the last file, shows the summary when something failed or was
+  skipped. Every file starts free and whole, its portrait/landscape choice following the picture.
+- `Controls/CropCanvas` is the stage: the picture inside `ImagePadding`, the part outside the frame frosted (a copy at
+  most 40 px across, drawn large) under a veil of the page colour, the frame in the accent colour with round handles,
+  a rule-of-thirds grid while dragging and a size chip that follows the frame. The preview is downscaled once by
+  `CropService.LoadPreviewAsync`; nothing is decoded again while dragging. Programmatic changes (reset, a ratio, a
+  new picture) ease in with tweens read against the clock, so a lost frame never leaves one half done; dragging and
+  arrow-key nudges follow at once, and `PlayAnimations` (from `Motion.Enabled`) turns all of it off.
+- `Controls/AspectDial` is a small donut of the ratios (free, original, 1:1, 4:3, 3:2, 16:9): each slice a
+  `RingSegment` button that answers only inside its wedge (`DonutGeometry.Wedge`, rounded by the softness), the hub
+  swaps portrait and landscape. A with the pointer over the stage opens it around the pointer, as the donut opens,
+  growing from its middle and kept inside the window; A without a pointer there (the keyboard) and its toolbar button
+  open it over the button with a slice focused for the arrow keys. `AspectGlyph` is the dial in miniature on that
+  button, and `CropSummaryRing` the end summary's donut (a slice per file).
+- `Controls/CropMath` holds the arithmetic (ratios and their portrait forms, nudging by whole pixels, the frame in
+  pixels, where the size chip goes, where the dial opens) and is unit tested.
+
 ## Settings and data
 
 `UserDataStore` owns `settings.json`, `presets.json`, `profiles.json` and `history.json`
@@ -126,8 +156,10 @@ Bump `AppSettings.CurrentSchemaVersion` and add a step to `SettingsMigrations` w
 
 - `LocalizationService` loads `Assets/i18n/<lang>.json` into `Application.Resources`; XAML uses
   `{DynamicResource key}`, so switching language updates the UI live.
-- `ThemeService` writes the accent colour, corner radii, fonts and Fluent's `SystemAccentColor*` into
-  application resources. Light/dark surface colours are theme dictionaries in `Styles/Soft.axaml`; a user's
+- `ThemeService` writes the accent colour, corner radii, fonts, the reading direction and Fluent's
+  `SystemAccentColor*` into application resources. Arabic reads right to left: `Styles/Soft.axaml`'s Window style
+  takes `FlowDirection` from that resource, so every window mirrors; the donut, the crop canvas and animated images
+  stay left to right. Light/dark surface colours are theme dictionaries in `Styles/Soft.axaml`; a user's
   `theme.json` (`CustomTheme`, see [CUSTOM-THEMES.md](CUSTOM-THEMES.md)) overrides them with theme dictionaries in
   application resources, which are searched first.
 
@@ -174,14 +206,26 @@ installed yet; the slides introduce the installed one. The demo animations are r
   the bundled engines; its name can't be `filee.exe` next to `Filee.exe` on a case-insensitive file system.
 - `Filee.Core/Watching/FolderWatcher` watches one `WatchRule` with a `FileSystemWatcher` and converts a file once it
   has kept its size and time for a moment and opens without sharing (downloads and copies in progress are skipped).
-  Temporary files, unknown formats and the output and originals folders are ignored, so outputs never loop back.
+  Temporary files, unknown formats and dedicated output and originals folders are ignored. A rule may also write
+  into the watched folder itself. In that case, generated file versions (path, size and modification time) and
+  generated result directories are recorded in `.filee-watch-<rule hash>.json` inside the watched root. The hidden
+  state file prevents those results from becoming new inputs, including after an inbox watcher restarts; a changed
+  file with an old output name is accepted again. A failure to save this state is logged because results may be
+  retried after restart. Removing a rule's state file also forgets its results.
   The tray app runs one per rule (`WatchFolderService`, Settings → Watch folders, conversions in the toast and
-  history); `filee watch` runs one on its own.
+  history); `filee watch` runs one on its own, with a stable `cli` rule identity across command restarts.
 
 ## Platform code
 
 Everything OS-specific goes through `IPlatformServices` (`Filee.Core/Platform`). Windows lives in
 `Filee.Platform.Windows`; macOS will get its own project. Global input uses SharpHook on both.
+
+Home → Recent conversions opens a result with `OpenFile` (the shell on Windows, `open` on macOS, `xdg-open` on Linux,
+so a file is handed to its app and never started itself; only formats Filee knows are offered) and, where
+`SupportsOpenWith` (Windows), the shell's "Open with" dialog (`SHOpenWithDialog`, on a thread of its own because it
+blocks until closed). The cards' pictures come from `HistoryThumbnails`: Skia decodes them off the UI thread, scaled
+down while decoding where the format allows, from a copy read in one go so the file isn't held open, and a small cache
+keeps them while the files are unchanged.
 
 On macOS, files reach Filee from file managers other than Finder too (issue #160). The "Convert with Filee" service
 (`MacOSServicesProvider`) and the donut's drags (`DraggedFiles`) read file URLs first, then the older
@@ -191,6 +235,18 @@ service request without readable files is logged with the types it offered. File
 can't be received through Avalonia; for a browser drag Filee reads the address and HTML it also offers, which the donut
 registers too (see "Files dragged from a web browser"). A click-mode donut opened for a later launch or the service forgives one loss of
 focus within a second of opening (`ActivationGrace`): Filee becoming the active app can take focus away from it.
+
+The donut, the toast and the notices are transparent windows. On Windows Filee keeps Avalonia's rendering defaults
+(ANGLE on Direct3D 11 composed through WinUI composition, then DirectComposition, then the window's redirection
+surface; software rendering when Direct3D 11 fails): each of them keeps per-pixel transparency. The log says what was
+picked (`Rendering: AngleEgl with WinUIComposition`), lists the graphics adapters, carries Avalonia's own errors from
+starting the GPU paths (`AvaloniaLogForwarder`), and describes each kind of transparent window the first time it
+shows (`TransparentWindows`). A system backdrop (Acrylic, Mica) or an accent blur on such a window turns its
+transparent area into a blurred rectangle (issue #269). Filee sets neither, so one found there came from another
+program: each time the window shows, a backdrop is set back to none and the accent (which can't be read back) is
+turned off. For a report that still shows the wrong thing, the `FILEE_RENDERING` environment variable picks another
+way to draw (`WindowsRendering`): `dcomp` (skip WinUI composition), `redirection` (Direct3D into the redirection
+surface) or `software` (no GPU); unset or `auto` keeps the defaults. Filee reads it at start.
 
 ## Explorer integration
 

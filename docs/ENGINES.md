@@ -12,7 +12,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | PDFsharp | built in (library) | images → PDF, merge, split, page ranges, **compression** (smaller PDFs, see below) |
 | PDFium | built in (library) | PDF → images (multi-page TIFF/GIF supported) |
 | Unhwp | built in (library) | HWP/HWPX → TXT, Markdown, HTML (pictures in a `<name>_files` folder next to the Markdown, embedded in the HTML) |
-| Markdown (Markdig) | built in (library) | **Markdown → HTML, TXT** (and → PDF / DOCX through the HWPX writer, rhwp or LibreOffice) |
+| Text & Markdown (Markdig) | built in (library) | **Markdown → HTML, TXT**; **TXT, LOG, PY, PAC, BAT, COMMAND → UTF-8 TXT**, preserving source text without running scripts (and → PDF / DOCX through the HWPX writer, rhwp or LibreOffice) |
 | Spreadsheets (ExcelDataReader for XLS) | built in (library) | **XLSX, XLS, ODS, CSV, TSV → XLSX, ODS, CSV, TSV** (one CSV / TSV per sheet) |
 | Office Open XML | built in | **DOCM / DOTX / DOTM ↔ DOCX, XLSM / XLTX ↔ XLSX, PPTM / POTX / POTM / PPSX ↔ PPTX** (macros removed for macro-free types) |
 | Fonts | built in | **TTF, OTF, WOFF, WOFF2, EOT ↔ each other**; CFF (PostScript) outlines become TrueType for TTF and EOT |
@@ -28,11 +28,11 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | 3D models (SharpGLTF for glTF) | built in (library) | **GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY ↔ each other**; FBX → each of them; → PNG, JPG, … (an isometric preview) |
 | **Geospatial vector data** | built in | **GeoJSON, KML, KMZ, GPX, Shapefile ↔ each other and CSV** (longitude / latitude or WKT); projected Shapefiles (UTM, Web Mercator, Lambert, Albers) are converted to WGS 84; through CSV to XLSX, JSON, … (see below) |
 | rhwp | bundled with the installer (`engines/rhwp`, with the Microsoft C++ runtime, see below) | HWP/HWPX → PDF, **HWP → HWPX, HWPX → HWP** |
-| Archives (7-Zip) | bundled with the installer (`engines/7zip`, ~2.5 MB) + built-in readers | ZIP, 7Z, RAR, TAR (+ GZ/BZ2/XZ/Z/7Z/LZ), CAB, ISO, DMG, … **→ folder, ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ**; ALZ, EGG, lzip read in-process; "Compress into one archive" for any files |
+| Archives (7-Zip) | bundled with the installer (`engines/7zip`, ~2.5 MB) + built-in readers | ZIP (including ANSYS Workbench WBPZ), 7Z, RAR, TAR (+ GZ/BZ2/XZ/Z/7Z/LZ), CAB, ISO, DMG, … **→ folder, ZIP, 7Z, TAR, TAR.GZ/BZ2/XZ**; ALZ, EGG, lzip read in-process; "Compress into one archive" for any files |
 | LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats; FODT, OpenDocument templates (OTT, OTS, OTP) and XLT out; SVG → EMF/WMF/ODG, a PDF page → SVG |
 | Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, markup languages (reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML) ↔ Markdown/HTML/DOCX/ODT and each other (and → RTF, EPUB, TXT), Markdown and markup → PPTX slides |
 | Ghostscript | **optional download** (~20 MB, 31 MB on disk) | EPS/PS → PDF, PDF → EPS/PS, PostScript-based AI → PDF (images through PDF and PDFium); smaller PDFs when a preset asks for it |
-| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG, a still frame or every frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, Live / Motion Photos → their video, images → HEIC |
+| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG, a still frame or every frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, Live / Motion Photos → their video, a clip of a video → an iPhone Live Photo or Android Motion Photo (experimental), images → HEIC |
 | Calibre | **optional download** (~216 MB, 660 MB on disk) | rare e-book formats: LIT, LRF, CHM, PDB, PML, RB, SNB, TCR, OEB → EPUB; EPUB → MOBI, AZW3, LIT, LRF, PDB, PML, RB, SNB, TCR; e-books → PDF (ranked above the HWPX writer, see below) |
 
 DOCX, XLSX, XLS, ODS and PPTX → PDF need neither Microsoft Office nor LibreOffice: they are read in-process, written as HWPX
@@ -77,7 +77,8 @@ they can be installed or removed later in Settings → *Engines*. A conversion t
 "Needs LibreOffice …" on its donut slice.
 
 - Downloads are pinned in `src/Filee.Engines/Infrastructure/engines.json` (URL, SHA-256, size). The same file is
-  read by `build/fetch-engines.ps1`, so development and the app always use the same versions.
+  read by `build/fetch-engines.ps1`, so development and the app always use the same versions. A macOS download can
+  name the oldest macOS it runs on (`minimumMacOS`); an older Mac isn't offered it.
 - `EngineInstaller` verifies the SHA-256 before unpacking and unpacks into a staging folder that replaces the
   engine folder only when complete. Redirects to mirrors (even plain HTTP) are followed, because the hash decides.
 - Engines go to `%LOCALAPPDATA%\Filee\engines`: outside the app folder, so updates keep them, and inside Filee's
@@ -215,6 +216,8 @@ pinned source in `build/build-linux-native.py` like rhwp (PR #113 did this for S
 - **LIVP** (an iPhone Live Photo as iCloud downloads it: a ZIP of the photo, HEIC or JPEG, and its MOV) is read as its
   photo, taken out of the package in memory (`LivePhotoSource.ReadStill`, at most 64 MB); its video is FFmpeg's (see
   Live / Motion Photos there).
+- **Live / Motion Photos from a video** (JPG and HEIC targets) are FFmpeg's: the clip and the photo's frame come from
+  it, ImageMagick or the HEIC writer only encode that frame (see *Making Live / Motion Photos* there).
 - **Camera RAW** (DNG, CR2, CR3, NEF, ARW, …, and `.raw`) is decoded by LibRaw with the camera's white balance,
   sRGB output and AHD demosaicing, then turned upright from the EXIF orientation.
 - **EMF/WMF** are rendered through GDI+ (Windows only) at the preset's render DPI (at least 150), keeping their
@@ -873,6 +876,11 @@ textures; and every format drops what Filee's model has no place for: animations
 lights, metallic / roughness / normal / emissive maps, and lines and points. Draco- and meshopt-compressed glTF fail with
 a clear message, as do damaged files ("cut short", an index that does not exist, no triangles).
 
+**Files a model refers to** (OBJ's `.mtl` and textures, glTF's separate buffers and pictures, PLY's `TextureFile`,
+FBX's texture names) are read only from the model's folder or a folder below it. A path that climbs out (`../`) or
+points anywhere else is looked up by its name in the model's folder instead, so a downloaded model cannot pull a
+picture from elsewhere on the disk into its output.
+
 **3D → pictures**: a small software rasteriser (`MeshRenderer`) draws an isometric view from the front right, above,
 with one light and flat shading per triangle, vertex colours or the texture interpolated across it, and a z-buffer,
 at 2048 px and scaled down to 1024 px for smooth edges, on a transparent background. The preset's image options
@@ -1061,6 +1069,9 @@ never switches engines by itself.
 
 - The pinned `calibre-64bit-<version>.msi` from download.calibre-ebook.com is unpacked like LibreOffice; the folder
   with `ebook-convert.exe` becomes `engines/calibre`.
+- On macOS the pinned calibre needs macOS 14 (`minimumMacOS` in engines.json). Filee runs on macOS 13, where the
+  download isn't offered; Settings → *Engines* points to calibre 7.26, the last version for macOS 13, as the user's
+  own copy.
 - Each run gets its own configuration, cache and temp folders in the job's work directory
   (`CALIBRE_CONFIG_DIRECTORY`, ...), so a calibre the user installed is never read or changed; messages are
   English (`CALIBRE_OVERRIDE_LANG`) and progress comes from its "34% ..." lines.
@@ -1098,7 +1109,7 @@ bundled with the installer), never a 7-Zip installed on the PC. It runs as a sep
 
 | Format | Read | Write |
 |---|---|---|
-| ZIP, JAR | 7-Zip | ZIP in-process (System.IO.Compression): UTF-8 names with the language-encoding flag, times, empty folders |
+| ZIP, JAR, WBPZ | 7-Zip | ZIP in-process (System.IO.Compression): UTF-8 names with the language-encoding flag, times, empty folders |
 | 7Z | 7-Zip | 7-Zip |
 | TAR | 7-Zip | in-process (System.Formats.Tar, PAX: UTF-8 names, times) |
 | TAR.GZ | 7-Zip, in two stages | in-process (PAX TAR + GZipStream) |
@@ -1225,6 +1236,8 @@ Filee (with the GPL source offer), then an `engines.json` component and an optio
 frame or a folder of every frame, to every audio format (the sound track) and to SRT, ASS and WebVTT (the subtitles);
 every audio format to every audio format; and GIF, APNG and PNG to MP4, WEBM and MOV.
 Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on MP3 files.
+A Video CD's `MPEGAV/AVSEQ01.DAT` (MPEG-1 in a RIFF/CDXA wrapper) counts as MPEG: `.dat` is an extension of that
+format, and FFmpeg reads what the file holds, so a `.dat` with no video in it fails instead of making a file.
 
 - The download is the gyan.dev **9.0.2 "full_build-shared"** Windows build (GPL-3.0, run as a separate program).
   It is smaller than the "essentials" build (100 vs 115 MB download, 272 vs 329 MB on disk, because ffmpeg.exe and
@@ -1278,28 +1291,37 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
   x265 or AV1 fails with a clear message instead of an FFmpeg error. x265 and SVT-AV1 log only errors
   (`-x265-params log-level=error`, `SVT_LOG=1`).
 - **Hardware encoding** (*Hardware acceleration* in the video card, `MediaOptions.HardwareEncoding`; off by default and
-  for older presets, so nobody's results change without asking). H.264 and HEVC encodes (not VP9, AV1 and the
+  for older presets, so nobody's results change without asking). H.264, HEVC and AV1 encodes (not VP9 and the
   MPEG-style codecs, not stream copies, not pictures → video) go to the graphics chip (`Media/HardwareVideo.cs`,
   `Media/HardwareProbe.cs`):
 
   | System | Tried in this order |
   |---|---|
   | Windows | `*_nvenc` (NVIDIA), `*_qsv` (Intel Quick Sync), `*_amf` (AMD) |
-  | macOS | `*_videotoolbox` with constant quality (Apple Silicon), then with a bitrate (Intel Macs reject `-q:v`) |
+  | macOS | `*_videotoolbox` with constant quality (Apple Silicon), then with a bitrate (Intel Macs reject `-q:v`); none for AV1 (VideoToolbox has no AV1 encoder) |
   | Linux | `*_nvenc`, then `*_vaapi` on `/dev/dri/renderD128` (`-vaapi_device`, frames uploaded with `format=nv12,hwupload`) |
 
-  FFmpeg lists encoders the computer can't run (NVENC without an NVIDIA card), so only the ones `ffmpeg -encoders`
-  lists are tried, each first with a test encode with the real options (0.1 s of `testsrc` at 256 × 144 to the null
-  muxer, 15 s limit). The first that succeeds is used; results are kept per FFmpeg executable, encoder, rate control
-  and bit depth until Filee restarts, and written to the log. Quality: *High/Balanced/Small* become quantizer 19/24/29
-  for H.264 and 23/27/31 for HEVC (one above x264's and x265's CRF: hardware encoders spend bits less wisely) as NVENC
-  `-rc vbr -cq N -b:v 0 -preset p5`, Quick Sync `-global_quality N -preset medium` (ICQ), AMF `-rc cqp -qp_p N -qp_i N−2`
-  (`-quality balanced`) and VA-API `-rc_mode CQP -qp N`; VideoToolbox gets `-q:v` 70/60/50, or on Intel Macs
-  `-b:v` from 0.14/0.09/0.05 bits per pixel per frame (× 0.65 for HEVC). 8-bit video is NV12 (H.264 High, HEVC Main);
-  10-bit and HDR sources stay P010 HEVC Main 10 with their colour tags when the encoder passes a 10-bit test encode,
-  otherwise x265 encodes them. HEVC keeps the `hvc1` tag in MP4/M4V/MOV. When a hardware encode fails anyway (a
-  picture too large for the chip, a driver error), the partial output is deleted and the file is encoded again with
-  x264/x265; that is logged, not shown as a failure.
+  AV1 encodes only on recent chips: NVIDIA RTX 40 and newer (`av1_nvenc`), Intel Arc and Core Ultra (Meteor Lake) and
+  newer (`av1_qsv`), AMD RDNA 3 and newer (`av1_amf`), and VA-API drivers that offer it; on older ones the test
+  encode fails and SVT-AV1 encodes as before. FFmpeg lists encoders the computer can't run (NVENC without an NVIDIA
+  card), so only the ones `ffmpeg -encoders` lists are tried, each first with a test encode with the real options
+  (0.1 s of `testsrc` at 256 × 144 to the null muxer, 15 s limit). The first that succeeds is used; results are kept
+  per FFmpeg executable, encoder, rate control and bit depth until Filee restarts, and written to the log
+  ("Hardware encoder av1_qsv (Quality, 8-bit) works" / "is not usable: …"). Quality: *High/Balanced/Small* become
+  quantizer 19/24/29 for H.264 and 23/27/31 for HEVC (one above x264's and x265's CRF: hardware encoders spend bits
+  less wisely) as NVENC `-rc vbr -cq N -b:v 0 -preset p5`, Quick Sync `-global_quality N -preset medium` (ICQ), AMF
+  `-rc cqp -qp_p N -qp_i N−2` (`-quality balanced`) and VA-API `-rc_mode CQP -qp N`; VideoToolbox gets `-q:v`
+  70/60/50, or on Intel Macs `-b:v` from 0.14/0.09/0.05 bits per pixel per frame (× 0.65 for HEVC). AV1 has other
+  scales: NVENC's `-cq` is AV1's 0–63 quantizer and gets 28/34/42 (two above SVT-AV1's CRF 26/32/40); AMF and VA-API
+  take the 0–255 quantizer index, four times that (112/136/168: AMF `-qp_p`/`-qp_b` N, `-qp_i` N−8; VA-API
+  `-rc_mode CQP -global_quality N`, as `av1_vaapi` has no `-qp`); Quick Sync's ICQ is 1–51 for AV1 too and gets
+  HEVC's 23/27/31. 8-bit video is NV12 (H.264 High, HEVC Main, AV1 Main); 10-bit and HDR sources stay P010 (HEVC Main
+  10, 10-bit AV1 Main) with their colour tags when the encoder passes a 10-bit test encode, otherwise x265 / SVT-AV1
+  encode them. AV1 gets no `-profile:v` (every encoder picks Main; `av1_nvenc` has no such option) and no tag (`av01`
+  in MP4/M4V, as written to MKV and WebM). HEVC keeps the `hvc1` tag in MP4/M4V/MOV. GOP length and B-frames are
+  left to each encoder's defaults, as for H.264 and HEVC. When a hardware encode fails anyway (a picture too large for
+  the chip, a driver error), the partial output is deleted and the file is encoded again with x264/x265/SVT-AV1; that
+  is logged, not shown as a failure.
 - DSD (DSF, DFF) decodes at 2.8 MHz or more: lossless and PCM targets get 88.2 kHz, Vorbis and WMA 44.1 kHz, the
   other lossy encoders their nearest supported rate.
 - Subtitle extraction takes the first text subtitle track (SubRip, ASS/SSA, WebVTT, MP4 timed text, CEA-608, …).
@@ -1362,6 +1384,50 @@ Same-format edges exist too, so "MP4 720p" works on MP4 files and "MP3 128k" on 
     read from (IMG_0001.HEIC → `IMG_0001 (2).mov`). A photo without a video fails with "This photo has no video
     Filee can read"; why goes to the log.
   - Not read: vendor formats without this metadata (Huawei's "LIVE_" trailer, for one).
+- **Making Live / Motion Photos** (experimental until confirmed on phones; *A video becomes* on a JPG or HEIC preset,
+  `MediaOptions.LivePhoto`; the presets "Live Photo (iPhone)" and "Motion Photo (Android)", JPG, on the back of the
+  video donut, added in settings schema 31): a short clip of a video becomes a moving photo instead of one still
+  frame.
+  - Routes: the live edges (`ConversionEdge.LivePhoto`, every video → JPG and HEIC) are taken only when
+    `Preset.MakesLivePhotoOf` the file (an iPhone Live Photo as JPG or HEIC, a Motion Photo as JPG,
+    `MediaOptions.LivePhotoTargets`), and then as the whole route (`RoutePlanner.Plan(from, to, livePhoto: true)`); "Save
+    every frame" is ignored meanwhile. Other files and targets convert as usual.
+  - The clip (`Media/LivePhotoWriter.cs`): *Clip start*, *Clip length* (0.5 to 5 s, 3 by default, shorter when the
+    video ends sooner; a start past the end is refused) and *Photo at* (seconds into the clip, 1.5 by default, the last
+    frame at most). FFmpeg encodes it at 30 fps, upright (the phone's rotation is applied to the pixels), scaled to at
+    most 1440 px on the shorter side (or the preset's maximum height), 8-bit 4:2:0 H.264 (HEVC when the preset asks,
+    tagged `hvc1`), the sound as AAC (mono or stereo, 44.1 or 48 kHz) unless the preset removes it. HDR (PQ or HLG) is
+    tone-mapped to SDR BT.709 with zscale; an FFmpeg without zscale refuses HDR with a message. The photo is the same
+    frame at the video's full size, picked by the same 30 fps timing (`select` on the frame number the clip really has,
+    counted from its `stsz`), encoded at the preset's image quality.
+  - **iPhone Live Photo**: a JPG (or HEIC) and a MOV with the same name and one content identifier (a new upper-case
+    UUID), the pair Photos imports as a Live Photo. The photo carries it in Apple's maker note (Exif `MakerNote`,
+    "Apple iOS" big-endian, tag 17, ASCII), HEIC through the HEIC writer's Exif item. The MOV (QuickTime, `qt  ` brand)
+    gets, as an iPhone writes them: `com.apple.quicktime.content.identifier` in a movie-level `meta` (plain container,
+    `mdta` handler, `keys`, `ilst` with a UTF-8 `data` item), and a timed metadata track for the still: track flags 0xF,
+    `tref/cdsc` to the video track, a `mhlr/meta` handler, `gmhd`, an alias data reference, a `mebx` sample entry whose
+    key 1 is `mdta` + `com.apple.quicktime.still-image-time` typed as a signed 8-bit integer (well-known type 65), one
+    9-byte sample (the item, value -1) of one tick at the movie's timescale, placed by an empty edit at the photo's
+    time (`AppleLivePhoto.TagMovie`). FFmpeg leaves the movie header at the end, so only that header is rewritten: the
+    sample goes into a small `mdat` where it was, and no chunk offset moves. Not written: the other timed metadata of
+    an iPhone (live-photo-info, the still's transform, video orientation) and its camera keys, which Photos does not
+    need to pair the files.
+  - **Android Motion Photo**: one `NAME.MP.jpg` (the name a Pixel gives them): the JPEG, then the clip as MP4 appended,
+    ending the file. Its XMP APP1 (after the JFIF APP0 and an Exif APP1) is laid out as a Pixel's:
+    `GCamera:MotionPhoto` 1, `MotionPhotoVersion` 1, `MotionPhotoPresentationTimestampUs` (the photo's time in the
+    clip), and a `Container:Directory` of the primary JPEG and the video (`video/mp4`, `MotionPhoto`, its length,
+    `Padding` 0); the older `GCamera:MicroVideo` properties (the same length as `MicroVideoOffset`) are written too for
+    older Google Photos (`MotionPhoto.WriteAsync`). Samsung's own SEF trailer is not written.
+  - Expected to work, to be confirmed on devices: Photos on iPhone, iPad and Mac with both files imported together
+    (iCloud Photos, AirDrop of both, Image Capture or Photos on a Mac; a single file sent through a messenger loses the
+    pairing), Google Photos on Android, iPhone and the web, and galleries that read Google's Motion Photo XMP (Samsung
+    Gallery on recent One UI is likely but untested). Not expected: galleries that only know their maker's own format.
+  - Everything is written in the work directory and moved into place at the end, first next to its target under a
+    hidden name, then renamed over it: a failed or cancelled run never touches an existing file. The pair keeps one
+    name: when the MOV's name is taken (another file, or the video being converted, which is never written over) both
+    take the next number (`clip (2).jpg` + `clip (2).mov`); a MOV is only written over together with the photo
+    "overwrite" replaces; "skip" skips the pair when the photo exists. Filee's own extraction (above) reads both kinds
+    back.
 - Pictures → MP4/WEBM/MOV go through a full-size PNG from the image engines (HEIC → PNG → MOV): a 5-second still at
   30 fps, one quality step above the preset (identical frames cost almost nothing; x264 `-tune stillimage`). The
   PNG's ICC profile is read (`-flags2 +icc_profiles`), so primaries and transfer are tagged as the photo's (Display
