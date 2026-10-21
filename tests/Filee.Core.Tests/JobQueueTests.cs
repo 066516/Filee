@@ -538,22 +538,28 @@ public class JobQueueTests
     }
 
     /// <summary>An engine that writes half a file where it was told to and then fails, or is cancelled.</summary>
-    private sealed class HalfWriter(Action<ConversionStep>? whileWriting = null) : IConverter
+    private sealed class HalfWriter(Action<ConversionStep>? whileWriting = null, string from = "jpg") : IConverter
     {
         public string Id => "half";
         public string DisplayName => "half";
-        public IReadOnlyList<ConversionEdge> Edges { get; } = [new ConversionEdge("jpg", "png")];
+        public IReadOnlyList<ConversionEdge> Edges { get; } = [new ConversionEdge(from, "png")];
         public int MaxParallelism => 0;
         public bool Writes { get; init; } = true;
         public bool Available { get; set; } = true;
+
+        /// <summary>Awaited after taking the name and before failing: lets a test run something else meanwhile.</summary>
+        public Func<Task>? Hold { get; init; }
+
         public EngineStatus GetStatus() => Available ? EngineStatus.Available() : EngineStatus.Unavailable("engine.reason.not_installed");
 
-        public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
+        public async Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
         {
             var path = step.Output.Allocate(step.To)!;
             if (Writes)
-                File.WriteAllText(path, "half");
+                await File.WriteAllTextAsync(path, "half", cancellationToken);
             whileWriting?.Invoke(step);
+            if (Hold is not null)
+                await Hold();
             cancellationToken.ThrowIfCancellationRequested();
             throw new InvalidOperationException("the engine crashed");
         }
@@ -630,6 +636,45 @@ public class JobQueueTests
 
         Assert.Equal(JobState.Failed, job.State);
         Assert.Equal("older", File.ReadAllText(older));
+    }
+
+    [Fact]
+    public async Task A_failed_conversion_never_deletes_the_file_another_one_was_given_the_same_name_for()
+    {
+        // "Overwrite" hands photo.gif and photo.jpg the same photo.png. The GIF's engine took it first and fails after
+        // the JPG's has finished it: that file stays.
+        using var dir = new TempDir();
+        var took = new TaskCompletionSource();
+        var fail = new TaskCompletionSource();
+        var half = new HalfWriter(_ => took.TrySetResult(), from: "gif") { Writes = false, Hold = () => fail.Task };
+        var good = new FakeConverter("magick", new ConversionEdge("jpg", "png"));
+        await using var queue = new JobQueue(new ConverterCatalog([half, good]));
+        var preset = new Preset { TargetFormat = "png", Output = { Conflict = ConflictPolicy.Overwrite } };
+
+        var failing = Run(queue, [dir.File("photo.gif")], preset);
+        await took.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        var finished = await Run(queue, [dir.File("photo.jpg")], preset);
+        fail.SetResult();
+
+        Assert.Equal(JobState.Failed, (await failing).State);
+        Assert.Equal([Path.Combine(dir.Path, "photo.png")], finished.Outputs);
+        Assert.Contains("by magick", File.ReadAllText(Path.Combine(dir.Path, "photo.png")));
+    }
+
+    [Fact]
+    public async Task A_failed_conversion_removes_the_subfolder_it_made_but_not_one_that_was_there()
+    {
+        using var dir = new TempDir();
+        await using var queue = new JobQueue(new ConverterCatalog([new HalfWriter()]));
+        var preset = new Preset { TargetFormat = "png", Output = { Location = OutputLocation.Subfolder, SubfolderName = "{name}" } };
+
+        Assert.Equal(JobState.Failed, (await Run(queue, [dir.File("photo.jpg")], preset)).State);
+        Assert.False(Directory.Exists(Path.Combine(dir.Path, "photo")));
+
+        var mine = Directory.CreateDirectory(Path.Combine(dir.Path, "scan")).FullName;
+        Assert.Equal(JobState.Failed, (await Run(queue, [dir.File("scan.jpg")], preset)).State);
+        Assert.True(Directory.Exists(mine));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(mine));
     }
 
     [Fact]
