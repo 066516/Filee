@@ -54,6 +54,29 @@ public class PortugueseLocalizationTests
         Assert.Equal(code, LocalizationService.Resolve(code.ToUpperInvariant()));
     }
 
+    // Contextual glossary: "arquivo" remains valid pt-PT in PDF/A's archival description, for example.
+    [AvaloniaTheory]
+    [InlineData("common.save", "Guardar", "Salvar")]
+    [InlineData("common.delete", "Eliminar", "Excluir")]
+    [InlineData("nav.about", "Acerca de", "Sobre")]
+    [InlineData("nav.engines", "Motores", "Mecanismos")]
+    [InlineData("general.language_auto", "Predefinição do sistema", "Padrão do sistema")]
+    [InlineData("triggers.button", "Botão do rato", "Botão do mouse")]
+    [InlineData("triggers.scope.FileManager", "Gestores de ficheiros e ambiente de trabalho", "Gerenciadores de arquivos e área de trabalho")]
+    [InlineData("triggers.scope.FileManager_linux", "Gestor de ficheiros e ambiente de trabalho", "Gerenciador de arquivos e área de trabalho")]
+    [InlineData("presets.percent", "Percentagem", "Porcentagem")]
+    [InlineData("presets.save_every_frame", "Guardar todos os fotogramas de um vídeo", "Salvar todos os quadros de um vídeo")]
+    [InlineData("watch.status_watching", "A monitorizar", "Monitorando")]
+    [InlineData("engines.package.calibre.description",
+        "Guarda em MOBI e AZW3 para Kindle e converte formatos raros de livros digitais (LIT, LRF, PDB, CHM…).\nEPUB, MOBI, AZW3, FB2 e banda desenhada são lidos sem ele.",
+        "Salva em MOBI e AZW3 para Kindle e converte formatos raros de livros digitais (LIT, LRF, PDB, CHM…).\nEPUB, MOBI, AZW3, FB2 e quadrinhos são lidos sem ele.")]
+    public void Editorial_glossary_keeps_variant_specific_terms_separate(string key, string european, string brazilian)
+    {
+        TestServices.EnsureInitialized("en");
+        Assert.Equal(european, LocalizationService.LoadStrings("pt-PT")[key]);
+        Assert.Equal(brazilian, LocalizationService.LoadStrings("pt-BR")[key]);
+    }
+
     [AvaloniaFact]
     public void Resources_and_toggle_labels_follow_live_switches_between_both_variants()
     {
@@ -155,7 +178,8 @@ public class PortugueseLocalizationTests
         {
             vm.Navigate("engines");
             var engines = ((EnginesPageViewModel)vm.CurrentPage).Engines;
-            Assert.Equal("Dados (integrado)", engines.Single(e => e.Converter.Id == "data").Name);
+            Assert.Equal(language == "pt-PT" ? "Dados (motor integrado)" : "Dados (mecanismo integrado)",
+                engines.Single(e => e.Converter.Id == "data").Name);
             Assert.Equal("ImageMagick", engines.Single(e => e.Converter.Id == "magick").Name);
             Assert.DoesNotContain(engines, e => e.Name.Contains("built-in", StringComparison.Ordinal));
         }
@@ -177,6 +201,9 @@ public class PortugueseLocalizationTests
             Assert.Equal($"Conversões no histórico: {count}", loc.Format("general.history_count", count));
             Assert.Equal($"Conversões: {count}, sem falhas", loc.Format("watch.results_ok", count));
             Assert.Equal($"Conversões: {count} · Falhas: 1", loc.Format("watch.results_failed", count, 1));
+            Assert.Equal($"Conversões: {count}", loc.Format("engines.conversions", count));
+            Assert.Equal($"{count} s para terminar", loc.Format("engines.eta.seconds", count));
+            Assert.Equal($"{count} min para terminar", loc.Format("engines.eta.minutes", count));
         }
     }
 
