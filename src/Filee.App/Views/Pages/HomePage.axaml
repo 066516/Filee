@@ -115,7 +115,7 @@
                   </StackPanel>
                   <!-- The result: its picture, else its format; the corner says whether the job went well. -->
                   <Panel DockPanel.Dock="Left" Width="42" Height="42" Margin="0,0,12,0">
-                    <Border CornerRadius="{DynamicResource SoftRadiusSmall}" ClipToBounds="True" Background="{DynamicResource AccentSoftBrush}">
+                    <Border Classes="history-thumbnail" CornerRadius="{DynamicResource SoftRadiusSmall}" ClipToBounds="True" Background="{DynamicResource AccentSoftBrush}">
                       <Panel>
                         <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" IsVisible="{Binding HasThumbnail}" />
                         <TextBlock Text="{Binding FormatBadge}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"

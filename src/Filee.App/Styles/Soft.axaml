@@ -390,10 +390,15 @@
     <Setter Property="Stroke" Value="{DynamicResource OnAccentBrush}" />
   </Style>
 
-  <!-- Cards: M3 elevated tonal surface with generous rounded corners -->
+  <!-- Cards: M3 elevated tonal surface with refined rounded corners -->
   <Style Selector="Window.material-you Border.card">
-    <Setter Property="CornerRadius" Value="24" />
-    <Setter Property="Padding" Value="22,20" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Padding" Value="20,18" />
+  </Style>
+
+  <!-- Recent conversion thumbnails: soft M3 rounded tile -->
+  <Style Selector="Window.material-you Border.history-thumbnail">
+    <Setter Property="CornerRadius" Value="12" />
   </Style>
 
   <!-- Buttons: M3 full pill with spring press (excluding multi-line choice cards) -->
