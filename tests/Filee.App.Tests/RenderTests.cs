@@ -45,7 +45,7 @@ public class RenderTests
     public void Main_window_pages_render(string page, string language)
     {
         TestServices.EnsureInitialized(language);
-        var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+        using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
         vm.Navigate(page);
         var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
         window.Show();
@@ -510,7 +510,7 @@ public class RenderTests
         var profiles = store.Profiles.Select(p => p.Clone()).ToList();
         try
         {
-            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
             vm.Navigate("toolbar");
             var page = (ToolbarPageViewModel)vm.CurrentPage!;
             var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
@@ -554,7 +554,7 @@ public class RenderTests
     public void Dragging_a_preset_opens_a_gap_with_a_preview_slice()
     {
         TestServices.EnsureInitialized("ko");
-        var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+        using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
         vm.Navigate("toolbar");
         var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
         window.Show();
@@ -958,7 +958,7 @@ public class RenderTests
         TestServices.EnsureInitialized("en");
         var theme = new ThemeSettings { Mode = ThemeMode.Dark, Accent = "#1D9E75", CornerRadius = 22 };
         AppHost.Get<ThemeService>().Apply(theme, "en");
-        var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+        using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
         vm.Navigate("toolbar");
         var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
         window.Show();
@@ -1741,7 +1741,7 @@ public class RenderTests
             change(store.Profiles);
             if (dark)
                 theme.Apply(new ThemeSettings { Mode = ThemeMode.Dark }, language);
-            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<ILocalizer>(), AppHost.Get<UpdateService>());
+            using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<ILocalizer>(), AppHost.Get<UpdateService>());
             vm.Navigate("toolbar");
             window = new MainWindow { DataContext = vm, Width = 1080, Height = height };
             window.Show();
