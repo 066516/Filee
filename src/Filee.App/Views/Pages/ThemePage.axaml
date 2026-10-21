@@ -8,8 +8,8 @@
   <UserControl.Styles>
     <Style Selector="Button.choice-card">
       <Setter Property="CornerRadius" Value="{DynamicResource SoftRadius}" />
-      <Setter Property="Padding" Value="16,14" />
-      <Setter Property="MinHeight" Value="100" />
+      <Setter Property="Padding" Value="14,10" />
+      <Setter Property="MinHeight" Value="68" />
       <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource SubtleBorderBrush}" />
       <Setter Property="BorderThickness" Value="1.5" />
@@ -134,36 +134,8 @@
         <StackPanel Spacing="12">
           <TextBlock Classes="label" Text="{DynamicResource theme.accent}" />
 
-          <!-- Curated Pastel Presets -->
-          <TextBlock Classes="caption" Text="{DynamicResource theme.presets_pastel}" FontWeight="SemiBold" Margin="0,2,0,0" />
-          <ItemsControl ItemsSource="{Binding PastelPresets}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <UniformGrid Columns="2" />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:ThemePageViewModel+PresetItem">
-                <Button Classes="preset-pill" Margin="0,0,6,6"
-                        Command="{Binding $parent[ItemsControl].((vm:ThemePageViewModel)DataContext).PickPresetCommand}"
-                        CommandParameter="{Binding}">
-                  <DockPanel>
-                    <Border DockPanel.Dock="Left" Width="18" Height="18" CornerRadius="999" Margin="0,0,8,0"
-                            BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="1">
-                      <Border.Background>
-                        <SolidColorBrush Color="{Binding Color}" />
-                      </Border.Background>
-                    </Border>
-                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontSize="12" FontWeight="Medium"
-                               TextTrimming="CharacterEllipsis" />
-                  </DockPanel>
-                </Button>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-
           <!-- Vibrant / Classic Swatches -->
-          <TextBlock Classes="caption" Text="{DynamicResource theme.presets_vibrant}" FontWeight="SemiBold" Margin="0,4,0,0" />
+          <TextBlock Classes="caption" Text="{DynamicResource theme.presets_vibrant}" FontWeight="SemiBold" Margin="0,2,0,0" />
           <ListBox x:Name="AccentSwatches" ItemsSource="{Binding Swatches}" SelectedItem="{Binding Accent, Mode=TwoWay}"
                    Background="Transparent" BorderThickness="0" Padding="0"
                    AutomationProperties.Name="{DynamicResource theme.accent}">
@@ -206,16 +178,44 @@
           </ListBox>
 
           <!-- Custom Colour Picker & Hex -->
-          <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,4,0,0">
+          <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,2,0,0">
             <TextBlock Classes="label" VerticalAlignment="Center" Text="{DynamicResource theme.custom_color}" Margin="0" />
             <ColorPicker x:Name="AccentPicker" Color="{Binding Accent, Mode=TwoWay}" IsAlphaEnabled="False"
-                         MinHeight="44" MinWidth="90"
+                         MinHeight="40" MinWidth="90"
                          IsAlphaVisible="False" IsColorSpectrumVisible="True" IsColorPaletteVisible="False"
                          IsColorComponentsVisible="False" IsColorModelVisible="False" IsColorPreviewVisible="True"
                          FlowDirection="LeftToRight" AutomationProperties.Name="{DynamicResource theme.custom_color}" />
             <TextBox Text="{Binding AccentHex}" Width="120" PlaceholderText="#7F77DD" FlowDirection="LeftToRight"
                      AutomationProperties.Name="{DynamicResource theme.custom_color}" />
           </StackPanel>
+
+          <!-- Curated Pastel Presets -->
+          <TextBlock Classes="caption" Text="{DynamicResource theme.presets_pastel}" FontWeight="SemiBold" Margin="0,4,0,0" />
+          <ItemsControl ItemsSource="{Binding PastelPresets}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <UniformGrid Columns="2" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ThemePageViewModel+PresetItem">
+                <Button Classes="preset-pill" Margin="0,0,6,6"
+                        Command="{Binding $parent[ItemsControl].((vm:ThemePageViewModel)DataContext).PickPresetCommand}"
+                        CommandParameter="{Binding}">
+                  <DockPanel>
+                    <Border DockPanel.Dock="Left" Width="18" Height="18" CornerRadius="999" Margin="0,0,8,0"
+                            BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="1">
+                      <Border.Background>
+                        <SolidColorBrush Color="{Binding Color}" />
+                      </Border.Background>
+                    </Border>
+                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontSize="12" FontWeight="Medium"
+                               TextTrimming="CharacterEllipsis" />
+                  </DockPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
         </StackPanel>
       </Border>
 
