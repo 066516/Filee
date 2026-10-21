@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><b>English</b> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a></p>
+<p align="center"><b>English</b> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a></p>
 
 <table>
   <tr>
@@ -60,7 +60,8 @@ Download from [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
 - **Linux x64/ARM64** (Ubuntu 22.04+): unpack the package and run `./install.sh` (no root, needs Python 3).
   Drag gestures need X11. On Wayland, use the drop zone and the file manager's right-click menu.
 
-Filee shows new releases in its menu and updates itself, keeping your settings and engines.
+Filee shows new releases in its menu and updates itself, keeping your settings and engines. After an update, a few
+slides show what's new.
 
 ## Features
 
@@ -71,10 +72,12 @@ Filee shows new releases in its menu and updates itself, keeping your settings a
 - **One toolbar per file type**, arranged by drag and drop, with presets for quality, size, DPI, PDF pages and compression,
   video and audio, output folder and file names.
 - **Two sides to every donut**: press <kbd>Tab</kbd> or turn the mouse wheel while it is open to flip it over to less common formats and tools.
+- **Crop before converting**: the Crop slice opens pictures one by one. Drag the frame, pick a ratio, and only that part is saved.
 - **Many files at once**, in parallel. Routes with several steps (HWP → HWPX → DOCX) are found automatically.
 - **Watch folders** convert every file that lands in them.
+- **Recent conversions** on Home, each with a thumbnail: open the result, or open it with another app.
 - **Other ways in**: the right-click menu, a keyboard shortcut, the drop zone and the [`filee` command](#command-line).
-- Light and dark themes, in English, Español, 日本語, 한국어, 简体中文, Polski, हिन्दी, Русский and العربية (right to left).
+- Light and dark themes with your own accent colour and donut opacity, in English, Español, 日本語, 한국어, 简体中文, Polski, हिन्दी, Русский and العربية (right to left).
 
 ## Screenshots
 

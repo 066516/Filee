@@ -30,12 +30,12 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <b>Polski</b> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <b>Polski</b> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a></p>
 
 <table>
   <tr>
     <td width="33%" valign="top"><b>Tuż przy kursorze</b><br>Nie trzeba otwierać okna aplikacji. Formaty pojawiają się tam, gdzie już jesteś, i tylko te, które pasują do przeciąganych plików.</td>
-    <td width="33%" valign="top"><b>247 formatów bez dodatkowych programów</b><br>Obrazy, PDF, Word, Excel, PowerPoint, HWP, e-booki, archiwa, czcionki, CAD i modele 3D działają bez pakietu Office, Hancom Office i LibreOffice.</td>
+    <td width="33%" valign="top"><b>255 formatów bez dodatkowych programów</b><br>Obrazy, PDF, Word, Excel, PowerPoint, HWP, e-booki, archiwa, czcionki, CAD, modele 3D i dane geoprzestrzenne działają bez pakietu Office, Hancom Office i LibreOffice.</td>
     <td width="33%" valign="top"><b>Wszystko zostaje na Twoim komputerze</b><br>Nic nie jest wysyłane. Filee działa offline i zapisuje wynik obok oryginału.</td>
   </tr>
 </table>
@@ -52,23 +52,32 @@
 Pobierz z [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
 
 - **Windows 10/11**: uruchom `Filee-<version>-win-Setup.exe` albo rozpakuj `win-Portable.zip` i uruchom `Filee.exe`.
-  Instalator może dodać menu Eksploratora, uruchamianie po zalogowaniu, polecenie `filee` i opcjonalne silniki.
-- **macOS 14+** (wersja zapoznawcza): rozpakuj pakiet `osx-arm64` lub `osx-x64` i uruchom `./install.sh`.
+  Setup to własny instalator Filee, mówi w językach Filee i nie potrzebuje na komputerze niczego więcej. Może dodać menu
+  Eksploratora, uruchamianie po zalogowaniu, polecenie `filee` i opcjonalne silniki; instalacja cicha przyjmuje
+  przełączniki Inno Setup (`/VERYSILENT /SUPPRESSMSGBOXES`).
+- **macOS 13+** (wersja zapoznawcza): rozpakuj pakiet `osx-arm64` lub `osx-x64` i uruchom `./install.sh`.
   Aplikacja nie jest jeszcze notaryzowana, więc przy pierwszym uruchomieniu zezwól na nią w Ustawienia systemowe → Prywatność i ochrona → **Otwórz mimo to**.
 - **Linux x64/ARM64** (Ubuntu 22.04+): rozpakuj pakiet i uruchom `./install.sh` (bez uprawnień roota, wymaga Pythona 3).
   Gesty przeciągania wymagają X11. W Waylandzie korzystaj ze strefy upuszczania i menu kontekstowego menedżera plików.
 
-Filee pokazuje nowe wersje w swoim menu i sam się aktualizuje, zachowując Twoje ustawienia i silniki.
+Filee pokazuje nowe wersje w swoim menu i sam się aktualizuje, zachowując Twoje ustawienia i silniki. Po aktualizacji
+kilka slajdów pokazuje, co nowego.
 
 ## Funkcje
 
 - **Pierścień przy kursorze**: przytrzymaj klawisz, przeciągnij pliki i upuść je na format. Pojawiają się tylko formaty pasujące do tych plików.
+- **Prosto z przeglądarki**: tak samo przeciągnij obraz, link do pliku lub pobieranie z Chrome, Edge, Firefoksa albo Safari.
+  Filee zapisuje plik w folderze Pobrane (albo zostawia tylko przekonwertowany plik) i go konwertuje. Linki pobiera
+  bez logowania z Twojej przeglądarki.
 - **Osobny pasek-pierścień dla każdego typu plików**, układany metodą przeciągnij i upuść, z ustawieniami wstępnymi jakości, rozmiaru, DPI,
   stron i kompresji PDF, wideo i audio, folderu docelowego i nazw plików.
+- **Dwie strony każdego pierścienia**: gdy jest otwarty, naciśnij <kbd>Tab</kbd> lub obróć kółko myszy, aby go odwrócić do rzadziej używanych formatów i narzędzi.
+- **Kadrowanie przed konwersją**: wycinek Kadruj otwiera obrazy po kolei. Przeciągnij ramkę, wybierz proporcje, a zapisana zostanie tylko ta część.
 - **Wiele plików naraz**, równolegle. Konwersje wymagające kilku kroków (HWP → HWPX → DOCX) Filee znajduje sam.
 - **Obserwowane foldery** konwertują każdy plik, który do nich trafi.
+- **Ostatnie konwersje** na ekranie Start, każda z miniaturą: otwórz wynik albo otwórz go za pomocą innej aplikacji.
 - **Inne sposoby**: menu kontekstowe, skrót klawiszowy, strefa upuszczania i [polecenie `filee`](#wiersz-poleceń).
-- Jasny i ciemny motyw, w językach English, Español, 日本語, 한국어, 简体中文, Polski, हिन्दी i Русский.
+- Jasny i ciemny motyw z własnym kolorem akcentu i kryciem pierścienia, w językach English, Español, 日本語, 한국어, 简体中文, Polski, हिन्दी, Русский i العربية (od prawej do lewej).
 
 ## Zrzuty ekranu
 
@@ -87,23 +96,24 @@ Filee pokazuje nowe wersje w swoim menu i sam się aktualizuje, zachowując Twoj
 
 | Z | Do |
 |---|---|
-| **Obrazy**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …; GIMP XCF, RAW z aparatów (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, JPEG XR (Windows) tylko odczyt | dowolny z nich (HEIC⁵), PDF, SVG (wektoryzacja), zmiana rozmiaru, skala szarości |
+| **Obrazy**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …; GIMP XCF, RAW z aparatów (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, JPEG XR (Windows), Live Photo z iPhone'a (LIVP) tylko odczyt | dowolny z nich (HEIC⁵), PDF, SVG (wektoryzacja), zmiana rozmiaru, skala szarości; Live/Motion Photo (iPhone, Android) → ich wideo (MP4, MOV⁵), a wideo → Live Photo (iPhone) lub Motion Photo (Android)⁵, eksperymentalnie |
 | **Grafika wektorowa**: SVG, SVGZ, EMF, WMF, AI · EPS, PS¹ · CDR, VSD, CGM, ODG, FODG² | PDF (wektorowy), PNG i inne obrazy, SVG ↔ SVGZ, SVG → DXF/DWG, PDF → EPS/PS¹, SVG → EMF, WMF, ODG² |
-| **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, PPTX (każda strona jako obraz), SVG²; łączenie, dzielenie, zakresy stron, kompresja (mniejsze pliki PDF) |
-| **Dokumenty**: DOCX, DOCM, DOTX, EML, Outlook MSG · DOC, ODT, FODT, OTT, RTF, WPS, WPD, Pages, ClarisWorks, MacWrite, T602, …² | PDF, DOCX, HWPX, EPUB, TXT, HTML; MSG → EML · ODT, FODT, OTT² |
+| **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, PPTX (każda strona jako obraz), SVG²; łączenie (w kolejności, którą najpierw wybierzesz), dzielenie, zakresy stron, kompresja (mniejsze pliki PDF) |
+| **Dokumenty**: DOCX, DOCM, DOTX, EML, Outlook MSG; OFD (chińskie e-faktury, dokumenty urzędowe) tylko odczyt · DOC, ODT, FODT, OTT, RTF, WPS, WPD, Pages, ClarisWorks, MacWrite, T602, …² | PDF, DOCX, HWPX, EPUB, TXT, HTML; MSG → EML · ODT, FODT, OTT² |
 | **Arkusze**: XLSX, XLSM, XLS, XLT, ODS, CSV, TSV · OTS, FODS, Numbers, ET² | PDF, XLSX, ODS, CSV, TSV, JSON, HWPX, HTML · XLT, OTS² |
-| **Prezentacje**: PPTX, PPTM, POTX, PPSX · PPT, ODP, OTP, FODP, Keynote² | PDF, PNG, JPG, DOCX, HWPX · OTP² |
+| **Prezentacje**: PPTX, PPTM, POTX, POTM, PPSX · PPT, ODP, OTP, FODP, Keynote² | PDF, PNG, JPG, DOCX, HWPX · OTP² |
 | **HWP**: HWP, HWPX | PDF, PNG, DOCX, HWPX ↔ HWP, TXT, Markdown, HTML |
-| **Tekst**: TXT, Markdown, HTML; MHTML (zapisane strony WWW) tylko odczyt · reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML³ | PDF, DOCX, HWPX, EPUB · między sobą, slajdy PPTX³ |
+| **Tekst**: TXT, LOG, kod skryptów (PY, PAC, BAT, COMMAND; tylko odczyt, nigdy uruchamianie), Markdown, HTML; MHTML (zapisane strony WWW) tylko odczyt · reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML³ | TXT w UTF-8, PDF, DOCX, HWPX, EPUB · między sobą, slajdy PPTX³ |
 | **E-booki**: EPUB, KEPUB, MOBI, AZW3, AZW, AZW4, FB2, CBZ, CBR, CB7, HTMLZ, TXTZ · LIT, LRF, CHM, PDB, …⁴ | PDF, EPUB, KEPUB (Kobo), DOCX, TXT, HTML, HWPX · MOBI, AZW3⁴ |
-| **Wideo**⁵: MP4, MOV, MKV, WEBM, AVI, WMV, FLV, MPEG, TS, M2TS, 3GP, OGV, VOB, … | MP4 (H.264, HEVC, AV1), WEBM, MOV, MKV, AVI, GIF, APNG, MP3, M4A, 720p, napisy (SRT, ASS, WebVTT) |
+| **Wideo**⁵: MP4, MOV, MKV, WEBM, AVI, WMV, FLV, MPEG, Video CD (DAT), TS, M2TS, 3GP, OGV, VOB, … | MP4 (H.264, HEVC, AV1), WEBM, MOV, MKV, AVI, GIF, APNG, MP3, M4A, 720p, napisy (SRT, ASS, WebVTT) |
 | **Audio**⁵: MP3, M4A, AAC, WAV, FLAC, OGG, OPUS, WMA, AIFF, AMR, APE, WavPack, TTA, DSD (DSF, DFF), DTS, AC3, E-AC3, … | MP3, M4A (AAC, ALAC), WAV, FLAC, OGG, OPUS, AAC, WavPack, TTA, W64, AC3, E-AC3 |
 | **Napisy**: SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD, SCC | między sobą, w UTF-8 (koreańskie pliki CP949 są odczytywane poprawnie) |
-| **Archiwa**: ZIP, 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG, … | rozpakowanie, ZIP, 7Z, TAR, TAR.GZ; dowolne pliki → jeden ZIP |
+| **Archiwa**: ZIP, ANSYS Workbench (WBPZ), 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG, … | rozpakowanie, ZIP, 7Z, TAR, TAR.GZ; dowolne pliki → jeden ZIP |
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **Czcionki**: TTF, OTF, WOFF, WOFF2, EOT | między sobą |
 | **Dane**: JSON, JSON Lines, YAML, TOML, XML · vCard | między sobą, CSV i XLSX (tabele); vCard ↔ CSV |
 | **Modele 3D**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY; FBX tylko odczyt | między sobą, podgląd PNG |
+| **Dane geoprzestrzenne (wektorowe)**: Shapefile, GeoJSON, KML, KMZ, GPX · CSV ze współrzędnymi | między sobą oraz CSV / XLSX / JSON; dane w odwzorowaniach (UTM, Web Mercator, Lambert, Albers) wychodzą jako długość / szerokość geograficzna WGS 84 |
 
 Formaty bez oznaczenia działają od razu, bez pakietu Office, Hancom Office i LibreOffice.
 Oznaczone wymagają opcjonalnego silnika, pobieranego tylko wtedy, gdy jest potrzebny: ¹ Ghostscript, ² LibreOffice, ³ Pandoc,
