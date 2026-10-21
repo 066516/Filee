@@ -20,7 +20,8 @@
   <a href="https://github.com/KnifeLemon/Filee/releases/latest"><img src="https://img.shields.io/github/v/release/KnifeLemon/Filee?color=7F77DD&label=release" alt="Versão mais recente"></a>
   <a href="https://github.com/KnifeLemon/Filee/releases"><img src="https://img.shields.io/github/downloads/KnifeLemon/Filee/total?color=1D9E75" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-3C3489" alt="Windows 10 | 11">
-  <img src="https://img.shields.io/badge/macOS%20%7C%20Linux-preview-534AB7" alt="macOS | Linux prévia">
+  <img src="https://img.shields.io/badge/Linux-x64%20%7C%20ARM64-3C3489" alt="Linux x64 | ARM64">
+  <img src="https://img.shields.io/badge/macOS-preview-534AB7" alt="macOS prévia">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6A62C9" alt="Licença MIT"></a>
 </p>
 
@@ -29,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <b>Português (Brasil)</b></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <b>Português (Brasil)</b> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a></p>
 
 <table>
   <tr>
@@ -56,10 +57,11 @@ Baixe em [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
   (`/VERYSILENT /SUPPRESSMSGBOXES`).
 - **macOS 13+** (prévia): descompacte o pacote `osx-arm64` ou `osx-x64` e execute `./install.sh`.
   A build ainda não é notarizada, então permita a primeira abertura em Ajustes do Sistema → Privacidade e Segurança → **Abrir Mesmo Assim**.
-- **Linux x64/ARM64** (prévia, Ubuntu 22.04+): descompacte o pacote e execute `./install.sh` (sem root, precisa do Python 3).
+- **Linux x64/ARM64** (Ubuntu 22.04+): descompacte o pacote e execute `./install.sh` (sem root, precisa do Python 3).
   Gestos de arrastar precisam do X11. No Wayland, use a área de soltar e o menu do botão direito do gerenciador de arquivos.
 
-O Filee mostra versões novas no menu e se atualiza sozinho, mantendo suas configurações e motores.
+O Filee mostra versões novas no menu e se atualiza sozinho, mantendo suas configurações e motores. Depois de uma atualização, alguns
+slides mostram o que há de novo.
 
 ## Recursos
 
@@ -70,10 +72,12 @@ O Filee mostra versões novas no menu e se atualiza sozinho, mantendo suas confi
 - **Um menu por tipo de arquivo**, organizado arrastando e soltando, com predefinições de qualidade, tamanho, DPI, páginas e compactação de PDF,
   vídeo e áudio, pasta de saída e nomes de arquivo.
 - **Dois lados em cada menu**: pressione <kbd>Tab</kbd> ou gire a roda do mouse com ele aberto para virar e ver formatos e ferramentas menos comuns.
+- **Recortar antes de converter**: a fatia Recortar abre as imagens uma a uma. Arraste a moldura, escolha uma proporção, e só essa parte é salva.
 - **Vários arquivos de uma vez**, em paralelo. Caminhos com várias etapas (HWP → HWPX → DOCX) são encontrados automaticamente.
 - **Pastas monitoradas** convertem cada arquivo que chega nelas.
+- **Conversões recentes** no Início, cada uma com uma miniatura: abra o resultado, ou abra com outro aplicativo.
 - **Outras entradas**: o menu do botão direito, um atalho de teclado, a área de soltar e o [comando `filee`](#linha-de-comando).
-- Temas claro e escuro, em English, Español, Português (Brasil), 日本語, 한국어, 简体中文, Polski, हिन्दी, Русский e العربية (da direita para a esquerda).
+- Temas claro e escuro, com a sua cor de destaque e a opacidade do menu circular, em English, Español, Português (Brasil), 日本語, 한국어, 简体中文, Polski, हिन्दी, Русский e العربية (da direita para a esquerda).
 
 ## Capturas de tela
 
