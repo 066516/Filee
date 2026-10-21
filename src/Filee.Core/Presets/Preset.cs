@@ -16,6 +16,12 @@ public enum PresetKind
     /// conversion is picked (preset list, watch folders, <c>filee --preset</c>).
     /// </summary>
     Group,
+
+    /// <summary>
+    /// Opens its own window on the dropped files instead of converting them (the interactive Crop). Like a group,
+    /// never offered where a conversion is picked.
+    /// </summary>
+    Tool,
 }
 
 /// <summary>
@@ -120,6 +126,13 @@ public sealed class Preset
     [JsonIgnore]
     public bool IsGroup => Kind == PresetKind.Group;
 
+    /// <summary>True for "Compress into one archive": files and folders go into one archive as they are.</summary>
+    [JsonIgnore]
+    public bool PacksIntoOneArchive =>
+        Archive.CombineIntoOne
+        && Formats.FormatRegistry.FindById(TargetFormat) is { Category: Formats.FormatCategory.Archive } archive
+        && archive.Id != Formats.FormatRegistry.Folder;
+
     /// <summary>
     /// True if converting a <paramref name="sourceFormat"/> file saves every frame as a picture
     /// (<see cref="MediaOptions.SaveEveryFrame"/>): the file is a video and the target one of
@@ -127,8 +140,33 @@ public sealed class Preset
     /// </summary>
     public bool SavesFramesOf(string sourceFormat) =>
         Media.SaveEveryFrame
+        && !MakesLivePhotoOf(sourceFormat)
         && MediaOptions.FrameTargets.Contains(TargetFormat)
         && Formats.FormatRegistry.FindById(sourceFormat)?.Category == Formats.FormatCategory.Video;
+
+    /// <summary>
+    /// True if converting a <paramref name="sourceFormat"/> file takes the video of a Live / Motion Photo instead of a
+    /// video of the still picture: the target is one of <see cref="MediaOptions.MotionPhotoTargets"/> and the source one
+    /// of <see cref="MediaOptions.MotionPhotoSources"/>, with <see cref="MediaOptions.ExtractMotionPhoto"/> on. A LIVP
+    /// (an iPhone photo and its MOV in one ZIP) always gives its video. Other pictures (GIF, PNG, …) convert as usual.
+    /// </summary>
+    public bool ExtractsMotionOf(string sourceFormat) =>
+        MediaOptions.MotionPhotoTargets.Contains(TargetFormat)
+        && MediaOptions.MotionPhotoSources.Contains(sourceFormat)
+        && (Media.ExtractMotionPhoto || sourceFormat == "livp");
+
+    /// <summary>
+    /// True if converting a <paramref name="sourceFormat"/> file makes a Live / Motion Photo of a short clip
+    /// (<see cref="MediaOptions.LivePhoto"/>): the file is a video and the target one the kind is written as
+    /// (<see cref="MediaOptions.LivePhotoTargets"/>). Other files, and other targets, convert as usual.
+    /// </summary>
+    public bool MakesLivePhotoOf(string sourceFormat) =>
+        MediaOptions.LivePhotoTargets(Media.LivePhoto).Contains(TargetFormat)
+        && Formats.FormatRegistry.FindById(sourceFormat)?.Category == Formats.FormatCategory.Video;
+
+    /// <summary>True for a <see cref="PresetKind.Tool"/>.</summary>
+    [JsonIgnore]
+    public bool IsTool => Kind == PresetKind.Tool;
 
     /// <summary>Creates a new random preset id.</summary>
     public static string NewId() => Guid.NewGuid().ToString("N")[..12];
@@ -432,10 +470,10 @@ public sealed class MediaOptions
     public AudioCodec AudioCodec { get; set; } = AudioCodec.Default;
 
     /// <summary>
-    /// Encode H.264 and HEVC video with the graphics chip's encoder (NVENC, Quick Sync, AMF, VideoToolbox or VA-API)
-    /// when one works on this computer, else with x264 / x265 as usual. Much faster and lighter on power, a little
-    /// larger at the same quality. Off by default (and for presets saved before it existed), so results never change
-    /// without the user asking for it.
+    /// Encode H.264, HEVC and AV1 video with the graphics chip's encoder (NVENC, Quick Sync, AMF, VideoToolbox or VA-API;
+    /// AV1 only on recent chips and not on a Mac) when one works on this computer, else with x264 / x265 / SVT-AV1 as
+    /// usual. Much faster and lighter on power, a little larger at the same quality. Off by default (and for presets
+    /// saved before it existed), so results never change without the user asking for it.
     /// </summary>
     public bool HardwareEncoding { get; set; }
 
@@ -448,6 +486,56 @@ public sealed class MediaOptions
     /// </summary>
     public bool SaveEveryFrame { get; set; }
 
+    /// <summary>Formats a Live / Motion Photo video can be taken into (<see cref="ExtractMotionPhoto"/>).</summary>
+    public static readonly IReadOnlyList<string> MotionPhotoTargets = ["mp4", "mov"];
+
+    /// <summary>
+    /// Photos that can hold a video (<see cref="ExtractMotionPhoto"/>): Android Motion Photos (JPEG with the video
+    /// appended, HEIC / AVIF with an <c>mpvd</c> box), iPhone Live Photos (a JPEG or HEIC with its MOV next to it) and
+    /// LIVP packages.
+    /// </summary>
+    public static readonly IReadOnlyList<string> MotionPhotoSources = ["jpg", "heic", "avif", "livp"];
+
+    /// <summary>
+    /// MP4 / MOV: a Live / Motion Photo becomes its video (with sound) instead of a video of the still picture. Only
+    /// for sources in <see cref="MotionPhotoSources"/> (<see cref="Preset.ExtractsMotionOf"/>); a photo without a video
+    /// fails with <c>error.no_motion_photo</c>.
+    /// </summary>
+    public bool ExtractMotionPhoto { get; set; }
+
+    /// <summary>
+    /// Video → JPG (or HEIC for an iPhone): a Live / Motion Photo of a short clip instead of one still frame. Only for
+    /// video sources and a target in <see cref="LivePhotoTargets"/> (<see cref="Preset.MakesLivePhotoOf"/>).
+    /// </summary>
+    [JsonConverter(typeof(LenientEnumJsonConverter<LivePhotoKind>))]
+    public LivePhotoKind LivePhoto { get; set; }
+
+    /// <summary>The photo formats a <paramref name="kind"/> of Live / Motion Photo is written as.</summary>
+    public static IReadOnlyList<string> LivePhotoTargets(LivePhotoKind kind) => kind switch
+    {
+        LivePhotoKind.Apple => ["jpg", "heic"],
+        LivePhotoKind.Android => ["jpg"],
+        _ => [],
+    };
+
+    /// <summary>Shortest and longest clip of a Live / Motion Photo, in seconds (phones record about 3).</summary>
+    public const double MinLivePhotoLength = 0.5, MaxLivePhotoLength = 5;
+
+    /// <summary>With <see cref="LivePhoto"/>: where the clip starts in the video, in seconds.</summary>
+    public double LivePhotoStart { get; set; }
+
+    /// <summary>
+    /// With <see cref="LivePhoto"/>: how long the clip is, in seconds (<see cref="MinLivePhotoLength"/> to
+    /// <see cref="MaxLivePhotoLength"/>); shorter when the video ends sooner.
+    /// </summary>
+    public double LivePhotoLength { get; set; } = 3;
+
+    /// <summary>
+    /// With <see cref="LivePhoto"/>: the frame that becomes the photo, in seconds from the start of the clip (the
+    /// middle, as a phone takes it, by default); the clip's last frame when the clip is shorter.
+    /// </summary>
+    public double LivePhotoCover { get; set; } = 1.5;
+
     /// <summary>With <see cref="SaveEveryFrame"/>: extract every Nth frame (1 = every frame).</summary>
     public int FrameInterval { get; set; } = 1;
 
@@ -459,6 +547,17 @@ public sealed class MediaOptions
 
 
     public MediaOptions Clone() => (MediaOptions)MemberwiseClone();
+}
+
+/// <summary>The kind of moving photo a video becomes (<see cref="MediaOptions.LivePhoto"/>).</summary>
+public enum LivePhotoKind
+{
+    /// <summary>One still frame, as usual.</summary>
+    None,
+    /// <summary>An iPhone Live Photo: a JPG or HEIC and a MOV with the same name and content identifier.</summary>
+    Apple,
+    /// <summary>An Android Motion Photo: one JPG with the clip (MP4) appended, described in its XMP.</summary>
+    Android,
 }
 
 /// <summary>Video codec of a video target. <see cref="Default"/> is the target's usual codec (H.264, VP9 for WebM, ...).</summary>
@@ -508,12 +607,12 @@ public static class MediaCodecs
     public static IReadOnlySet<string> H264Targets { get; } = new HashSet<string> { "mp4", "m4v", "mov", "mkv", "flv", "ts", "m2ts", "3gp", "3g2" };
 
     /// <summary>
-    /// True when <paramref name="target"/> with <paramref name="codec"/> is written as H.264 or HEVC, the codecs
+    /// True when <paramref name="target"/> with <paramref name="codec"/> is written as H.264, HEVC or AV1, the codecs
     /// <see cref="MediaOptions.HardwareEncoding"/> applies to.
     /// </summary>
     public static bool TakesHardwareEncoding(string target, VideoCodec codec) => Effective(target, codec) switch
     {
-        VideoCodec.Hevc => true,
+        VideoCodec.Hevc or VideoCodec.Av1 => true,
         VideoCodec.Default => H264Targets.Contains(target),
         _ => false,
     };

@@ -1,9 +1,10 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Filee.App.Services;
 
 namespace Filee.App.Tests;
 
-/// <summary>Keeps en / es / ko / zh-CN / pl / hi in sync so no language silently falls back to English.</summary>
+/// <summary>Keeps shipped languages in sync so none silently falls back to English.</summary>
 public partial class LocalizationTests
 {
     private static string I18nDirectory
@@ -20,7 +21,25 @@ public partial class LocalizationTests
     private static Dictionary<string, string> Load(string code) =>
         JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(I18nDirectory, code + ".json")))!;
 
-    public static TheoryData<string> Languages => new() { "es", "ko", "zh-CN", "pl", "hi" };
+    public static TheoryData<string> Languages => new(LocalizationService.Languages.Where(l => l.Code != "en").Select(l => l.Code));
+
+    [Fact]
+    public void Shared_language_registry_covers_every_shipped_translation_once()
+    {
+        var codes = LocalizationService.Languages.Select(l => l.Code).ToList();
+        Assert.Equal(codes.Count, codes.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Equal(Directory.GetFiles(I18nDirectory, "*.json").Select(Path.GetFileNameWithoutExtension).Order(), codes.Order());
+    }
+
+    [Fact]
+    public void Arabic_is_offered_under_its_own_name_and_reads_right_to_left()
+    {
+        Assert.Contains(("ar", "العربية"), LocalizationService.Languages);
+        Assert.Equal("ar", LocalizationService.Resolve("AR"));
+        Assert.Contains("fonts:Filee#Noto Sans Arabic", ThemeService.FontFamilies("ar"));
+        Assert.True(SoftPalette.IsRightToLeft("ar"));
+        Assert.All(LocalizationService.Languages.Where(l => l.Code != "ar"), l => Assert.False(SoftPalette.IsRightToLeft(l.Code)));
+    }
 
     [Theory]
     [MemberData(nameof(Languages))]
@@ -57,6 +76,83 @@ public partial class LocalizationTests
             .ToList();
 
         Assert.Empty(missing);
+    }
+
+    [Fact]
+    public void Russian_is_offered_under_its_own_name()
+    {
+        Assert.Contains(("ru", "Русский"), LocalizationService.Languages);
+        Assert.Equal("ru", LocalizationService.Resolve("RU"));
+    }
+
+    [Theory]
+    [InlineData("ru-RU", "ru")]
+    [InlineData("en-US", "en")]
+    [InlineData("pl-PL", "pl")]
+    [InlineData("ar-EG", "ar")]
+    [InlineData("pt-BR", "pt-BR")]
+    [InlineData("pt-PT", "pt-BR")]
+    [InlineData("de-DE", "en")]
+    [InlineData("", "en")] // Linux without LANG: the invariant culture
+    public void Auto_follows_the_language_the_user_reads_the_os_in(string os, string expected) =>
+        Assert.Equal(expected, LocalizationService.Resolve("auto", () => os));
+
+    [Theory]
+    [InlineData("ko")]
+    [InlineData("ar")]
+    [InlineData("en")]
+    public void A_chosen_language_is_kept_whatever_the_os_is_in(string chosen) =>
+        // The OS isn't even asked: the user picked the language in Settings.
+        Assert.Equal(chosen, LocalizationService.Resolve(chosen, () => throw new InvalidOperationException("asked the OS")));
+
+    [Fact]
+    public void Auto_is_not_the_language_filee_switched_to()
+    {
+        // Filee sets the current UI culture to the language it shows; "auto" must still mean the user's own.
+        var before = LocalizationService.Resolve("auto");
+        var shown = before == "ko" ? "ja" : "ko";
+        var culture = System.Globalization.CultureInfo.CurrentUICulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentUICulture = System.Globalization.CultureInfo.GetCultureInfo(shown);
+            Assert.Equal(before, LocalizationService.Resolve("auto"));
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentUICulture = culture;
+        }
+    }
+
+    [Fact]
+    public void Japanese_is_offered_under_its_own_name()
+    {
+        Assert.Contains(("ja", "日本語"), LocalizationService.Languages);
+        Assert.Equal("ja", LocalizationService.Resolve("JA"));
+    }
+
+    [Fact]
+    public void Portuguese_is_offered_under_its_own_name()
+    {
+        Assert.Contains(("pt-BR", "Português (Brasil)"), LocalizationService.Languages);
+        Assert.Equal("pt-BR", LocalizationService.Resolve("pt-BR"));
+        Assert.Equal("pt-BR", LocalizationService.Resolve("PT-br"));
+    }
+
+    /// <summary>Han characters look different in Japanese, Korean and Chinese fonts: the UI language's come first.</summary>
+    [Theory]
+    [InlineData("ja", "Noto Sans JP", "Yu Gothic UI")]
+    [InlineData("ko", "Noto Sans KR", "Malgun Gothic")]
+    [InlineData("zh-CN", "Noto Sans SC", "Microsoft YaHei")]
+    [InlineData("en", "Noto Sans KR", "Malgun Gothic")]
+    public void The_ui_languages_cjk_fonts_come_first(string language, string embedded, string system)
+    {
+        var families = ThemeService.FontFamilies(language).Split(", ").Select(f => f.Replace("fonts:Filee#", "")).ToList();
+        string[] embeddedCjk = ["Noto Sans JP", "Noto Sans KR", "Noto Sans SC"];
+        string[] systemCjk = ["Yu Gothic UI", "Malgun Gothic", "Microsoft YaHei"];
+
+        Assert.Equal(embedded, families.First(embeddedCjk.Contains));
+        Assert.Equal(system, families.First(systemCjk.Contains));
+        Assert.True(embeddedCjk.Max(families.IndexOf) < systemCjk.Min(families.IndexOf), "embedded fonts before system ones");
     }
 
     private static HashSet<string> Placeholders(string text) =>

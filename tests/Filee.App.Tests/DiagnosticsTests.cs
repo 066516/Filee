@@ -1,9 +1,11 @@
 // The log lines that explain a Filee which seems to ignore everything: UI thread stalls, bursts kept short, the
 // start-up line, and the restart without administrator rights.
 
+using System.Globalization;
 using Avalonia.Headless.XUnit;
 using Filee.App.Services;
 using Filee.Core.Platform;
+using Filee.Core.Settings;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -76,22 +78,33 @@ public class UiWatchdogTests
     [Fact]
     public void A_stall_is_reported_once_and_its_end_with_the_length()
     {
-        var watchdog = Create();
-        watchdog.Tick(); // ping sent at 0 s
-        TickFor(watchdog, _clock, 4);
-        Assert.Empty(_log.Lines); // 4 s: under the threshold
+        // In a language that writes 12,5, on every machine: the log still says 12.5.
+        var culture = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("ru-RU");
+        try
+        {
+            var watchdog = Create();
+            watchdog.Tick(); // ping sent at 0 s
+            TickFor(watchdog, _clock, 4);
+            Assert.Empty(_log.Lines); // 4 s: under the threshold
 
-        TickFor(watchdog, _clock, 8); // 12 s
-        var warning = Assert.Single(_log.Lines);
-        Assert.Equal(LogLevel.Warning, warning.Level);
-        Assert.Equal("UI thread blocked for 6 s", warning.Message); // the first tick past 5 s
-        Assert.Single(_uiQueue); // no second ping while the first waits
+            TickFor(watchdog, _clock, 8); // 12 s
+            var warning = Assert.Single(_log.Lines);
+            Assert.Equal(LogLevel.Warning, warning.Level);
+            Assert.Equal("UI thread blocked for 6 s", warning.Message); // the first tick past 5 s
+            Assert.Single(_uiQueue); // no second ping while the first waits
 
-        _clock.Advance(TimeSpan.FromSeconds(0.5));
-        RunUi();
-        Assert.Equal(2, _log.Lines.Count);
-        Assert.Equal(LogLevel.Information, _log.Lines[1].Level);
-        Assert.Equal($"UI thread responsive again after {12.5:0.0} s", _log.Lines[1].Message);
+            _clock.Advance(TimeSpan.FromSeconds(0.5));
+            RunUi();
+            Assert.Equal(2, _log.Lines.Count);
+            Assert.Equal(LogLevel.Information, _log.Lines[1].Level);
+            // The log formats numbers the same way in every language: 12.5, never 12,5.
+            Assert.Equal("UI thread responsive again after 12.5 s", _log.Lines[1].Message);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
     }
 
     [Fact]
@@ -190,6 +203,30 @@ public class StartupDiagnosticsTests
             log.LogInformation("{Startup}", "Filee test starting");
             var file = Assert.Single(Directory.GetFiles(folder, "filee-*.log"));
             Assert.Contains("Program: Filee test starting", File.ReadAllText(file));
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Early_store_load_logs_corrupt_settings_and_keeps_broken_copy()
+    {
+        var folder = Directory.CreateTempSubdirectory("filee-early-store-").FullName;
+        try
+        {
+            File.WriteAllText(Path.Combine(folder, "settings.json"), "{broken");
+            _ = StartupDiagnostics.CreateEarlyLogger(Path.Combine(folder, "logs"), out var storeLogger);
+            var store = new UserDataStore(folder, storeLogger);
+
+            store.Load();
+
+            var file = Assert.Single(Directory.GetFiles(Path.Combine(folder, "logs"), "filee-*.log"));
+            Assert.Contains("WARN UserDataStore: Could not read", File.ReadAllText(file));
+            Assert.True(File.Exists(Path.Combine(folder, "settings.json.broken")));
+            Assert.True(store.Settings.ShowInDock);
+            Assert.True(store.Settings.ShowMenuBarIcon);
         }
         finally
         {

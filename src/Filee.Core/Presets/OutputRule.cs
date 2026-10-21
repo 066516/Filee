@@ -36,6 +36,13 @@ public sealed class OutputRule
 
     public string SubfolderName { get; set; } = "converted";
 
+    /// <summary>
+    /// With <see cref="OutputLocation.Subfolder"/>: only a source that becomes several files (a PDF split into pages)
+    /// gets the subfolder; one that becomes a single file is saved next to the source, so a one-page PDF doesn't end up
+    /// alone in a folder of its own.
+    /// </summary>
+    public bool SubfolderOnlyForSeveralFiles { get; set; }
+
     public string CustomFolder { get; set; } = "";
 
     /// <summary>
@@ -63,6 +70,20 @@ public sealed class OutputRule
     /// by when they were taken. Not for merged PDFs or combined archives, which come from many files.
     /// </summary>
     public bool KeepDates { get; set; }
+
+    /// <summary>
+    /// The folder "next to the source" means for this job, instead of the source's own: files dragged from a browser
+    /// are saved there (or, when only the converted file is kept, into a work folder that is deleted afterwards).
+    /// Set per job, never saved with a preset.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? SourceFolder { get; set; }
+
+    /// <summary>
+    /// Pack what a conversion writes for one file (a Shapefile's .shp, .shx, .dbf, .prj and .cpg, or a single file)
+    /// into one ZIP named by the rule, instead of leaving the files themselves. The ZIP is the only output.
+    /// </summary>
+    public bool ZipResult { get; set; }
 
     public OutputRule Clone()
     {

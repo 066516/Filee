@@ -93,6 +93,12 @@ internal sealed partial class HtmlReader
             BaseFolder = Path.GetDirectoryName(Path.GetFullPath(path))!,
             MediaFolder = mediaFolder,
         });
+        return ToDocument(content);
+    }
+
+    /// <summary>One section with what was read, titled like the page.</summary>
+    public static HDocument ToDocument(HtmlContent content)
+    {
         var section = new HSection();
         section.Blocks.AddRange(content.Blocks);
         var document = new HDocument { Title = content.Title };
