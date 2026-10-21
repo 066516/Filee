@@ -32,7 +32,10 @@ internal static class AppLanguages
         var parts = normalized.Split('-');
         if (!parts[0].Equals("pt", StringComparison.OrdinalIgnoreCase))
             return null;
-        // A script subtag must not hide Brazil (pt-Latn-BR). Neutral Portuguese and other regions use pt-PT.
-        return parts.Skip(1).Any(p => p.Equals("BR", StringComparison.OrdinalIgnoreCase)) ? "pt-BR" : "pt-PT";
+        // The region follows the language and optional script (pt-Latn-BR). Do not mistake an extension or
+        // private-use subtag for a region: pt-PT-x-br still means Portuguese as used in Portugal.
+        var regionIndex = parts.Length > 1 && parts[1].Length == 4 && parts[1].All(char.IsAsciiLetter) ? 2 : 1;
+        return parts.ElementAtOrDefault(regionIndex)?.Equals("BR", StringComparison.OrdinalIgnoreCase) == true
+            ? "pt-BR" : "pt-PT";
     }
 }
