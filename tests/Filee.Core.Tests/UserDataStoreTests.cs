@@ -6,6 +6,53 @@ namespace Filee.Core.Tests;
 
 public class UserDataStoreTests
 {
+    [Theory]
+    [InlineData(30)]
+    [InlineData(31)]
+    public void Previous_versions_learn_reported_extensions_without_taking_custom_claims(int schema)
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Settings.SchemaVersion = schema;
+        if (schema == 30)
+        {
+            store.Presets.RemoveAll(p => p.Id is "live-photo-iphone" or "motion-photo-android");
+            store.Profiles.Single(p => p.Id == "video").BackPresetIds!
+                .RemoveAll(id => id is "live-photo-iphone" or "motion-photo-android");
+        }
+        foreach (var profile in store.Profiles)
+            profile.Extensions.RemoveAll(e => e is "log" or "py" or "pac" or "bat" or "command" or "dat" or "wbpz");
+        store.Profiles.Insert(0, new ToolbarProfile { Id = "my-python", Name = "My code", Extensions = ["py"] });
+        store.SaveLibrary();
+        store.SaveSettings();
+
+        var upgraded = new UserDataStore(dir.Path);
+        upgraded.Load();
+        var text = upgraded.Profiles.Single(p => p.Id == "text");
+        Assert.Contains("log", text.Extensions);
+        Assert.Contains("pac", text.Extensions);
+        Assert.Contains("bat", text.Extensions);
+        Assert.Contains("command", text.Extensions);
+        Assert.DoesNotContain("py", text.Extensions);
+        Assert.Contains("py", upgraded.Profiles.Single(p => p.Id == "my-python").Extensions);
+        Assert.Contains("dat", upgraded.Profiles.Single(p => p.Id == "video").Extensions);
+        Assert.Contains("wbpz", upgraded.Profiles.Single(p => p.Id == "archives").Extensions);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, upgraded.Settings.SchemaVersion);
+        Assert.Equal(LivePhotoKind.Apple, upgraded.FindPreset("live-photo-iphone")!.Media.LivePhoto);
+        Assert.Equal(LivePhotoKind.Android, upgraded.FindPreset("motion-photo-android")!.Media.LivePhoto);
+
+        // After upgrading, deliberately removing an extension must survive another load.
+        text.Extensions.Remove("log");
+        upgraded.SaveLibrary();
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        Assert.Single(reloaded.Profiles, p => p.Extensions.Contains("py"));
+        Assert.Single(reloaded.Profiles, p => p.Extensions.Contains("dat"));
+        Assert.DoesNotContain("log", reloaded.Profiles.Single(p => p.Id == "text").Extensions);
+    }
+
     [Fact]
     public void Groups_keep_only_conversions_once_and_at_most_six()
     {

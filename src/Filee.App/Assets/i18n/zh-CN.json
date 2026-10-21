@@ -124,7 +124,7 @@
   "engine.pdfsharp.description": "用图片生成 PDF，合并、拆分 PDF 或截取指定页码。\n还能缩小 PDF 中的图片来减小文件。",
   "engine.rhwp.description": "将 HWP/HWPX 渲染为 PDF，并在 HWP ↔ HWPX 之间转换。\n经 HWPX 转为 PDF 的文档（DOCX、XLSX、PPTX、电子书等）也由它渲染。",
   "engine.unhwp.description": "从 HWP 和 HWPX 中提取文本、Markdown 和 HTML。",
-  "engine.markdown.description": "Markdown → HTML 和纯文本。",
+  "engine.markdown.description": "Markdown → HTML 和纯文本。\n文本和脚本源文件 → UTF-8 TXT，不会执行脚本。",
   "engine.spreadsheet.description": "XLSX、XLS、ODS、CSV、TSV 互相转换（XLS 仅读取）。\n每个工作表生成一个 CSV。",
   "engine.ooxml.description": "启用宏的文件和模板（DOCM、XLSM、PPTM、DOTX 等）↔ DOCX、XLSX、PPTX。\n转换时移除宏。",
   "engine.hwpx-writer.description": "把 Word、Excel、PowerPoint、PDF、OFD、HTML、电子书和 Markdown 写成 HWPX。\n这是不用 Office 把文档转为 PDF 的第一步。",
@@ -206,6 +206,8 @@
   "preset.flip_vertical": "垂直翻转",
   "preset.flip_vertical.short": "垂直",
   "preset.merge_pdf": "合并 PDF",
+  "merge.order_title": "选择合并顺序",
+  "merge.order_hint": "选择文件并上下移动。文件将按从上到下的顺序合并。（Alt+↑ / Alt+↓）",
   "preset.split_pdf": "拆分 PDF",
   "preset.compress_pdf": "压缩 PDF",
   "preset.long_image": "长图",
@@ -902,7 +904,7 @@
   "whats_new.2_0_0.theme.title": "更柔和，用你的颜色",
   "whats_new.2_0_0.theme.text": "环形工具栏的扇区会随“圆角”变圆，用 theme.json 文件还能更改整个 Filee 的颜色。",
   "whats_new.2_0_0.languages.title": "支持更多语言",
-  "whats_new.2_0_0.languages.text": "在英语、韩语、中文和波兰语之外，新增西班牙语、印地语、日语和俄语。",
+  "whats_new.2_0_0.languages.text": "在英语、韩语、中文和波兰语之外，新增西班牙语、印地语、日语、俄语和阿拉伯语。",
   "whats_new.2_0_0.more.title": "还有更多",
   "whats_new.2_0_0.more.text": "可以只把一个环形工具栏恢复默认、搜索全部历史记录，并通过 LibreOffice 转换古吉拉特语、印地语或阿拉伯语文档。"
 }

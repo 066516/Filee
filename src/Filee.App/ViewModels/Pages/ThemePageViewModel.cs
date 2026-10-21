@@ -3,7 +3,6 @@
 using Avalonia;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using Filee.App.Controls;
 using Filee.App.Services;
 using Filee.Core.Localization;
@@ -104,9 +103,6 @@ public sealed partial class ThemePageViewModel : ObservableObject
         _store.Settings.Donut.Opacity = Math.Round(value) / 100;
         _store.SaveSettings();
     }
-
-    [RelayCommand]
-    private void PickSwatch(Color color) => Accent = color;
 
     private void Save(Action<ThemeSettings> change)
     {

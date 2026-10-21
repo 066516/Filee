@@ -2,6 +2,7 @@
 // background start), the window's buttons and keys, and screenshots of the window.
 
 using System.Text.Json;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -333,6 +334,29 @@ public class WhatsNewTests
     }
 
     [AvaloniaFact]
+    public void In_arabic_left_goes_on_and_next_sits_on_the_left()
+    {
+        var window = Open("ar");
+        try
+        {
+            Assert.Equal(Avalonia.Media.FlowDirection.RightToLeft, window.FlowDirection);
+            Press(window, Key.Left);
+            Press(window, Key.Left);
+            Assert.Equal(2, window.SlideShow.Index);
+            Press(window, Key.Right);
+            Assert.Equal(1, window.SlideShow.Index);
+            var previous = Named(window, "PreviousButton");
+            var next = Named(window, "PrimaryButton");
+            Assert.True(next.TranslatePoint(default, window)!.Value.X < previous.TranslatePoint(default, window)!.Value.X);
+        }
+        finally
+        {
+            window.Close();
+            TestServices.EnsureInitialized("en");
+        }
+    }
+
+    [AvaloniaFact]
     public void The_close_button_closes_from_any_slide()
     {
         var window = Open();
@@ -448,6 +472,8 @@ public class WhatsNewTests
     [AvaloniaTheory]
     [InlineData("en", false)]
     [InlineData("en", true)]
+    [InlineData("ar", false)]
+    [InlineData("ar", true)]
     [InlineData("es", false)]
     [InlineData("es", true)]
     [InlineData("hi", false)]

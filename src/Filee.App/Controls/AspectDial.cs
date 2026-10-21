@@ -222,7 +222,8 @@ public sealed class RingSegment : Button, ICustomHitTest
         var typeface = new Typeface(GetValue(TextElement.FontFamilyProperty), FontStyle.Normal, FontWeight.SemiBold);
         // As wide as the slice is a little outside its middle; a long word gets a smaller size before it would break.
         var width = 2 * ((_inner + _outer) / 2 + 6) * Math.Sin(Math.Min(Math.PI / 2, DonutGeometry.Span(_count) / 2)) - 12;
-        FormattedText Text(double size) => new(Label, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, typeface, size, ink)
+        var direction = CultureInfo.CurrentUICulture.TextInfo.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+        FormattedText Text(double size) => new(Label, CultureInfo.CurrentUICulture, direction, typeface, size, ink)
         {
             MaxTextWidth = width,
             MaxLineCount = 2,
@@ -230,7 +231,7 @@ public sealed class RingSegment : Button, ICustomHitTest
             Trimming = TextTrimming.CharacterEllipsis,
         };
         var text = Text(12);
-        var longest = Label.Split(' ').Max(word => new FormattedText(word, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, typeface, 12, ink).Width);
+        var longest = Label.Split(' ').Max(word => new FormattedText(word, CultureInfo.CurrentUICulture, direction, typeface, 12, ink).Width);
         if (longest > width)
             text = Text(Math.Max(9.5, 12 * width / longest));
         context.DrawText(text, new Point(labelCenter.X - width / 2, labelCenter.Y + 2));

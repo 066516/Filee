@@ -65,6 +65,16 @@
     <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
     <Setter Property="FontSize" Value="14" />
+    <!-- Right to left for Arabic (SoftPalette.ApplyFlowDirection). -->
+    <Setter Property="FlowDirection" Value="{DynamicResource AppFlowDirection}" />
+  </Style>
+  <!-- Pictures, logos and icons look the same in Arabic; only chevrons that point along the line (class "reading")
+       turn with it. -->
+  <Style Selector="Image, PathIcon">
+    <Setter Property="FlowDirection" Value="LeftToRight" />
+  </Style>
+  <Style Selector="PathIcon.reading">
+    <Setter Property="FlowDirection" Value="{DynamicResource AppFlowDirection}" />
   </Style>
 
   <Style Selector="TextBlock.h1">

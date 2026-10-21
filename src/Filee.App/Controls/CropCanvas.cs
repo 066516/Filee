@@ -155,6 +155,9 @@ public sealed class CropCanvas : Control
         FocusableProperty.OverrideDefaultValue<CropCanvas>(false);
     }
 
+    // The picture is never mirrored, also in a right-to-left UI.
+    public CropCanvas() => FlowDirection = FlowDirection.LeftToRight;
+
     public void ResetCrop()
     {
         SetRect(new Rect(0, 0, 1, 1), animate: true);

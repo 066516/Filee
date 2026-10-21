@@ -124,7 +124,7 @@
   "engine.pdfsharp.description": "Tworzy PDF z obrazów oraz łączy, dzieli i wycina zakresy stron z plików PDF.",
   "engine.rhwp.description": "Renderuje HWP/HWPX do PDF i konwertuje HWP ↔ HWPX.\nRysuje też dokumenty, które trafiają do PDF przez HWPX (DOCX, XLSX, PPTX, e-booki…).",
   "engine.unhwp.description": "Wyodrębnia tekst, Markdown i HTML z HWP i HWPX.",
-  "engine.markdown.description": "Markdown → HTML i zwykły tekst.",
+  "engine.markdown.description": "Markdown → HTML i zwykły tekst.\nPliki tekstowe i źródła skryptów → TXT w UTF-8, bez uruchamiania skryptów.",
   "engine.spreadsheet.description": "XLSX, XLS, ODS, CSV i TSV między sobą (XLS tylko do odczytu).\nJeden CSV na arkusz.",
   "engine.ooxml.description": "Pliki z makrami i szablony (DOCM, XLSM, PPTM, DOTX…) ↔ DOCX, XLSX, PPTX.\nMakra są usuwane.",
   "engine.hwpx-writer.description": "Zapisuje HWPX z Worda, Excela, PowerPointa, PDF, OFD, HTML, e-booków i Markdown.\nPierwszy krok zamiany dokumentów na PDF bez Office.",
@@ -206,6 +206,8 @@
   "preset.flip_vertical": "Odbij w pionie",
   "preset.flip_vertical.short": "Pionowo",
   "preset.merge_pdf": "Połącz PDF",
+  "merge.order_title": "Wybierz kolejność scalania",
+  "merge.order_hint": "Wybierz plik i przesuń go w górę lub w dół. Pliki są scalane od góry do dołu. (Alt+↑ / Alt+↓)",
   "preset.split_pdf": "Podziel PDF",
   "preset.compress_pdf": "Kompresuj PDF",
   "preset.long_image": "Długi obraz",
@@ -902,7 +904,7 @@
   "whats_new.2_0_0.theme.title": "Łagodniej i w Twoich kolorach",
   "whats_new.2_0_0.theme.text": "Wycinki pierścienia zaokrąglają się zgodnie z Zaokrągleniem, a plik theme.json może zmienić kolory całego Filee.",
   "whats_new.2_0_0.languages.title": "Filee mówi w większej liczbie języków",
-  "whats_new.2_0_0.languages.text": "Do angielskiego, koreańskiego, chińskiego i polskiego dołączają hiszpański, hindi, japoński i rosyjski.",
+  "whats_new.2_0_0.languages.text": "Do angielskiego, koreańskiego, chińskiego i polskiego dołączają hiszpański, hindi, japoński, rosyjski i arabski.",
   "whats_new.2_0_0.more.title": "I jeszcze trochę",
   "whats_new.2_0_0.more.text": "Przywróć domyślne ustawienia jednego pierścienia, przeszukuj całą historię i konwertuj dokumenty w gudżarati, hindi lub arabskim przez LibreOffice."
 }

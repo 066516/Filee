@@ -124,7 +124,7 @@
   "engine.pdfsharp.description": "Makes PDFs from images and merges, splits or cuts page ranges out of PDFs.\nAlso makes PDFs smaller by scaling down their pictures.",
   "engine.rhwp.description": "Renders HWP/HWPX to PDF and converts HWP ↔ HWPX.\nIt also draws documents that reach PDF through HWPX (DOCX, XLSX, PPTX, e-books…).",
   "engine.unhwp.description": "Extracts text, Markdown and HTML from HWP and HWPX.",
-  "engine.markdown.description": "Markdown → HTML and plain text.",
+  "engine.markdown.description": "Markdown → HTML and plain text.\nText and script source files → UTF-8 TXT, without running scripts.",
   "engine.spreadsheet.description": "XLSX, XLS, ODS, CSV and TSV into each other (XLS is read only).\nOne CSV per sheet.",
   "engine.ooxml.description": "Macro-enabled files and templates (DOCM, XLSM, PPTM, DOTX…) ↔ DOCX, XLSX, PPTX.\nMacros are removed.",
   "engine.hwpx-writer.description": "Writes HWPX from Word, Excel, PowerPoint, PDF, OFD, HTML, e-books and Markdown.\nThe first step of turning documents into PDF without Office.",
@@ -206,6 +206,8 @@
   "preset.flip_vertical": "Flip vertical",
   "preset.flip_vertical.short": "Vertical",
   "preset.merge_pdf": "Merge PDF",
+  "merge.order_title": "Choose merge order",
+  "merge.order_hint": "Select a file and move it up or down. Files are merged from top to bottom. (Alt+↑ / Alt+↓)",
   "preset.split_pdf": "Split PDF",
   "preset.compress_pdf": "Compress PDF",
   "preset.long_image": "Long image",
@@ -902,7 +904,7 @@
   "whats_new.2_0_0.theme.title": "Softer, and in your colours",
   "whats_new.2_0_0.theme.text": "The donut's slices round off with Softness, and a theme.json file can recolour all of Filee.",
   "whats_new.2_0_0.languages.title": "Filee speaks more languages",
-  "whats_new.2_0_0.languages.text": "Spanish, Hindi, Japanese and Russian join English, Korean, Chinese and Polish.",
+  "whats_new.2_0_0.languages.text": "Spanish, Hindi, Japanese, Russian and Arabic join English, Korean, Chinese and Polish.",
   "whats_new.2_0_0.more.title": "And a little more",
   "whats_new.2_0_0.more.text": "Reset a single donut to its defaults, search your whole history, and convert Gujarati, Hindi or Arabic documents through LibreOffice."
 }

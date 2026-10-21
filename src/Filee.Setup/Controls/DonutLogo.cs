@@ -44,6 +44,8 @@ public sealed class DonutLogo : Control
 
     public DonutLogo()
     {
+        // The logo is never mirrored, also in Arabic.
+        FlowDirection = FlowDirection.LeftToRight;
         _progress = SetupMotion.Enabled ? 0 : 1;
         _loop = new FrameLoop(this, elapsed =>
         {

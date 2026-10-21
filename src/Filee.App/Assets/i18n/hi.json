@@ -117,7 +117,7 @@
   "engine.pdfsharp.description": "इमेज से PDF बनाता है और PDF को मर्ज करता है, बाँटता है या उनमें से पेज रेंज काटता है।\nPDF की तस्वीरों का आकार घटाकर उन्हें छोटा भी करता है।",
   "engine.rhwp.description": "HWP/HWPX को PDF में रेंडर करता है और HWP ↔ HWPX कन्वर्ट करता है।\nयह उन दस्तावेज़ों को भी बनाता है जो HWPX के रास्ते PDF तक पहुँचते हैं (DOCX, XLSX, PPTX, ई-बुक…)।",
   "engine.unhwp.description": "HWP और HWPX से टेक्स्ट, Markdown और HTML निकालता है।",
-  "engine.markdown.description": "Markdown → HTML और सादा टेक्स्ट।",
+  "engine.markdown.description": "Markdown → HTML और सादा टेक्स्ट।\nटेक्स्ट और स्क्रिप्ट की सोर्स फ़ाइलें → UTF-8 TXT, स्क्रिप्ट चलाए बिना।",
   "engine.spreadsheet.description": "XLSX, XLS, ODS, CSV और TSV एक-दूसरे में (XLS केवल पढ़ा जा सकता है)।\nहर शीट के लिए एक CSV।",
   "engine.ooxml.description": "मैक्रो-सक्षम फ़ाइलें और टेम्पलेट (DOCM, XLSM, PPTM, DOTX…) ↔ DOCX, XLSX, PPTX।\nमैक्रो हटा दिए जाते हैं।",
   "engine.hwpx-writer.description": "Word, Excel, PowerPoint, PDF, OFD, HTML, ई-बुक और Markdown से HWPX लिखता है।\nOffice के बिना दस्तावेज़ों को PDF में बदलने का पहला चरण।",
@@ -196,6 +196,8 @@
   "preset.flip_vertical": "खड़ा पलटें",
   "preset.flip_vertical.short": "खड़ा",
   "preset.merge_pdf": "PDF मर्ज करें",
+  "merge.order_title": "मर्ज करने का क्रम चुनें",
+  "merge.order_hint": "फ़ाइल चुनकर उसे ऊपर या नीचे ले जाएँ। फ़ाइलें ऊपर से नीचे के क्रम में मर्ज होंगी। (Alt+↑ / Alt+↓)",
   "preset.split_pdf": "PDF बाँटें",
   "preset.compress_pdf": "PDF कंप्रेस करें",
   "preset.long_image": "लंबी इमेज",
@@ -882,7 +884,7 @@
   "whats_new.2_0_0.theme.title": "ज़्यादा कोमल, आपके रंगों में",
   "whats_new.2_0_0.theme.text": "डोनट की स्लाइसें कोमलता के साथ गोल होती हैं, और एक theme.json फ़ाइल पूरे Filee के रंग बदल सकती है।",
   "whats_new.2_0_0.languages.title": "Filee अब और भाषाएँ बोलता है",
-  "whats_new.2_0_0.languages.text": "अंग्रेज़ी, कोरियाई, चीनी और पोलिश के साथ अब स्पैनिश, हिन्दी, जापानी और रूसी भी।",
+  "whats_new.2_0_0.languages.text": "अंग्रेज़ी, कोरियाई, चीनी और पोलिश के साथ अब स्पैनिश, हिन्दी, जापानी, रूसी और अरबी भी।",
   "whats_new.2_0_0.more.title": "और भी थोड़ा",
   "whats_new.2_0_0.more.text": "एक ही डोनट को डिफ़ॉल्ट पर रीसेट करें, पूरा इतिहास खोजें, और गुजराती, हिन्दी या अरबी दस्तावेज़ LibreOffice से बदलें।"
 }

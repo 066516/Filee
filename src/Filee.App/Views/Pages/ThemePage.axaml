@@ -18,28 +18,55 @@
       <Border Classes="card">
         <StackPanel Spacing="10">
           <TextBlock Classes="label" Text="{DynamicResource theme.accent}" />
-          <ItemsControl ItemsSource="{Binding Swatches}">
-            <ItemsControl.ItemsPanel>
+          <ListBox x:Name="AccentSwatches" ItemsSource="{Binding Swatches}" SelectedItem="{Binding Accent, Mode=TwoWay}"
+                   Background="Transparent" BorderThickness="0" Padding="0"
+                   AutomationProperties.Name="{DynamicResource theme.accent}">
+            <ListBox.Styles>
+              <Style Selector="ListBoxItem">
+                <Setter Property="Padding" Value="4" />
+                <Setter Property="Margin" Value="0,0,4,4" />
+                <Setter Property="Template">
+                  <ControlTemplate>
+                    <Border x:Name="SelectionRing" CornerRadius="999" BorderThickness="2" BorderBrush="Transparent" Padding="3">
+                      <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
+                    </Border>
+                  </ControlTemplate>
+                </Setter>
+              </Style>
+              <Style Selector="ListBoxItem:selected /template/ Border#SelectionRing">
+                <Setter Property="BorderBrush" Value="{DynamicResource TextPrimaryBrush}" />
+              </Style>
+              <Style Selector="ListBoxItem:focus-visible /template/ Border#SelectionRing">
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+              </Style>
+            </ListBox.Styles>
+            <ListBox.ItemsPanel>
               <ItemsPanelTemplate>
                 <WrapPanel />
               </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
               <DataTemplate x:DataType="Color">
-                <Button Width="34" Height="34" Margin="0,0,8,8" CornerRadius="999" Padding="0"
-                        Command="{Binding $parent[ItemsControl].((vm:ThemePageViewModel)DataContext).PickSwatchCommand}"
-                        CommandParameter="{Binding}">
-                  <Button.Background>
+                <Border Width="34" Height="34" CornerRadius="999" ToolTip.Tip="{Binding}" AutomationProperties.Name="{Binding}">
+                  <Border.Background>
                     <SolidColorBrush Color="{Binding}" />
-                  </Button.Background>
-                </Button>
+                  </Border.Background>
+                  <PathIcon Data="{StaticResource Icon.Check}" Width="16" Height="16"
+                            Foreground="{DynamicResource OnAccentBrush}"
+                            IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+                </Border>
               </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
+            </ListBox.ItemTemplate>
+          </ListBox>
           <StackPanel Orientation="Horizontal" Spacing="10">
-            <Border Width="34" Height="34" CornerRadius="999" Background="{Binding AccentBrush}" />
             <TextBlock Classes="label" VerticalAlignment="Center" Text="{DynamicResource theme.custom_color}" Margin="0" />
-            <TextBox Text="{Binding AccentHex}" Width="120" PlaceholderText="#7F77DD" />
+            <ColorPicker x:Name="AccentPicker" Color="{Binding Accent, Mode=TwoWay}" IsAlphaEnabled="False"
+                         MinHeight="44" MinWidth="90"
+                         IsAlphaVisible="False" IsColorSpectrumVisible="True" IsColorPaletteVisible="False"
+                         IsColorComponentsVisible="False" IsColorModelVisible="False" IsColorPreviewVisible="True"
+                         FlowDirection="LeftToRight" AutomationProperties.Name="{DynamicResource theme.custom_color}" />
+            <TextBox Text="{Binding AccentHex}" Width="120" PlaceholderText="#7F77DD" FlowDirection="LeftToRight"
+                     AutomationProperties.Name="{DynamicResource theme.custom_color}" />
           </StackPanel>
         </StackPanel>
       </Border>

@@ -117,7 +117,7 @@
   "engine.pdfsharp.description": "Crea PDF a partir de imágenes y combina, divide o extrae rangos de páginas de PDF.\nTambién reduce el tamaño de los PDF reduciendo sus imágenes.",
   "engine.rhwp.description": "Renderiza HWP/HWPX a PDF y convierte HWP ↔ HWPX.\nTambién dibuja en PDF los documentos que llegan a PDF a través de HWPX (DOCX, XLSX, PPTX, libros electrónicos…).",
   "engine.unhwp.description": "Extrae texto, Markdown y HTML de HWP y HWPX.",
-  "engine.markdown.description": "Markdown → HTML y texto sin formato.",
+  "engine.markdown.description": "Markdown → HTML y texto sin formato.\nArchivos de texto y código fuente de scripts → TXT en UTF-8, sin ejecutar scripts.",
   "engine.spreadsheet.description": "XLSX, XLS, ODS, CSV y TSV entre sí (XLS es de solo lectura).\nUn CSV por hoja.",
   "engine.ooxml.description": "Archivos y plantillas con macros (DOCM, XLSM, PPTM, DOTX…) ↔ DOCX, XLSX, PPTX.\nLas macros se eliminan.",
   "engine.hwpx-writer.description": "Escribe HWPX desde Word, Excel, PowerPoint, PDF, OFD, HTML, libros electrónicos y Markdown.\nEl primer paso para pasar documentos a PDF sin Office.",
@@ -196,6 +196,8 @@
   "preset.flip_vertical": "Volteo vertical",
   "preset.flip_vertical.short": "Vertical",
   "preset.merge_pdf": "Combinar PDF",
+  "merge.order_title": "Elegir el orden de combinación",
+  "merge.order_hint": "Selecciona un archivo y muévelo arriba o abajo. Los archivos se combinan de arriba abajo. (Alt+↑ / Alt+↓)",
   "preset.split_pdf": "Dividir PDF",
   "preset.compress_pdf": "Comprimir PDF",
   "preset.long_image": "Imagen larga",
@@ -882,7 +884,7 @@
   "whats_new.2_0_0.theme.title": "Más suave y con tus colores",
   "whats_new.2_0_0.theme.text": "Las porciones del menú circular siguen el Redondeo, y un archivo theme.json puede cambiar los colores de todo Filee.",
   "whats_new.2_0_0.languages.title": "Filee habla más idiomas",
-  "whats_new.2_0_0.languages.text": "El español, el hindi, el japonés y el ruso se suman al inglés, el coreano, el chino y el polaco.",
+  "whats_new.2_0_0.languages.text": "El español, el hindi, el japonés, el ruso y el árabe se suman al inglés, el coreano, el chino y el polaco.",
   "whats_new.2_0_0.more.title": "Y un poco más",
   "whats_new.2_0_0.more.text": "Restablece un solo menú circular, busca en todo tu historial y convierte documentos en guyaratí, hindi o árabe con LibreOffice."
 }
