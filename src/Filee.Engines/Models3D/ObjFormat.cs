@@ -187,7 +187,7 @@ internal static class ObjFormat
         return text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries).Select(n => Resolve(directory, n)).OfType<string>();
     }
 
-    /// <summary>Finds a file referenced from an OBJ / MTL: relative to <paramref name="directory"/>, else by name only.</summary>
+    /// <summary>Finds a file referenced from a 3D model inside <paramref name="directory"/>, else by name only.</summary>
     internal static string? Resolve(string directory, string reference)
     {
         reference = reference.Trim().Trim('"').Replace('\\', '/');
@@ -195,10 +195,12 @@ internal static class ObjFormat
             return null;
         try
         {
-            var candidate = Path.GetFullPath(Path.Combine(directory, reference));
-            if (File.Exists(candidate))
+            var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory)) + Path.DirectorySeparatorChar;
+            var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            var candidate = Path.GetFullPath(Path.Combine(root, reference));
+            if (candidate.StartsWith(root, comparison) && File.Exists(candidate))
                 return candidate;
-            candidate = Path.Combine(directory, Path.GetFileName(reference));
+            candidate = Path.Combine(root, Path.GetFileName(reference));
             return File.Exists(candidate) ? candidate : null;
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)

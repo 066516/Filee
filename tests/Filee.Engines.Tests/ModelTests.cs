@@ -373,6 +373,49 @@ public class ModelTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public void Obj_textures_stay_beside_the_model()
+    {
+        var root = fx.NewFolder();
+        var source = Directory.CreateDirectory(Path.Combine(root, "source")).FullName;
+        var outside = Directory.CreateDirectory(Path.Combine(root, "outside")).FullName;
+        var allowed = Path.Combine(source, "allowed.png");
+        var secret = Path.Combine(outside, "secret.png");
+        File.WriteAllBytes(allowed, ModelBuilders.Checker());
+        File.WriteAllBytes(secret, ModelBuilders.Checker());
+        File.WriteAllText(Path.Combine(source, "materials.mtl"), $$"""
+            newmtl allowed
+            map_Kd allowed.png
+            newmtl parent
+            map_Kd ../outside/secret.png
+            newmtl absolute
+            map_Kd {{secret.Replace('\\', '/')}}
+            """);
+        File.WriteAllText(Path.Combine(source, "drawing.obj"), """
+            mtllib materials.mtl
+            v 0 0 0
+            v 1 0 0
+            v 0 1 0
+            vt 0 0
+            vt 1 0
+            vt 0 1
+            o allowed
+            usemtl allowed
+            f 1/1 2/2 3/3
+            o parent
+            usemtl parent
+            f 1/1 2/2 3/3
+            o absolute
+            usemtl absolute
+            f 1/1 2/2 3/3
+            """);
+
+        var model = ModelBuilders.Load(Path.Combine(source, "drawing.obj"), "obj");
+        Assert.Equal(ModelBuilders.Checker(), model.MaterialOf(model.Parts.Single(p => p.Name == "allowed"))!.BaseColorTexture!.Data);
+        Assert.Null(model.MaterialOf(model.Parts.Single(p => p.Name == "parent"))!.BaseColorTexture);
+        Assert.Null(model.MaterialOf(model.Parts.Single(p => p.Name == "absolute"))!.BaseColorTexture);
+    }
+
+    [Fact]
     public void Ply_ascii_with_quads_and_colours_and_big_endian_binary_are_read()
     {
         var folder = fx.NewFolder();
