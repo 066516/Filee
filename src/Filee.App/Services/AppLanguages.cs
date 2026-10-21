@@ -10,6 +10,7 @@ internal static class AppLanguages
     [
         ("en", "English"),
         ("es", "Español"),
+        ("pt-BR", "Português (Brasil)"),
         ("ja", "日本語"),
         ("ko", "한국어"),
         ("zh-CN", "简体中文"),

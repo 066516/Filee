@@ -29,7 +29,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.ko.md">한국어</a> · <b>简体中文</b></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.ko.md">한국어</a> · <b>简体中文</b> · <a href="README.pt-BR.md">Português (Brasil)</a></p>
 
 <table>
   <tr>
@@ -69,7 +69,7 @@
 - **一次转换多个文件**，并行处理。需要多步的转换（HWP → HWPX → DOCX）会自动找到路线。
 - **监视文件夹**，放入的文件自动转换。
 - **其他方式** 右键菜单、键盘快捷键、拖放区域和 [`filee` 命令](#命令行)。
-- 浅色和深色主题，支持 English、Español、日本語、한국어、简体中文、Polski、हिन्दी、Русский、العربية（从右到左）。
+- 浅色和深色主题，支持 English、Español、Português (Brasil)、日本語、한국어、简体中文、Polski、हिन्दी、Русский、العربية（从右到左）。
 
 ## 截图
 

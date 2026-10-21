@@ -105,6 +105,8 @@ public sealed class LocalizationService : ILocalizer
             return "pl";
         if (ui.StartsWith("es", StringComparison.OrdinalIgnoreCase))
             return "es";
+        if (ui.StartsWith("pt", StringComparison.OrdinalIgnoreCase))
+            return "pt-BR";
         if (ui.StartsWith("hi", StringComparison.OrdinalIgnoreCase))
             return "hi";
         if (ui.StartsWith("ru", StringComparison.OrdinalIgnoreCase))
