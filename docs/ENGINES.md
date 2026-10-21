@@ -876,6 +876,11 @@ textures; and every format drops what Filee's model has no place for: animations
 lights, metallic / roughness / normal / emissive maps, and lines and points. Draco- and meshopt-compressed glTF fail with
 a clear message, as do damaged files ("cut short", an index that does not exist, no triangles).
 
+**Files a model refers to** (OBJ's `.mtl` and textures, glTF's separate buffers and pictures, PLY's `TextureFile`,
+FBX's texture names) are read only from the model's folder or a folder below it. A path that climbs out (`../`) or
+points anywhere else is looked up by its name in the model's folder instead, so a downloaded model cannot pull a
+picture from elsewhere on the disk into its output.
+
 **3D → pictures**: a small software rasteriser (`MeshRenderer`) draws an isometric view from the front right, above,
 with one light and flat shading per triangle, vertex colours or the texture interpolated across it, and a z-buffer,
 at 2048 px and scaled down to 1024 px for smooth edges, on a transparent background. The preset's image options
