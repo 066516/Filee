@@ -24,6 +24,8 @@ using Filee.Core.Presets;
 using Filee.Core.Profiles;
 using Filee.Core.Settings;
 using Filee.Engines.Infrastructure;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Filee.App.Tests;
 
@@ -199,7 +201,7 @@ public class ToolbarPageTests
         try
         {
             using var vm = new ToolbarPageViewModel(store, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<WindowService>(),
-                AppHost.Get<PresetAvailability>(), AppHost.Get<ConverterCatalog>());
+                AppHost.Get<PresetAvailability>(), AppHost.Get<ConverterCatalog>(), NullLogger<ToolbarPageViewModel>.Instance);
 
             // A new profile goes before the mixed ones and starts as a normal profile.
             vm.AddProfileCommand.Execute(null);
@@ -248,7 +250,7 @@ public class ToolbarPageTests
         try
         {
             using var vm = new ToolbarPageViewModel(store, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<WindowService>(),
-                AppHost.Get<PresetAvailability>(), AppHost.Get<ConverterCatalog>());
+                AppHost.Get<PresetAvailability>(), AppHost.Get<ConverterCatalog>(), NullLogger<ToolbarPageViewModel>.Instance);
             vm.SelectedProfile = vm.Profiles.Single(p => p.Profile.Id == "images");
             vm.PaletteSearch = "png"; // a search that would hide it
             var pdf = vm.Profiles.Single(p => p.Profile.Id == "pdf");
@@ -291,7 +293,7 @@ public class ToolbarPageTests
         try
         {
             using var vm = new ToolbarPageViewModel(store, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<WindowService>(),
-                AppHost.Get<PresetAvailability>(), AppHost.Get<ConverterCatalog>());
+                AppHost.Get<PresetAvailability>(), AppHost.Get<ConverterCatalog>(), NullLogger<ToolbarPageViewModel>.Instance);
             var item = vm.Profiles.Single(p => p.Profile.Id == "images");
             vm.SelectedProfile = item;
             Assert.True(vm.CanReset);
@@ -338,7 +340,7 @@ public class ToolbarPageTests
         TestServices.EnsureInitialized("en");
         var store = AppHost.Get<UserDataStore>();
         using var vm = new ToolbarPageViewModel(store, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<WindowService>(),
-            AppHost.Get<PresetAvailability>(), AppHost.Get<ConverterCatalog>());
+            AppHost.Get<PresetAvailability>(), AppHost.Get<ConverterCatalog>(), NullLogger<ToolbarPageViewModel>.Instance);
         vm.SelectedProfile = vm.Profiles.Single(p => p.Profile.Id == "mixed");
 
         Assert.True(vm.IsMixed);
@@ -380,6 +382,30 @@ public class PresetAvailabilityTests
         public bool Transforms(string from, string to) => true;
     }
 
+    private sealed class ThrowingCombiner() : FakeConverter("test-throwing-combiner", Array.Empty<ConversionEdge>()), IFileCombiner
+    {
+        public bool CanCombineInto(string format) => throw new InvalidOperationException("broken combiner");
+
+        public Task CombineAsync(IReadOnlyList<string> inputPaths, string outputPath, string format, Preset preset,
+            string workDirectory, IProgress<double>? progress, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class PaletteLogger : ILogger<ToolbarPageViewModel>
+    {
+        public readonly List<(LogLevel Level, Exception? Exception, string Message)> Warnings = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == LogLevel.Warning)
+                Warnings.Add((logLevel, exception, formatter(state, exception)));
+        }
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly UserDataStore _store;
@@ -394,14 +420,17 @@ public class PresetAvailabilityTests
         public readonly ILocalizer Loc;
         public readonly List<EnginePackageState> Packages;
 
-        public Fixture()
+        public Fixture(IConverter? extra = null)
         {
             TestServices.EnsureInitialized("en");
             _store = AppHost.Get<UserDataStore>();
             _presets = _store.Presets.ToList();
             _profiles = _store.Profiles.Select(p => p.Clone()).ToList();
             Loc = AppHost.Get<ILocalizer>();
-            Catalog = new ConverterCatalog([Built, Gated, Motion, Turner]);
+            var converters = new List<IConverter> { Built, Gated, Motion, Turner };
+            if (extra is not null)
+                converters.Add(extra);
+            Catalog = new ConverterCatalog(converters);
             Packages = EngineDownloads.Packages.Where(p => p.Id is "pandoc" or "ffmpeg")
                 .Select(p => new EnginePackageState(p, Loc) { Status = EnginePackageStatus.NotInstalled }).ToList();
             Availability = new PresetAvailability(Catalog, Loc, Packages);
@@ -420,10 +449,11 @@ public class PresetAvailabilityTests
 
         public Preset Preset(string id) => _store.FindPreset(id)!;
         public UserDataStore Store => _store;
-        public ToolbarPageViewModel Page(ToolbarProfile profile)
+        public ToolbarPageViewModel Page(ToolbarProfile profile, ILogger<ToolbarPageViewModel>? log = null)
         {
             _store.Profiles.Add(profile);
-            var vm = new ToolbarPageViewModel(_store, Loc, AppHost.Get<WindowService>(), Availability, Catalog);
+            var vm = new ToolbarPageViewModel(_store, Loc, AppHost.Get<WindowService>(), Availability, Catalog,
+                log ?? NullLogger<ToolbarPageViewModel>.Instance);
             vm.SelectedProfile = vm.Profiles.Single(p => ReferenceEquals(p.Profile, profile));
             return vm;
         }
@@ -491,6 +521,40 @@ public class PresetAvailabilityTests
             f.Availability.ForPalette([png, Fixture.Format("mp4")]).Judge(f.Preset("tool-crop")));
         Assert.Equal(new PresetJudgement(PresetUse.Unusable, f.Loc["error.unsupported_source"]),
             f.Availability.ForPalette([Fixture.Format("mp4")]).Judge(f.Preset("tool-crop")));
+    }
+
+    [AvaloniaFact]
+    public void A_preset_whose_judging_throws_shows_undimmed_and_the_rest_are_judged()
+    {
+        using var f = new Fixture(new ThrowingCombiner());
+        f.Store.Presets.Add(new() { Id = "test-jpg-after", TargetFormat = "jpg" });
+        f.Store.Presets.Add(new() { Id = "test-mp4-after", TargetFormat = "mp4" });
+        var log = new PaletteLogger();
+        using var vm = f.Page(new ToolbarProfile
+        {
+            Id = "test-palette",
+            Extensions = ["png", "mp4"],
+            PresetIds = ["zip-all"],
+            BackPresetIds = [],
+        }, log);
+
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Null(vm.Palette.Single(c => c.PresetId == "test-pack").Reason);
+        Assert.Null(vm.Palette.Single(c => c.PresetId == "test-jpg-after").Reason);
+        // Judged after the failure, not just shown: it still needs FFmpeg.
+        var after = f.Availability.Check(f.Preset("test-mp4-after"), [Fixture.Format("png")]);
+        Assert.NotNull(after);
+        Assert.Equal(after, vm.Palette.Single(c => c.PresetId == "test-mp4-after").Reason);
+        Assert.Null(vm.Palette.Single(c => c.PresetId == "test-jpg").Reason);
+        Assert.Equal(f.Availability.Check(f.Preset("test-mp4"), [Fixture.Format("png")]),
+            vm.Palette.Single(c => c.PresetId == "test-mp4").Reason);
+        Assert.DoesNotContain(vm.Palette, c => c.PresetId == "test-wav");
+        var warning = Assert.Single(log.Warnings);
+        Assert.Equal(LogLevel.Warning, warning.Level);
+        Assert.IsType<InvalidOperationException>(warning.Exception);
+        Assert.Contains("test-pack", warning.Message);
+        Assert.DoesNotContain(vm.Palette, c => c.PresetId == "zip-all");
     }
 
     [AvaloniaFact]

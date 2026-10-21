@@ -18,6 +18,7 @@ using Filee.Core.Localization;
 using Filee.Core.Presets;
 using Filee.Core.Profiles;
 using Filee.Core.Settings;
+using Microsoft.Extensions.Logging;
 
 namespace Filee.App.ViewModels.Pages;
 
@@ -53,6 +54,7 @@ public sealed partial class ToolbarPageViewModel : ObservableObject, IDisposable
     private readonly WindowService _windows;
     private readonly PresetAvailability _availability;
     private readonly ConverterCatalog _catalog;
+    private readonly ILogger<ToolbarPageViewModel> _log;
     private PresetAvailability.PaletteSession? _session;
     private readonly Dictionary<string, PresetJudgement> _judged = [];
     private object? _pass;
@@ -62,13 +64,14 @@ public sealed partial class ToolbarPageViewModel : ObservableObject, IDisposable
     private bool _repositioning;
 
     public ToolbarPageViewModel(UserDataStore store, ILocalizer loc, WindowService windows,
-        PresetAvailability availability, ConverterCatalog catalog)
+        PresetAvailability availability, ConverterCatalog catalog, ILogger<ToolbarPageViewModel> log)
     {
         _store = store;
         _loc = loc;
         _windows = windows;
         _availability = availability;
         _catalog = catalog;
+        _log = log;
         // A profile is found by its name or by an extension it handles ("png" finds the photo donut).
         VisibleProfiles = new FilteredList<ProfileItemViewModel>(Profiles, p => [p.Name, .. p.Profile.Extensions]);
         VisiblePalette = new FilteredList<PaletteChip>(Palette, c => [c.Label, c.Caption]);
@@ -518,41 +521,48 @@ public sealed partial class ToolbarPageViewModel : ObservableObject, IDisposable
     {
         if (pass != _pass || _disposed)
             return;
-        try
-        {
-            var profile = Profile;
-            if (profile is null)
-            {
-                _pass = null;
-                Rebuild();
-                return;
-            }
-            var placed = profile.PresetIds.Concat(profile.BackPresetIds ?? []).ToHashSet();
-            var pending = _store.Presets.Where(p => !p.IsGroup && !placed.Contains(p.Id) && !_judged.ContainsKey(p.Id)).ToList();
-            if (pending.Count > 0)
-            {
-                _session ??= _availability.ForPalette(profile.Extensions.Select(FormatRegistry.FindByExtension)
-                    .OfType<FileFormat>().DistinctBy(f => f.Id).ToList());
-                var clock = Stopwatch.StartNew();
-                foreach (var preset in pending)
-                {
-                    _judged[preset.Id] = _session.Judge(preset);
-                    if (clock.Elapsed >= JudgeSlice)
-                        break;
-                }
-            }
-            if (_store.Presets.Any(p => !p.IsGroup && !placed.Contains(p.Id) && !_judged.ContainsKey(p.Id)))
-                Dispatcher.UIThread.Post(() => JudgeSome(pass), DispatcherPriority.Background);
-            else
-            {
-                _pass = null;
-                Rebuild();
-            }
-        }
-        catch
+        var profile = Profile;
+        if (profile is null)
         {
             _pass = null;
-            throw;
+            Rebuild();
+            return;
+        }
+        var placed = profile.PresetIds.Concat(profile.BackPresetIds ?? []).ToHashSet();
+        var pending = _store.Presets.Where(p => !p.IsGroup && !placed.Contains(p.Id) && !_judged.ContainsKey(p.Id)).ToList();
+        if (pending.Count > 0)
+        {
+            _session ??= _availability.ForPalette(profile.Extensions.Select(FormatRegistry.FindByExtension)
+                .OfType<FileFormat>().DistinctBy(f => f.Id).ToList());
+            var clock = Stopwatch.StartNew();
+            foreach (var preset in pending)
+            {
+                _judged[preset.Id] = JudgeOne(preset);
+                if (clock.Elapsed >= JudgeSlice)
+                    break;
+            }
+        }
+        if (_store.Presets.Any(p => !p.IsGroup && !placed.Contains(p.Id) && !_judged.ContainsKey(p.Id)))
+            Dispatcher.UIThread.Post(() => JudgeSome(pass), DispatcherPriority.Background);
+        else
+        {
+            _pass = null;
+            Rebuild();
+        }
+    }
+
+    // A preset whose judging throws stays usable (not dimmed) and the rest go on: this runs as a dispatcher job, where an
+    // exception would end Filee.
+    private PresetJudgement JudgeOne(Preset preset)
+    {
+        try
+        {
+            return _session!.Judge(preset);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            _log.LogWarning(ex, "Judging preset {Preset} for the palette failed", preset.Id);
+            return new PresetJudgement(PresetUse.Usable, null);
         }
     }
 
