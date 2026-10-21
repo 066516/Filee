@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -82,6 +83,68 @@ public class UpdateServiceTests
 
         Assert.Equal(new UpdateService.ReleaseFile("Filee-9.9.9-win-Setup.exe", Base + "Filee-9.9.9-win-Setup.exe", 1234), installer);
         Assert.Equal("Filee-9.9.9-SHA256SUMS.txt", checksums?.Name);
+    }
+
+    [Fact]
+    public void Release_files_for_macos_arm64_and_x64()
+    {
+        using var release = JsonDocument.Parse($$"""
+            {"tag_name": "v9.9.9", "assets": [
+              {"name": "Filee-9.9.9-osx-arm64-SHA256SUMS.txt", "size": 189, "browser_download_url": "{{Base}}Filee-9.9.9-osx-arm64-SHA256SUMS.txt"},
+              {"name": "Filee-9.9.9-osx-arm64.tar.gz", "size": 2000, "browser_download_url": "{{Base}}Filee-9.9.9-osx-arm64.tar.gz"},
+              {"name": "Filee-9.9.9-osx-x64-SHA256SUMS.txt", "size": 189, "browser_download_url": "{{Base}}Filee-9.9.9-osx-x64-SHA256SUMS.txt"},
+              {"name": "Filee-9.9.9-osx-x64.tar.gz", "size": 2100, "browser_download_url": "{{Base}}Filee-9.9.9-osx-x64.tar.gz"}
+            ]}
+            """);
+
+        var (armApp, armSums) = UpdateService.FindFiles(release.RootElement, OSPlatform.OSX, Architecture.Arm64);
+        Assert.Equal("Filee-9.9.9-osx-arm64.tar.gz", armApp?.Name);
+        Assert.Equal("Filee-9.9.9-osx-arm64-SHA256SUMS.txt", armSums?.Name);
+
+        var (intelApp, intelSums) = UpdateService.FindFiles(release.RootElement, OSPlatform.OSX, Architecture.X64);
+        Assert.Equal("Filee-9.9.9-osx-x64.tar.gz", intelApp?.Name);
+        Assert.Equal("Filee-9.9.9-osx-x64-SHA256SUMS.txt", intelSums?.Name);
+    }
+
+    [Fact]
+    public void Release_files_for_linux_arm64_and_x64()
+    {
+        using var release = JsonDocument.Parse($$"""
+            {"tag_name": "v9.9.9", "assets": [
+              {"name": "Filee-9.9.9-linux-arm64-SHA256SUMS.txt", "size": 189, "browser_download_url": "{{Base}}Filee-9.9.9-linux-arm64-SHA256SUMS.txt"},
+              {"name": "Filee-9.9.9-linux-arm64.tar.gz", "size": 3000, "browser_download_url": "{{Base}}Filee-9.9.9-linux-arm64.tar.gz"},
+              {"name": "Filee-9.9.9-linux-x64-SHA256SUMS.txt", "size": 189, "browser_download_url": "{{Base}}Filee-9.9.9-linux-x64-SHA256SUMS.txt"},
+              {"name": "Filee-9.9.9-linux-x64.tar.gz", "size": 3100, "browser_download_url": "{{Base}}Filee-9.9.9-linux-x64.tar.gz"}
+            ]}
+            """);
+
+        var (armApp, armSums) = UpdateService.FindFiles(release.RootElement, OSPlatform.Linux, Architecture.Arm64);
+        Assert.Equal("Filee-9.9.9-linux-arm64.tar.gz", armApp?.Name);
+        Assert.Equal("Filee-9.9.9-linux-arm64-SHA256SUMS.txt", armSums?.Name);
+
+        var (x64App, x64Sums) = UpdateService.FindFiles(release.RootElement, OSPlatform.Linux, Architecture.X64);
+        Assert.Equal("Filee-9.9.9-linux-x64.tar.gz", x64App?.Name);
+        Assert.Equal("Filee-9.9.9-linux-x64-SHA256SUMS.txt", x64Sums?.Name);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_executes_in_app_update_runner()
+    {
+        var installerData = RandomNumberGenerator.GetBytes(1000);
+        var network = new FakeRelease(installerData, Sha256(installerData));
+        var updates = Updates(network, installerData.Length);
+        string? appliedPackage = null;
+        updates.CustomUpdateRunner = path =>
+        {
+            appliedPackage = path;
+            return Task.CompletedTask;
+        };
+
+        await updates.UpdateAsync();
+
+        Assert.NotNull(appliedPackage);
+        Assert.True(File.Exists(appliedPackage));
+        Assert.Equal(UpdateStep.Idle, updates.Step);
     }
 
     [Fact]
