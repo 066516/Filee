@@ -90,8 +90,7 @@ public partial class UpdateProgressWindow : Window
                 ProgressBar.IsVisible = false;
                 PercentText.Text = "";
                 StatusText.Text = "";
-                if (!IsVisible)
-                    Close();
+                Close();
                 break;
         }
     }

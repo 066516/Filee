@@ -212,11 +212,6 @@ public partial class App : Application
             AppHost.Get<WindowService>().ShowUpdateNotice(version);
         };
         updates.UpdateFailed += async (_, _) => await AppHost.Get<WindowService>().ShowUpdateFailedAsync();
-        updates.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(UpdateService.Step) && updates.Step == UpdateStep.Downloading)
-                Dispatcher.UIThread.Post(() => AppHost.Get<WindowService>().ShowUpdateProgress(updates));
-        };
         updates.StartPeriodicChecks(() => store.Settings.CheckForUpdates, TimeSpan.FromSeconds(20));
         DispatcherTimer.RunOnce(() => NotifyEngineUpdates(store), TimeSpan.FromSeconds(25));
     }

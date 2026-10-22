@@ -5,11 +5,8 @@
 
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Formats.Tar;
-using System.IO.Compression;
 using System.Net.Http.Headers;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Avalonia.Threading;
@@ -87,33 +84,17 @@ public sealed partial class UpdateService : ObservableObject
     public const string WebsiteUrl = "https://filee.sh/";
 
     /// <summary>
-    /// True when this copy was installed by Setup or package installer:
-    /// On Windows: puts its uninstaller next to Filee.exe (uninstall.exe; 1.x put unins000.exe).
-    /// On Linux: installed with .filee-package marker (install.sh).
-    /// On macOS: app bundle inside /Applications or ~/Applications.
+    /// True when this copy was installed by Setup, which puts its uninstaller next to Filee.exe (uninstall.exe; the
+    /// Inno Setup installer of 1.x put unins000.exe there). Only then can the new installer update it in place; the
+    /// portable zip and a copy run from source have no uninstaller.
     /// </summary>
-    public static bool IsInstalled { get; } =
-        OperatingSystem.IsWindows()
-            ? IsInstalledIn(AppContext.BaseDirectory)
-            : OperatingSystem.IsLinux()
-                ? (File.Exists(Path.Combine(AppContext.BaseDirectory, ".filee-package")) || AppContext.BaseDirectory.Contains("/.local/share/filee", StringComparison.Ordinal))
-                : OperatingSystem.IsMacOS() && AppContext.BaseDirectory.Contains("/Applications/", StringComparison.Ordinal);
+    public static bool IsInstalled { get; } = OperatingSystem.IsWindows() && IsInstalledIn(AppContext.BaseDirectory);
 
     internal static bool IsInstalledIn(string folder) =>
-        File.Exists(Path.Combine(folder, "uninstall.exe"))
-        || File.Exists(Path.Combine(folder, "unins000.exe"))
-        || File.Exists(Path.Combine(folder, ".filee-package"))
-        || folder.Contains("/.local/share/filee", StringComparison.Ordinal)
-        || folder.Contains("/Applications/", StringComparison.Ordinal);
+        File.Exists(Path.Combine(folder, "uninstall.exe")) || File.Exists(Path.Combine(folder, "unins000.exe"));
 
-    /// <summary>Whether <see cref="UpdateAsync"/> installs by itself (defaults to true; tests may override).</summary>
-    internal bool InstallsItself { get; init; } = true;
-
-    /// <summary>Allows unit tests to mock the update application and restart process.</summary>
-    internal Func<string, Task>? CustomUpdateRunner { get; set; }
-
-    /// <summary>Action invoked to exit the application during an update restart.</summary>
-    internal Action ShutdownAction { get; set; } = ExitApplication;
+    /// <summary>Whether <see cref="UpdateAsync"/> installs by itself (<see cref="IsInstalled"/>; tests set it).</summary>
+    internal bool InstallsItself { get; init; } = IsInstalled;
 
     /// <summary>The newer version found by the last check (e.g. "1.0.2"), or null when up to date / unknown.</summary>
     [ObservableProperty]
@@ -282,11 +263,11 @@ public sealed partial class UpdateService : ObservableObject
             return;
         }
 
-        string packageFile;
+        string installer;
         try
         {
             var progress = new Progress<int>(percent => DownloadPercent = percent);
-            packageFile = await DownloadInstallerAsync(Path.Combine(Path.GetTempPath(), "Filee-update"), progress);
+            installer = await DownloadInstallerAsync(Path.Combine(Path.GetTempPath(), "Filee-update"), progress);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException
                                        or InvalidDataException or UnauthorizedAccessException)
@@ -295,270 +276,34 @@ public sealed partial class UpdateService : ObservableObject
             return;
         }
 
+        Process? setup;
         try
         {
-            await ApplyUpdateAndRestartAsync(packageFile);
+            setup = Process.Start(new ProcessStartInfo(installer, InstallerArguments) { UseShellExecute = true });
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
         {
             _log.LogInformation("Update cancelled at the administrator prompt");
             Step = UpdateStep.Cancelled;
+            return;
         }
-        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
         {
             Fail("start", ex);
-        }
-    }
-
-    internal async Task ApplyUpdateAndRestartAsync(string packagePath, CancellationToken cancellationToken = default)
-    {
-        if (CustomUpdateRunner is not null)
-        {
-            Step = UpdateStep.Installing;
-            await CustomUpdateRunner(packagePath);
-            Step = UpdateStep.Idle;
             return;
         }
 
-        if (OperatingSystem.IsWindows())
-        {
-            if (packagePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-            {
-                Process? setup;
-                try
-                {
-                    setup = Process.Start(new ProcessStartInfo(packagePath, InstallerArguments) { UseShellExecute = true });
-                }
-                catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
-                {
-                    _log.LogInformation("Update cancelled at the administrator prompt");
-                    Step = UpdateStep.Cancelled;
-                    return;
-                }
-                catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
-                {
-                    Fail("start", ex);
-                    return;
-                }
-
-                _log.LogInformation("Started the installer for {Version}", LatestVersion);
-                Step = UpdateStep.Installing;
-                if (setup is null)
-                    return;
-
-                using (setup)
-                    await setup.WaitForExitAsync(cancellationToken);
-                _log.LogInformation("Installer ended with exit code {Code}", setup.ExitCode);
-                Step = setup.ExitCode == 0 ? UpdateStep.Idle : UpdateStep.Cancelled;
-                return;
-            }
-
-            if (packagePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-            {
-                Step = UpdateStep.Installing;
-                var stagingDir = Path.Combine(Path.GetTempPath(), "Filee-update", "staged-" + Guid.NewGuid().ToString("N")[..8]);
-                if (Directory.Exists(stagingDir))
-                    Directory.Delete(stagingDir, true);
-                Directory.CreateDirectory(stagingDir);
-                ZipFile.ExtractToDirectory(packagePath, stagingDir);
-
-                var appExeInSub = Directory.GetFiles(stagingDir, "Filee.exe", SearchOption.AllDirectories).FirstOrDefault();
-                var sourceDir = appExeInSub is not null ? Path.GetDirectoryName(appExeInSub)! : stagingDir;
-                var targetDir = Path.GetFullPath(AppContext.BaseDirectory).TrimEnd('\\', '/');
-                var targetExe = Path.Combine(targetDir, "Filee.exe");
-                var pid = Environment.ProcessId;
-
-                var scriptPath = Path.Combine(Path.GetTempPath(), $"filee-update-{Guid.NewGuid():N}.cmd");
-                var scriptContent = $@"@echo off
-:wait_loop
-tasklist /fi ""PID eq {pid}"" 2>nul | find ""{pid}"" >nul
-if not errorlevel 1 (
-    timeout /t 1 /nobreak >nul
-    goto wait_loop
-)
-xcopy /s /e /y /q ""{sourceDir}\*"" ""{targetDir}\"" >nul
-start """" ""{targetExe}""
-rd /s /q ""{stagingDir}"" 2>nul
-del ""%~f0"" 2>nul
-";
-                await File.WriteAllTextAsync(scriptPath, scriptContent, cancellationToken);
-
-                var psi = new ProcessStartInfo("cmd.exe", $"/c \"\"{scriptPath}\"\"")
-                {
-                    CreateNoWindow = true,
-                    UseShellExecute = false,
-                    WindowStyle = ProcessWindowStyle.Hidden
-                };
-                Process.Start(psi);
-                ShutdownAction();
-                return;
-            }
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            Step = UpdateStep.Installing;
-            var stagingDir = Path.Combine(Path.GetTempPath(), "Filee-update", "staged-" + Guid.NewGuid().ToString("N")[..8]);
-            if (Directory.Exists(stagingDir))
-                Directory.Delete(stagingDir, true);
-            Directory.CreateDirectory(stagingDir);
-
-            await ExtractTarGzAsync(packagePath, stagingDir, cancellationToken);
-
-            var stagedApp = Directory.GetDirectories(stagingDir, "Filee.app", SearchOption.AllDirectories).FirstOrDefault();
-            if (stagedApp is null)
-                throw new InvalidDataException("Extracted macOS package did not contain Filee.app");
-
-            var baseDir = Path.GetFullPath(AppContext.BaseDirectory);
-            var targetApp = GetMacOSBundlePath(baseDir);
-            var pid = Environment.ProcessId;
-
-            var scriptPath = Path.Combine(Path.GetTempPath(), $"filee-update-{Guid.NewGuid():N}.sh");
-            var scriptContent = $@"#!/bin/sh
-while kill -0 {pid} 2>/dev/null; do
-    sleep 0.2
-done
-rm -rf ""{targetApp}""
-if command -v ditto >/dev/null 2>&1; then
-    ditto ""{stagedApp}"" ""{targetApp}""
-else
-    cp -R ""{stagedApp}"" ""{targetApp}""
-fi
-chmod +x ""{targetApp}/Contents/MacOS/Filee"" 2>/dev/null
-open ""{targetApp}""
-rm -rf ""{stagingDir}""
-rm -f ""$0""
-";
-            await File.WriteAllTextAsync(scriptPath, scriptContent.Replace("\r\n", "\n"), cancellationToken);
-
-            try
-            {
-                using var chmodProc = Process.Start(new ProcessStartInfo("chmod", $"+x \"{scriptPath}\"")
-                {
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                });
-                if (chmodProc is not null)
-                    await chmodProc.WaitForExitAsync(cancellationToken);
-            }
-            catch
-            {
-                // Ignored
-            }
-
-            Process.Start(new ProcessStartInfo("/bin/sh", $"\"{scriptPath}\"")
-            {
-                UseShellExecute = false,
-                CreateNoWindow = true
-            });
-
-            ShutdownAction();
+        _log.LogInformation("Started the installer for {Version}", LatestVersion);
+        Step = UpdateStep.Installing;
+        if (setup is null)
             return;
-        }
-        else if (OperatingSystem.IsLinux())
-        {
-            Step = UpdateStep.Installing;
-            var stagingDir = Path.Combine(Path.GetTempPath(), "Filee-update", "staged-" + Guid.NewGuid().ToString("N")[..8]);
-            if (Directory.Exists(stagingDir))
-                Directory.Delete(stagingDir, true);
-            Directory.CreateDirectory(stagingDir);
 
-            await ExtractTarGzAsync(packagePath, stagingDir, cancellationToken);
-
-            var appExeInSub = Directory.GetFiles(stagingDir, "Filee", SearchOption.AllDirectories)
-                .FirstOrDefault(f => !f.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) && !f.EndsWith(".png", StringComparison.OrdinalIgnoreCase));
-            var sourceDir = appExeInSub is not null ? Path.GetDirectoryName(appExeInSub)! : stagingDir;
-            var targetDir = Path.GetFullPath(AppContext.BaseDirectory).TrimEnd('/');
-            var targetExe = Path.Combine(targetDir, "Filee");
-            var pid = Environment.ProcessId;
-
-            var scriptPath = Path.Combine(Path.GetTempPath(), $"filee-update-{Guid.NewGuid():N}.sh");
-            var scriptContent = $@"#!/bin/sh
-while kill -0 {pid} 2>/dev/null; do
-    sleep 0.2
-done
-cp -R ""{sourceDir}""/* ""{targetDir}/""
-chmod +x ""{targetExe}"" 2>/dev/null
-if [ -f ""{targetDir}/filee-cli"" ]; then
-    chmod +x ""{targetDir}/filee-cli"" 2>/dev/null
-fi
-""{targetExe}"" &
-rm -rf ""{stagingDir}""
-rm -f ""$0""
-";
-            await File.WriteAllTextAsync(scriptPath, scriptContent.Replace("\r\n", "\n"), cancellationToken);
-
-            try
-            {
-                using var chmodProc = Process.Start(new ProcessStartInfo("chmod", $"+x \"{scriptPath}\"")
-                {
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                });
-                if (chmodProc is not null)
-                    await chmodProc.WaitForExitAsync(cancellationToken);
-            }
-            catch
-            {
-                // Ignored
-            }
-
-            Process.Start(new ProcessStartInfo("/bin/sh", $"\"{scriptPath}\"")
-            {
-                UseShellExecute = false,
-                CreateNoWindow = true
-            });
-
-            ShutdownAction();
-            return;
-        }
-    }
-
-    private static async Task ExtractTarGzAsync(string archivePath, string destinationDirectory, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var tarExe = OperatingSystem.IsMacOS() ? "/usr/bin/tar" : "tar";
-            using var proc = Process.Start(new ProcessStartInfo(tarExe, $"-xzf \"{archivePath}\" -C \"{destinationDirectory}\"")
-            {
-                UseShellExecute = false,
-                CreateNoWindow = true
-            });
-            if (proc is not null)
-            {
-                await proc.WaitForExitAsync(cancellationToken);
-                if (proc.ExitCode == 0)
-                    return;
-            }
-        }
-        catch
-        {
-            // Fallback to managed extraction below
-        }
-
-        await using var fs = File.OpenRead(archivePath);
-        await using var gz = new GZipStream(fs, CompressionMode.Decompress);
-        TarFile.ExtractToDirectory(gz, destinationDirectory, overwriteFiles: true);
-    }
-
-    private static string GetMacOSBundlePath(string baseDir)
-    {
-        var dir = new DirectoryInfo(baseDir);
-        while (dir is not null)
-        {
-            if (dir.Name.EndsWith(".app", StringComparison.OrdinalIgnoreCase))
-                return dir.FullName;
-            dir = dir.Parent;
-        }
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Applications", "Filee.app");
-    }
-
-    private static void ExitApplication()
-    {
-        Dispatcher.UIThread.Post(() =>
-        {
-            App.Quit();
-        });
-        Task.Delay(1000).ContinueWith(_ => Environment.Exit(0));
+        // A successful update closes Filee before Setup exits, so getting here means Setup ended without updating:
+        // the administrator prompt was declined (Setup asks for it itself), or the user cancelled.
+        using (setup)
+            await setup.WaitForExitAsync();
+        _log.LogInformation("Installer ended with exit code {Code}", setup.ExitCode);
+        Step = setup.ExitCode == 0 ? UpdateStep.Idle : UpdateStep.Cancelled;
     }
 
     /// <summary>
@@ -678,27 +423,12 @@ rm -f ""$0""
     /// <summary>A file attached to a release.</summary>
     internal sealed record ReleaseFile(string Name, string Url, long Size);
 
-    /// <summary>Picks the package installer and the checksum file from a GitHub release (null when missing).</summary>
-    internal static (ReleaseFile? Installer, ReleaseFile? Checksums) FindFiles(
-        JsonElement release,
-        OSPlatform? targetPlatform = null,
-        Architecture? targetArch = null)
+    /// <summary>Picks the Windows installer and the checksum file from a GitHub release (null when missing).</summary>
+    internal static (ReleaseFile? Installer, ReleaseFile? Checksums) FindFiles(JsonElement release)
     {
+        ReleaseFile? installer = null, checksums = null;
         if (!release.TryGetProperty("assets", out var assets) || assets.ValueKind != JsonValueKind.Array)
             return (null, null);
-
-        var platform = targetPlatform ?? (OperatingSystem.IsWindows() ? OSPlatform.Windows
-            : OperatingSystem.IsMacOS() ? OSPlatform.OSX
-            : OSPlatform.Linux);
-
-        var arch = targetArch ?? RuntimeInformation.ProcessArchitecture;
-        var archName = arch == Architecture.Arm64 ? "arm64" : "x64";
-
-        ReleaseFile? installer = null;
-        ReleaseFile? checksums = null;
-        var candidateChecksums = new List<ReleaseFile>();
-
-        var allAssets = new List<ReleaseFile>();
         foreach (var asset in assets.EnumerateArray())
         {
             var name = asset.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
@@ -706,54 +436,13 @@ rm -f ""$0""
             var size = asset.TryGetProperty("size", out var s) && s.TryGetInt64(out var bytes) ? bytes : 0;
             if (name.Length == 0 || !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                 continue;
-
-            var rf = new ReleaseFile(name, url, size);
-            allAssets.Add(rf);
-
-            if (name.EndsWith("-SHA256SUMS.txt", StringComparison.OrdinalIgnoreCase) ||
-                name.EndsWith(".sha256", StringComparison.OrdinalIgnoreCase) ||
-                name.EndsWith("SHA256SUMS.txt", StringComparison.OrdinalIgnoreCase))
-            {
-                candidateChecksums.Add(rf);
-            }
+            if (name.EndsWith("-win-Setup.exe", StringComparison.OrdinalIgnoreCase))
+                installer = new ReleaseFile(name, url, size);
+            else if (name.EndsWith("-SHA256SUMS.txt", StringComparison.OrdinalIgnoreCase) &&
+                     !name.Contains("-linux-", StringComparison.OrdinalIgnoreCase) &&
+                     !name.Contains("-osx-", StringComparison.OrdinalIgnoreCase))
+                checksums = new ReleaseFile(name, url, size);
         }
-
-        if (platform == OSPlatform.Windows)
-        {
-            installer = allAssets.FirstOrDefault(a => a.Name.EndsWith("-win-Setup.exe", StringComparison.OrdinalIgnoreCase))
-                     ?? allAssets.FirstOrDefault(a => a.Name.EndsWith("-win-Portable.zip", StringComparison.OrdinalIgnoreCase));
-        }
-        else if (platform == OSPlatform.OSX)
-        {
-            var targetSuffix = $"-osx-{archName}.tar.gz";
-            installer = allAssets.FirstOrDefault(a => a.Name.EndsWith(targetSuffix, StringComparison.OrdinalIgnoreCase))
-                     ?? allAssets.FirstOrDefault(a => a.Name.Contains("-osx-", StringComparison.OrdinalIgnoreCase) && a.Name.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase))
-                     ?? allAssets.FirstOrDefault(a => a.Name.Contains("mac", StringComparison.OrdinalIgnoreCase) && a.Name.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase));
-        }
-        else if (platform == OSPlatform.Linux)
-        {
-            var targetSuffix = $"-linux-{archName}.tar.gz";
-            installer = allAssets.FirstOrDefault(a => a.Name.EndsWith(targetSuffix, StringComparison.OrdinalIgnoreCase))
-                     ?? allAssets.FirstOrDefault(a => a.Name.Contains("-linux-", StringComparison.OrdinalIgnoreCase) && a.Name.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase));
-        }
-
-        installer ??= allAssets.FirstOrDefault(a => a.Name.EndsWith("-win-Setup.exe", StringComparison.OrdinalIgnoreCase))
-                   ?? allAssets.FirstOrDefault(a => a.Name.EndsWith("-win-Portable.zip", StringComparison.OrdinalIgnoreCase));
-
-        if (installer is not null)
-        {
-            var baseName = installer.Name.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase)
-                ? installer.Name[..^".tar.gz".Length]
-                : Path.GetFileNameWithoutExtension(installer.Name);
-
-            checksums = candidateChecksums.FirstOrDefault(c => c.Name.StartsWith(baseName, StringComparison.OrdinalIgnoreCase))
-                     ?? candidateChecksums.FirstOrDefault(c => c.Name.Contains(archName, StringComparison.OrdinalIgnoreCase) &&
-                            ((platform == OSPlatform.Linux && c.Name.Contains("linux", StringComparison.OrdinalIgnoreCase)) ||
-                             (platform == OSPlatform.OSX && c.Name.Contains("osx", StringComparison.OrdinalIgnoreCase))))
-                     ?? candidateChecksums.FirstOrDefault(c => c.Name.EndsWith("-SHA256SUMS.txt", StringComparison.OrdinalIgnoreCase))
-                     ?? candidateChecksums.FirstOrDefault();
-        }
-
         return (installer, checksums);
     }
 

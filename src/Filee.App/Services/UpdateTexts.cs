@@ -6,11 +6,11 @@ namespace Filee.App.Services;
 
 public static class UpdateTexts
 {
-    /// <summary>Button text: "Update" across all platforms (downloads and installs in-app).</summary>
-    public static string ButtonKey => "update.install";
+    /// <summary>Button text: "Update" in an installed copy (it installs by itself), "Download" in a portable one.</summary>
+    public static string ButtonKey => UpdateService.IsInstalled ? "update.install" : "update.download";
 
     /// <summary>What the update button does, for the notice and tooltips.</summary>
-    public static string HowKey => "update.notice_text";
+    public static string HowKey => UpdateService.IsInstalled ? "update.notice_text" : "update.notice_text_portable";
 
     /// <summary>Short label for the sidebar button and the tray menu ("Update to 1.4.0", "Downloading… 42%").</summary>
     public static string Short(UpdateService updates, ILocalizer loc) => updates.Step switch

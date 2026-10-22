@@ -201,6 +201,9 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     /// <summary>Shows the update download progress dialog with a progress bar.</summary>
     public void ShowUpdateProgress(UpdateService updates)
     {
+        if (!updates.IsBusy && updates.Step == UpdateStep.Idle)
+            return;
+
         if (_updateProgress is not null)
         {
             _updateProgress.Activate();
