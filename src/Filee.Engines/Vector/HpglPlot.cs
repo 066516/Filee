@@ -4,9 +4,9 @@
 //
 // Read: IN, SP / PC / NP / PW (pens and their colours and widths), PU / PD / PA / PR, CI, AA / AR (arcs as short
 // lines), PE (HP-GL/2 encoded polylines, the bulk of a printer driver's plot), PM / EP / FP (polygons, filled with
-// FP). A PJL / PCL wrapper around HP-GL/2 is skipped up to "enter HP-GL/2 mode" (ESC % … B). Not drawn: text (LB),
-// fill patterns, raster data; user scaling (SC) is ignored, so a scaled plot keeps its shape but not its size.
-// The PE decoding follows ezdxf's hpgl2 add-on (MIT).
+// FP). A PJL / PCL wrapper around HP-GL/2 is skipped up to "enter HP-GL/2 mode" (ESC % … B), and the device-control
+// sequences of HP-GL/1 plotters (ESC . …) are skipped. Not drawn: text (LB), fill patterns, raster data; user scaling
+// (SC) is ignored, so a scaled plot keeps its shape but not its size.
 
 using System.Globalization;
 using System.Text;
@@ -65,19 +65,21 @@ internal static class HpglPlot
     // ───────────────────────── Commands ─────────────────────────
 
     /// <summary>
-    /// Splits the plot into commands: two letters and their arguments up to ';' or the next command. PE's arguments
-    /// are its encoded bytes; LB's run to the label terminator (ETX).
+    /// Splits the plot into commands: two letters and their arguments up to ';' or the next command (quoted text such
+    /// as a CO comment included). PE's arguments are its encoded bytes; LB's run to the label terminator (ETX). Any
+    /// command may come first.
     /// </summary>
     internal static IEnumerable<(string Name, string Args)> Commands(byte[] s)
     {
-        var i = StartsWithHpgl(s) ? 0 : EntryPoint(s, 0);
+        var i = 0;
         while (i < s.Length)
         {
             var c = s[i];
             if (c == 27)
             {
-                // An escape sequence leaves HP-GL/2 (PCL, PJL): go on where the plot enters it again.
-                i = EntryPoint(s, i + 1);
+                // ESC . is an HP-GL/1 device-control sequence; any other escape (PCL, PJL) leaves HP-GL/2, which goes on
+                // where the plot enters it again (ESC % … B).
+                i = i + 1 < s.Length && s[i + 1] == '.' ? DeviceControlEnd(s, i) : EntryPoint(s, i);
                 continue;
             }
             if (c <= 32 || c == ';' || !char.IsAsciiLetterUpper((char)c) && !char.IsAsciiLetterLower((char)c))
@@ -95,21 +97,29 @@ internal static class HpglPlot
             else if (name == "LB")
                 while (end < s.Length && s[end] != 3) end++;
             else
-                while (end < s.Length && s[end] != ';' && s[end] != 27 && !char.IsAsciiLetter((char)s[end])) end++;
+                while (end < s.Length && s[end] != ';' && s[end] != 27 && !char.IsAsciiLetter((char)s[end]))
+                    end = s[end] == '"' ? Math.Min(s.Length, Array.IndexOf(s, (byte)'"', end + 1) is var close and >= 0 ? close + 1 : s.Length) : end + 1;
             yield return (name, Encoding.Latin1.GetString(s, start, end - start));
             i = end < s.Length && s[end] is (byte)';' or 3 ? end + 1 : end;
         }
     }
 
-    private static bool StartsWithHpgl(byte[] s)
+    /// <summary>
+    /// Index after a device-control sequence at <paramref name="at"/>: ESC . and one character (ESC . ( turns the
+    /// plotter on), with its numeric parameters when they end in ':' (ESC . I 81;;17:, ESC . N ;19:).
+    /// </summary>
+    private static int DeviceControlEnd(byte[] s, int at)
     {
-        var head = Encoding.ASCII.GetString(s, 0, Math.Min(s.Length, 16)).TrimStart();
-        return head.StartsWith("IN", StringComparison.OrdinalIgnoreCase) || head.StartsWith("BP", StringComparison.Ordinal)
-            || head.StartsWith("SP", StringComparison.Ordinal) || head.StartsWith("PU", StringComparison.Ordinal)
-            || head.StartsWith("PA", StringComparison.Ordinal) || head.StartsWith("DF", StringComparison.Ordinal);
+        var next = at + 3;
+        if (next > s.Length)
+            return s.Length;
+        var end = next;
+        while (end < s.Length && (char.IsAsciiDigit((char)s[end]) || s[end] is (byte)';' or (byte)'-' or (byte)'.'))
+            end++;
+        return end < s.Length && s[end] == ':' ? end + 1 : next;
     }
 
-    /// <summary>Index after the next "enter HP-GL/2 mode" (ESC % 0-3 B, also ESC % -1 B), or the end.</summary>
+    /// <summary>Index after the next "enter HP-GL/2 mode" (ESC % 0-3 B, also ESC % -1 B) from <paramref name="from"/>, or the end.</summary>
     private static int EntryPoint(byte[] s, int from)
     {
         for (var i = from; i + 3 < s.Length; i++)

@@ -1,5 +1,5 @@
 // HP-GL plot files (.plt, issue #410): pen moves read as lines, drawn as SVG and rendered through the vector engine.
-// The packed HP-GL/2 sample (PE) was encoded with ezdxf's hpgl2 add-on, not with Filee's own decoder.
+// The packed HP-GL/2 sample (PE) was encoded independently of Filee's decoder, so the test is not circular.
 
 using System.Text;
 using Filee.Core.Conversion;
@@ -31,6 +31,19 @@ public class HpglPlotTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal("#000000", strokes[0].Color);
         Assert.Equal([(800, 0), (800, 400)], strokes[1].Points);
         Assert.Equal("#FF0000", strokes[1].Color);
+    }
+
+    [Theory]
+    [InlineData("\u001B.(;\u001B.I81;;17:\u001B.N;19:IN;SP1;PU0,0;PD400,0,400,400;")] // device control first
+    [InlineData("IP0,0,4000,4000;SC;SP1;PU0,0;PD400,0,400,400;")] // scaling points first
+    [InlineData("\u0003IN;SP1;PU0,0;PD400,0,400,400;")] // a leading ETX
+    [InlineData("CO\"made by x; PD 9,9\";IN;SP1;PU0,0;PD400,0,400,400;")] // a comment first, with a command in it
+    [InlineData("in;sp1;pu0,0;pd400,0,400,400;")] // lower case
+    public void Hpgl1_plots_starting_with_any_command_are_read(string plot)
+    {
+        var stroke = Assert.Single(HpglPlot.Read(Encoding.Latin1.GetBytes(plot)));
+
+        Assert.Equal([(0, 0), (400, 0), (400, 400)], stroke.Points);
     }
 
     [Fact]
