@@ -23,7 +23,6 @@
   "close.dont_ask": "次回から確認しない",
   "home.title": "ホーム",
   "home.drop_title": "ここにファイルをドロップ",
-  "home.drop_select": "ダブルクリックしてファイルを選択",
   "home.drop_hint": "または、{0}を押しながら\nエクスプローラーでファイルをドラッグしてください。\nカーソル位置にドーナツメニューが開きます。",
   "home.drop_hint_macos": "または、{0}を押しながら\nFinderでファイルをドラッグしてください。\nカーソル位置にドーナツメニューが開きます。",
   "home.drop_hint_linux": "または、{0}を押しながら\nファイルマネージャーでファイルをドラッグしてください。\nカーソル位置にドーナツメニューが開きます。",
@@ -885,7 +884,6 @@
   "watch.status_starting": "開始中…",
   "watch.status_error": "このフォルダーを監視できません：{0}",
   "watch.cli_hint": "コマンドラインからも使えます：filee watch <folder> --to <format>",
-
   "whats_new.title": "Filee {0} の新機能",
   "whats_new.previous": "前へ",
   "whats_new.next": "次へ",
@@ -904,5 +902,7 @@
   "whats_new.2_0_0.languages.title": "対応言語が増えました",
   "whats_new.2_0_0.languages.text": "英語、韓国語、中国語、ポーランド語に、スペイン語、ヒンディー語、日本語、ロシア語、アラビア語、ブラジルポルトガル語が加わりました。",
   "whats_new.2_0_0.more.title": "ほかにも",
-  "whats_new.2_0_0.more.text": "ドーナツを 1 つだけ既定に戻す、履歴全体を検索する、グジャラート語・ヒンディー語・アラビア語の文書を LibreOffice で変換する、など。"
+  "whats_new.2_0_0.more.text": "ドーナツを 1 つだけ既定に戻す、履歴全体を検索する、グジャラート語・ヒンディー語・アラビア語の文書を LibreOffice で変換する、など。",
+  "theme.style.m3_badge": "Material 3",
+  "theme.style.m3_tag": "M3"
 }

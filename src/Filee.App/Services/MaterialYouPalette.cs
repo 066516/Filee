@@ -1,6 +1,6 @@
 // Material Design 3 dynamic tonal palette generator for Filee.
 // Generates variant-specific theme resources (surfaces, text, borders, shadows, and accent roles)
-// from a seed colour. Built strictly on Filee's existing theme resource keys.
+// from a seed colour using perceptual HSL tonal mapping. Built strictly on Filee's existing theme resource keys.
 
 using Avalonia;
 using Avalonia.Controls;
@@ -42,11 +42,19 @@ public sealed class MaterialYouPalette
         ["WarningBrush"] = new SolidColorBrush(Warning),
         ["CardShadow"] = CardShadow,
 
+        ["AccentColor"] = Accent,
         ["AccentBrush"] = new SolidColorBrush(Accent),
         ["AccentSoftBrush"] = new SolidColorBrush(AccentSoft),
         ["AccentFaintBrush"] = new SolidColorBrush(AccentFaint),
         ["AccentStrongBrush"] = new SolidColorBrush(AccentStrong),
         ["OnAccentBrush"] = new SolidColorBrush(OnAccent),
+        ["SystemAccentColor"] = Accent,
+        ["SystemAccentColorLight1"] = SoftPalette.Shade(Accent, 0.15),
+        ["SystemAccentColorLight2"] = SoftPalette.Shade(Accent, 0.30),
+        ["SystemAccentColorLight3"] = SoftPalette.Shade(Accent, 0.45),
+        ["SystemAccentColorDark1"] = SoftPalette.Shade(Accent, -0.15),
+        ["SystemAccentColorDark2"] = SoftPalette.Shade(Accent, -0.30),
+        ["SystemAccentColorDark3"] = SoftPalette.Shade(Accent, -0.45),
     };
 
     /// <summary>True if the colour is monochrome (low saturation or black/white/charcoal).</summary>

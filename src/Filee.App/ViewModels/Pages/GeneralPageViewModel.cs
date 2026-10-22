@@ -283,16 +283,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void OpenDataFolder()
-    {
-        try
-        {
-            _platform.RevealInFileManager(_store.Directory);
-        }
-        catch
-        {
-        }
-    }
+    private void OpenDataFolder() => _platform.RevealInFileManager(_store.Directory);
 
     public void Export(string path)
     {

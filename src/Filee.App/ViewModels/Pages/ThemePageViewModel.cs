@@ -29,7 +29,17 @@ public sealed partial class ThemePageViewModel : ObservableObject
         Style = Styles.FirstOrDefault(s => s.Value == theme.Style) ?? Styles[0];
         Modes = Enum.GetValues<ThemeMode>().Select(m => new Choice<ThemeMode>(m, loc[$"theme.mode.{m}"])).ToList();
         Mode = Modes.First(m => m.Value == theme.Mode);
-        Accent = Color.TryParse(theme.Accent, out var c) ? c : Colors.MediumPurple;
+        if (!string.IsNullOrEmpty(theme.PresetKey) &&
+            ThemeService.Presets.FirstOrDefault(p => string.Equals(p.Key, theme.PresetKey, StringComparison.OrdinalIgnoreCase)) is { } initialPreset)
+        {
+            var isDark = theme.Mode == ThemeMode.Dark ||
+                         (theme.Mode == ThemeMode.System && Application.Current?.ActualThemeVariant == ThemeVariant.Dark);
+            Accent = initialPreset.ActiveColor(isDark);
+        }
+        else
+        {
+            Accent = Color.TryParse(theme.Accent, out var c) ? c : Colors.MediumPurple;
+        }
         AccentHex = $"#{Accent.R:X2}{Accent.G:X2}{Accent.B:X2}";
         CornerRadius = theme.CornerRadius;
         DonutOpacity = Math.Round(Math.Clamp(store.Settings.Donut.Opacity, DonutSettings.MinOpacity, 1) * 100);
@@ -107,14 +117,36 @@ public sealed partial class ThemePageViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(PastelPresets));
         if (!Choices.Restore(oldValue, newValue, v => Mode = v))
-            Save(t => t.Mode = newValue.Value);
+        {
+            Save(t =>
+            {
+                t.Mode = newValue.Value;
+                if (!string.IsNullOrEmpty(t.PresetKey) &&
+                    ThemeService.Presets.FirstOrDefault(p => string.Equals(p.Key, t.PresetKey, StringComparison.OrdinalIgnoreCase)) is { } preset)
+                {
+                    var isDark = newValue.Value == ThemeMode.Dark ||
+                                 (newValue.Value == ThemeMode.System && Application.Current?.ActualThemeVariant == ThemeVariant.Dark);
+                    var newColor = preset.ActiveColor(isDark);
+                    t.Accent = $"#{newColor.R:X2}{newColor.G:X2}{newColor.B:X2}";
+                    Accent = newColor;
+                }
+            });
+        }
     }
 
     [RelayCommand]
-    private void PickPreset(PresetItem preset) => Accent = preset.Color;
+    private void PickPreset(PresetItem preset)
+    {
+        Save(t => t.PresetKey = preset.Key);
+        Accent = preset.Color;
+    }
 
     [RelayCommand]
-    private void PickSwatch(Color color) => Accent = color;
+    private void PickSwatch(Color color)
+    {
+        Save(t => t.PresetKey = null);
+        Accent = color;
+    }
 
     [RelayCommand]
     private void SetStyle(ThemeStyle target)
@@ -136,7 +168,10 @@ public sealed partial class ThemePageViewModel : ObservableObject
     partial void OnAccentHexChanged(string value)
     {
         if (Color.TryParse(value.Trim(), out var color) && color != Accent)
+        {
+            Save(t => t.PresetKey = null);
             Accent = Color.FromRgb(color.R, color.G, color.B);
+        }
     }
     partial void OnCornerRadiusChanged(double value) => Save(t => t.CornerRadius = Math.Round(value));
     partial void OnReduceMotionChanged(bool value) => Save(t => t.ReduceMotion = value);

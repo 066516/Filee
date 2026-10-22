@@ -174,15 +174,9 @@ public sealed class NullPlatformServices : IPlatformServices
 
     private static void Open(string path)
     {
-        if (OperatingSystem.IsWindows())
-        {
-            var start = new System.Diagnostics.ProcessStartInfo(Path.GetFullPath(path)) { UseShellExecute = true };
-            System.Diagnostics.Process.Start(start)?.Dispose();
-            return;
-        }
         var opener = OperatingSystem.IsMacOS() ? "open" : "xdg-open";
-        var startUnix = new System.Diagnostics.ProcessStartInfo(opener) { UseShellExecute = false };
-        startUnix.ArgumentList.Add(path);
-        System.Diagnostics.Process.Start(startUnix)?.Dispose();
+        var start = new System.Diagnostics.ProcessStartInfo(opener) { UseShellExecute = false };
+        start.ArgumentList.Add(path);
+        System.Diagnostics.Process.Start(start)?.Dispose();
     }
 }

@@ -106,53 +106,21 @@ public sealed partial class HistoryItemViewModel : ObservableObject
     {
         // An output may be a folder ("Extract"): revealing it opens the extracted files.
         if (_output is not null && ConversionService.Exists(_output))
-        {
-            try
-            {
-                _platform.RevealInFileManager(_output);
-            }
-            catch
-            {
-            }
-        }
+            _platform.RevealInFileManager(_output);
     }
 
     [RelayCommand]
     private void OpenFile()
     {
         if (CanOpen && ConversionService.Exists(_output!))
-        {
-            try
-            {
-                _platform.OpenFile(_output!);
-            }
-            catch
-            {
-                // Fall back to opening the containing folder with the file highlighted if the OS has no registered handler.
-                try
-                {
-                    _platform.RevealInFileManager(_output!);
-                }
-                catch
-                {
-                }
-            }
-        }
+            _platform.OpenFile(_output!);
     }
 
     [RelayCommand]
     private void OpenWith()
     {
         if (CanOpenWith && File.Exists(_output))
-        {
-            try
-            {
-                _platform.OpenWith(_output!);
-            }
-            catch
-            {
-            }
-        }
+            _platform.OpenWith(_output!);
     }
 }
 

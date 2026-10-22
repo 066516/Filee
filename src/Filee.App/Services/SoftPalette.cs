@@ -30,6 +30,31 @@ internal static class SoftPalette
     private static readonly (string Embedded, string System) Chinese =
         ("fonts:Filee#Noto Sans SC", "Microsoft YaHei, PingFang SC");
 
+    /// <summary>All resource keys written by ApplyAccent that must be cleared from top level when per-variant dictionaries are used.</summary>
+    public static readonly string[] AccentResourceKeys =
+    [
+        "AccentColor",
+        "AccentBrush",
+        "AccentSoftBrush",
+        "AccentFaintBrush",
+        "AccentStrongBrush",
+        "OnAccentBrush",
+        "SystemAccentColor",
+        "SystemAccentColorLight1",
+        "SystemAccentColorLight2",
+        "SystemAccentColorLight3",
+        "SystemAccentColorDark1",
+        "SystemAccentColorDark2",
+        "SystemAccentColorDark3",
+    ];
+
+    /// <summary>Removes top-level accent keys so ThemeDictionaries take effect without being shadowed.</summary>
+    public static void ClearTopLevelAccent(IResourceDictionary res)
+    {
+        foreach (var key in AccentResourceKeys)
+            res.Remove(key);
+    }
+
     /// <summary>Accent colour + derived shades. Fluent controls read the System* keys.</summary>
     public static void ApplyAccent(IResourceDictionary res, Color accent)
     {
@@ -62,6 +87,13 @@ internal static class SoftPalette
         dict["AccentFaintBrush"] = new SolidColorBrush(accent, isDark ? 0.08 : 0.05);
         dict["AccentStrongBrush"] = new SolidColorBrush(accent);
         dict["OnAccentBrush"] = new SolidColorBrush(onAccent);
+        dict["SystemAccentColor"] = accent;
+        dict["SystemAccentColorLight1"] = Shade(accent, 0.15);
+        dict["SystemAccentColorLight2"] = Shade(accent, 0.30);
+        dict["SystemAccentColorLight3"] = Shade(accent, 0.45);
+        dict["SystemAccentColorDark1"] = Shade(accent, -0.15);
+        dict["SystemAccentColorDark2"] = Shade(accent, -0.30);
+        dict["SystemAccentColorDark3"] = Shade(accent, -0.45);
     }
 
     /// <summary>"Softness": one radius drives every control.</summary>
@@ -73,6 +105,7 @@ internal static class SoftPalette
         res["SoftRadiusLarge"] = new CornerRadius(Math.Round(r * 1.35));
         res["ControlCornerRadius"] = new CornerRadius(Math.Round(r * 0.55));
         res["OverlayCornerRadius"] = new CornerRadius(r);
+        res["SoftRadiusPill"] = new CornerRadius(Math.Round(r * 2.5));
     }
 
     /// <summary>

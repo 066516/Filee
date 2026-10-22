@@ -12,15 +12,12 @@ using Filee.Core.Settings;
 namespace Filee.App.Services;
 
 /// <summary>Runtime theming.</summary>
-public sealed class ThemeService
+public sealed class ThemeService(IPlatformServices platform)
 {
-    private readonly IPlatformServices _platform;
+    private readonly IPlatformServices _platform = platform;
 
-    public ThemeService(IPlatformServices platform)
-    {
-        _platform = platform;
-        Motion.WindowTracked = window => window.Classes.Set("material-you", IsMaterialYou);
-    }
+    /// <summary>Applies or removes the "material-you" style class on a window.</summary>
+    public void ApplyWindowClass(Window window) => window.Classes.Set("material-you", IsMaterialYou);
 
     /// <summary>Accent swatches offered in the Theme page.</summary>
     public static readonly IReadOnlyList<string> Swatches =
@@ -84,18 +81,27 @@ public sealed class ThemeService
             _ => ThemeVariant.Default,
         };
 
-        var accent = Color.TryParse(theme.Accent, out var parsed) ? parsed : Color.Parse(SoftPalette.DefaultAccent);
+        // Determine effective accent colors:
+        // If a coordinated light/dark preset is active, use its respective variant colors.
+        ThemePreset? preset = null;
+        if (!string.IsNullOrEmpty(theme.PresetKey))
+            preset = Presets.FirstOrDefault(p => string.Equals(p.Key, theme.PresetKey, StringComparison.OrdinalIgnoreCase));
 
-        // Accent colour + derived shades, corner radii and the font order (shared with the installer).
-        SoftPalette.ApplyAccent(res, accent);
+        var defaultColor = Color.Parse(SoftPalette.DefaultAccent);
+        var baseColor = Color.TryParse(theme.Accent, out var parsed) ? parsed : defaultColor;
+
+        var lightAccent = preset?.LightColor ?? baseColor;
+        var darkAccent = preset?.DarkColor ?? baseColor;
+
+        // Radii, fonts, flow direction
         SoftPalette.ApplyCornerRadius(res, theme.CornerRadius);
         res["AppFontFamily"] = SoftPalette.FontFamilyFor(language);
         SoftPalette.ApplyFlowDirection(res, language);
 
         if (theme.Style == ThemeStyle.MaterialYou)
         {
-            var lightPalette = MaterialYouPalette.Generate(accent, isDark: false);
-            var darkPalette = MaterialYouPalette.Generate(accent, isDark: true);
+            var lightPalette = MaterialYouPalette.Generate(lightAccent, isDark: false);
+            var darkPalette = MaterialYouPalette.Generate(darkAccent, isDark: true);
 
             var lightDict = lightPalette.ToResourceDictionary();
             var darkDict = darkPalette.ToResourceDictionary();
@@ -105,10 +111,13 @@ public sealed class ThemeService
 
             res.ThemeDictionaries[ThemeVariant.Light] = lightDict;
             res.ThemeDictionaries[ThemeVariant.Dark] = darkDict;
+
+            // Clear top-level accent keys so controls resolve variant-specific roles from ThemeDictionaries
+            SoftPalette.ClearTopLevelAccent(res);
         }
         else
         {
-            if (MaterialYouPalette.IsMonochrome(accent))
+            if (MaterialYouPalette.IsMonochrome(baseColor) || preset?.Key == "monochrome")
             {
                 var lightDict = new ResourceDictionary();
                 var darkDict = new ResourceDictionary();
@@ -118,16 +127,33 @@ public sealed class ThemeService
                 ApplyCustomOverrides(darkDict, custom?.Dark);
                 res.ThemeDictionaries[ThemeVariant.Light] = lightDict;
                 res.ThemeDictionaries[ThemeVariant.Dark] = darkDict;
+
+                // Clear top-level so dark mode resolves silvery white and light mode resolves charcoal
+                SoftPalette.ClearTopLevelAccent(res);
+            }
+            else if (preset != null)
+            {
+                var lightDict = new ResourceDictionary();
+                var darkDict = new ResourceDictionary();
+                SoftPalette.ApplyAccent(lightDict, lightAccent);
+                SoftPalette.ApplyAccent(darkDict, darkAccent);
+                ApplyCustomOverrides(lightDict, custom?.Light);
+                ApplyCustomOverrides(darkDict, custom?.Dark);
+                res.ThemeDictionaries[ThemeVariant.Light] = lightDict;
+                res.ThemeDictionaries[ThemeVariant.Dark] = darkDict;
+
+                // Clear top-level so light/dark preset pair resolves correctly under System theme
+                SoftPalette.ClearTopLevelAccent(res);
             }
             else
             {
+                SoftPalette.ApplyAccent(res, baseColor);
                 ApplyCustom(res, ThemeVariant.Light, custom?.Light);
                 ApplyCustom(res, ThemeVariant.Dark, custom?.Dark);
             }
         }
 
         var isMaterialYou = theme.Style == ThemeStyle.MaterialYou;
-        Motion.ForEachTracked(w => w.Classes.Set("material-you", isMaterialYou));
         if (app.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
         {
             foreach (var window in desktop.Windows)

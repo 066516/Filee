@@ -228,12 +228,139 @@ public class MaterialYouThemeTests
             // Switch preset
             var preset = vm.PastelPresets.First(p => p.Key == "lavender");
             vm.PickPresetCommand.Execute(preset);
+            Assert.Equal("lavender", store.Settings.Theme.PresetKey);
             Assert.Equal(preset.Color, vm.Accent);
             Assert.Equal(store.Settings.Theme.Accent, vm.AccentHex);
+
+            // Picking a custom swatch clears PresetKey
+            vm.PickSwatchCommand.Execute(Colors.Teal);
+            Assert.Null(store.Settings.Theme.PresetKey);
+            Assert.Equal(Colors.Teal, vm.Accent);
         }
         finally
         {
             Directory.Delete(directory, true);
         }
+    }
+
+    [AvaloniaFact]
+    public void Controls_resolve_MaterialYou_dark_accent_roles_at_runtime_without_top_level_shadowing()
+    {
+        TestServices.EnsureInitialized("en");
+        var themeService = AppHost.Get<ThemeService>();
+        var seed = Color.Parse("#7F77DD");
+
+        try
+        {
+            themeService.Apply(new ThemeSettings { Style = ThemeStyle.MaterialYou, Accent = "#7F77DD" }, "en");
+
+            var darkWindow = new Window();
+            var found = darkWindow.TryFindResource("AccentStrongBrush", ThemeVariant.Dark, out var strongResource);
+            Assert.True(found, "TryFindResource AccentStrongBrush failed");
+            var strongBrush = Assert.IsType<SolidColorBrush>(strongResource);
+
+            var foundSoft = darkWindow.TryFindResource("AccentSoftBrush", ThemeVariant.Dark, out var softResource);
+            Assert.True(foundSoft, "TryFindResource AccentSoftBrush failed");
+            var softBrush = Assert.IsType<SolidColorBrush>(softResource);
+
+            // Old SoftPalette.ApplyAccent wrote Shade(#7F77DD, -0.25) which is #5F59A6 (luminance ~0.11)
+            var oldShadowedColor = SoftPalette.Shade(seed, -0.25);
+            Assert.NotEqual(oldShadowedColor, strongBrush.Color);
+
+            // Material You Dark AccentStrong is onPrimaryContainer (bright foreground, luminance > 0.65)
+            Assert.True(MaterialYouPalette.Luminance(strongBrush.Color) > 0.65,
+                $"Expected bright AccentStrongBrush in dark mode, got luminance {MaterialYouPalette.Luminance(strongBrush.Color)}");
+
+            // Material You Dark AccentSoft is primaryContainer (opaque tonal background, not 18% alpha)
+            Assert.Equal(255, softBrush.Color.A);
+            Assert.True(MaterialYouPalette.Luminance(softBrush.Color) < 0.35);
+        }
+        finally
+        {
+            themeService.Apply(new ThemeSettings(), "en");
+        }
+    }
+
+    [AvaloniaFact]
+    public void Controls_resolve_monochrome_contrast_in_dark_mode()
+    {
+        TestServices.EnsureInitialized("en");
+        var themeService = AppHost.Get<ThemeService>();
+
+        try
+        {
+            // Apply monochrome in both Soft and Material You styles
+            foreach (var style in new[] { ThemeStyle.Soft, ThemeStyle.MaterialYou })
+            {
+                themeService.Apply(new ThemeSettings { Style = style, Accent = "#1F1E1D", PresetKey = "monochrome" }, "en");
+
+                var accentBrush = ResolveBrush("AccentBrush", ThemeVariant.Dark);
+                var onAccentBrush = ResolveBrush("OnAccentBrush", ThemeVariant.Dark);
+
+                // In dark mode, monochrome accent must resolve to silvery white (#F1EFE8), NOT dark charcoal (#1F1E1D)
+                Assert.True(MaterialYouPalette.Luminance(accentBrush.Color) > 0.80,
+                    $"{style}: Expected silvery white in dark mode, got {accentBrush.Color}");
+                Assert.True(MaterialYouPalette.Luminance(onAccentBrush.Color) < 0.20,
+                    $"{style}: Expected dark text on accent in dark mode, got {onAccentBrush.Color}");
+
+                var lightAccentBrush = ResolveBrush("AccentBrush", ThemeVariant.Light);
+                var lightOnAccentBrush = ResolveBrush("OnAccentBrush", ThemeVariant.Light);
+
+                // In light mode, monochrome accent must resolve to dark charcoal (#1F1E1D)
+                Assert.True(MaterialYouPalette.Luminance(lightAccentBrush.Color) < 0.20,
+                    $"{style}: Expected dark charcoal in light mode, got {lightAccentBrush.Color}");
+                Assert.Equal(Colors.White, lightOnAccentBrush.Color);
+            }
+        }
+        finally
+        {
+            themeService.Apply(new ThemeSettings(), "en");
+        }
+    }
+
+    [AvaloniaFact]
+    public void Preset_pair_switches_between_light_and_dark_under_system_mode()
+    {
+        TestServices.EnsureInitialized("en");
+        var themeService = AppHost.Get<ThemeService>();
+
+        try
+        {
+            // Apply mint preset under System mode
+            themeService.Apply(new ThemeSettings { Mode = ThemeMode.System, PresetKey = "mint" }, "en");
+
+            var lightBrush = ResolveBrush("AccentBrush", ThemeVariant.Light);
+            var darkBrush = ResolveBrush("AccentBrush", ThemeVariant.Dark);
+
+            var mintPreset = ThemeService.Presets.First(p => p.Key == "mint");
+            Assert.Equal(mintPreset.LightColor, lightBrush.Color);
+            Assert.Equal(mintPreset.DarkColor, darkBrush.Color);
+        }
+        finally
+        {
+            themeService.Apply(new ThemeSettings(), "en");
+        }
+    }
+
+    private static SolidColorBrush ResolveBrush(string key, ThemeVariant variant)
+    {
+        var window = new Window();
+        Assert.True(window.TryFindResource(key, variant, out var value), $"Failed to resolve resource {key} for variant {variant}");
+        return Assert.IsType<SolidColorBrush>(value);
+    }
+
+    [AvaloniaFact]
+    public void Softness_derives_SoftRadiusPill_consistently()
+    {
+        TestServices.EnsureInitialized("en");
+        var app = Application.Current!;
+
+        // Softness = 0 (sharp corners) -> SoftRadiusPill is 0
+        SoftPalette.ApplyCornerRadius(app.Resources, 0);
+        Assert.Equal(0, ((CornerRadius)app.Resources["SoftRadiusPill"]!).TopLeft);
+
+        // Softness = 16 (default) -> SoftRadiusPill is round(16 * 2.5) = 40
+        SoftPalette.ApplyCornerRadius(app.Resources, 16);
+        Assert.Equal(40, ((CornerRadius)app.Resources["SoftRadiusPill"]!).TopLeft);
     }
 }

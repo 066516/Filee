@@ -23,7 +23,6 @@
   "close.dont_ask": "No volver a preguntar",
   "home.title": "Inicio",
   "home.drop_title": "Suelta archivos aquí",
-  "home.drop_select": "Doble clic para seleccionar archivos",
   "home.drop_hint": "O mantén {0} mientras arrastras archivos en el Explorador. El menú circular se abre donde esté el cursor.",
   "home.drop_hint_macos": "O mantén {0} mientras arrastras archivos en Finder. El menú circular se abre donde esté el cursor.",
   "home.drop_hint_linux": "O mantén {0} mientras arrastras archivos en tu gestor de archivos. El menú circular se abre donde esté el cursor.",
@@ -885,7 +884,6 @@
   "watch.status_starting": "Iniciando…",
   "watch.status_error": "No se puede supervisar esta carpeta: {0}",
   "watch.cli_hint": "También en la línea de comandos: filee watch <carpeta> --to <formato>",
-
   "whats_new.title": "Novedades de Filee {0}",
   "whats_new.previous": "Anterior",
   "whats_new.next": "Siguiente",
@@ -904,5 +902,7 @@
   "whats_new.2_0_0.languages.title": "Filee habla más idiomas",
   "whats_new.2_0_0.languages.text": "El español, el hindi, el japonés, el ruso, el árabe y el portugués de Brasil se suman al inglés, el coreano, el chino y el polaco.",
   "whats_new.2_0_0.more.title": "Y un poco más",
-  "whats_new.2_0_0.more.text": "Restablece un solo menú circular, busca en todo tu historial y convierte documentos en guyaratí, hindi o árabe con LibreOffice."
+  "whats_new.2_0_0.more.text": "Restablece un solo menú circular, busca en todo tu historial y convierte documentos en guyaratí, hindi o árabe con LibreOffice.",
+  "theme.style.m3_badge": "Material 3",
+  "theme.style.m3_tag": "M3"
 }

@@ -49,7 +49,7 @@
       <Setter Property="LineHeight" Value="17" />
     </Style>
     <Style Selector="Button.preset-pill">
-      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusPill}" />
       <Setter Property="Padding" Value="10,6" />
       <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource SubtleBorderBrush}" />
@@ -70,6 +70,16 @@
     <Style Selector="Button.preset-pill:pressed">
       <Setter Property="RenderTransform" Value="scale(0.96)" />
     </Style>
+    <Style Selector=":is(TopLevel).reduced-motion Button.choice-card,
+                   :is(TopLevel).reduced-motion Button.preset-pill">
+      <Setter Property="Transitions" Value="{x:Null}" />
+      <Setter Property="RenderTransform" Value="none" />
+    </Style>
+    <Style Selector=":is(TopLevel).reduced-motion Button.choice-card:pointerover,
+                   :is(TopLevel).reduced-motion Button.preset-pill:pointerover,
+                   :is(TopLevel).reduced-motion Button.preset-pill:pressed">
+      <Setter Property="RenderTransform" Value="none" />
+    </Style>
   </UserControl.Styles>
 
   <Grid ColumnDefinitions="*,20,340" RowDefinitions="Auto,*">
@@ -80,9 +90,9 @@
       <Border Classes="card">
         <StackPanel Spacing="12">
           <DockPanel>
-            <Border DockPanel.Dock="Right" CornerRadius="999" Background="{DynamicResource AccentSoftBrush}" Padding="8,2"
+            <Border DockPanel.Dock="Right" CornerRadius="{DynamicResource SoftRadiusPill}" Background="{DynamicResource AccentSoftBrush}" Padding="8,2"
                     IsVisible="{Binding IsMaterialYou}">
-              <TextBlock Text="Material 3" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentStrongBrush}" />
+              <TextBlock Text="{DynamicResource theme.style.m3_badge}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentStrongBrush}" />
             </Border>
             <TextBlock Classes="label" Text="{DynamicResource theme.style}" VerticalAlignment="Center" Margin="0" />
           </DockPanel>
@@ -110,8 +120,8 @@
               <StackPanel Spacing="6" VerticalAlignment="Top">
                 <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                   <TextBlock Classes="choice-title" Text="{DynamicResource theme.style.MaterialYou}" />
-                  <Border CornerRadius="999" Background="{DynamicResource AccentBrush}" Padding="6,1">
-                    <TextBlock Text="M3" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource OnAccentBrush}" />
+                  <Border CornerRadius="{DynamicResource SoftRadiusPill}" Background="{DynamicResource AccentBrush}" Padding="6,1">
+                    <TextBlock Text="{DynamicResource theme.style.m3_tag}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource OnAccentBrush}" />
                   </Border>
                 </StackPanel>
                 <TextBlock Classes="choice-desc" Text="{DynamicResource theme.style.material_you_hint}" TextWrapping="Wrap" />
@@ -145,7 +155,7 @@
                 <Setter Property="Margin" Value="0,0,4,4" />
                 <Setter Property="Template">
                   <ControlTemplate>
-                    <Border x:Name="SelectionRing" CornerRadius="999" BorderThickness="2" BorderBrush="Transparent" Padding="3">
+                    <Border x:Name="SelectionRing" CornerRadius="{DynamicResource SoftRadiusPill}" BorderThickness="2" BorderBrush="Transparent" Padding="3">
                       <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
                     </Border>
                   </ControlTemplate>
@@ -165,7 +175,7 @@
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="Color">
-                <Border Width="34" Height="34" CornerRadius="999" ToolTip.Tip="{Binding}" AutomationProperties.Name="{Binding}">
+                <Border Width="34" Height="34" CornerRadius="{DynamicResource SoftRadiusPill}" ToolTip.Tip="{Binding}" AutomationProperties.Name="{Binding}">
                   <Border.Background>
                     <SolidColorBrush Color="{Binding}" />
                   </Border.Background>
@@ -203,7 +213,7 @@
                         Command="{Binding $parent[ItemsControl].((vm:ThemePageViewModel)DataContext).PickPresetCommand}"
                         CommandParameter="{Binding}">
                   <DockPanel>
-                    <Border DockPanel.Dock="Left" Width="18" Height="18" CornerRadius="999" Margin="0,0,8,0"
+                    <Border DockPanel.Dock="Left" Width="18" Height="18" CornerRadius="{DynamicResource SoftRadiusPill}" Margin="0,0,8,0"
                             BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="1">
                       <Border.Background>
                         <SolidColorBrush Color="{Binding Color}" />
