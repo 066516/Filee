@@ -118,7 +118,7 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IImageTransforme
             {
                 ct.ThrowIfCancellationRequested();
                 using var single = new PdfDocument();
-                single.AddPage(source.Pages[pages[i]]);
+                Rotate(single.AddPage(source.Pages[pages[i]]), step.Preset.Pdf.Rotation);
                 var path = step.Output.Allocate("pdf", $"_p{pages[i] + 1}");
                 if (path is null)
                     continue;
@@ -131,12 +131,25 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IImageTransforme
 
         using var extract = new PdfDocument();
         foreach (var index in pages)
-            extract.AddPage(source.Pages[index]);
+            Rotate(extract.AddPage(source.Pages[index]), step.Preset.Pdf.Rotation);
         var output = step.Output.Allocate("pdf");
         if (output is null)
             return [];
         extract.Save(output);
         return [output];
+    }
+
+    private static void Rotate(PdfPage page, PdfRotation rotation)
+    {
+        var degrees = rotation switch
+        {
+            PdfRotation.Left90 => -90,
+            PdfRotation.Right90 => 90,
+            PdfRotation.Rotate180 => 180,
+            _ => 0,
+        };
+        if (degrees != 0)
+            page.Rotate = ((page.Rotate + degrees) % 360 + 360) % 360;
     }
 
     /// <summary>
@@ -162,13 +175,14 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IImageTransforme
                 foreach (var index in pages)
                 {
                     using var single = new PdfDocument();
-                    single.AddPage(source.Pages[index]);
+                    Rotate(single.AddPage(source.Pages[index]), options.Rotation);
                     var path = Path.Combine(scratch, $"page-{index + 1}.pdf");
                     single.Save(path);
                     parts.Add((path, $"_p{index + 1}"));
                 }
             }
-            else if (pages.SequenceEqual(Enumerable.Range(0, source.PageCount)))
+            else if (options.Rotation == PdfRotation.None
+                     && pages.SequenceEqual(Enumerable.Range(0, source.PageCount)))
             {
                 parts.Add((step.InputPath, null));
             }
@@ -176,7 +190,7 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IImageTransforme
             {
                 using var extract = new PdfDocument();
                 foreach (var index in pages)
-                    extract.AddPage(source.Pages[index]);
+                    Rotate(extract.AddPage(source.Pages[index]), options.Rotation);
                 var path = Path.Combine(scratch, "pages.pdf");
                 extract.Save(path);
                 parts.Add((path, null));
