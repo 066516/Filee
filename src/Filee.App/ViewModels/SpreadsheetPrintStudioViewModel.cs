@@ -31,7 +31,7 @@ public sealed partial class SpreadsheetSheetPlan : ObservableObject
     private bool _suppressChanges;
     private bool _writePrintArea;
     public SpreadsheetSheetPlan(SpreadsheetSheetInfo sheet, ILocalizer loc, Action changed,
-        SpreadsheetPrintRegion? initial = null, string? name = null, bool forcePrintArea = false)
+        SpreadsheetPrintRegion? initial = null, string? name = null, bool isAddedRegion = false)
     {
         Sheet = sheet;
         _loc = loc;
@@ -51,11 +51,13 @@ public sealed partial class SpreadsheetSheetPlan : ObservableObject
         _marginTopMm = source.MarginTopMm;
         _marginBottomMm = source.MarginBottomMm;
         _keepManualBreaks = source.KeepManualBreaks;
-        _writePrintArea = forcePrintArea || source.WritePrintArea;
+        _writePrintArea = isAddedRegion || source.WritePrintArea;
+        IsAddedRegion = isAddedRegion;
     }
 
     public SpreadsheetSheetInfo Sheet { get; }
     public string Name { get; }
+    public bool IsAddedRegion { get; }
     public string SourceSummary => $"{Sheet.UsedRange} · {Sheet.UsedRows} × {Sheet.UsedColumns}";
     public bool HasWarning => ScaleMode == SpreadsheetScaleMode.Source
         && (Sheet.HasSuspiciousScale || Sheet.HasWideUnboundedRange);
@@ -209,7 +211,7 @@ public sealed partial class SpreadsheetPrintStudioViewModel : ObservableObject, 
 
     public bool CanExport => _workbook is not null && !IsBusy && !IsExporting && Sheets.Any(sheet => sheet.Included);
     public bool CanRemoveSelectedRegion => SelectedSheet is { } selected
-        && Sheets.Count(item => item.Sheet.Index == selected.Sheet.Index) > 1;
+        && selected.IsAddedRegion;
 
     partial void OnSelectedSheetChanged(SpreadsheetSheetPlan? value)
     {
@@ -259,7 +261,7 @@ public sealed partial class SpreadsheetPrintStudioViewModel : ObservableObject, 
             return;
         var number = Sheets.Count(item => item.Sheet.Index == selected.Sheet.Index) + 1;
         var duplicate = new SpreadsheetSheetPlan(selected.Sheet, _loc, SchedulePreview, selected.ToRegion(),
-            _loc.Format("sheet_studio.region_name", selected.Sheet.Name, number), forcePrintArea: true);
+            _loc.Format("sheet_studio.region_name", selected.Sheet.Name, number), isAddedRegion: true);
         var index = Sheets.IndexOf(selected) + 1;
         Sheets.Insert(index, duplicate);
         SelectedSheet = duplicate;
@@ -269,7 +271,7 @@ public sealed partial class SpreadsheetPrintStudioViewModel : ObservableObject, 
     [RelayCommand]
     private void RemoveRegion()
     {
-        if (SelectedSheet is not { } selected || Sheets.Count(item => item.Sheet.Index == selected.Sheet.Index) <= 1)
+        if (SelectedSheet is not { IsAddedRegion: true } selected)
             return;
         var index = Sheets.IndexOf(selected);
         Sheets.Remove(selected);
