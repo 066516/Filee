@@ -111,7 +111,14 @@ public class SetupWindowTests
         Assert.Equal(model.Deck.Slides[0].MediaFor(language).Source, slides.Media.Source);
         Assert.True(slides.Media.HasPicture);
         if (language is "pt-PT" or "pt-BR")
-            Assert.Contains($"/{language}/", slides.Media.Source!.AbsolutePath);
+        {
+            // Browser and flip keep the complete shared desktop interaction; crop uses its own Portuguese media.
+            Assert.Equal(model.Deck.Slides[0].Media, slides.Media.Source);
+            slides.GoTo(3);
+            Pump();
+            Assert.Contains($"/{language}/crop.webp", slides.Media.Source!.AbsolutePath);
+            Assert.Equal(model.Deck.Slides[3].MediaFor(language).PosterFrame, slides.Media.PosterFrame);
+        }
         Check(window, $"setup-3-installing-{language}.png");
 
         runner.Result = new InstallResult(new LaunchRequest(@"C:\Program Files\Filee\Filee.exe", "--install-engines=pandoc"),
