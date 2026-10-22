@@ -111,7 +111,7 @@ public sealed class LocalizationService : ILocalizer
         if (ui.StartsWith("ko", StringComparison.OrdinalIgnoreCase))
             return "ko";
         if (ui.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-            return "zh-CN";
+            return AppLanguages.IsTraditionalChinese(ui) ? "zh-TW" : "zh-CN";
         if (ui.StartsWith("pl", StringComparison.OrdinalIgnoreCase))
             return "pl";
         if (ui.StartsWith("es", StringComparison.OrdinalIgnoreCase))

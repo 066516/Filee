@@ -31,6 +31,8 @@ public class RenderTests
         { "presets", "en" }, { "theme", "en" }, { "engines", "en" }, { "about", "en" },
         { "general", "ko" }, { "toolbar", "ko" }, { "home", "ko" },
         { "general", "zh-CN" }, { "presets", "zh-CN" }, { "toolbar", "zh-CN" }, { "home", "zh-CN" },
+        { "general", "zh-TW" }, { "presets", "zh-TW" }, { "toolbar", "zh-TW" }, { "home", "zh-TW" },
+        { "triggers", "zh-TW" }, { "engines", "zh-TW" }, { "watch", "zh-TW" },
         { "general", "pl" }, { "toolbar", "pl" }, { "presets", "pl" }, { "home", "pl" },
         { "home", "es" }, { "general", "es" }, { "toolbar", "es" }, { "presets", "es" }, { "engines", "es" },
         { "home", "pt-BR" }, { "general", "pt-BR" }, { "toolbar", "pt-BR" }, { "presets", "pt-BR" }, { "engines", "pt-BR" },

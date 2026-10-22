@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <b>Français</b></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <b>Français</b></p>
 
 <table>
   <tr>
@@ -77,7 +77,7 @@ mise à jour, quelques diapositives présentent les nouveautés.
 - **Des dossiers surveillés** convertissent chaque fichier qui y arrive.
 - **Conversions récentes** dans l'Accueil, chacune avec sa miniature : ouvrez le résultat, ou ouvrez-le avec une autre application.
 - **D'autres points d'entrée** : le menu contextuel, un raccourci clavier, la zone de dépôt et la [commande `filee`](#ligne-de-commande).
-- Thèmes clair et sombre avec votre propre couleur d'accentuation et l'opacité du menu circulaire, en English, Español, 日本語, 한국어, 简体中文, Polski, हिन्दी, Русский, العربية (de droite à gauche), Português (Brasil) et Français.
+- Thèmes clair et sombre avec votre propre couleur d'accentuation et l'opacité du menu circulaire, en English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (de droite à gauche), Português (Brasil) et Français.
 
 ## Captures d'écran
 
