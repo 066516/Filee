@@ -89,4 +89,21 @@ public class TrimTransparentTests(EngineFixture fx) : IClassFixture<EngineFixtur
         Filee.Engines.Magick.ImageEncoder.TrimTransparentBorders(empty);
         Assert.Equal((40u, 30u), (empty.Width, empty.Height));
     }
+
+    [Fact]
+    public async Task A_jpg_has_nothing_to_trim_and_is_not_re_encoded()
+    {
+        var folder = fx.NewFolder();
+        var photo = Path.Combine(folder, "photo.jpg");
+        using (var image = new MagickImage(MagickColors.Teal, 60, 40))
+            image.Write(photo, MagickFormat.Jpeg);
+
+        var job = await fx.ConvertAsync([photo], Trim);
+
+        Assert.Equal(JobState.Failed, job.State);
+        Assert.Equal("error.no_transparency", job.Files[0].ErrorKey);
+        Assert.Equal(["photo.jpg"], Directory.GetFiles(folder).Select(Path.GetFileName));
+        Assert.False(Filee.Engines.Magick.ImageEncoder.HoldsAlpha("jpg"));
+        Assert.True(Filee.Engines.Magick.ImageEncoder.HoldsAlpha("png"));
+    }
 }

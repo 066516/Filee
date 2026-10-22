@@ -86,6 +86,10 @@ public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransf
         cancellationToken.ThrowIfCancellationRequested();
         progress?.Report(0.3);
 
+        // A JPG has no transparent border to trim: re-encoding it would only cost a JPEG generation.
+        if (step.Preset.Image.TrimTransparent && !ImageEncoder.HoldsAlpha(step.To))
+            throw new ConversionRefusedException("error.no_transparency", step.To.ToUpperInvariant());
+
         var animation = ImageEncoder.KeepsAnimation(from, step.To);
         var frames = ImageEncoder.SelectFrames(images, from, step.To);
         // Before the options: frames dropped for speed aren't resized for nothing.
@@ -95,7 +99,7 @@ public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransf
         {
             cancellationToken.ThrowIfCancellationRequested();
             ImageEncoder.ApplyOptions(frame, step.Preset.Image, step.To);
-            // shortcut: animations aren't trimmed (each frame alone would shift), trim all frames to one box when asked.
+            // Animations aren't trimmed: each frame trimmed alone would shift. Trimming all frames to one box could be added.
             if (step.Preset.Image.TrimTransparent && !(animation && frames.Count > 1))
                 ImageEncoder.TrimTransparentBorders(frame);
         }

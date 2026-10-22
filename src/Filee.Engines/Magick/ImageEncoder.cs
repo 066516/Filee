@@ -67,6 +67,9 @@ internal static class ImageEncoder
     /// </summary>
     private static readonly HashSet<string> NoAlpha = ["jpg", "ppm", "heic", "xbm", "wbmp", "pfm", "pcx", "ras"];
 
+    /// <summary>False for formats Filee writes without transparency (<see cref="NoAlpha"/>): nothing to trim there.</summary>
+    public static bool HoldsAlpha(string format) => !NoAlpha.Contains(format);
+
     /// <summary>
     /// Formats read with their ImageMagick coder named instead of guessed from the file: some extensions mean another
     /// format to ImageMagick (.rgb and .bw are headerless pixel data there, SGI here) and WBMP has no signature.
