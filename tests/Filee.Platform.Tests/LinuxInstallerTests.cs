@@ -8,6 +8,7 @@ public sealed class LinuxInstallerTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "filee-installer-test-" + Guid.NewGuid().ToString("N"));
     private readonly string _installScriptPath;
+    private readonly string _shimBinDir;
 
     public LinuxInstallerTests()
     {
@@ -20,13 +21,128 @@ public sealed class LinuxInstallerTests : IDisposable
             dir = Path.GetDirectoryName(dir) ?? throw new InvalidOperationException("Repository root not found.");
         }
         _installScriptPath = Path.Combine(dir, "installer", "linux", "install.sh");
+
+        _shimBinDir = Path.Combine(_root, "shim-bin");
+        Directory.CreateDirectory(_shimBinDir);
+        if (OperatingSystem.IsLinux())
+        {
+            var shimPath = Path.Combine(_shimBinDir, "mv");
+            File.WriteAllText(shimPath, @"#!/bin/sh
+set -e
+
+# Fault-injection shim for LinuxInstallerTests
+REAL_MV=$(PATH=""/usr/bin:/bin"" command -v mv)
+
+if [ ""${SHIM_FAIL_ACTIVATION:-0}"" = ""1"" ]; then
+    case ""$1"" in
+        *.staging-*)
+            exit 1
+            ;;
+    esac
+fi
+
+if [ ""${SHIM_FAIL_ACTIVATION_OCCUPIED:-0}"" = ""1"" ]; then
+    case ""$1"" in
+        *.staging-*)
+            mkdir -p ""$2""
+            touch ""$2/conflict""
+            chmod 555 ""$2""
+            exit 1
+            ;;
+    esac
+fi
+
+if [ ""${SHIM_FAIL_POST_VALIDATION:-0}"" = ""1"" ]; then
+    case ""$1"" in
+        *.staging-*)
+            ""$REAL_MV"" ""$@""
+            res=$?
+            rm -f ""$2/.filee-package""
+            exit ""$res""
+            ;;
+    esac
+fi
+
+if [ ""${SHIM_FAIL_CLEANUP_FAILED_DIR:-0}"" = ""1"" ]; then
+    case ""$1"" in
+        *.staging-*)
+            ""$REAL_MV"" ""$@""
+            res=$?
+            mkdir -p ""$2/locked-folder""
+            touch ""$2/locked-folder/file""
+            chmod 555 ""$2/locked-folder""
+            rm -f ""$2/.filee-package""
+            exit ""$res""
+            ;;
+    esac
+fi
+
+if [ ""${SHIM_FAIL_QUARANTINE:-0}"" = ""1"" ]; then
+    case ""$1"" in
+        *.staging-*)
+            ""$REAL_MV"" ""$@""
+            res=$?
+            rm -f ""$2/.filee-package""
+            exit ""$res""
+            ;;
+    esac
+    case ""$2"" in
+        *.failed-*)
+            exit 1
+            ;;
+    esac
+fi
+
+if [ ""${SHIM_FAIL_FOREIGN_DESTINATION:-0}"" = ""1"" ]; then
+    case ""$1"" in
+        *.staging-*)
+            ""$REAL_MV"" ""$@""
+            rm -rf ""$2""
+            mkdir -p ""$2""
+            echo ""important-foreign-data"" > ""$2/important.txt""
+            exit 1
+            ;;
+    esac
+fi
+
+if [ ""${SHIM_FAIL_ROLLBACK_OCCUPIED:-0}"" = ""1"" ]; then
+    case ""$1"" in
+        *.staging-*)
+            ""$REAL_MV"" ""$@""
+            rm -rf ""$2""
+            mkdir -p ""$2""
+            touch ""$2/conflict""
+            chmod 555 ""$2""
+            exit 1
+            ;;
+    esac
+fi
+
+if [ ""${SHIM_FAIL_ROLLBACK_ABSENT:-0}"" = ""1"" ]; then
+    case ""$1"" in
+        *.staging-*)
+            ""$REAL_MV"" ""$@""
+            parent_dir=$(dirname ""$2"")
+            rm -rf ""$2""
+            chmod 555 ""$parent_dir""
+            exit 1
+            ;;
+    esac
+fi
+
+exec ""$REAL_MV"" ""$@""
+");
+            File.SetUnixFileMode(shimPath,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
+                UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+        }
     }
 
     [Fact]
     public void First_time_installation_succeeds_in_isolated_environment()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -58,8 +174,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void First_time_installation_fails_if_already_installed()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -76,8 +191,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void Upgrade_succeeds_and_replaces_binaries_while_preserving_engine_folder_and_settings()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -129,8 +243,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void Upgrade_fails_if_not_already_installed()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -144,8 +257,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void Upgrade_fails_if_marker_is_invalid_and_preserves_original_install()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -169,8 +281,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void Upgrade_fails_if_payload_is_missing_executables_and_preserves_original_install()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -194,8 +305,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void Upgrade_invokes_quit_on_running_filee_instance()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -221,8 +331,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void Upgrade_rolls_back_if_activation_move_fails()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -233,9 +342,9 @@ public sealed class LinuxInstallerTests : IDisposable
         var v2Source = Path.Combine(_root, "source-v2");
         CreateMockPayload(v2Source, "v2.0.0");
 
-        // Simulate failure during activation move: _FILEE_TEST_FAIL_ACTIVATION=1
+        // Simulate failure during activation move using external mv shim
         var (exitCode, output, error) = RunInstaller(v2Source, env.DataDir, env.HomeDir,
-            new Dictionary<string, string> { ["_FILEE_TEST_FAIL_ACTIVATION"] = "1" }, "--upgrade");
+            new Dictionary<string, string> { ["SHIM_FAIL_ACTIVATION"] = "1" }, "--upgrade");
 
         Assert.NotEqual(0, exitCode);
         Assert.Contains("Restored the previous Filee installation", output + error);
@@ -249,8 +358,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void Upgrade_rolls_back_if_post_swap_validation_fails()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -261,9 +369,9 @@ public sealed class LinuxInstallerTests : IDisposable
         var v2Source = Path.Combine(_root, "source-v2");
         CreateMockPayload(v2Source, "v2.0.0");
 
-        // Simulate failure during post-swap validation: _FILEE_TEST_FAIL_POST_VALIDATION=1
+        // Simulate failure during post-swap validation using external mv shim
         var (exitCode, output, error) = RunInstaller(v2Source, env.DataDir, env.HomeDir,
-            new Dictionary<string, string> { ["_FILEE_TEST_FAIL_POST_VALIDATION"] = "1" }, "--upgrade");
+            new Dictionary<string, string> { ["SHIM_FAIL_POST_VALIDATION"] = "1" }, "--upgrade");
 
         Assert.NotEqual(0, exitCode);
         Assert.Contains("Activated installation failed post-swap validation", output + error);
@@ -278,8 +386,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void Upgrade_reports_critical_error_and_preserves_backup_if_rollback_destination_is_occupied()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -288,9 +395,9 @@ public sealed class LinuxInstallerTests : IDisposable
         var v2Source = Path.Combine(_root, "source-v2");
         CreateMockPayload(v2Source, "v2.0.0");
 
-        // Simulate failure during rollback where destination is occupied: _FILEE_TEST_FAIL_ROLLBACK_OCCUPIED=1
+        // Simulate failure during rollback where destination is occupied using external mv shim
         var (exitCode, output, error) = RunInstaller(v2Source, env.DataDir, env.HomeDir,
-            new Dictionary<string, string> { ["_FILEE_TEST_FAIL_ROLLBACK_OCCUPIED"] = "1" }, "--upgrade");
+            new Dictionary<string, string> { ["SHIM_FAIL_ROLLBACK_OCCUPIED"] = "1" }, "--upgrade");
 
         Assert.NotEqual(0, exitCode);
         Assert.Contains("CRITICAL: Update failed and automatic rollback could not complete", output + error);
@@ -314,8 +421,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void Upgrade_reports_critical_error_if_destination_occupied_during_activation()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -324,9 +430,9 @@ public sealed class LinuxInstallerTests : IDisposable
         var v2Source = Path.Combine(_root, "source-v2");
         CreateMockPayload(v2Source, "v2.0.0");
 
-        // Simulate destination conflict during activation: _FILEE_TEST_FAIL_ACTIVATION_OCCUPIED=1
+        // Simulate destination conflict during activation using external mv shim
         var (exitCode, output, error) = RunInstaller(v2Source, env.DataDir, env.HomeDir,
-            new Dictionary<string, string> { ["_FILEE_TEST_FAIL_ACTIVATION_OCCUPIED"] = "1" }, "--upgrade");
+            new Dictionary<string, string> { ["SHIM_FAIL_ACTIVATION_OCCUPIED"] = "1" }, "--upgrade");
 
         Assert.NotEqual(0, exitCode);
         Assert.Contains("CRITICAL: Update failed and automatic rollback could not complete", output + error);
@@ -350,8 +456,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void Upgrade_reports_critical_error_and_preserves_backup_if_rollback_destination_is_absent_but_move_fails()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -360,9 +465,9 @@ public sealed class LinuxInstallerTests : IDisposable
         var v2Source = Path.Combine(_root, "source-v2");
         CreateMockPayload(v2Source, "v2.0.0");
 
-        // Simulate failure during rollback when install_dir is absent: _FILEE_TEST_FAIL_ROLLBACK_ABSENT=1
+        // Simulate failure during rollback when install_dir is absent using external mv shim
         var (exitCode, output, error) = RunInstaller(v2Source, env.DataDir, env.HomeDir,
-            new Dictionary<string, string> { ["_FILEE_TEST_FAIL_ROLLBACK_ABSENT"] = "1" }, "--upgrade");
+            new Dictionary<string, string> { ["SHIM_FAIL_ROLLBACK_ABSENT"] = "1" }, "--upgrade");
 
         Assert.NotEqual(0, exitCode);
         Assert.Contains("CRITICAL: Update failed and automatic rollback could not complete", output + error);
@@ -386,8 +491,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void Upgrade_preserves_destination_and_backup_if_quarantine_fails()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -396,9 +500,9 @@ public sealed class LinuxInstallerTests : IDisposable
         var v2Source = Path.Combine(_root, "source-v2");
         CreateMockPayload(v2Source, "v2.0.0");
 
-        // Simulate quarantine failure during rollback: _FILEE_TEST_FAIL_QUARANTINE=1
+        // Simulate quarantine failure during rollback using external mv shim
         var (exitCode, output, error) = RunInstaller(v2Source, env.DataDir, env.HomeDir,
-            new Dictionary<string, string> { ["_FILEE_TEST_FAIL_QUARANTINE"] = "1" }, "--upgrade");
+            new Dictionary<string, string> { ["SHIM_FAIL_QUARANTINE"] = "1" }, "--upgrade");
 
         Assert.NotEqual(0, exitCode);
         Assert.Contains("CRITICAL: Update failed and automatic rollback could not complete", output + error);
@@ -422,8 +526,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void Upgrade_restores_backup_and_reports_quarantine_if_quarantine_cleanup_fails()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -432,9 +535,9 @@ public sealed class LinuxInstallerTests : IDisposable
         var v2Source = Path.Combine(_root, "source-v2");
         CreateMockPayload(v2Source, "v2.0.0");
 
-        // Simulate quarantine cleanup failure: _FILEE_TEST_FAIL_CLEANUP_FAILED_DIR=1
+        // Simulate quarantine cleanup failure using external mv shim
         var (exitCode, output, error) = RunInstaller(v2Source, env.DataDir, env.HomeDir,
-            new Dictionary<string, string> { ["_FILEE_TEST_FAIL_CLEANUP_FAILED_DIR"] = "1" }, "--upgrade");
+            new Dictionary<string, string> { ["SHIM_FAIL_CLEANUP_FAILED_DIR"] = "1" }, "--upgrade");
 
         Assert.NotEqual(0, exitCode);
         Assert.Contains("Update failed. Restored the previous Filee installation", output + error);
@@ -460,8 +563,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void Upgrade_preserves_preexisting_backup_and_failed_directories_from_earlier_runs()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -502,8 +604,7 @@ public sealed class LinuxInstallerTests : IDisposable
     [Fact]
     public void Upgrade_preserves_foreign_directory_if_destination_was_replaced_before_rollback()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -512,9 +613,9 @@ public sealed class LinuxInstallerTests : IDisposable
         var v2Source = Path.Combine(_root, "source-v2");
         CreateMockPayload(v2Source, "v2.0.0");
 
-        // Simulate replacement of install_dir by a foreign directory before rollback: _FILEE_TEST_FAIL_FOREIGN_DESTINATION=1
+        // Simulate replacement of install_dir by a foreign directory before rollback using external mv shim
         var (exitCode, output, error) = RunInstaller(v2Source, env.DataDir, env.HomeDir,
-            new Dictionary<string, string> { ["_FILEE_TEST_FAIL_FOREIGN_DESTINATION"] = "1" }, "--upgrade");
+            new Dictionary<string, string> { ["SHIM_FAIL_FOREIGN_DESTINATION"] = "1" }, "--upgrade");
 
         Assert.NotEqual(0, exitCode);
         Assert.Contains("CRITICAL: Update failed and automatic rollback could not complete", output + error);
@@ -538,10 +639,9 @@ public sealed class LinuxInstallerTests : IDisposable
     }
 
     [Fact]
-    public void Test_hooks_are_ignored_in_normal_environment_even_if_environment_variable_is_set()
+    public void Test_hook_environment_variables_have_no_effect_on_installer()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -550,30 +650,21 @@ public sealed class LinuxInstallerTests : IDisposable
         var v2Source = Path.Combine(_root, "source-v2");
         CreateMockPayload(v2Source, "v2.0.0");
 
-        // Set failure hook variable, but do NOT pass _FILEE_TEST_HARNESS
+        // Setting obsolete internal test hook variables has no effect because install.sh contains no test hooks
         var (exitCode, output, error) = RunInstaller(v2Source, env.DataDir, env.HomeDir,
-            new Dictionary<string, string> { ["_FILEE_TEST_FAIL_ACTIVATION"] = "1" }, passTestHarness: false, "--upgrade");
+            new Dictionary<string, string> { ["_FILEE_TEST_FAIL_ACTIVATION"] = "1", ["_FILEE_TEST_HARNESS"] = "com.filee.test.harness" }, "--upgrade");
 
-        // The upgrade MUST succeed because test hooks are locked down and ignored without harness token
         Assert.True(exitCode == 0, $"Upgrade failed unexpectedly. Output: {output}. Error: {error}");
         Assert.Contains("Upgraded Filee at", output);
 
         var installDir = Path.Combine(env.DataDir, "filee", "application");
         Assert.Equal("v2.0.0", File.ReadAllText(Path.Combine(installDir, "version.txt")).Trim());
-
-        // Second check: set failure hook variable with an INVALID test harness token
-        var (exitCode2, output2, error2) = RunInstaller(v2Source, env.DataDir, env.HomeDir,
-            new Dictionary<string, string> { ["_FILEE_TEST_FAIL_ACTIVATION"] = "1", ["_FILEE_TEST_HARNESS"] = "bogus-token" }, passTestHarness: false, "--upgrade");
-
-        Assert.True(exitCode2 == 0, $"Upgrade failed unexpectedly with bogus token. Output: {output2}. Error: {error2}");
-        Assert.Contains("Upgraded Filee at", output2);
     }
 
     [Fact]
     public void Installation_and_upgrade_succeed_with_spaces_and_special_characters_in_paths()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var id = Guid.NewGuid().ToString("N");
         var sourceDir = Path.Combine(_root, "source path with spaces " + id);
@@ -604,23 +695,10 @@ public sealed class LinuxInstallerTests : IDisposable
         Assert.Equal("v2.0.0", File.ReadAllText(Path.Combine(installDir, "version.txt")).Trim());
     }
 
-    private (string SourceDir, string DataDir, string HomeDir) CreateEnvironment()
-    {
-        var id = Guid.NewGuid().ToString("N");
-        var sourceDir = Path.Combine(_root, "source-" + id);
-        var dataDir = Path.Combine(_root, "data-" + id);
-        var homeDir = Path.Combine(_root, "home-" + id);
-        Directory.CreateDirectory(sourceDir);
-        Directory.CreateDirectory(dataDir);
-        Directory.CreateDirectory(homeDir);
-        return (sourceDir, dataDir, homeDir);
-    }
-
     [Fact]
-    public void Upgrade_with_in_app_update_env_var_skips_Filee_quit_and_restart()
+    public void Upgrade_fails_if_running_filee_cannot_gracefully_shut_down()
     {
-        if (!OperatingSystem.IsLinux())
-            return;
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Requires Linux.");
 
         var env = CreateEnvironment();
         CreateMockPayload(env.SourceDir, "v1.0.0");
@@ -639,16 +717,23 @@ public sealed class LinuxInstallerTests : IDisposable
         var v2Dir = Path.Combine(_root, "source-v2-" + Guid.NewGuid().ToString("N")[..8]);
         CreateMockPayload(v2Dir, "v2.0.0");
 
-        // 1. Without FILEE_IN_APP_UPDATE, upgrade calls Filee --quit, which fails with code 42
+        // Upgrade calls Filee --quit, which fails with code 42
         var (failCode, failOut, failErr) = RunInstaller(v2Dir, env.DataDir, env.HomeDir, args: ["--upgrade"]);
         Assert.NotEqual(0, failCode);
         Assert.Contains("Could not gracefully shut down", failOut + failErr);
+        Assert.Equal("v1.0.0", File.ReadAllText(Path.Combine(installDir, "version.txt")).Trim());
+    }
 
-        // 2. With FILEE_IN_APP_UPDATE=1, upgrade skips Filee --quit and succeeds
-        var inAppEnv = new Dictionary<string, string> { ["FILEE_IN_APP_UPDATE"] = "1" };
-        var (succCode, succOut, succErr) = RunInstaller(v2Dir, env.DataDir, env.HomeDir, inAppEnv, "--upgrade", "--restart");
-        Assert.True(succCode == 0, $"Expected upgrade to succeed. Output: {succOut}. Error: {succErr}");
-        Assert.Equal("v2.0.0", File.ReadAllText(Path.Combine(installDir, "version.txt")).Trim());
+    private (string SourceDir, string DataDir, string HomeDir) CreateEnvironment()
+    {
+        var id = Guid.NewGuid().ToString("N");
+        var sourceDir = Path.Combine(_root, "source-" + id);
+        var dataDir = Path.Combine(_root, "data-" + id);
+        var homeDir = Path.Combine(_root, "home-" + id);
+        Directory.CreateDirectory(sourceDir);
+        Directory.CreateDirectory(dataDir);
+        Directory.CreateDirectory(homeDir);
+        return (sourceDir, dataDir, homeDir);
     }
 
     private void CreateMockPayload(string dir, string version)
@@ -671,16 +756,12 @@ public sealed class LinuxInstallerTests : IDisposable
         File.SetUnixFileMode(script, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
     }
 
-    private static (int ExitCode, string Output, string Error) RunInstaller(
+    private (int ExitCode, string Output, string Error) RunInstaller(
         string sourceDir, string dataDir, string homeDir, params string[] args) =>
-        RunInstaller(sourceDir, dataDir, homeDir, null, passTestHarness: true, args);
+        RunInstaller(sourceDir, dataDir, homeDir, null, args);
 
-    private static (int ExitCode, string Output, string Error) RunInstaller(
-        string sourceDir, string dataDir, string homeDir, IDictionary<string, string>? extraEnv, params string[] args) =>
-        RunInstaller(sourceDir, dataDir, homeDir, extraEnv, passTestHarness: true, args);
-
-    private static (int ExitCode, string Output, string Error) RunInstaller(
-        string sourceDir, string dataDir, string homeDir, IDictionary<string, string>? extraEnv, bool passTestHarness, params string[] args)
+    private (int ExitCode, string Output, string Error) RunInstaller(
+        string sourceDir, string dataDir, string homeDir, IDictionary<string, string>? extraEnv, params string[] args)
     {
         var script = Path.Combine(sourceDir, "install.sh");
         var psi = new ProcessStartInfo("/bin/sh")
@@ -696,9 +777,7 @@ public sealed class LinuxInstallerTests : IDisposable
 
         psi.Environment["XDG_DATA_HOME"] = dataDir;
         psi.Environment["HOME"] = homeDir;
-        psi.Environment["PATH"] = Environment.GetEnvironmentVariable("PATH") ?? "/bin:/usr/bin";
-        if (passTestHarness)
-            psi.Environment["_FILEE_TEST_HARNESS"] = "com.filee.test.harness";
+        psi.Environment["PATH"] = $"{_shimBinDir}:{Environment.GetEnvironmentVariable("PATH") ?? "/bin:/usr/bin"}";
 
         if (extraEnv is not null)
         {
@@ -718,10 +797,14 @@ public sealed class LinuxInstallerTests : IDisposable
     {
         try
         {
-            // Reset write permissions on any created conflict folders so Directory.Delete succeeds
-            foreach (var dir in Directory.GetDirectories(_root, "*", SearchOption.AllDirectories))
+            if (OperatingSystem.IsLinux() && Directory.Exists(_root))
             {
-                try { File.SetUnixFileMode(dir, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute); } catch { }
+                var psi = new ProcessStartInfo("/bin/chmod", ["-R", "u+rwx", _root])
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                Process.Start(psi)?.WaitForExit(5000);
             }
             if (Directory.Exists(_root))
                 Directory.Delete(_root, recursive: true);

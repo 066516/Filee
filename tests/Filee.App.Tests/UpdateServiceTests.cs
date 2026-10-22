@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Formats.Tar;
 using System.IO.Compression;
@@ -456,7 +457,7 @@ public class UpdateServiceTests
     }
 
     [AvaloniaFact]
-    public async Task UpdateAsync_on_linux_downloads_extracts_and_invokes_installer_with_upgrade_and_restart()
+    public async Task UpdateAsync_on_linux_downloads_extracts_and_delegates_to_detached_helper()
     {
         var tarBytes = CreateTarGz(writer =>
         {
@@ -468,7 +469,6 @@ public class UpdateServiceTests
         var network = new FakeLinuxRelease(tarBytes, hash, "Filee-9.9.9-linux-x64.tar.gz", "9.9.9");
 
         var mockInstallDir = TempFolder();
-        File.WriteAllText(Path.Combine(mockInstallDir, ".filee-version"), "9.9.9");
 
         var updates = new UpdateService(NullLogger<UpdateService>.Instance, network)
         {
@@ -491,32 +491,25 @@ public class UpdateServiceTests
 
         await updates.UpdateAsync();
 
-        Assert.Equal(UpdateStep.Idle, updates.Step);
-        Assert.True(processes.Count >= 2);
+        Assert.Equal(UpdateStep.Installing, updates.Step);
+        Assert.Single(processes);
 
-        var installerPsi = processes[0];
-        Assert.Equal("/bin/sh", installerPsi.FileName);
-        Assert.Equal(3, installerPsi.ArgumentList.Count);
-        Assert.EndsWith("install.sh", installerPsi.ArgumentList[0]);
-        Assert.Equal("--upgrade", installerPsi.ArgumentList[1]);
-        Assert.Equal("--restart", installerPsi.ArgumentList[2]);
-        Assert.Equal("1", installerPsi.Environment["FILEE_IN_APP_UPDATE"]);
-        Assert.Equal(installerPsi.WorkingDirectory, Path.GetDirectoryName(installerPsi.ArgumentList[0]));
+        var helperPsi = processes[0];
+        Assert.Equal("/bin/sh", helperPsi.FileName);
+        Assert.Equal("-c", helperPsi.ArgumentList[0]);
+        Assert.Contains("kill -0 \"$1\"", helperPsi.ArgumentList[1]);
+        Assert.Contains("\"$2\" --upgrade >> \"$4\" 2>&1", helperPsi.ArgumentList[1]);
+        Assert.Contains("exec \"$3\" --background --whats-new", helperPsi.ArgumentList[1]);
+        Assert.Equal(Environment.ProcessId.ToString(), helperPsi.ArgumentList[3]);
+        Assert.EndsWith("install.sh", helperPsi.ArgumentList[4]);
+        Assert.Equal(Path.Combine(mockInstallDir, "Filee"), helperPsi.ArgumentList[5]);
+        Assert.EndsWith(".log", helperPsi.ArgumentList[6]);
 
-        var restartPsi = processes[1];
-        Assert.Equal("/bin/sh", restartPsi.FileName);
-        Assert.Equal("-c", restartPsi.ArgumentList[0]);
-        Assert.Contains("kill -0", restartPsi.ArgumentList[1]);
-        Assert.Equal(Environment.ProcessId.ToString(), restartPsi.ArgumentList[3]);
-        Assert.Equal(Path.Combine(mockInstallDir, "Filee"), restartPsi.ArgumentList[4]);
-        Assert.Equal(mockInstallDir, restartPsi.WorkingDirectory);
-        Assert.False(restartPsi.Environment.ContainsKey("FILEE_IN_APP_UPDATE"));
-
-        Assert.True(shutdownRequested, "Application shutdown must be requested after verified installation");
+        Assert.True(shutdownRequested, "Application shutdown must be requested before file swap");
     }
 
     [AvaloniaFact]
-    public async Task UpdateAsync_on_linux_handles_installer_failure()
+    public async Task UpdateAsync_on_linux_handles_helper_start_failure()
     {
         var tarBytes = CreateTarGz(writer =>
         {
@@ -528,8 +521,6 @@ public class UpdateServiceTests
         var network = new FakeLinuxRelease(tarBytes, hash, "Filee-9.9.9-linux-x64.tar.gz", "9.9.9");
 
         var mockInstallDir = TempFolder();
-        var backupDir = Path.Combine(Path.GetDirectoryName(mockInstallDir)!, ".backup-123");
-        Directory.CreateDirectory(backupDir);
 
         var updates = new UpdateService(NullLogger<UpdateService>.Instance, network)
         {
@@ -548,16 +539,15 @@ public class UpdateServiceTests
         updates.RequestApplicationShutdown = () => shutdownRequested = true;
 
         updates.StartProcess = psi =>
-            Process.Start(new ProcessStartInfo("false") { UseShellExecute = false });
+            throw new Win32Exception("Cannot spawn helper process");
 
         await updates.UpdateAsync();
 
         Assert.Equal(UpdateStep.Failed, updates.Step);
         Assert.Equal(1, failedCount);
         Assert.NotNull(updates.LastError);
-        Assert.Contains("Installer ended with exit code 1", updates.LastError.Message);
-        Assert.Contains("mv '" + backupDir + "' '" + mockInstallDir + "'", updates.LastError.Message);
-        Assert.False(shutdownRequested, "Application shutdown must not be requested when installer fails");
+        Assert.Contains("Cannot spawn helper process", updates.LastError.Message);
+        Assert.False(shutdownRequested, "Application shutdown must not be requested when helper fails to start");
     }
 
     [Fact]
@@ -637,7 +627,14 @@ public class UpdateServiceTests
 
         var linkContainer = TempFolder();
         var symlinkPath = Path.Combine(linkContainer, "link-to-real");
-        File.CreateSymbolicLink(symlinkPath, realDir);
+        try
+        {
+            File.CreateSymbolicLink(symlinkPath, realDir);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Assert.Skip("This machine doesn't let the test make a symbolic link.");
+        }
 
         UpdateService.DeleteSecureWorkspace(symlinkPath);
 
@@ -667,7 +664,10 @@ public class UpdateServiceTests
     public void VerifyInstalledVersion_detects_mismatch()
     {
         var folder = TempFolder();
-        File.WriteAllText(Path.Combine(folder, ".filee-version"), "1.0.0");
+        var cli = Path.Combine(folder, "filee-cli");
+        File.WriteAllText(cli, "#!/bin/sh\necho \"filee 1.0.0\"\n");
+        if (OperatingSystem.IsLinux())
+            File.SetUnixFileMode(cli, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
 
         Assert.True(UpdateService.VerifyInstalledVersion(folder, "1.0.0", out var actual));
         Assert.Equal("1.0.0", actual);
@@ -680,47 +680,52 @@ public class UpdateServiceTests
         Assert.Null(actual);
     }
 
-    [AvaloniaFact]
-    public async Task UpdateAsync_on_linux_fails_when_installed_version_does_not_match()
+    [Fact]
+    public void Tar_extraction_masks_mode_to_rwx_bits()
     {
         var tarBytes = CreateTarGz(writer =>
         {
-            AddFileEntry(writer, "Filee-9.9.9-linux-x64/Filee", "#!/bin/sh\nexit 0\n");
-            AddFileEntry(writer, "Filee-9.9.9-linux-x64/install.sh", "#!/bin/sh\nexit 0\n");
-            AddFileEntry(writer, "Filee-9.9.9-linux-x64/filee.png", "png data");
+            var setuidMode = UnixFileMode.SetUser | UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+                             | UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
+            var setgidMode = UnixFileMode.SetGroup | UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+                             | UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
+            AddFileEntry(writer, "Filee-9.9.9-linux-x64/Filee", "#!/bin/sh\nexit 0\n", setuidMode);
+            AddFileEntry(writer, "Filee-9.9.9-linux-x64/install.sh", "#!/bin/sh\nexit 0\n", setgidMode);
         });
-        var hash = Sha256(tarBytes);
-        var network = new FakeLinuxRelease(tarBytes, hash, "Filee-9.9.9-linux-x64.tar.gz", "9.9.9");
+        var archiveFile = Path.Combine(TempFolder(), "payload.tar.gz");
+        File.WriteAllBytes(archiveFile, tarBytes);
 
-        var mockInstallDir = TempFolder();
-        File.WriteAllText(Path.Combine(mockInstallDir, ".filee-version"), "1.0.0"); // Mismatch: expecting 9.9.9
+        var destFolder = TempFolder();
+        var payloadDir = UpdateService.ExtractLinuxArchive(archiveFile, destFolder);
 
-        var updates = new UpdateService(NullLogger<UpdateService>.Instance, network)
+        if (OperatingSystem.IsLinux())
         {
-            InstallsItself = true,
-            TargetPlatform = "linux-x64",
-            LinuxInstallDirectoryOverride = mockInstallDir,
-        };
-        updates.UseRelease(
-            new UpdateService.ReleaseFile("Filee-9.9.9-linux-x64.tar.gz", Base + "Filee-9.9.9-linux-x64.tar.gz", tarBytes.Length),
-            new UpdateService.ReleaseFile("Filee-9.9.9-linux-x64-SHA256SUMS.txt", Base + "Filee-9.9.9-linux-x64-SHA256SUMS.txt", 100));
+            var fileeMode = File.GetUnixFileMode(Path.Combine(payloadDir, "Filee"));
+            var installMode = File.GetUnixFileMode(Path.Combine(payloadDir, "install.sh"));
 
-        var failedCount = 0;
-        updates.UpdateFailed += (_, _) => failedCount++;
+            Assert.False(fileeMode.HasFlag(UnixFileMode.SetUser), "setuid bit must be stripped");
+            Assert.False(fileeMode.HasFlag(UnixFileMode.SetGroup), "setgid bit must be stripped");
+            Assert.False(fileeMode.HasFlag(UnixFileMode.StickyBit), "sticky bit must be stripped");
 
-        var shutdownRequested = false;
-        updates.RequestApplicationShutdown = () => shutdownRequested = true;
+            Assert.False(installMode.HasFlag(UnixFileMode.SetUser), "setuid bit must be stripped");
+            Assert.False(installMode.HasFlag(UnixFileMode.SetGroup), "setgid bit must be stripped");
+            Assert.False(installMode.HasFlag(UnixFileMode.StickyBit), "sticky bit must be stripped");
+        }
+    }
 
-        updates.StartProcess = psi =>
-            Process.Start(new ProcessStartInfo("true") { UseShellExecute = false });
+    [Fact]
+    public void FindLinuxRecoveryInfo_handles_trailing_directory_separator()
+    {
+        var baseDir = TempFolder();
+        var installDir = Path.Combine(baseDir, "application");
+        Directory.CreateDirectory(installDir);
 
-        await updates.UpdateAsync();
+        var backupDir = Path.Combine(baseDir, ".backup-123");
+        Directory.CreateDirectory(backupDir);
 
-        Assert.Equal(UpdateStep.Failed, updates.Step);
-        Assert.Equal(1, failedCount);
-        Assert.NotNull(updates.LastError);
-        Assert.Contains("Update verification failed", updates.LastError.Message);
-        Assert.False(shutdownRequested, "Application shutdown must not be requested when version verification fails");
+        var recovery = UpdateService.FindLinuxRecoveryInfo(installDir + Path.DirectorySeparatorChar);
+        Assert.Contains(backupDir, recovery);
+        Assert.Contains("To recover manually: mv", recovery);
     }
 
     private static byte[] CreateTarGz(Action<TarWriter> populate)

@@ -14,6 +14,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Filee.Core.Settings;
 using Microsoft.Extensions.Logging;
 
 namespace Filee.App.Services;
@@ -325,154 +326,131 @@ public sealed partial class UpdateService : ObservableObject
             return;
         }
 
-        string installer;
-        string? workspace = null;
-        try
+        if (TargetPlatform == "win")
         {
-            workspace = CreateSecureWorkspace();
-            var progress = new Progress<int>(percent => DownloadPercent = percent);
-            installer = await DownloadInstallerAsync(workspace, progress);
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException
-                                       or InvalidDataException or UnauthorizedAccessException)
-        {
-            DeleteSecureWorkspace(workspace);
-            Fail("download", ex);
-            return;
-        }
+            var folder = Path.Combine(Path.GetTempPath(), "Filee-update");
+            string installer;
+            try
+            {
+                var progress = new Progress<int>(percent => DownloadPercent = percent);
+                installer = await DownloadInstallerAsync(folder, progress);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException
+                                           or InvalidDataException or UnauthorizedAccessException)
+            {
+                Fail("download", ex);
+                return;
+            }
 
-        Process? setup;
-        try
-        {
-            if (TargetPlatform == "win")
+            Process? setup;
+            try
             {
                 setup = StartProcess(new ProcessStartInfo(installer, InstallerArguments) { UseShellExecute = true });
             }
-            else if (TargetPlatform.StartsWith("linux-", StringComparison.OrdinalIgnoreCase))
+            catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
             {
-                var stagingDir = Path.Combine(workspace, "payload");
-                string payloadDir;
-                try
-                {
-                    Directory.CreateDirectory(stagingDir);
-                    payloadDir = ExtractLinuxArchive(installer, stagingDir);
-                }
-                catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException)
-                {
-                    DeleteSecureWorkspace(workspace);
-                    Fail("extract", ex);
-                    return;
-                }
+                _log.LogInformation("Update cancelled at the administrator prompt");
+                Step = UpdateStep.Cancelled;
+                return;
+            }
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+            {
+                Fail("start", ex);
+                return;
+            }
 
-                var scriptPath = Path.Combine(payloadDir, "install.sh");
+            _log.LogInformation("Started the installer for {Version}", LatestVersion);
+            Step = UpdateStep.Installing;
+            if (setup is null)
+                return;
+
+            using (setup)
+                await setup.WaitForExitAsync();
+            _log.LogInformation("Installer ended with exit code {Code}", setup.ExitCode);
+            Step = setup.ExitCode == 0 ? UpdateStep.Idle : UpdateStep.Cancelled;
+            return;
+        }
+
+        if (TargetPlatform.StartsWith("linux-", StringComparison.OrdinalIgnoreCase))
+        {
+            string? workspace = null;
+            string installer;
+            try
+            {
+                workspace = CreateSecureWorkspace();
+                var progress = new Progress<int>(percent => DownloadPercent = percent);
+                installer = await DownloadInstallerAsync(workspace, progress);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException
+                                           or InvalidDataException or UnauthorizedAccessException)
+            {
+                DeleteSecureWorkspace(workspace);
+                Fail("download", ex);
+                return;
+            }
+
+            var stagingDir = Path.Combine(workspace, "payload");
+            string payloadDir;
+            try
+            {
+                Directory.CreateDirectory(stagingDir);
+                payloadDir = ExtractLinuxArchive(installer, stagingDir);
+            }
+            catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException)
+            {
+                DeleteSecureWorkspace(workspace);
+                Fail("extract", ex);
+                return;
+            }
+
+            var scriptPath = Path.Combine(payloadDir, "install.sh");
+            var targetInstallDir = LinuxInstallDirectoryOverride ?? GetLinuxInstallDirectory();
+            var newExe = Path.Combine(targetInstallDir, "Filee");
+            var currentPid = Environment.ProcessId;
+            var logDir = Path.Combine(UserDataStore.DefaultDirectory, "logs");
+            Directory.CreateDirectory(logDir);
+            var logFile = Path.Combine(logDir, $"filee-{DateTime.Now:yyyyMMdd}.log");
+
+            Process? helper;
+            try
+            {
                 var startInfo = new ProcessStartInfo("/bin/sh")
                 {
                     WorkingDirectory = payloadDir,
                     UseShellExecute = false,
                 };
+                startInfo.ArgumentList.Add("-c");
+                startInfo.ArgumentList.Add(
+                    "for _ in $(seq 1 600); do if ! kill -0 \"$1\" 2>/dev/null; then break; fi; sleep 0.1; done; " +
+                    "if kill -0 \"$1\" 2>/dev/null; then echo \"Update aborted: Filee (PID $1) did not exit within timeout\" >> \"$4\"; exit 1; fi; " +
+                    "\"$2\" --upgrade >> \"$4\" 2>&1; " +
+                    "status=$?; " +
+                    "rm -rf \"$5\" 2>/dev/null; " +
+                    "if [ $status -eq 0 ]; then exec \"$3\" --background --whats-new; else echo \"Update failed with status $status\" >> \"$4\"; exit $status; fi"
+                );
+                startInfo.ArgumentList.Add("_");
+                startInfo.ArgumentList.Add(currentPid.ToString());
                 startInfo.ArgumentList.Add(scriptPath);
-                startInfo.ArgumentList.Add("--upgrade");
-                startInfo.ArgumentList.Add("--restart");
-                startInfo.Environment["FILEE_IN_APP_UPDATE"] = "1";
-                setup = StartProcess(startInfo);
+                startInfo.ArgumentList.Add(newExe);
+                startInfo.ArgumentList.Add(logFile);
+                startInfo.ArgumentList.Add(workspace);
+
+                helper = StartProcess(startInfo);
             }
-            else
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
             {
-                throw new PlatformNotSupportedException("In-app update is only supported on Windows and Linux");
+                DeleteSecureWorkspace(workspace);
+                Fail("start", ex);
+                return;
             }
-        }
-        catch (Win32Exception ex) when (TargetPlatform == "win" && ex.NativeErrorCode == ErrorCancelled)
-        {
-            _log.LogInformation("Update cancelled at the administrator prompt");
-            Step = UpdateStep.Cancelled;
-            DeleteSecureWorkspace(workspace);
-            return;
-        }
-        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or PlatformNotSupportedException)
-        {
-            DeleteSecureWorkspace(workspace);
-            Fail("start", ex);
+
+            _log.LogInformation("Started update helper for {Version}, exiting current process", LatestVersion);
+            Step = UpdateStep.Installing;
+            RequestApplicationShutdown?.Invoke();
             return;
         }
 
-        _log.LogInformation("Started the installer for {Version}", LatestVersion);
-        Step = UpdateStep.Installing;
-        if (setup is null)
-            return;
-
-        // A successful update closes Filee before Setup exits, so getting here means Setup ended without updating:
-        // the administrator prompt was declined (Setup asks for it itself), or the user cancelled, or an error occurred.
-        using (setup)
-        {
-            await setup.WaitForExitAsync();
-            _log.LogInformation("Installer ended with exit code {Code}", setup.ExitCode);
-            if (setup.ExitCode == 0)
-            {
-                if (TargetPlatform.StartsWith("linux-", StringComparison.OrdinalIgnoreCase))
-                {
-                    var targetInstallDir = LinuxInstallDirectoryOverride ?? GetLinuxInstallDirectory();
-                    var expectedVersion = LatestVersion;
-                    if (string.IsNullOrWhiteSpace(expectedVersion))
-                    {
-                        var fileName = Path.GetFileName(installer);
-                        var parts = fileName.Split('-');
-                        if (parts.Length >= 2 && TryParse(parts[1], out var parsedVer))
-                            expectedVersion = parsedVer.ToString(3);
-                        expectedVersion ??= "";
-                    }
-                    if (!VerifyInstalledVersion(targetInstallDir, expectedVersion, out var actualVersion))
-                    {
-                        var recovery = FindLinuxRecoveryInfo(targetInstallDir);
-                        var message = $"Update verification failed: installed version '{actualVersion ?? "unknown"}' does not match expected version '{expectedVersion}'. {recovery}";
-                        _log.LogError("{Message}", message);
-                        DeleteSecureWorkspace(workspace);
-                        Fail("verify", new InvalidOperationException(message));
-                        return;
-                    }
-                    // Success on Linux: spawn detached restart watcher and shut down current instance.
-                    try
-                    {
-                        var newExe = Path.Combine(targetInstallDir, "Filee");
-                        var currentPid = Environment.ProcessId;
-                        var restartWatcher = new ProcessStartInfo("/bin/sh")
-                        {
-                            WorkingDirectory = targetInstallDir,
-                            UseShellExecute = false,
-                        };
-                        restartWatcher.ArgumentList.Add("-c");
-                        restartWatcher.ArgumentList.Add("for _ in $(seq 1 600); do if ! kill -0 \"$1\" 2>/dev/null; then exec \"$2\"; fi; sleep 0.1; done; exit 1");
-                        restartWatcher.ArgumentList.Add("_");
-                        restartWatcher.ArgumentList.Add(currentPid.ToString());
-                        restartWatcher.ArgumentList.Add(newExe);
-                        restartWatcher.Environment.Remove("FILEE_IN_APP_UPDATE");
-                        StartProcess(restartWatcher);
-                    }
-                    catch (Exception ex)
-                    {
-                        _log.LogWarning(ex, "Failed to launch restart watcher for {Version}", expectedVersion);
-                    }
-                    RequestApplicationShutdown?.Invoke();
-                }
-                Step = UpdateStep.Idle;
-                DeleteSecureWorkspace(workspace);
-            }
-            else if (TargetPlatform == "win")
-            {
-                Step = UpdateStep.Cancelled;
-                DeleteSecureWorkspace(workspace);
-            }
-            else
-            {
-                var targetInstallDir = LinuxInstallDirectoryOverride ?? GetLinuxInstallDirectory();
-                var recovery = FindLinuxRecoveryInfo(targetInstallDir);
-                var message = string.IsNullOrEmpty(recovery)
-                    ? $"Installer ended with exit code {setup.ExitCode}"
-                    : $"Installer ended with exit code {setup.ExitCode}. {recovery}";
-                _log.LogError("{Message}", message);
-                DeleteSecureWorkspace(workspace);
-                Fail("install", new InvalidOperationException(message));
-            }
-        }
+        throw new PlatformNotSupportedException("In-app update is only supported on Windows and Linux");
     }
 
     /// <summary>
@@ -633,6 +611,11 @@ public sealed partial class UpdateService : ObservableObject
         return (installer, checksums);
     }
 
+    private const UnixFileMode RwxMask =
+        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
     /// <summary>
     /// Extracts a Linux release archive (.tar.gz) into <paramref name="destinationDirectory"/> with security validation
     /// (rejecting path traversal, absolute paths, unsafe entry types, directory symlinks, and escaping/component symlinks).
@@ -704,8 +687,7 @@ public sealed partial class UpdateService : ObservableObject
 
                         if (OperatingSystem.IsLinux())
                         {
-                            var mode = entry.Mode;
-                            mode |= UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                            var mode = (entry.Mode & RwxMask) | UnixFileMode.UserRead | UnixFileMode.UserWrite;
                             File.SetUnixFileMode(destinationPath, mode);
                         }
                         break;
@@ -860,8 +842,7 @@ public sealed partial class UpdateService : ObservableObject
     {
         if (OperatingSystem.IsLinux() && File.Exists(path))
         {
-            var mode = File.GetUnixFileMode(path);
-            mode |= UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+            var mode = (File.GetUnixFileMode(path) & RwxMask) | UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
             File.SetUnixFileMode(path, mode);
         }
     }
@@ -907,19 +888,26 @@ public sealed partial class UpdateService : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(baseDir))
         {
-            baseDir = Path.GetTempPath();
             if (OperatingSystem.IsLinux())
             {
-                var runtimeDir = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
-                if (!string.IsNullOrWhiteSpace(runtimeDir) && Directory.Exists(runtimeDir))
-                    baseDir = runtimeDir;
+                var dataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+                var root = !string.IsNullOrWhiteSpace(dataHome)
+                    ? dataHome
+                    : Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                baseDir = Path.Combine(root, "filee");
+            }
+            else
+            {
+                baseDir = Path.GetTempPath();
             }
         }
+
+        Directory.CreateDirectory(baseDir);
 
         for (var attempt = 0; attempt < 100; attempt++)
         {
             var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
-            var candidate = Path.Combine(baseDir, $"filee-update-{Environment.ProcessId}-{token}");
+            var candidate = Path.Combine(baseDir, $".update-{Environment.ProcessId}-{token}");
             if (Path.Exists(candidate))
                 continue;
 
@@ -968,12 +956,13 @@ public sealed partial class UpdateService : ObservableObject
     /// <summary>Locates the installation directory on Linux.</summary>
     internal static string GetLinuxInstallDirectory()
     {
-        var overrideDir = Environment.GetEnvironmentVariable("FILEE_INSTALL_DIR");
-        if (!string.IsNullOrWhiteSpace(overrideDir))
-            return overrideDir;
         if (IsLinuxInstalled(AppContext.BaseDirectory))
             return AppContext.BaseDirectory;
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "filee", "application");
+        var dataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+        var root = !string.IsNullOrWhiteSpace(dataHome)
+            ? dataHome
+            : Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        return Path.Combine(root, "filee", "application");
     }
 
     /// <summary>Reads the installed Filee version from the specified installation folder.</summary>
@@ -1036,19 +1025,6 @@ public sealed partial class UpdateService : ObservableObject
             }
         }
 
-        var marker = Path.Combine(installDir, ".filee-version");
-        if (File.Exists(marker))
-        {
-            try
-            {
-                return File.ReadAllText(marker).Trim();
-            }
-            catch
-            {
-                // Fall through
-            }
-        }
-
         return null;
     }
 
@@ -1065,9 +1041,10 @@ public sealed partial class UpdateService : ObservableObject
         return string.Equals(actualVersion.Trim(), expectedVersion.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string FindLinuxRecoveryInfo(string installDir)
+    internal static string FindLinuxRecoveryInfo(string installDir)
     {
-        var parent = Path.GetDirectoryName(installDir);
+        var cleanInstallDir = Path.TrimEndingDirectorySeparator(installDir);
+        var parent = Path.GetDirectoryName(cleanInstallDir);
         if (string.IsNullOrWhiteSpace(parent) || !Directory.Exists(parent))
             return "";
 
@@ -1077,7 +1054,7 @@ public sealed partial class UpdateService : ObservableObject
             if (backups.Length > 0)
             {
                 var latestBackup = backups.OrderByDescending(Directory.GetCreationTimeUtc).First();
-                return $"Previous installation retained at '{latestBackup}'. To recover manually: mv '{latestBackup}' '{installDir}'";
+                return $"Previous installation retained at '{latestBackup}'. To recover manually: mv '{latestBackup}' '{cleanInstallDir}'";
             }
         }
         catch

@@ -6,23 +6,19 @@ set -eu
 # Preserves downloaded conversion engines (~/.local/share/Filee/engines) and user settings (~/.config/Filee).
 
 upgrade=0
-restart=0
 
 for arg do
     case "$arg" in
         --upgrade|-u)
             upgrade=1
             ;;
-        --restart)
-            restart=1
-            ;;
         --help|-h)
-            printf '%s\n' "Usage: $0 [--upgrade|-u] [--restart]"
+            printf '%s\n' "Usage: $0 [--upgrade|-u]"
             exit 0
             ;;
         *)
             printf '%s\n' "Unknown option: $arg" >&2
-            printf '%s\n' "Usage: $0 [--upgrade|-u] [--restart]" >&2
+            printf '%s\n' "Usage: $0 [--upgrade|-u]" >&2
             exit 1
             ;;
     esac
@@ -40,16 +36,6 @@ command -v python3 >/dev/null 2>&1 || {
     exit 1
 }
 
-# Only enable internal test failure hooks if explicitly requested by the test harness
-# AND executing within an isolated temporary test directory.
-test_hooks_enabled=0
-if [ "${_FILEE_TEST_HARNESS:-}" = "com.filee.test.harness" ]; then
-    case "$data_dir" in
-        /tmp/*|/var/tmp/*|*/filee-installer-test-*)
-            test_hooks_enabled=1
-            ;;
-    esac
-fi
 
 if [ ! -f "$source_dir/Filee" ] || [ ! -x "$source_dir/Filee" ]; then
     printf '%s\n' "Payload validation failed: $source_dir/Filee is missing or not executable." >&2
@@ -100,13 +86,11 @@ else
         exit 1
     fi
 
-    # Tell running instance to save and exit cleanly before touching files (skipped during in-app updates).
-    if [ "${FILEE_IN_APP_UPDATE:-0}" != "1" ]; then
-        if [ -x "$install_dir/Filee" ]; then
-            if ! "$install_dir/Filee" --quit; then
-                printf '%s\n' "Could not gracefully shut down the running Filee instance. Please exit Filee and try again." >&2
-                exit 1
-            fi
+    # Tell running instance to save and exit cleanly before touching files.
+    if [ -x "$install_dir/Filee" ]; then
+        if ! "$install_dir/Filee" --quit; then
+            printf '%s\n' "Could not gracefully shut down the running Filee instance. Please exit Filee and try again." >&2
+            exit 1
         fi
     fi
 
@@ -215,67 +199,11 @@ else
     # Move active installation to backup.
     mv "$install_dir" "$backup_dir"
 
-    # Test hook: simulate failure after backup but before activation.
-    if [ "$test_hooks_enabled" -eq 1 ] && [ "${_FILEE_TEST_FAIL_ACTIVATION:-0}" = "1" ]; then
-        rm -rf "$staging_dir"
-    fi
-
-    # Test hook: simulate activation destination conflict.
-    if [ "$test_hooks_enabled" -eq 1 ] && [ "${_FILEE_TEST_FAIL_ACTIVATION_OCCUPIED:-0}" = "1" ]; then
-        mkdir -p "$install_dir"
-        touch "$install_dir/conflict"
-        chmod 555 "$install_dir"
-    fi
-
     # Activate new installation from staging.
     if ! mv "$staging_dir" "$install_dir"; then
         exit 1
     fi
     activated=1
-
-    # Test hook: simulate failure during post-swap validation.
-    if [ "$test_hooks_enabled" -eq 1 ] && [ "${_FILEE_TEST_FAIL_POST_VALIDATION:-0}" = "1" ]; then
-        rm -f "$install_dir/.filee-package"
-    fi
-
-    # Test hook: simulate failure during post-swap validation where failed_dir cleanup will fail.
-    if [ "$test_hooks_enabled" -eq 1 ] && [ "${_FILEE_TEST_FAIL_CLEANUP_FAILED_DIR:-0}" = "1" ]; then
-        mkdir -p "$install_dir/locked-folder"
-        touch "$install_dir/locked-folder/file"
-        chmod 555 "$install_dir/locked-folder"
-        rm -f "$install_dir/.filee-package"
-    fi
-
-    # Test hook: simulate quarantine move failure during rollback.
-    if [ "$test_hooks_enabled" -eq 1 ] && [ "${_FILEE_TEST_FAIL_QUARANTINE:-0}" = "1" ]; then
-        mkdir -p "$failed_dir"
-        touch "$failed_dir/conflict"
-        exit 1
-    fi
-
-    # Test hook: simulate replacement of install_dir by a foreign directory before rollback.
-    if [ "$test_hooks_enabled" -eq 1 ] && [ "${_FILEE_TEST_FAIL_FOREIGN_DESTINATION:-0}" = "1" ]; then
-        rm -rf "$install_dir"
-        mkdir -p "$install_dir"
-        echo "important-foreign-data" > "$install_dir/important.txt"
-        exit 1
-    fi
-
-    # Test hook: simulate failure during rollback with occupied destination.
-    if [ "$test_hooks_enabled" -eq 1 ] && { [ "${_FILEE_TEST_FAIL_ROLLBACK_OCCUPIED:-0}" = "1" ] || [ "${_FILEE_TEST_FAIL_ROLLBACK:-0}" = "1" ]; }; then
-        rm -rf "$install_dir"
-        mkdir -p "$install_dir"
-        touch "$install_dir/conflict"
-        chmod 555 "$install_dir"
-        exit 1
-    fi
-
-    # Test hook: simulate failure during rollback with absent destination.
-    if [ "$test_hooks_enabled" -eq 1 ] && [ "${_FILEE_TEST_FAIL_ROLLBACK_ABSENT:-0}" = "1" ]; then
-        rm -rf "$install_dir"
-        chmod 555 "$data_dir/filee"
-        exit 1
-    fi
 
     # Post-swap validation: ensure new installation is active and healthy.
     if [ ! -x "$install_dir/Filee" ] || [ ! -x "$install_dir/filee-cli" ] || [ ! -f "$install_dir/.filee-package" ]; then
@@ -321,10 +249,6 @@ fi
 
 if [ "$upgrade" -eq 1 ]; then
     printf '%s\n' "Upgraded Filee at $install_dir."
-    if [ "$restart" -eq 1 ] && [ "${FILEE_IN_APP_UPDATE:-0}" != "1" ]; then
-        nohup "$install_dir/Filee" </dev/null >/dev/null 2>&1 &
-        printf '%s\n' "Restarted Filee."
-    fi
 else
     printf '%s\n' "Installed Filee at $install_dir" "CLI: $bin_dir/filee (add $bin_dir to PATH if needed)."
 fi
