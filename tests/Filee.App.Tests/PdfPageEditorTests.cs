@@ -17,12 +17,20 @@ public class PdfPageEditorTests
     {
         var path = Path.Combine(folder, name);
         using var document = new PdfDocument();
-        foreach (var (width, rotation) in pages)
+        for (var index = 0; index < pages.Length; index++)
         {
+            var (width, rotation) = pages[index];
             var page = document.AddPage();
             page.Width = XUnit.FromPoint(width);
             page.Height = XUnit.FromPoint(500);
             page.Rotate = rotation;
+            using var graphics = XGraphics.FromPdfPage(page);
+            var accent = new XSolidBrush(XColor.FromArgb(
+                (byte)(70 + index * 35), (byte)(100 + index * 20), (byte)(180 - index * 25)));
+            graphics.DrawRectangle(accent, 24, 24, width - 48, 88);
+            graphics.DrawRectangle(accent, 24, 148, width * .62, 24);
+            graphics.DrawRectangle(accent, 24, 192, width * .78, 16);
+            graphics.DrawRectangle(accent, 24, 228, width * .48, 16);
         }
         document.Save(path);
         return path;
@@ -42,7 +50,7 @@ public class PdfPageEditorTests
             var preset = BuiltInData.CreatePresets().Single(p => p.Id == "tool-pdf-pages");
             preset.Output.Location = OutputLocation.CustomFolder;
             preset.Output.CustomFolder = folder;
-            var vm = new PdfPageEditorViewModel([first], preset, AppHost.Get<ILocalizer>(), store);
+            using var vm = new PdfPageEditorViewModel([first], preset, AppHost.Get<ILocalizer>(), store);
 
             await vm.AddFilesAsync([added]);
             vm.SelectedPage = vm.Pages[2];
@@ -69,7 +77,7 @@ public class PdfPageEditorTests
     }
 
     [AvaloniaFact]
-    public void Editor_window_renders_all_actions_without_clipping()
+    public async Task Editor_window_renders_previews_and_all_actions_without_clipping()
     {
         TestServices.EnsureInitialized("en");
         var folder = Directory.CreateTempSubdirectory("filee-pdf-pages-ui-").FullName;
@@ -88,11 +96,20 @@ public class PdfPageEditorTests
             var window = new PdfPageEditorWindow { DataContext = vm };
             window.Show();
 
+            await vm.LoadThumbnailsAsync();
+            for (var i = 0; i < 100 && !vm.HasSelectedPreview; i++)
+            {
+                RenderTests.Pump();
+                await Task.Delay(20, TestContext.Current.CancellationToken);
+            }
+
             RenderTests.Pump();
             RenderTests.Save(window, "pdf-page-editor-en.png");
 
-            Assert.True(window.PageOrder.Bounds.Width > 400);
+            Assert.True(window.PageOrder.Bounds.Width > 220);
             Assert.Equal(4, window.PageOrder.ItemsView.Count);
+            Assert.All(vm.Pages, page => Assert.True(page.HasThumbnail));
+            Assert.True(vm.HasSelectedPreview);
             window.Close();
         }
         finally

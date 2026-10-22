@@ -2,6 +2,7 @@
 // them in the chosen order and only changes /Rotate where requested.
 
 using System.Collections.ObjectModel;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Filee.App.Services;
@@ -16,7 +17,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Filee.App.ViewModels;
 
-public sealed partial class PdfPageItem(string path, int pageIndex, ILocalizer loc) : ObservableObject
+public sealed partial class PdfPageItem(string path, int pageIndex, ILocalizer loc) : ObservableObject, IDisposable
 {
     public string Path { get; } = path;
     public int PageIndex { get; } = pageIndex;
@@ -26,7 +27,15 @@ public sealed partial class PdfPageItem(string path, int pageIndex, ILocalizer l
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RotationText))]
+    [NotifyPropertyChangedFor(nameof(PreviewRotation))]
     private int _rotation;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasThumbnail))]
+    private Bitmap? _thumbnail;
+
+    [ObservableProperty]
+    private bool _isThumbnailLoading;
 
     public string RotationText
     {
@@ -36,16 +45,36 @@ public sealed partial class PdfPageItem(string path, int pageIndex, ILocalizer l
             return signed == 0 ? "" : loc.Format("pdf_editor.rotation", signed);
         }
     }
+
+    public double PreviewRotation => Rotation > 180 ? Rotation - 360 : Rotation;
+    public bool HasThumbnail => Thumbnail is not null;
     public PdfPageReference Reference => new(Path, PageIndex, Rotation);
+
+    internal void SetThumbnail(byte[] png)
+    {
+        using var stream = new MemoryStream(png);
+        var previous = Thumbnail;
+        Thumbnail = new Bitmap(stream);
+        previous?.Dispose();
+    }
+
+    public void Dispose()
+    {
+        Thumbnail?.Dispose();
+        Thumbnail = null;
+    }
 }
 
-public sealed partial class PdfPageEditorViewModel : ObservableObject
+public sealed partial class PdfPageEditorViewModel : ObservableObject, IDisposable
 {
     private readonly Preset _preset;
     private readonly ILocalizer _loc;
     private readonly UserDataStore _store;
     private readonly ILogger? _log;
     private readonly string _primarySource;
+    private readonly SemaphoreSlim _thumbnailGate = new(1, 1);
+    private int _previewRequest;
+    private bool _closed;
 
     public PdfPageEditorViewModel(IReadOnlyList<string> files, Preset preset, ILocalizer loc, UserDataStore store,
         ILogger? log = null)
@@ -67,7 +96,15 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
     [NotifyCanExecuteChangedFor(nameof(RotateLeftCommand))]
     [NotifyCanExecuteChangedFor(nameof(RotateRightCommand))]
+    [NotifyPropertyChangedFor(nameof(SelectedPreviewRotation))]
     private PdfPageItem? _selectedPage;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSelectedPreview))]
+    private Bitmap? _selectedPreview;
+
+    [ObservableProperty]
+    private bool _isPreviewLoading;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanSave))]
@@ -84,6 +121,78 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject
 
     public bool HasStatus => !string.IsNullOrWhiteSpace(Status);
     public bool CanSave => !IsBusy && Pages.Count > 0;
+    public bool HasSelectedPreview => SelectedPreview is not null;
+    public double SelectedPreviewRotation => SelectedPage?.PreviewRotation ?? 0;
+
+    partial void OnSelectedPageChanged(PdfPageItem? value) => _ = LoadSelectedPreviewAsync(value);
+
+    /// <summary>Renders the page strip after the window is visible; PDF parsing never blocks its first frame.</summary>
+    public Task LoadThumbnailsAsync() => LoadThumbnailsAsync(Pages.ToList());
+
+    private async Task LoadThumbnailsAsync(IReadOnlyList<PdfPageItem> items)
+    {
+        await _thumbnailGate.WaitAsync();
+        try
+        {
+            foreach (var item in items.Where(item => item.Thumbnail is null))
+            {
+                if (_closed || !Pages.Contains(item))
+                    return;
+                item.IsThumbnailLoading = true;
+                try
+                {
+                    var preview = await Task.Run(() => PdfPageTools.Preview(item.Path, item.PageIndex, 260));
+                    if (!_closed && Pages.Contains(item))
+                        item.SetThumbnail(preview.Png);
+                }
+                catch (Exception ex) when (ex is not OutOfMemoryException)
+                {
+                    _log?.LogDebug(ex, "Could not render thumbnail for page {Page} of {Path}", item.PageNumber, item.Path);
+                }
+                finally
+                {
+                    item.IsThumbnailLoading = false;
+                }
+            }
+        }
+        finally
+        {
+            _thumbnailGate.Release();
+        }
+    }
+
+    private async Task LoadSelectedPreviewAsync(PdfPageItem? item)
+    {
+        var request = Interlocked.Increment(ref _previewRequest);
+        IsPreviewLoading = item is not null;
+        SelectedPreview?.Dispose();
+        SelectedPreview = null;
+        if (item is null)
+            return;
+        try
+        {
+            var preview = await Task.Run(() => PdfPageTools.Preview(item.Path, item.PageIndex, 1400));
+            using var stream = new MemoryStream(preview.Png);
+            var bitmap = new Bitmap(stream);
+            if (_closed || request != _previewRequest || !ReferenceEquals(item, SelectedPage))
+            {
+                bitmap.Dispose();
+                return;
+            }
+            SelectedPreview = bitmap;
+            if (item.Thumbnail is null)
+                item.SetThumbnail(preview.Png);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            _log?.LogDebug(ex, "Could not render preview for page {Page} of {Path}", item.PageNumber, item.Path);
+        }
+        finally
+        {
+            if (request == _previewRequest)
+                IsPreviewLoading = false;
+        }
+    }
 
     public async Task AddFilesAsync(IReadOnlyList<string> paths)
     {
@@ -91,6 +200,7 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject
             return;
         IsBusy = true;
         Status = _loc["pdf_editor.loading"];
+        var added = new List<PdfPageItem>();
         try
         {
             var counts = await Task.Run(() => paths.Select(path =>
@@ -108,7 +218,11 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject
                     continue;
                 }
                 for (var page = 0; page < count; page++)
-                    Pages.Add(new PdfPageItem(path, page, _loc));
+                {
+                    var item = new PdfPageItem(path, page, _loc);
+                    Pages.Add(item);
+                    added.Add(item);
+                }
             }
             SelectedPage ??= Pages.FirstOrDefault();
             Status = failed ? _loc["error.conversion_failed"] : "";
@@ -123,6 +237,7 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject
         {
             IsBusy = false;
         }
+        _ = LoadThumbnailsAsync(added);
     }
 
     private void AddFiles(IEnumerable<string> paths)
@@ -174,6 +289,7 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject
             return;
         var index = Pages.IndexOf(selected);
         Pages.RemoveAt(index);
+        selected.Dispose();
         SelectedPage = Pages[Math.Min(index, Pages.Count - 1)];
         NotifyCollectionChanged();
     }
@@ -189,6 +305,7 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject
         if (SelectedPage is not { } selected)
             return;
         selected.Rotation = ((selected.Rotation + degrees) % 360 + 360) % 360;
+        OnPropertyChanged(nameof(SelectedPreviewRotation));
     }
 
     public Task<bool> SaveAsync() => WriteAsync(Pages, _preset, closeWhenDone: true);
@@ -277,5 +394,17 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject
         DeleteCommand.NotifyCanExecuteChanged();
         RotateLeftCommand.NotifyCanExecuteChanged();
         RotateRightCommand.NotifyCanExecuteChanged();
+    }
+
+    public void Dispose()
+    {
+        if (_closed)
+            return;
+        _closed = true;
+        Interlocked.Increment(ref _previewRequest);
+        SelectedPreview?.Dispose();
+        SelectedPreview = null;
+        foreach (var page in Pages)
+            page.Dispose();
     }
 }

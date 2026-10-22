@@ -21,6 +21,19 @@ public partial class PdfPageEditorWindow : Window
         Motion.Track(this);
     }
 
+    private async void OnOpened(object? sender, EventArgs e)
+    {
+        if (DataContext is PdfPageEditorViewModel vm)
+            await vm.LoadThumbnailsAsync();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        if (DataContext is PdfPageEditorViewModel vm)
+            vm.Dispose();
+        base.OnClosed(e);
+    }
+
     public async Task PickAndAddAsync()
     {
         if (DataContext is not PdfPageEditorViewModel vm)
