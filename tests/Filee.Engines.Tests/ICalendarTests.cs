@@ -414,19 +414,19 @@ public class ICalendarTests(EngineFixture fx) : IClassFixture<EngineFixture>
     [Fact]
     public async Task Fixed_zone_uses_earliest_start_or_todo_end_and_reverts_historical_offsets()
     {
-        var row1 = new[] { "todo", "old", "", "1985-01-01T09:00:00+05:30", "false", "Asia/Kathmandu", "", "", "", "", "", "", "", "old" };
-        var row2 = new[] { "event", "new", "2026-01-01T09:00:00+05:45", "", "false", "Asia/Kathmandu", "", "", "", "", "", "", "", "new" };
+        var row1 = new[] { "todo", "old", "", "2013-01-01T09:00:00+04:00", "false", "Europe/Moscow", "", "", "", "", "", "", "", "old" };
+        var row2 = new[] { "event", "new", "2026-01-01T09:00:00+03:00", "", "false", "Europe/Moscow", "", "", "", "", "", "", "", "new" };
         var solo = await File.ReadAllTextAsync(await Convert(Csv(ICalendar.Columns, row1),
             "csv", "ics"), TestContext.Current.CancellationToken);
-        Assert.Contains("TZOFFSETFROM:+0530\r\nTZOFFSETTO:+0530", solo);
+        Assert.Contains("TZOFFSETFROM:+0400\r\nTZOFFSETTO:+0400", solo);
         var oldEvent = (string[])row1.Clone();
         oldEvent[0] = "event";
         oldEvent[2] = oldEvent[3];
         var output = await File.ReadAllTextAsync(await Convert(Csv(ICalendar.Columns, oldEvent, row2),
             "csv", "ics"), TestContext.Current.CancellationToken);
-        Assert.Contains("TZOFFSETFROM:+0530\r\nTZOFFSETTO:+0530", output);
+        Assert.Contains("TZOFFSETFROM:+0400\r\nTZOFFSETTO:+0400", output);
         var back = await ReadCalendar(output);
-        Assert.EndsWith("+05:30", Cell(back, 2, "Start"));
+        Assert.EndsWith("+04:00", Cell(back, 2, "Start"));
     }
 
     [Fact]
