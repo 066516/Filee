@@ -25,7 +25,7 @@ jobs:
             const rules = [
               [/\b(bug|crash(es|ed)?|error|exception|fail(s|ed|ure)?|broken|freez(e|es)|hang(s)?|not working|doesn'?t work)\b/, 'bug'],
               [/\b(feature request|enhancement|improve(ment)?|suggestion|would be nice|please add)\b/, 'enhancement'],
-              [/^\[format\]/, 'formats'],
+              [/\b(add support|support for|new format|new engine)\b/, 'formats'],
               [/\b(docs?|documentation|readme|typo)\b/, 'documentation'],
               [/\b(translation|translate|localization|localisation|i18n|l10n)\b/, 'translation'],
               [/\b(accessibility|a11y|screen reader|high contrast|narrator|nvda)\b/, 'accessibility'],
