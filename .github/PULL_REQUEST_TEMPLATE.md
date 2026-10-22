@@ -6,7 +6,9 @@
 
 <!-- One or two sentences: what changes, and why. -->
 
-Fixes #
+
+<!-- Link the issue this PR resolves, e.g. "Fixes #123". It closes the issue when the PR is merged. Delete the line if there is no issue. -->
+Issue (optional): Fixes #
 
 ## Type of change
 
