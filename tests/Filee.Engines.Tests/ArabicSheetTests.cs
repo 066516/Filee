@@ -32,6 +32,8 @@ public class ArabicSheetTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal("Arabic", ComplexScripts.FindInFile(Xlsx("statement.xlsx", Statement), "xlsx"));
         Assert.Equal("Arabic", ComplexScripts.FindInFile(Xls("statement.xls", Statement), "xls"));
         Assert.Null(ComplexScripts.FindInFile(Xls("plain.xls", "Account statement, 한국어"), "xls"));
+        // The same scan finds words rhwp has no widths for (#378), in old Excel files too.
+        Assert.Equal("Cyrillic", ComplexScripts.FindUnmeasuredInFile(Xls("report.xls", "Отчёт за месяц"), "xls"));
     }
 
     [Theory]

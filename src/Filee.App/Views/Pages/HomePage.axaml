@@ -74,7 +74,7 @@
         <Button DockPanel.Dock="Right" Classes="ghost" Content="{DynamicResource home.clear_history}" Command="{Binding ClearHistoryCommand}" />
         <TextBlock Classes="h2" VerticalAlignment="Center" Text="{DynamicResource home.recent}" />
       </DockPanel>
-      <TextBox Classes="search" Text="{Binding Search}" PlaceholderText="{DynamicResource common.search}"
+      <TextBox Classes="search clearButton" Text="{Binding Search}" PlaceholderText="{DynamicResource common.search}"
                IsVisible="{Binding !IsEmpty}">
         <TextBox.InnerLeftContent>
           <PathIcon Width="14" Height="14" Margin="10,0,0,0" Data="{StaticResource Icon.Search}" Foreground="{DynamicResource TextSecondaryBrush}" />
