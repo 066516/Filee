@@ -151,8 +151,8 @@ dotnet test
 ## コード署名ポリシー
 
 Fileeは**Myeonggu Kim**（[KnifeLemon](https://github.com/KnifeLemon)）が開発・公開しています。
-Windows版のリリースには、Myeonggu Kim名義で発行される[Certum](https://www.certum.eu/)のオープンソース向けコード署名証明書で署名する予定です。
-証明書は現在、発行手続き中です。
+Windows版のリリースには、Myeonggu Kim名義で発行された[Certum](https://www.certum.eu/)のオープンソース向けコード署名証明書で署名しています。
+2.0.0までのリリースは署名されていません。
 
 ポリシーの詳細とプライバシーポリシーは[英語版README](README.md#code-signing-policy)をご覧ください。
 Fileeはファイルをアップロードせず、利用データも送信しません。

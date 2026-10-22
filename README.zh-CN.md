@@ -147,7 +147,7 @@ dotnet test
 ## 代码签名政策
 
 Filee 由 **Myeonggu Kim**（[KnifeLemon](https://github.com/KnifeLemon)）开发和发布。
-Windows 版本将使用颁发给 Myeonggu Kim 的 [Certum](https://www.certum.eu/) 开源代码签名证书签名，证书正在办理中。
+Windows 版本使用颁发给 Myeonggu Kim 的 [Certum](https://www.certum.eu/) 开源代码签名证书签名。2.0.0 及更早的版本没有签名。
 
 详细政策和隐私政策见[英文 README](README.md#code-signing-policy)。
 Filee 不会上传文件，也不会发送任何使用数据。
