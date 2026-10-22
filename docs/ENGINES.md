@@ -49,8 +49,15 @@ RTF character references) for the Hebrew, Arabic, Syriac, Thaana, N'Ko, Indic, S
 Khmer, Mongolian and other South / Southeast Asian blocks. For such a file `JobQueue` plans again without unshaped
 edges: DOCX, TXT, Markdown, HTML, XLSX, PPTX and HWPX → PDF (and → images through PDF) go through LibreOffice even
 when Settings → *Engines* doesn't choose it for documents. Without LibreOffice the file fails with "This script needs
-LibreOffice to convert correctly" and the script's name instead of becoming a broken PDF. Latin, Greek, Cyrillic, CJK
-and Korean documents keep the built-in route; a binary HWP is not scanned and stays with rhwp.
+LibreOffice to convert correctly" and the script's name instead of becoming a broken PDF. The same scan also finds
+text rhwp has no widths for: its width tables cover only ASCII and Latin-1, general punctuation, math, the CJK forms
+and Hangul (rhwp#8143), so a letter of any other script — Polish, Turkish, Vietnamese, Greek, Cyrillic, ... — or a
+combining mark is drawn but laid out at a fixed half-em. Such a document takes a route without unshaped edges when
+one exists and is never refused when none does: the overlapping text stays readable. Only letters inside words
+count (an extended Latin letter next to any letter, a letter of another script next to one of its own script), so a
+symbol or unit on its own (α, Ω, μm in a Korean report) keeps rhwp, and an HWPX stays with rhwp for this (only text
+that needs shaping sends it elsewhere). Documents in French, German or Spanish (Latin-1 letters only), Chinese,
+Japanese and Korean keep the built-in route; a binary HWP is not scanned and stays with rhwp.
 
 All built-in document readers are registered in one place, `Hwp/Hwpx/DocumentReaders.cs` (format id → reader, and
 which formats need Pandoc). The HWPX writer and the DOCX writer take their input formats from it: adding a reader
@@ -1195,6 +1202,14 @@ DocBook (`.dbk`, `.docbook`; written as DocBook 5), Jupyter notebooks (`.ipynb`)
 - DocBook, man pages, OPML, Typst, HTML and LaTeX are written with `--standalone` (a root element, a `.TH` header,
   a preamble), the text formats extract pictures into `<name>_files` next to the result (Markdown with *Leave out
   pictures* gets none: a Lua filter drops them).
+- Pictures are linked relative to the result (`<name>_files/media/…`; Pandoc runs in the result's folder, with
+  `--resource-path` pointing at the source's for pictures the source links to), so both can be moved together.
+  EMF and WMF pictures, common in Word documents, become PNG (ImageMagick draws metafiles on Windows only; elsewhere
+  they stay).
+- Markdown is GitHub-flavoured and kept free of HTML, which many Markdown editors show as code (#391). A Lua filter
+  lays every table out as a pipe table: a merged cell keeps its text in its first position and leaves the cells it
+  covered empty, the paragraphs and list items of a cell are joined with `<br>`, and a table without a header row
+  gets its first row as the header. Pictures lose their Word size, which only an `<img>` tag could hold.
 
 ## Subtitles
 
