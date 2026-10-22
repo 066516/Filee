@@ -184,8 +184,8 @@ public static class PdfPageTools
     private static void ModifyCopy(string inputPath, string outputPath, Action<PdfDocument> change)
     {
         if (!FileSystemPaths.Comparer.Equals(Path.GetFullPath(inputPath), Path.GetFullPath(outputPath)))
-            File.Copy(inputPath, outputPath, overwrite: true);
-        using var document = PdfSharpConverter.Open(outputPath, PdfDocumentOpenMode.Modify);
+            PdfSharpConverter.CopyWritable(inputPath, outputPath);
+        using var document = PdfSharpConverter.OpenForChanges(outputPath);
         change(document);
         document.Save(outputPath);
     }

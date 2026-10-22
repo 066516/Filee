@@ -137,7 +137,7 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IImageTransforme
             ct.ThrowIfCancellationRequested();
             var degrees = RotationDegrees(step.Preset.Pdf.Rotation);
             if (degrees == 0)
-                File.Copy(step.InputPath, complete, overwrite: true);
+                CopyWritable(step.InputPath, complete);
             else
                 PdfPageTools.RotateAll(step.InputPath, complete, degrees, ct);
             progress?.Report(1);
@@ -283,10 +283,10 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IImageTransforme
         var best = candidates.Select(path => new FileInfo(path)).MinBy(file => file.Length);
         if (best is not null && best.Length < original)
         {
-            File.Copy(best.FullName, output, overwrite: true);
+            CopyWritable(best.FullName, output);
             return true;
         }
-        File.Copy(plain, output, overwrite: true);
+        CopyWritable(plain, output);
         return false;
     }
 
@@ -294,7 +294,7 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IImageTransforme
     /// Opens a PDF to change it. One locked only against changes (it opens without a password) has its pages copied
     /// into a new PDF instead, as when pages are split or extracted: bookmarks and form fields stay behind then.
     /// </summary>
-    private static PdfDocument OpenForChanges(string path)
+    internal static PdfDocument OpenForChanges(string path)
     {
         try
         {
@@ -308,6 +308,17 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IImageTransforme
                 copy.AddPage(page);
             return copy;
         }
+        catch (PdfReaderException ex) when (ex.Message.Contains("password", StringComparison.OrdinalIgnoreCase))
+        {
+            throw PdfDocumentReader.PasswordProtected();
+        }
+    }
+
+    /// <summary>Copies a PDF without passing a source's read-only attribute to the generated output.</summary>
+    internal static void CopyWritable(string source, string destination)
+    {
+        File.Copy(source, destination, overwrite: true);
+        File.SetAttributes(destination, File.GetAttributes(destination) & ~FileAttributes.ReadOnly);
     }
 
     /// <summary>Opens a PDF; a password-protected one fails with the message the other PDF conversions give.</summary>

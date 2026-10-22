@@ -191,6 +191,88 @@ public class PdfPageToolsTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.All(result.Pages.Cast<PdfPage>(), page => Assert.Equal(90, page.Rotate));
     }
 
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void Crop_and_editor_rotation_accept_owner_restrictions_and_read_only_sources(bool ownerOnly, bool readOnly)
+    {
+        var folder = fx.NewFolder();
+        var source = MakeSpecialSource(folder, ownerOnly, readOnly);
+        var original = File.ReadAllBytes(source);
+        try
+        {
+            var cropped = Path.Combine(folder, "cropped.pdf");
+            PdfPageTools.CropAll(source, cropped, .1, .2, .5, .6, TestContext.Current.CancellationToken);
+            using (var result = PdfReader.Open(cropped, PdfDocumentOpenMode.Import))
+            {
+                Assert.Equal(2, result.PageCount);
+                AssertBox(result.Pages[0].CropBox, 60, 160, 360, 640);
+            }
+            Assert.False(File.GetAttributes(cropped).HasFlag(FileAttributes.ReadOnly));
+
+            var rotated = Path.Combine(folder, "rotated.pdf");
+            PdfPageTools.Save([new(source, 0, 90), new(source, 1, -90)], rotated,
+                TestContext.Current.CancellationToken);
+            using (var result = PdfReader.Open(rotated, PdfDocumentOpenMode.Import))
+                Assert.Equal([90, 0], result.Pages.Cast<PdfPage>().Select(page => page.Rotate));
+            Assert.False(File.GetAttributes(rotated).HasFlag(FileAttributes.ReadOnly));
+            Assert.Equal(original, File.ReadAllBytes(source));
+            Assert.Equal(readOnly, File.GetAttributes(source).HasFlag(FileAttributes.ReadOnly));
+        }
+        finally { File.SetAttributes(source, File.GetAttributes(source) & ~FileAttributes.ReadOnly); }
+    }
+
+    [Theory]
+    [InlineData(true, false, PdfCompression.None, PdfRotation.Right90)]
+    [InlineData(true, false, PdfCompression.Ebook, PdfRotation.Right90)]
+    [InlineData(false, true, PdfCompression.None, PdfRotation.Right90)]
+    [InlineData(false, true, PdfCompression.Ebook, PdfRotation.Right90)]
+    [InlineData(false, true, PdfCompression.None, PdfRotation.None)]
+    [InlineData(false, true, PdfCompression.Ebook, PdfRotation.None)]
+    public async Task Presets_accept_owner_restrictions_and_write_writable_outputs(bool ownerOnly, bool readOnly,
+        PdfCompression compression, PdfRotation rotation)
+    {
+        var folder = fx.NewFolder();
+        var source = MakeSpecialSource(folder, ownerOnly, readOnly);
+        var original = File.ReadAllBytes(source);
+        try
+        {
+            var job = await fx.ConvertAsync([source], new Preset
+            {
+                TargetFormat = "pdf",
+                Output = { FileNamePattern = "{name}_edited" },
+                Pdf = { Rotation = rotation, Compression = compression },
+            });
+
+            Assert.True(job.State == Filee.Core.Conversion.JobState.Completed,
+                string.Join("; ", job.Files.Select(file => file.ErrorDetail)));
+            var output = Assert.Single(job.Outputs);
+            using var result = PdfReader.Open(output, PdfDocumentOpenMode.Import);
+            var expected = rotation == PdfRotation.Right90 ? new[] { 90, 180 } : [0, 90];
+            Assert.Equal(expected, result.Pages.Cast<PdfPage>().Select(page => page.Rotate));
+            Assert.False(File.GetAttributes(output).HasFlag(FileAttributes.ReadOnly));
+            Assert.Equal(original, File.ReadAllBytes(source));
+            Assert.Equal(readOnly, File.GetAttributes(source).HasFlag(FileAttributes.ReadOnly));
+        }
+        finally { File.SetAttributes(source, File.GetAttributes(source) & ~FileAttributes.ReadOnly); }
+    }
+
+    private static string MakeSpecialSource(string folder, bool ownerOnly, bool readOnly)
+    {
+        var source = MakePdf(folder, "source.pdf", (600, 800, 0), (600, 800, 90));
+        if (ownerOnly)
+        {
+            using var document = PdfReader.Open(source, PdfDocumentOpenMode.Modify);
+            document.SecuritySettings.OwnerPassword = "owner-only";
+            document.SecuritySettings.PermitModifyDocument = false;
+            document.Save(source);
+        }
+        if (readOnly)
+            File.SetAttributes(source, File.GetAttributes(source) | FileAttributes.ReadOnly);
+        return source;
+    }
+
     private static void AssertBox(PdfRectangle actual, double x1, double y1, double x2, double y2)
     {
         Assert.Equal(x1, actual.X1, 6);

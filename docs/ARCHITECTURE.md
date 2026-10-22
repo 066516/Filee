@@ -157,7 +157,10 @@ text, vectors, outlines, forms, page labels and document information remain PDF 
 `tool-pdf-pages` opens `Views/PdfPageEditorWindow`: it previews, reorders, rotates, deletes, adds and extracts pages.
 Each source PDF's bytes and page sizes are cached once after the window has appeared; thumbnails and the large preview
 render off the UI thread. A whole-document edit keeps the original catalogue and changes `/Rotate` in modify mode.
-Only an actual reorder, deletion, addition or extraction builds a new PDF from selected page objects.
+An actual reorder, deletion, addition or extraction builds a new PDF from selected page objects. A PDF that opens
+without a password but requires an owner password for modify mode uses the same page-copy fallback as compression;
+its outlines and form fields are not preserved by that fallback. Generated copies are writable even when the source
+has the read-only attribute; the source's bytes and attributes are left alone.
 
 ## Settings and data
 
