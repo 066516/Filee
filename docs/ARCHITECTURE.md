@@ -320,8 +320,11 @@ have no semibold) instead of the app's embedded Noto fonts.
   (`SetupPayload`): ~48 MB segments compressed in parallel with SharpCompress's LZMA (48 MB dictionary), programs
   first through the x86 branch filter (`X86Filter`, from the LZMA SDK) as 7-Zip and Inno Setup do. The manifest lists
   every file with its size, SHA-256 and filter, the SHA-256 of the compressed data, the version and the engines to
-  offer (from `EngineDownloads`). A future signature goes after the trailer (Setup looks
-  for the trailer in front of the certificate table), so sign after packing. The code is trim- and AOT-safe
+  offer (from `EngineDownloads`). Setup.exe's signature goes after the trailer (Setup looks
+  for the trailer in front of the certificate table; the manifest is padded so the file ends on the 8-byte boundary
+  signtool needs), so Setup.exe is signed after packing. The Setup program is signed before: its signature stays at
+  the end of the program, Setup.exe's header stops pointing to it, and the manifest's `programSignature` lets the
+  uninstaller copied out of Setup.exe (`CopyProgramTo`) point to it again, so `uninstall.exe` is signed too. The code is trim- and AOT-safe
   (compiled bindings, source-generated P/Invoke and COM); Native AOT would need the MSVC linker on the build machine
   and still couldn't link SkiaSharp's native libraries in.
 - **Rights**: Setup starts unelevated (asInvoker) and, for an install for all users, starts itself again with
