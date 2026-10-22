@@ -1,13 +1,11 @@
 // Drop zone: files dropped on the Home page open the donut (click mode) at the drop position, also pictures, links and
-// downloads dragged from a browser.
+// downloads dragged from a browser. A double-click opens the file picker, and the donut opens for the picked files.
 
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Filee.App.Services;
-using Filee.Core.Localization;
 using Microsoft.Extensions.Logging;
 
 namespace Filee.App.Views.Pages;
@@ -44,12 +42,7 @@ public partial class HomePage : UserControl
         if (TopLevel.GetTopLevel(this) is not { } top)
             return;
 
-        var loc = AppHost.Get<ILocalizer>();
-        var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            AllowMultiple = true,
-            Title = loc["home.drop_title"],
-        });
+        var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { AllowMultiple = true });
 
         var paths = files
             .Select(f => f.TryGetLocalPath())
