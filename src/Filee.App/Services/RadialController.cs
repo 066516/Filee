@@ -380,9 +380,8 @@ public sealed class RadialController(
     {
         if (preset.Id == "tool-sheet-studio")
         {
-            var workbook = files.FirstOrDefault(file => Path.GetExtension(file).Equals(".xlsx", StringComparison.OrdinalIgnoreCase));
-            if (workbook is not null)
-                windows.ShowSpreadsheetPrintStudio(workbook);
+            if (files.Count == 1 && Path.GetExtension(files[0]).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+                windows.ShowSpreadsheetPrintStudio(files[0]);
         }
         else
             windows.ShowCropOverlay(files, preset, near);

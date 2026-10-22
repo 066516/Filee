@@ -6,7 +6,7 @@
         x:DataType="vm:SpreadsheetPrintStudioViewModel"
         Title="{DynamicResource sheet_studio.title}"
         Icon="avares://Filee/Assets/Icons/filee.ico"
-        Width="1320" Height="820" MinWidth="1000" MinHeight="640"
+        Width="1380" Height="860" MinWidth="1040" MinHeight="680"
         WindowStartupLocation="CenterScreen">
   <Grid RowDefinitions="Auto,*,Auto">
     <Border Grid.Row="0" Padding="20,14" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource SubtleBorderBrush}"
@@ -17,17 +17,20 @@
       </StackPanel>
     </Border>
 
-    <Grid Grid.Row="1" ColumnDefinitions="258,*,372">
+    <Grid Grid.Row="1" ColumnDefinitions="276,*,388" IsEnabled="{Binding !IsExporting}">
       <!-- Sheets / output order. -->
       <Border Grid.Column="0" Padding="14" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource SubtleBorderBrush}">
         <DockPanel>
-          <TextBlock DockPanel.Dock="Top" Margin="6,2,6,10" Classes="h3" Text="{DynamicResource sheet_studio.sheets}" />
+          <TextBlock DockPanel.Dock="Top" Margin="6,2,6,10" Classes="h2" Text="{DynamicResource sheet_studio.sheets}" />
           <StackPanel DockPanel.Dock="Bottom" Margin="4,10,4,0" Spacing="6">
             <Button Content="{DynamicResource sheet_studio.add_region}" Command="{Binding AddRegionCommand}" />
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="5">
-              <Button Grid.Column="0" Content="↑" Command="{Binding MoveRegionUpCommand}" ToolTip.Tip="{DynamicResource group.move_up}" />
-              <Button Grid.Column="1" Content="↓" Command="{Binding MoveRegionDownCommand}" ToolTip.Tip="{DynamicResource group.move_down}" />
-              <Button Grid.Column="2" Content="×" Command="{Binding RemoveRegionCommand}" ToolTip.Tip="{DynamicResource common.delete}" />
+              <Button Grid.Column="0" Content="↑" Command="{Binding MoveRegionUpCommand}" ToolTip.Tip="{DynamicResource group.move_up}"
+                      AutomationProperties.Name="{DynamicResource group.move_up}" />
+              <Button Grid.Column="1" Content="↓" Command="{Binding MoveRegionDownCommand}" ToolTip.Tip="{DynamicResource group.move_down}"
+                      AutomationProperties.Name="{DynamicResource group.move_down}" />
+              <Button Grid.Column="2" Content="×" Command="{Binding RemoveRegionCommand}" ToolTip.Tip="{DynamicResource common.delete}"
+                      AutomationProperties.Name="{DynamicResource common.delete}" IsEnabled="{Binding CanRemoveSelectedRegion}" />
             </Grid>
           </StackPanel>
           <ListBox ItemsSource="{Binding Sheets}" SelectedItem="{Binding SelectedSheet}"
@@ -38,7 +41,8 @@
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="vm:SpreadsheetSheetPlan">
                 <Grid ColumnDefinitions="Auto,*" Margin="2,6">
-                  <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding Included}" />
+                  <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding Included}"
+                            AutomationProperties.Name="{Binding Name}" />
                   <StackPanel Grid.Column="1" Margin="8,0,0,0" Spacing="2">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                       <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
@@ -55,11 +59,11 @@
       </Border>
 
       <!-- Exact PDF preview. -->
-      <Grid Grid.Column="1" RowDefinitions="*,122" Background="{DynamicResource LayerBrush}">
+      <Grid Grid.Column="1" RowDefinitions="*,132" Background="{DynamicResource PageBrush}">
         <Grid Grid.Row="0" Margin="22">
           <Border HorizontalAlignment="Center" VerticalAlignment="Center" Background="White"
                   BoxShadow="0 8 28 0 #55000000" CornerRadius="2" MaxWidth="700" MaxHeight="540">
-            <Image Source="{Binding SelectedPage.Image}" Stretch="Uniform" />
+            <Image Source="{Binding PreviewImage}" Stretch="Uniform" />
           </Border>
           <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10"
                       IsVisible="{Binding IsBusy}">
@@ -75,7 +79,10 @@
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="vm:SpreadsheetPreviewPage">
                 <StackPanel Spacing="3">
-                  <Border Width="62" Height="82" Background="White"><Image Source="{Binding Image}" Stretch="Uniform" /></Border>
+                  <Border Width="70" Height="92" Background="White" CornerRadius="2"
+                          BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="1">
+                    <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
+                  </Border>
                   <TextBlock HorizontalAlignment="Center" Classes="caption" Text="{Binding Number}" />
                 </StackPanel>
               </DataTemplate>
@@ -86,9 +93,9 @@
 
       <!-- Settings apply to the selected sheet. -->
       <Border Grid.Column="2" BorderThickness="1,0,0,0" BorderBrush="{DynamicResource SubtleBorderBrush}">
-        <ScrollViewer Padding="18" IsVisible="{Binding SelectedSheet}">
+        <ScrollViewer Padding="18" IsVisible="{Binding SelectedSheet, Converter={x:Static ObjectConverters.IsNotNull}}">
           <StackPanel Spacing="13">
-            <TextBlock Classes="h3" Text="{DynamicResource sheet_studio.page_setup}" />
+            <TextBlock Classes="h2" Text="{DynamicResource sheet_studio.page_setup}" />
             <TextBlock Classes="caption" Text="{Binding SelectedSheet.Warning}" TextWrapping="Wrap"
                        Foreground="{DynamicResource WarningBrush}" IsVisible="{Binding SelectedSheet.HasWarning}" />
             <Button HorizontalAlignment="Left" Classes="accent" Content="{DynamicResource sheet_studio.apply_fix}"
@@ -122,15 +129,18 @@
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
               <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Spacing="4">
                 <TextBlock Classes="caption" Text="{DynamicResource sheet_studio.percent}" />
-                <NumericUpDown Minimum="10" Maximum="400" Increment="5" Value="{Binding SelectedSheet.ScalePercent}" />
+                <NumericUpDown Minimum="10" Maximum="400" Increment="5" Value="{Binding SelectedSheet.ScalePercent}"
+                               AutomationProperties.Name="{DynamicResource sheet_studio.percent}" />
               </StackPanel>
               <StackPanel Grid.Row="1" Grid.Column="0" Spacing="4">
                 <TextBlock Classes="caption" Text="{DynamicResource sheet_studio.pages_wide}" />
-                <NumericUpDown Minimum="1" Maximum="100" Value="{Binding SelectedSheet.FitWidth}" />
+                <NumericUpDown Minimum="1" Maximum="100" Value="{Binding SelectedSheet.FitWidth}"
+                               AutomationProperties.Name="{DynamicResource sheet_studio.pages_wide}" />
               </StackPanel>
               <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4">
                 <TextBlock Classes="caption" Text="{DynamicResource sheet_studio.pages_tall}" />
-                <NumericUpDown Minimum="0" Maximum="100" Value="{Binding SelectedSheet.FitHeight}" />
+                <NumericUpDown Minimum="0" Maximum="100" Value="{Binding SelectedSheet.FitHeight}"
+                               AutomationProperties.Name="{DynamicResource sheet_studio.pages_tall}" />
               </StackPanel>
             </Grid>
 
@@ -138,19 +148,23 @@
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
               <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
                 <TextBlock Classes="caption" Text="{DynamicResource sheet_studio.margin_top}" />
-                <NumericUpDown Minimum="0" Maximum="100" Increment="1" FormatString="0.# mm" Value="{Binding SelectedSheet.MarginTopMm}" />
+                <NumericUpDown Minimum="0" Maximum="100" Increment="1" FormatString="0.# mm" Value="{Binding SelectedSheet.MarginTopMm}"
+                               AutomationProperties.Name="{DynamicResource sheet_studio.margin_top}" />
               </StackPanel>
               <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4">
                 <TextBlock Classes="caption" Text="{DynamicResource sheet_studio.margin_bottom}" />
-                <NumericUpDown Minimum="0" Maximum="100" Increment="1" FormatString="0.# mm" Value="{Binding SelectedSheet.MarginBottomMm}" />
+                <NumericUpDown Minimum="0" Maximum="100" Increment="1" FormatString="0.# mm" Value="{Binding SelectedSheet.MarginBottomMm}"
+                               AutomationProperties.Name="{DynamicResource sheet_studio.margin_bottom}" />
               </StackPanel>
               <StackPanel Grid.Row="1" Grid.Column="0" Spacing="4">
                 <TextBlock Classes="caption" Text="{DynamicResource sheet_studio.margin_left}" />
-                <NumericUpDown Minimum="0" Maximum="100" Increment="1" FormatString="0.# mm" Value="{Binding SelectedSheet.MarginLeftMm}" />
+                <NumericUpDown Minimum="0" Maximum="100" Increment="1" FormatString="0.# mm" Value="{Binding SelectedSheet.MarginLeftMm}"
+                               AutomationProperties.Name="{DynamicResource sheet_studio.margin_left}" />
               </StackPanel>
               <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4">
                 <TextBlock Classes="caption" Text="{DynamicResource sheet_studio.margin_right}" />
-                <NumericUpDown Minimum="0" Maximum="100" Increment="1" FormatString="0.# mm" Value="{Binding SelectedSheet.MarginRightMm}" />
+                <NumericUpDown Minimum="0" Maximum="100" Increment="1" FormatString="0.# mm" Value="{Binding SelectedSheet.MarginRightMm}"
+                               AutomationProperties.Name="{DynamicResource sheet_studio.margin_right}" />
               </StackPanel>
             </Grid>
 
@@ -174,9 +188,9 @@
           <ProgressBar Height="3" Maximum="100" Value="{Binding ExportProgress}" IsVisible="{Binding IsExporting}" />
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-          <Button Content="{DynamicResource common.cancel}" Click="OnClose" />
+          <Button Content="{DynamicResource common.cancel}" Click="OnClose" IsCancel="True" />
           <Button Classes="accent" Content="{DynamicResource sheet_studio.export_pdf}" Click="OnExport"
-                  IsEnabled="{Binding CanExport}" />
+                  IsEnabled="{Binding CanExport}" IsDefault="True" />
         </StackPanel>
       </Grid>
     </Border>

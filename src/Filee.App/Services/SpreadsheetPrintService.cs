@@ -9,7 +9,7 @@ using Filee.Engines.Pdf;
 
 namespace Filee.App.Services;
 
-public sealed record SpreadsheetRenderedRegion(string PdfPath, IReadOnlyList<RenderedPdfPage> Pages, string TemporaryDirectory);
+public sealed record SpreadsheetRenderedRegion(string PdfPath, PdfPreviewDocument Preview, string TemporaryDirectory);
 
 public sealed class SpreadsheetPrintService(IReadOnlyList<IConverter> converters)
 {
@@ -24,22 +24,11 @@ public sealed class SpreadsheetPrintService(IReadOnlyList<IConverter> converters
     public async Task<SpreadsheetRenderedRegion> RenderAsync(SpreadsheetWorkbookInfo workbook,
         SpreadsheetPrintRegion region, CancellationToken cancellationToken = default)
     {
-        if (_libreOffice is null)
-            throw new InvalidOperationException("LibreOffice is not available.");
-        var folder = Path.Combine(Path.GetTempPath(), "filee-sheet-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(folder);
+        var (output, folder) = await MakePdfAsync(workbook, region, cancellationToken);
         try
         {
-            var input = Path.Combine(folder, "preview.xlsx");
-            var output = Path.Combine(folder, "preview.pdf");
-            SpreadsheetPrintPackage.Create(workbook.Path, input, workbook, region);
-            var results = await _libreOffice.ConvertAsync(new ConversionStep(
-                input, "xlsx", "pdf", new Preset { TargetFormat = "pdf" },
-                new ExactOutput(output), folder), null, cancellationToken);
-            if (results.Count != 1 || !File.Exists(output))
-                throw new InvalidOperationException("LibreOffice did not create a PDF preview.");
-            var pages = await Task.Run(() => PdfPagePreviewRenderer.Render(output, cancellationToken: cancellationToken), cancellationToken);
-            return new SpreadsheetRenderedRegion(output, pages, folder);
+            var preview = await Task.Run(() => PdfPreviewDocument.Open(output), cancellationToken);
+            return new SpreadsheetRenderedRegion(output, preview, folder);
         }
         catch
         {
@@ -55,13 +44,13 @@ public sealed class SpreadsheetPrintService(IReadOnlyList<IConverter> converters
             throw new ArgumentException("At least one region must be exported.", nameof(regions));
         if (_pdfMerger is null)
             throw new InvalidOperationException("The PDF merger is not available.");
-        var rendered = new List<SpreadsheetRenderedRegion>();
+        var rendered = new List<(string PdfPath, string TemporaryDirectory)>();
         var temporaryOutput = outputPath + ".filee-tmp";
         try
         {
             for (var index = 0; index < regions.Count; index++)
             {
-                rendered.Add(await RenderAsync(workbook, regions[index], cancellationToken));
+                rendered.Add(await MakePdfAsync(workbook, regions[index], cancellationToken));
                 progress?.Report(0.85 * (index + 1) / regions.Count);
             }
             TryDelete(temporaryOutput);
@@ -77,10 +66,45 @@ public sealed class SpreadsheetPrintService(IReadOnlyList<IConverter> converters
         }
     }
 
+    private async Task<(string PdfPath, string TemporaryDirectory)> MakePdfAsync(SpreadsheetWorkbookInfo workbook,
+        SpreadsheetPrintRegion region, CancellationToken cancellationToken)
+    {
+        if (_libreOffice is null)
+            throw new InvalidOperationException("LibreOffice is not available.");
+        var folder = CreateWorkFolder();
+        try
+        {
+            var input = Path.Combine(folder, "sheet.xlsx");
+            var output = Path.Combine(folder, "sheet.pdf");
+            await Task.Run(() => SpreadsheetPrintPackage.Create(workbook.Path, input, workbook, region), cancellationToken);
+            var results = await _libreOffice.ConvertAsync(new ConversionStep(
+                input, "xlsx", "pdf", new Preset { TargetFormat = "pdf" },
+                new ExactOutput(output), folder), null, cancellationToken);
+            if (results.Count != 1 || !File.Exists(output))
+                throw new InvalidOperationException("LibreOffice did not create the requested PDF.");
+            return (output, folder);
+        }
+        catch
+        {
+            TryDelete(folder);
+            throw;
+        }
+    }
+
     public static void Release(SpreadsheetRenderedRegion? rendered)
     {
         if (rendered is not null)
             TryDelete(rendered.TemporaryDirectory);
+    }
+
+    private static string CreateWorkFolder()
+    {
+        Directory.CreateDirectory(JobQueue.DefaultWorkRoot);
+        string folder;
+        do folder = Path.Combine(JobQueue.DefaultWorkRoot, Guid.NewGuid().ToString("N")[..10]);
+        while (Directory.Exists(folder));
+        Directory.CreateDirectory(folder);
+        return folder;
     }
 
     private static void TryDelete(string path)

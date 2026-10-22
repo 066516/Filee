@@ -22,7 +22,8 @@ public partial class SpreadsheetPrintStudioWindow : Window
         var name = Path.GetFileNameWithoutExtension(vm.FileName) + "_prepared.pdf";
         var target = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Export PDF",
+            Title = this.TryFindResource("sheet_studio.export_pdf", out var title)
+                ? title?.ToString() : "PDF",
             SuggestedFileName = name,
             DefaultExtension = "pdf",
             FileTypeChoices = [new FilePickerFileType("PDF") { Patterns = ["*.pdf"] }],
@@ -31,5 +32,9 @@ public partial class SpreadsheetPrintStudioWindow : Window
             await vm.ExportAsync(path);
     }
 
-    private void OnClose(object? sender, RoutedEventArgs e) => Close();
+    private void OnClose(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as SpreadsheetPrintStudioViewModel)?.CancelExport();
+        Close();
+    }
 }

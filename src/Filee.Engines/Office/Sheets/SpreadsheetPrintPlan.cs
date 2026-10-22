@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
+using System.Xml;
 using System.Xml.Linq;
 using Filee.Engines.Office.Ooxml;
 
@@ -100,7 +101,8 @@ public sealed record SpreadsheetPrintRegion(
     double MarginTopMm,
     double MarginBottomMm,
     bool IncludeHidden,
-    bool KeepManualBreaks)
+    bool KeepManualBreaks,
+    bool WritePrintArea)
 {
     public static SpreadsheetPrintRegion FromSource(SpreadsheetSheetInfo sheet) => new(
         sheet,
@@ -117,7 +119,8 @@ public sealed record SpreadsheetPrintRegion(
         sheet.PageSetup.MarginTopMm,
         sheet.PageSetup.MarginBottomMm,
         IncludeHidden: false,
-        KeepManualBreaks: true);
+        KeepManualBreaks: true,
+        WritePrintArea: sheet.PrintArea is not null);
 }
 
 /// <summary>Reads worksheet names, content bounds and print settings without opening Excel or LibreOffice.</summary>
@@ -129,6 +132,7 @@ public static partial class SpreadsheetPrintInspector
     public static SpreadsheetWorkbookInfo Read(string path)
     {
         using var package = new OpcPackage(path);
+        using var archive = ZipFile.OpenRead(path);
         var workbookPath = package.MainPartPath ?? "xl/workbook.xml";
         var workbook = package.Part(workbookPath)?.Root
             ?? throw new InvalidDataException("The file is not an Excel workbook (no xl/workbook.xml).");
@@ -139,64 +143,65 @@ public static partial class SpreadsheetPrintInspector
         {
             index++;
             var target = package.Target(workbookPath, (string?)sheet.Attribute(R + "id"));
-            if (target is null || package.Part(target)?.Root is not { } xml || xml.Name != S + "worksheet")
+            if (target is null || archive.GetEntry(target) is not { } entry)
                 continue;
+            var xml = ReadWorksheet(entry);
             var name = (string?)sheet.Attribute("name") ?? $"Sheet {index + 1}";
             var printArea = DefinedRange(names, index, "_xlnm.Print_Area");
             var repeatRows = DefinedRange(names, index, "_xlnm.Print_Titles", rowsOnly: true);
-            var used = ContentRange(xml);
-            var pageSetup = xml.Element(S + "pageSetup");
-            var margins = xml.Element(S + "pageMargins");
-            var scale = Int(pageSetup, "scale");
-            var fitWidth = Int(pageSetup, "fitToWidth");
-            var fitHeight = Int(pageSetup, "fitToHeight");
-            var orientation = (string?)pageSetup?.Attribute("orientation") switch
+            var scale = xml.Scale;
+            var fitWidth = xml.FitWidth;
+            var fitHeight = xml.FitHeight;
+            var orientation = xml.Orientation switch
             {
                 "portrait" => SpreadsheetPageOrientation.Portrait,
                 "landscape" => SpreadsheetPageOrientation.Landscape,
                 _ => SpreadsheetPageOrientation.Source,
             };
-            var order = (string?)pageSetup?.Attribute("pageOrder") switch
+            var order = xml.PageOrder switch
             {
                 "downThenOver" => SpreadsheetPageOrder.DownThenOver,
                 "overThenDown" => SpreadsheetPageOrder.OverThenDown,
                 _ => SpreadsheetPageOrder.Source,
             };
-            var hiddenRows = xml.Element(S + "sheetData")?.Elements(S + "row").Count(row => On(row.Attribute("hidden"))) ?? 0;
-            var hiddenColumns = HiddenColumnCount(xml);
             result.Add(new SpreadsheetSheetInfo(
                 index,
                 name,
                 target,
                 (string?)sheet.Attribute("state") is "hidden" or "veryHidden",
-                used.Reference,
+                xml.Reference,
                 printArea,
                 repeatRows,
-                used.Rows,
-                used.Columns,
-                hiddenRows,
-                hiddenColumns,
+                xml.Rows,
+                xml.Columns,
+                xml.HiddenRows,
+                xml.HiddenColumns,
                 new SpreadsheetSourcePageSetup(
-                    SpreadsheetPaper.FromCode(Int(pageSetup, "paperSize")),
+                    SpreadsheetPaper.FromCode(xml.PaperSize),
                     orientation,
                     scale,
                     fitWidth,
                     fitHeight,
                     order,
-                    Inches(margins, "left", 0.7),
-                    Inches(margins, "right", 0.7),
-                    Inches(margins, "top", 0.75),
-                    Inches(margins, "bottom", 0.75))));
+                    xml.MarginLeftInches * 25.4,
+                    xml.MarginRightInches * 25.4,
+                    xml.MarginTopInches * 25.4,
+                    xml.MarginBottomInches * 25.4)));
         }
         return new SpreadsheetWorkbookInfo(path, workbookPath, result);
     }
 
     /// <summary>Whether a comma-separated A1 range can safely become an Excel print area.</summary>
     public static bool IsValidRange(string? range) => !string.IsNullOrWhiteSpace(range)
-        && range.Split(',').All(part =>
+        && SplitAreas(range).All(part =>
         {
-            var cells = part.Trim().Split(':');
-            return cells.Length is 1 or 2 && cells.All(cell => TryCell(cell, out _, out _));
+            var value = part.Trim().Replace("$", "", StringComparison.Ordinal);
+            var cells = value.Split(':');
+            return cells.Length is 1 or 2 && cells.All(cell => TryCell(cell, out _, out _))
+                || cells.Length == 2 && cells.All(TryColumn)
+                || cells.Length == 2 && cells.All(cell => RowPattern().IsMatch(cell)
+                    && int.TryParse(cell, NumberStyles.None, CultureInfo.InvariantCulture, out var row)
+                    && row is >= 1 and <= 1_048_576);
         });
 
     private static string? DefinedRange(List<XElement> names, int sheetIndex, string kind, bool rowsOnly = false)
@@ -205,34 +210,97 @@ public static partial class SpreadsheetPrintInspector
             && (string?)n.Attribute("localSheetId") == sheetIndex.ToString(CultureInfo.InvariantCulture))?.Value;
         if (string.IsNullOrWhiteSpace(value))
             return null;
-        var ranges = value.Split(',').Select(part => part[(part.LastIndexOf('!') + 1)..].Replace("$", "", StringComparison.Ordinal).Trim());
+        var ranges = SplitAreas(value).Select(part =>
+            part[(part.LastIndexOf('!') + 1)..].Replace("$", "", StringComparison.Ordinal).Trim());
         if (rowsOnly)
             ranges = ranges.Where(part => RowRangePattern().IsMatch(part));
         var joined = string.Join(',', ranges);
         return joined.Length > 0 ? joined : null;
     }
 
-    private static (string Reference, int Rows, int Columns) ContentRange(XElement sheet)
+    private static WorksheetSummary ReadWorksheet(ZipArchiveEntry entry)
     {
         var top = int.MaxValue;
         var left = int.MaxValue;
         var bottom = -1;
         var right = -1;
-        foreach (var cell in sheet.Element(S + "sheetData")?.Descendants(S + "c") ?? [])
+        var hiddenRows = 0;
+        var hiddenColumns = 0;
+        var merges = new List<string>();
+        int? paperSize = null, scale = null, fitWidth = null, fitHeight = null;
+        string? orientation = null, pageOrder = null;
+        var marginLeft = 0.7;
+        var marginRight = 0.7;
+        var marginTop = 0.75;
+        var marginBottom = 0.75;
+        using var stream = entry.Open();
+        using var reader = XmlReader.Create(stream, new XmlReaderSettings
         {
-            // A styled empty cell can push Excel's dimension to XFD1048576; it must not shrink the printed table.
-            if (cell.Element(S + "v") is null && cell.Element(S + "is") is null && cell.Element(S + "f") is null)
+            IgnoreComments = true,
+            IgnoreWhitespace = true,
+            DtdProcessing = DtdProcessing.Prohibit,
+        });
+        while (reader.Read())
+        {
+            if (reader.NodeType != XmlNodeType.Element || reader.NamespaceURI != S.NamespaceName)
                 continue;
-            if (!TryCell((string?)cell.Attribute("r"), out var row, out var column))
-                continue;
-            top = Math.Min(top, row);
-            left = Math.Min(left, column);
-            bottom = Math.Max(bottom, row);
-            right = Math.Max(right, column);
+            switch (reader.LocalName)
+            {
+                case "row" when On(reader.GetAttribute("hidden")):
+                    hiddenRows++;
+                    break;
+                case "col" when On(reader.GetAttribute("hidden")):
+                    var min = Math.Max(1, Int(reader.GetAttribute("min")) ?? 1);
+                    var max = Math.Min(16384, Int(reader.GetAttribute("max")) ?? min);
+                    hiddenColumns += Math.Max(0, max - min + 1);
+                    break;
+                case "c":
+                    var reference = reader.GetAttribute("r");
+                    var hasContent = false;
+                    using (var cell = reader.ReadSubtree())
+                    {
+                        while (cell.Read())
+                        {
+                            if (cell.NodeType == XmlNodeType.Element && cell.NamespaceURI == S.NamespaceName
+                                && cell.LocalName is "v" or "is" or "f")
+                            {
+                                hasContent = true;
+                                break;
+                            }
+                        }
+                    }
+                    // A styled empty cell can push Excel's dimension to XFD1048576.
+                    if (hasContent && TryCell(reference, out var row, out var column))
+                    {
+                        top = Math.Min(top, row);
+                        left = Math.Min(left, column);
+                        bottom = Math.Max(bottom, row);
+                        right = Math.Max(right, column);
+                    }
+                    break;
+                case "mergeCell":
+                    if (reader.GetAttribute("ref") is { } merge)
+                        merges.Add(merge);
+                    break;
+                case "pageSetup":
+                    paperSize = Int(reader.GetAttribute("paperSize"));
+                    scale = Int(reader.GetAttribute("scale"));
+                    fitWidth = Int(reader.GetAttribute("fitToWidth"));
+                    fitHeight = Int(reader.GetAttribute("fitToHeight"));
+                    orientation = reader.GetAttribute("orientation");
+                    pageOrder = reader.GetAttribute("pageOrder");
+                    break;
+                case "pageMargins":
+                    marginLeft = Double(reader.GetAttribute("left")) ?? marginLeft;
+                    marginRight = Double(reader.GetAttribute("right")) ?? marginRight;
+                    marginTop = Double(reader.GetAttribute("top")) ?? marginTop;
+                    marginBottom = Double(reader.GetAttribute("bottom")) ?? marginBottom;
+                    break;
+            }
         }
-        foreach (var merge in sheet.Element(S + "mergeCells")?.Elements(S + "mergeCell") ?? [])
+        foreach (var merge in merges)
         {
-            var parts = ((string?)merge.Attribute("ref") ?? "").Split(':');
+            var parts = merge.Split(':');
             if (parts.Length != 2 || !TryCell(parts[0], out var r1, out var c1) || !TryCell(parts[1], out var r2, out var c2))
                 continue;
             if (bottom >= 0 && r1 >= top && c1 >= left && r1 <= bottom && c1 <= right)
@@ -242,32 +310,42 @@ public static partial class SpreadsheetPrintInspector
             }
         }
         if (bottom < 0)
-            return ("A1", 0, 0);
-        return ($"{Cell(left, top)}:{Cell(right, bottom)}", bottom - top + 1, right - left + 1);
+            return new("A1", 0, 0, hiddenRows, hiddenColumns, paperSize, scale, fitWidth, fitHeight,
+                orientation, pageOrder, marginLeft, marginRight, marginTop, marginBottom);
+        return new($"{Cell(left, top)}:{Cell(right, bottom)}", bottom - top + 1, right - left + 1,
+            hiddenRows, hiddenColumns, paperSize, scale, fitWidth, fitHeight, orientation, pageOrder,
+            marginLeft, marginRight, marginTop, marginBottom);
     }
 
-    private static int HiddenColumnCount(XElement sheet)
+    internal static IEnumerable<string> SplitAreas(string value)
     {
-        var count = 0;
-        foreach (var column in sheet.Element(S + "cols")?.Elements(S + "col") ?? [])
+        var start = 0;
+        var quoted = false;
+        for (var index = 0; index < value.Length; index++)
         {
-            if (!On(column.Attribute("hidden")))
+            if (value[index] == '\'' && index + 1 < value.Length && value[index + 1] == '\'')
+            {
+                index++;
                 continue;
-            var min = Math.Max(1, Int(column, "min") ?? 1);
-            var max = Math.Min(16384, Int(column, "max") ?? min);
-            count += Math.Max(0, max - min + 1);
+            }
+            if (value[index] == '\'')
+                quoted = !quoted;
+            else if (value[index] == ',' && !quoted)
+            {
+                yield return value[start..index];
+                start = index + 1;
+            }
         }
-        return count;
+        yield return value[start..];
     }
 
-    private static int? Int(XElement? element, string name) =>
-        int.TryParse((string?)element?.Attribute(name), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : null;
+    private static int? Int(string? value) =>
+        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) ? result : null;
 
-    private static double Inches(XElement? element, string name, double fallback) =>
-        double.TryParse((string?)element?.Attribute(name), NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
-            ? value * 25.4 : fallback * 25.4;
+    private static double? Double(string? value) =>
+        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result) ? result : null;
 
-    private static bool On(XAttribute? value) => value?.Value is "1" or "true";
+    private static bool On(string? value) => value is "1" or "true";
 
     private static bool TryCell(string? reference, out int row, out int column)
     {
@@ -289,6 +367,16 @@ public static partial class SpreadsheetPrintInspector
         return true;
     }
 
+    private static bool TryColumn(string value)
+    {
+        if (!ColumnPattern().IsMatch(value))
+            return false;
+        var column = 0;
+        foreach (var ch in value)
+            column = column * 26 + (char.ToUpperInvariant(ch) - 'A' + 1);
+        return column <= 16_384;
+    }
+
     private static string Cell(int column, int row)
     {
         var letters = "";
@@ -302,15 +390,26 @@ public static partial class SpreadsheetPrintInspector
 
     [GeneratedRegex(@"^\d+:\d+$", RegexOptions.CultureInvariant)]
     private static partial Regex RowRangePattern();
+
+    [GeneratedRegex(@"^[A-Za-z]{1,3}$", RegexOptions.CultureInvariant)]
+    private static partial Regex ColumnPattern();
+
+    [GeneratedRegex(@"^\d{1,7}$", RegexOptions.CultureInvariant)]
+    private static partial Regex RowPattern();
+
+    private sealed record WorksheetSummary(string Reference, int Rows, int Columns, int HiddenRows, int HiddenColumns,
+        int? PaperSize, int? Scale, int? FitWidth, int? FitHeight, string? Orientation, string? PageOrder,
+        double MarginLeftInches, double MarginRightInches, double MarginTopInches, double MarginBottomInches);
 }
 
 /// <summary>Writes a temporary XLSX with one printable sheet and one region, preserving every other package part.</summary>
-public static class SpreadsheetPrintPackage
+public static partial class SpreadsheetPrintPackage
 {
     private static readonly XNamespace S = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
     private const double MillimetresPerInch = 25.4;
 
-    public static void Create(string source, string destination, SpreadsheetWorkbookInfo workbook, SpreadsheetPrintRegion region)
+    public static void Create(string source, string destination, SpreadsheetWorkbookInfo workbook,
+        SpreadsheetPrintRegion region, CompressionLevel compressionLevel = CompressionLevel.Fastest)
     {
         if (!SpreadsheetPrintInspector.IsValidRange(region.Range))
             throw new ArgumentException("The print area is not a valid A1 cell range.", nameof(region));
@@ -319,13 +418,15 @@ public static class SpreadsheetPrintPackage
         using var output = ZipFile.Open(destination, ZipArchiveMode.Create);
         foreach (var entry in input.Entries)
         {
-            var written = output.CreateEntry(entry.FullName, CompressionLevel.Optimal);
+            var written = output.CreateEntry(entry.FullName, compressionLevel);
             written.LastWriteTime = entry.LastWriteTime;
             using var to = written.Open();
             if (entry.FullName.Equals(workbook.WorkbookPartPath, StringComparison.OrdinalIgnoreCase))
                 RewriteWorkbook(entry, to, region);
             else if (entry.FullName.Equals(region.Sheet.PartPath, StringComparison.OrdinalIgnoreCase))
                 RewriteSheet(entry, to, region);
+            else if (workbook.Sheets.Any(sheet => entry.FullName.Equals(sheet.PartPath, StringComparison.OrdinalIgnoreCase)))
+                RewriteSheetSelection(entry, to, selected: false);
             else
             {
                 using var from = entry.Open();
@@ -343,38 +444,49 @@ public static class SpreadsheetPrintPackage
             throw new InvalidDataException("The selected worksheet is no longer in the workbook.");
         var selected = sheets[region.Sheet.Index];
         selected.Attribute("state")?.Remove();
-        sheets.Where(sheet => sheet != selected).Remove();
-        var view = root.Element(S + "bookViews")?.Elements(S + "workbookView").FirstOrDefault();
-        view?.SetAttributeValue("activeTab", 0);
+        foreach (var sheet in sheets.Where(sheet => sheet != selected))
+            sheet.SetAttributeValue("state", "hidden");
+        var bookViews = root.Element(S + "bookViews");
+        if (bookViews is null)
+        {
+            bookViews = new XElement(S + "bookViews");
+            root.Element(S + "sheets")?.AddBeforeSelf(bookViews);
+        }
+        var view = bookViews.Elements(S + "workbookView").FirstOrDefault();
+        if (view is null)
+        {
+            view = new XElement(S + "workbookView");
+            bookViews.Add(view);
+        }
+        view.SetAttributeValue("activeTab", region.Sheet.Index);
+        view.SetAttributeValue("firstSheet", region.Sheet.Index);
 
         var defined = root.Element(S + "definedNames");
-        if (defined is null)
-        {
-            defined = new XElement(S + "definedNames");
-            root.Element(S + "sheets")?.AddAfterSelf(defined);
-        }
-        // This disposable workbook lists one sheet only. Local names of removed sheets are invalid here; names of
-        // the selected sheet move to index 0. This also prevents LibreOffice exporting a stale selected tab first.
-        foreach (var name in defined.Elements(S + "definedName").ToList())
-        {
-            if (!int.TryParse((string?)name.Attribute("localSheetId"), NumberStyles.Integer,
-                    CultureInfo.InvariantCulture, out var local))
-                continue;
-            if (local == region.Sheet.Index)
-                name.SetAttributeValue("localSheetId", 0);
-            else
-                name.Remove();
-        }
-        defined.Elements(S + "definedName").Where(name =>
+        defined?.Elements(S + "definedName").Where(name =>
             (string?)name.Attribute("name") == "_xlnm.Print_Area"
-            && (string?)name.Attribute("localSheetId") == "0").Remove();
-        var escaped = region.Sheet.Name.Replace("'", "''", StringComparison.Ordinal);
-        var qualified = string.Join(',', region.Range.Split(',').Select(part =>
-            $"'{escaped}'!{AbsoluteRange(part)}"));
-        defined.Add(new XElement(S + "definedName",
-            new XAttribute("name", "_xlnm.Print_Area"),
-            new XAttribute("localSheetId", 0),
-            qualified));
+            && (string?)name.Attribute("localSheetId") == region.Sheet.Index.ToString(CultureInfo.InvariantCulture)).Remove();
+        if (region.WritePrintArea)
+        {
+            if (defined is null)
+            {
+                defined = new XElement(S + "definedNames");
+                root.Element(S + "sheets")?.AddAfterSelf(defined);
+            }
+            var escaped = region.Sheet.Name.Replace("'", "''", StringComparison.Ordinal);
+            var qualified = string.Join(',', SpreadsheetPrintInspector.SplitAreas(region.Range).Select(part =>
+                $"'{escaped}'!{AbsoluteRange(part)}"));
+            defined.Add(new XElement(S + "definedName",
+                new XAttribute("name", "_xlnm.Print_Area"),
+                new XAttribute("localSheetId", region.Sheet.Index),
+                qualified));
+        }
+        document.Save(output, SaveOptions.DisableFormatting);
+    }
+
+    private static void RewriteSheetSelection(ZipArchiveEntry entry, Stream output, bool selected)
+    {
+        var document = Load(entry);
+        SetSheetSelected(document.Root!, selected);
         document.Save(output, SaveOptions.DisableFormatting);
     }
 
@@ -480,11 +592,19 @@ public static class SpreadsheetPrintPackage
         element.SetAttributeValue(name, value.ToString("0.####", CultureInfo.InvariantCulture));
 
     private static string AbsoluteRange(string range) => string.Join(':',
-        range.Replace("$", "", StringComparison.Ordinal).Trim().Split(':').Select(cell =>
+        range.Replace("$", "", StringComparison.Ordinal).Trim().Split(':').Select(value =>
         {
-            var split = cell.IndexOfAny("0123456789".ToCharArray());
-            return split > 0 ? $"${cell[..split]}${cell[split..]}" : cell;
+            if (ColumnPattern().IsMatch(value)) return $"${value.ToUpperInvariant()}";
+            if (RowPattern().IsMatch(value)) return $"${value}";
+            var split = value.IndexOfAny("0123456789".ToCharArray());
+            return split > 0 ? $"${value[..split].ToUpperInvariant()}${value[split..]}" : value;
         }));
+
+    [GeneratedRegex(@"^[A-Za-z]{1,3}$", RegexOptions.CultureInvariant)]
+    private static partial Regex ColumnPattern();
+
+    [GeneratedRegex(@"^\d{1,7}$", RegexOptions.CultureInvariant)]
+    private static partial Regex RowPattern();
 
     private static void SetEnum<T>(XElement element, string name, T value, T source, params (T Value, string Text)[] choices)
         where T : struct, Enum
