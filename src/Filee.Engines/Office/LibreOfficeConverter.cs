@@ -20,6 +20,7 @@
 using Filee.Core.Conversion;
 using Filee.Core.Formats;
 using Filee.Engines.Infrastructure;
+using Filee.Engines.Pdf;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using PdfSharp.Pdf;
@@ -121,6 +122,26 @@ public sealed class LibreOfficeConverter : IConverter
             if (produced is null)
                 throw new InvalidOperationException(
                     $"LibreOffice produced no output (exit {result.ExitCode}). {result.StandardError.Trim()}");
+
+            // Calc sometimes turns stale Excel print tiles into completely empty trailing PDF pages. Only remove pages
+            // with no painting operation at all; pages containing text, borders, charts, pictures or annotations stay.
+            if (step.To == "pdf" && FamilyOf(step.From, FormatRegistry.ExtensionOf(step.InputPath)) == "calc")
+            {
+                try
+                {
+                    var removed = PdfBlankPages.Remove(produced);
+                    if (removed > 0)
+                    {
+                        _logger.LogInformation("{File}: removed {Count} empty spreadsheet PDF pages", step.InputPath, removed);
+                        step.Notice?.Invoke("notice.empty_spreadsheet_pages_removed");
+                    }
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    // Post-processing is an improvement, not a reason to discard LibreOffice's otherwise valid PDF.
+                    _logger.LogInformation("{File}: could not check empty spreadsheet PDF pages: {Message}", step.InputPath, e.Message);
+                }
+            }
 
             var target = step.Output.Allocate(step.To);
             if (target is null)
