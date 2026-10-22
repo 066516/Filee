@@ -5,7 +5,7 @@
 // (PdfDocumentReader reads the layer when the preset asks for OCR).
 //
 // A PDF keeps its pages that already have text (born-digital pages are never turned into pictures); only pages
-// without any are rendered at 300 dpi and recognized, several at a time. The language data comes from OcrLanguages,
+// without any are rendered at 300 dpi and recognized, page by page, at most four at a time. The language data comes from OcrLanguages,
 // downloaded the first time a language is used, and is copied into the job's folder so Tesseract reads only it.
 
 using Filee.Core.Conversion;
@@ -31,6 +31,12 @@ public sealed class TesseractConverter : IConverter
 
     /// <summary>Scans are rendered at this resolution, which Tesseract reads best (and the page keeps its size).</summary>
     internal const int Dpi = 300;
+
+    /// <summary>
+    /// Tesseract runs side by side at most: enough to keep a desktop busy, few enough for memory and disk on a long scan
+    /// (each run holds one 300 dpi page). A PC with fewer cores runs fewer.
+    /// </summary>
+    internal static int Runs => Math.Clamp(System.Environment.ProcessorCount, 1, 4);
 
     /// <summary>Pictures Tesseract opens itself (Leptonica); others become a PNG first (RoutePlanner).</summary>
     internal static readonly IReadOnlyList<string> ImageSources = ["png", "jpg", "tiff", "bmp", "webp", "gif"];
@@ -123,23 +129,48 @@ public sealed class TesseractConverter : IConverter
             return;
         }
 
-        // PDFium draws one page at a time; Tesseract then reads them side by side.
+        // Page by page: PDFium draws a page only when one of the Tesseract runs is free, and a page's picture is deleted
+        // as soon as its PDF exists, so a 300-page scan never has more than Runs pictures in the work folder.
         var options = new RenderOptions(Dpi: Dpi, WithAnnotations: true, WithFormFill: true, BackgroundColor: SKColors.White);
-        for (var i = 0; i < scans.Count; i++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            using var bitmap = Conversion.ToImage(bytes, scans[i], null, options);
-            await using var file = File.Create(Path.Combine(scratch, $"p{scans[i]}.png"));
-            bitmap.Encode(file, SKEncodedImageFormat.Png, 100);
-            progress?.Report(0.05 + 0.25 * (i + 1) / scans.Count);
-        }
+        using var free = new SemaphoreSlim(Runs);
+        var runs = new List<Task>();
         var done = 0;
-        await Parallel.ForEachAsync(scans, new ParallelOptions { MaxDegreeOfParallelism = System.Environment.ProcessorCount, CancellationToken = cancellationToken },
-            async (page, ct) =>
+        foreach (var page in scans)
+        {
+            await free.WaitAsync(cancellationToken);
+            if (runs.Any(r => r.IsFaulted))
             {
-                await ocr.ToPdfAsync(Path.Combine(scratch, $"p{page}.png"), Path.Combine(scratch, $"p{page}"), Dpi, ct);
-                progress?.Report(0.3 + 0.65 * Interlocked.Increment(ref done) / scans.Count);
-            });
+                free.Release();
+                break; // a page failed: stop rendering, the error comes out below
+            }
+            var picture = Path.Combine(scratch, $"p{page}.png");
+            try
+            {
+                using var bitmap = Conversion.ToImage(bytes, page, null, options);
+                await using var file = File.Create(picture);
+                bitmap.Encode(file, SKEncodedImageFormat.Png, 100);
+            }
+            catch
+            {
+                free.Release();
+                await Task.WhenAll(runs).ContinueWith(_ => { }, TaskScheduler.Default); // let the running pages end first
+                throw;
+            }
+            runs.Add(Task.Run(async () =>
+            {
+                try
+                {
+                    await ocr.ToPdfAsync(picture, Path.Combine(scratch, $"p{page}"), Dpi, cancellationToken);
+                    File.Delete(picture);
+                    progress?.Report(0.05 + 0.9 * Interlocked.Increment(ref done) / scans.Count);
+                }
+                finally
+                {
+                    free.Release();
+                }
+            }, cancellationToken));
+        }
+        await Task.WhenAll(runs);
 
         // A new document: the pages and the document information come along, bookmarks and form fields don't.
         using var source = PdfSharpConverter.Open(step.InputPath, PdfDocumentOpenMode.Import);

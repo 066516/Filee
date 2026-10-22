@@ -1469,7 +1469,9 @@ scans and pictures with Tesseract (`Ocr/TesseractConverter.cs`), in the language
   becomes a PNG first. OCR edges are never part of an ordinary route.
 - A searchable PDF keeps the page as it looks and puts the recognized words on it as invisible text. PDF pages that
   already have text (visible or an OCR layer) are copied as they are; only the others are rendered at 300 dpi
-  (PDFium) and recognized, several pages at a time with one Tesseract thread each (`OMP_THREAD_LIMIT=1`). A PDF whose
+  (PDFium) and recognized page by page: a page is rendered when one of at most four Tesseract runs (fewer on PCs with
+  fewer cores) is free, each with one thread (`OMP_THREAD_LIMIT=1`), and its picture is deleted once its PDF exists,
+  so a long scan never has more than four pictures in the work folder. A PDF whose
   pages all have text is copied with a note. The new document keeps the pages and the document information, not
   bookmarks or form fields.
 - DOCX, Markdown and HWPX read the OCR layer as the page's text (`PdfDocumentReader.ReadWithOcrLayer`): the words

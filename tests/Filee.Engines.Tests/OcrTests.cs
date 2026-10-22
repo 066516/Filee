@@ -137,6 +137,24 @@ public class OcrTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public async Task A_long_scan_is_recognized_page_by_page_in_order()
+    {
+        Assert.SkipUnless(Installed, Skip);
+        Assert.InRange(TesseractConverter.Runs, 1, 4);
+        var folder = fx.NewFolder();
+        var words = new[] { "alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf" };
+        var scans = words.Select((w, i) => Scan(folder, $"p{i}.png", $"Page {w}")).ToList();
+        var pdf = (await fx.ConvertAsync(scans, new Preset { TargetFormat = "pdf", Pdf = { MergeIntoSingle = true } })).Outputs.Single();
+
+        var job = await fx.ConvertAsync([pdf], Ocr("pdf"));
+
+        AssertDone(job);
+        var output = job.Outputs.Single();
+        for (var i = 0; i < words.Length; i++)
+            Assert.Contains(words[i], PageText(output, i + 1));
+    }
+
+    [Fact]
     public async Task A_pdf_that_has_text_everywhere_is_copied_with_a_note()
     {
         Assert.SkipUnless(Installed, Skip);
