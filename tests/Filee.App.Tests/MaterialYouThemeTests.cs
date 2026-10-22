@@ -244,6 +244,65 @@ public class MaterialYouThemeTests
     }
 
     [AvaloniaFact]
+    public void Changing_accent_after_preset_clears_preset_key_and_applies_swatch()
+    {
+        TestServices.EnsureInitialized("en");
+        var directory = Directory.CreateTempSubdirectory("filee-preset-swatch-test-").FullName;
+        try
+        {
+            var store = new UserDataStore(directory);
+            store.Load();
+            var loc = AppHost.Get<ILocalizer>();
+            var platform = AppHost.Get<IPlatformServices>();
+            var themeService = AppHost.Get<ThemeService>();
+            var vm = new ThemePageViewModel(store, loc, platform);
+
+            // 1. Pick a preset
+            var preset = vm.PastelPresets.First(p => p.Key == "lavender");
+            vm.PickPresetCommand.Execute(preset);
+            Assert.Equal("lavender", store.Settings.Theme.PresetKey);
+            Assert.Equal(preset.Color, vm.Accent);
+
+            // 2. Direct swatch selection by binding Accent (as Swatch ListBox and ColorPicker do)
+            var teal = Color.Parse("#008080");
+            vm.Accent = teal;
+            Assert.Null(store.Settings.Theme.PresetKey);
+            Assert.Equal(teal, vm.Accent);
+            Assert.Equal("#008080", store.Settings.Theme.Accent);
+
+            // 3. ThemeService applying the settings must use the swatch accent, not preset
+            themeService.Apply(store.Settings.Theme, "en");
+            var res = Application.Current!.Resources;
+            Assert.Equal(teal, ((SolidColorBrush)res["AccentBrush"]!).Color);
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [AvaloniaFact]
+    public void Soft_style_preserves_custom_grey_swatch_without_monochrome_conversion()
+    {
+        TestServices.EnsureInitialized("en");
+        var themeService = AppHost.Get<ThemeService>();
+        var grey = Color.Parse("#5F5E5A");
+
+        try
+        {
+            themeService.Apply(new ThemeSettings { Style = ThemeStyle.Soft, Accent = "#5F5E5A" }, "en");
+            var res = Application.Current!.Resources;
+
+            // In Soft style without monochrome preset, accent must stay #5F5E5A exactly as on main
+            Assert.Equal(grey, ((SolidColorBrush)res["AccentBrush"]!).Color);
+        }
+        finally
+        {
+            themeService.Apply(new ThemeSettings(), "en");
+        }
+    }
+
+    [AvaloniaFact]
     public void Controls_resolve_MaterialYou_dark_accent_roles_at_runtime_without_top_level_shadowing()
     {
         TestServices.EnsureInitialized("en");

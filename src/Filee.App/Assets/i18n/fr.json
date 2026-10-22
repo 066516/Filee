@@ -616,6 +616,8 @@
   "theme.style.MaterialYou": "Material You",
   "theme.style.soft_hint": "Apparence classique de Filee avec des coins arrondis doux et des surfaces pastel.",
   "theme.style.material_you_hint": "Design Google Material 3 avec des surfaces tonales dynamiques et des rôles d'accent adaptatifs.",
+  "theme.style.m3_badge": "Material 3",
+  "theme.style.m3_tag": "M3",
   "theme.mode": "Apparence",
   "theme.mode.System": "Système",
   "theme.mode.Light": "Clair",
@@ -923,7 +925,5 @@
   "whats_new.2_0_0.languages.title": "Filee parle plus de langues",
   "whats_new.2_0_0.languages.text": "L'espagnol, l'hindi, le japonais, le russe, l'arabe et le portugais du Brésil rejoignent l'anglais, le coréen, le chinois et le polonais.",
   "whats_new.2_0_0.more.title": "Et encore un peu plus",
-  "whats_new.2_0_0.more.text": "Réinitialisez un seul menu circulaire, recherchez dans tout votre historique, et convertissez des documents en gujarati, hindi ou arabe via LibreOffice.",
-  "theme.style.m3_badge": "Material 3",
-  "theme.style.m3_tag": "M3"
+  "whats_new.2_0_0.more.text": "Réinitialisez un seul menu circulaire, recherchez dans tout votre historique, et convertissez des documents en gujarati, hindi ou arabe via LibreOffice."
 }

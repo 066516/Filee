@@ -18,6 +18,7 @@ public sealed partial class ThemePageViewModel : ObservableObject
     private readonly UserDataStore _store;
     private readonly ILocalizer _loc;
     private readonly bool _loading;
+    private bool _settingPresetOrMode;
 
     public ThemePageViewModel(UserDataStore store, ILocalizer loc, IPlatformServices platform)
     {
@@ -118,33 +119,48 @@ public sealed partial class ThemePageViewModel : ObservableObject
         OnPropertyChanged(nameof(PastelPresets));
         if (!Choices.Restore(oldValue, newValue, v => Mode = v))
         {
-            Save(t =>
+            _settingPresetOrMode = true;
+            try
             {
-                t.Mode = newValue.Value;
-                if (!string.IsNullOrEmpty(t.PresetKey) &&
-                    ThemeService.Presets.FirstOrDefault(p => string.Equals(p.Key, t.PresetKey, StringComparison.OrdinalIgnoreCase)) is { } preset)
+                Save(t =>
                 {
-                    var isDark = newValue.Value == ThemeMode.Dark ||
-                                 (newValue.Value == ThemeMode.System && Application.Current?.ActualThemeVariant == ThemeVariant.Dark);
-                    var newColor = preset.ActiveColor(isDark);
-                    t.Accent = $"#{newColor.R:X2}{newColor.G:X2}{newColor.B:X2}";
-                    Accent = newColor;
-                }
-            });
+                    t.Mode = newValue.Value;
+                    if (!string.IsNullOrEmpty(t.PresetKey) &&
+                        ThemeService.Presets.FirstOrDefault(p => string.Equals(p.Key, t.PresetKey, StringComparison.OrdinalIgnoreCase)) is { } preset)
+                    {
+                        var isDark = newValue.Value == ThemeMode.Dark ||
+                                     (newValue.Value == ThemeMode.System && Application.Current?.ActualThemeVariant == ThemeVariant.Dark);
+                        var newColor = preset.ActiveColor(isDark);
+                        t.Accent = $"#{newColor.R:X2}{newColor.G:X2}{newColor.B:X2}";
+                        Accent = newColor;
+                    }
+                });
+            }
+            finally
+            {
+                _settingPresetOrMode = false;
+            }
         }
     }
 
     [RelayCommand]
     private void PickPreset(PresetItem preset)
     {
-        Save(t => t.PresetKey = preset.Key);
-        Accent = preset.Color;
+        _settingPresetOrMode = true;
+        try
+        {
+            Save(t => t.PresetKey = preset.Key);
+            Accent = preset.Color;
+        }
+        finally
+        {
+            _settingPresetOrMode = false;
+        }
     }
 
     [RelayCommand]
     private void PickSwatch(Color color)
     {
-        Save(t => t.PresetKey = null);
         Accent = color;
     }
 
@@ -161,7 +177,18 @@ public sealed partial class ThemePageViewModel : ObservableObject
         var hex = $"#{value.R:X2}{value.G:X2}{value.B:X2}";
         if (!string.Equals(AccentHex, hex, StringComparison.OrdinalIgnoreCase))
             AccentHex = hex;
-        Save(t => t.Accent = hex);
+        if (!_loading && !_settingPresetOrMode)
+        {
+            Save(t =>
+            {
+                t.PresetKey = null;
+                t.Accent = hex;
+            });
+        }
+        else
+        {
+            Save(t => t.Accent = hex);
+        }
     }
 
     // Custom colour typed as #RRGGBB; ignored until it parses.

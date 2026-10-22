@@ -407,9 +407,8 @@
   </Style>
 
   <!-- Buttons: M3 rounded pill derived from SoftRadius -->
-  <Style Selector="Window.material-you Button:not(.choice-card), Window.material-you ToggleButton">
+  <Style Selector="Window.material-you Button:not(.choice-card):not(.icon):not(.navlink)">
     <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusPill}" />
-    <Setter Property="Padding" Value="18,8" />
     <Setter Property="FontWeight" Value="Medium" />
   </Style>
 

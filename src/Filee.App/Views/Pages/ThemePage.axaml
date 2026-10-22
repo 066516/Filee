@@ -155,7 +155,7 @@
                 <Setter Property="Margin" Value="0,0,4,4" />
                 <Setter Property="Template">
                   <ControlTemplate>
-                    <Border x:Name="SelectionRing" CornerRadius="{DynamicResource SoftRadiusPill}" BorderThickness="2" BorderBrush="Transparent" Padding="3">
+                    <Border x:Name="SelectionRing" CornerRadius="999" BorderThickness="2" BorderBrush="Transparent" Padding="3">
                       <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
                     </Border>
                   </ControlTemplate>
@@ -175,7 +175,7 @@
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="Color">
-                <Border Width="34" Height="34" CornerRadius="{DynamicResource SoftRadiusPill}" ToolTip.Tip="{Binding}" AutomationProperties.Name="{Binding}">
+                <Border Width="34" Height="34" CornerRadius="999" ToolTip.Tip="{Binding}" AutomationProperties.Name="{Binding}">
                   <Border.Background>
                     <SolidColorBrush Color="{Binding}" />
                   </Border.Background>
@@ -213,7 +213,7 @@
                         Command="{Binding $parent[ItemsControl].((vm:ThemePageViewModel)DataContext).PickPresetCommand}"
                         CommandParameter="{Binding}">
                   <DockPanel>
-                    <Border DockPanel.Dock="Left" Width="18" Height="18" CornerRadius="{DynamicResource SoftRadiusPill}" Margin="0,0,8,0"
+                    <Border DockPanel.Dock="Left" Width="18" Height="18" CornerRadius="999" Margin="0,0,8,0"
                             BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="1">
                       <Border.Background>
                         <SolidColorBrush Color="{Binding Color}" />

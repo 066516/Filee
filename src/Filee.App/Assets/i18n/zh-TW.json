@@ -616,6 +616,8 @@
   "theme.style.MaterialYou": "Material You",
   "theme.style.soft_hint": "經典 Filee 外觀，柔和的圓角與淺色表面。",
   "theme.style.material_you_hint": "Google Material 3 設計，具有動態色調表面和自適應強調色。",
+  "theme.style.m3_badge": "Material 3",
+  "theme.style.m3_tag": "M3",
   "theme.mode": "外觀",
   "theme.mode.System": "跟隨系統",
   "theme.mode.Light": "淺色",
@@ -923,7 +925,5 @@
   "whats_new.2_0_0.languages.title": "支援更多語言",
   "whats_new.2_0_0.languages.text": "在英語、韓語、中文和波蘭語之外，新增西班牙語、印地語、日語、俄語、阿拉伯語和巴西葡萄牙語。",
   "whats_new.2_0_0.more.title": "還有更多",
-  "whats_new.2_0_0.more.text": "可以只把一個環形工具列還原為初始設定、搜尋全部歷史記錄，並透過 LibreOffice 轉換古吉拉特語、印地語或阿拉伯語文件。",
-  "theme.style.m3_badge": "Material 3",
-  "theme.style.m3_tag": "M3"
+  "whats_new.2_0_0.more.text": "可以只把一個環形工具列還原為初始設定、搜尋全部歷史記錄，並透過 LibreOffice 轉換古吉拉特語、印地語或阿拉伯語文件。"
 }

@@ -117,7 +117,7 @@ public sealed class ThemeService(IPlatformServices platform)
         }
         else
         {
-            if (MaterialYouPalette.IsMonochrome(baseColor) || preset?.Key == "monochrome")
+            if (string.Equals(preset?.Key, "monochrome", StringComparison.OrdinalIgnoreCase))
             {
                 var lightDict = new ResourceDictionary();
                 var darkDict = new ResourceDictionary();
