@@ -77,7 +77,7 @@ actualización, unas pocas diapositivas muestran las novedades.
 - **Carpetas supervisadas** que convierten cada archivo que llega a ellas.
 - **Conversiones recientes** en Inicio, cada una con su miniatura: abre el resultado o ábrelo con otra aplicación.
 - **Otras formas de usarlo**: el menú contextual, un atajo de teclado, la zona de suelta y el [comando `filee`](#línea-de-comandos).
-- Temas claro y oscuro con tu propio color de acento y la opacidad del menú circular, en English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (de derecha a izquierda), Português (Brasil) y Français.
+- Temas claro y oscuro con tu propio color de acento y la opacidad del menú circular, en English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (de derecha a izquierda), Português (Brasil), Français y नेपाली.
 
 ## Capturas de pantalla
 
@@ -151,8 +151,8 @@ Las pull requests son bienvenidas. Si Filee te ahorra unos cuantos clics, una �
 ## Política de firma de código
 
 Filee lo desarrolla y publica **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
-Las versiones para Windows se firmarán con un certificado de firma de código para código abierto de [Certum](https://www.certum.eu/)
-emitido a nombre de Myeonggu Kim. El certificado está en trámite.
+Las versiones para Windows se firman con un certificado de firma de código para código abierto de [Certum](https://www.certum.eu/)
+emitido a nombre de Myeonggu Kim. Las versiones hasta la 2.0.0 no están firmadas.
 
 La política completa y la política de privacidad están en el [README en inglés](README.md#code-signing-policy).
 Filee no sube tus archivos ni envía datos de uso.
