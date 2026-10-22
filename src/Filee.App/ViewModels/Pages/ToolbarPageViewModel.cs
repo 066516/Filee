@@ -485,7 +485,7 @@ public sealed partial class ToolbarPageViewModel : ObservableObject, IDisposable
         DonutItems = used
             .Select(_store.FindPreset)
             .OfType<Preset>()
-            .Select(p => new DonutItem { Id = p.Id, Label = _loc.DisplayName(p), Caption = Caption(p) })
+            .Select(p => new DonutItem { Id = p.Id, Label = _loc.DonutName(p), Caption = Caption(p) })
             .ToList();
 
         Palette.Clear();

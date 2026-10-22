@@ -193,6 +193,8 @@ public class PortugueseRenderTests
             foreach (var language in new[] { "en", "pt-PT", "pt-BR" })
                 foreach (var page in new[] { "toolbar", "theme", "presets", "engines" })
                     data.Add(language, page);
+            foreach (var (language, _) in LocalizationService.Languages.Where(l => l.Code is not ("en" or "pt-PT" or "pt-BR")))
+                data.Add(language, "toolbar");
             return data;
         }
     }
@@ -213,6 +215,22 @@ public class PortugueseRenderTests
             Capture(window, $"default-{page}-{language}.png");
             Assert.True(editor.Extent.Width <= editor.Viewport.Width + 1,
                 $"{language}/{page}: horizontal scroll at the default size ({editor.Extent.Width} > {editor.Viewport.Width})");
+            if (page == "toolbar")
+            {
+                foreach (var name in new[] { "NewPresetButton", "NewGroupButton" })
+                {
+                    var button = window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == name);
+                    var text = button.GetVisualDescendants().OfType<TextBlock>().Single();
+                    var start = text.TranslatePoint(default, button)!.Value.X;
+                    Assert.True(start >= 0 && start + text.Bounds.Width <= button.Bounds.Width + 1,
+                        $"{language}: '{text.Text}' exceeds its action button");
+                    Assert.All(text.TextLayout.TextLines, line => Assert.False(line.HasCollapsed));
+                }
+                var loc = AppHost.Get<ILocalizer>();
+                var toolbar = (Filee.App.ViewModels.Pages.ToolbarPageViewModel)vm.CurrentPage;
+                foreach (var item in toolbar.DonutItems)
+                    Assert.Equal(loc.DonutName(AppHost.Get<UserDataStore>().FindPreset(item.Id)!), item.Label);
+            }
         }
         finally
         {
