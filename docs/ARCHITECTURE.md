@@ -225,7 +225,7 @@ so a file is handed to its app and never started itself; only formats Filee know
 `SupportsOpenWith` (Windows), the shell's "Open with" dialog (`SHOpenWithDialog`, on a thread of its own because it
 blocks until closed). The cards' pictures come from `HistoryThumbnails`: Skia decodes them off the UI thread, scaled
 down while decoding where the format allows, from a copy read in one go so the file isn't held open, and a small cache
-keeps them while the files are unchanged.
+keeps them while the files are unchanged. For video files, FFmpeg extracts and scales a representative frame off the UI thread without locking the file.
 
 On macOS, files reach Filee from file managers other than Finder too (issue #160). The "Convert with Filee" service
 (`MacOSServicesProvider`) and the donut's drags (`DraggedFiles`) read file URLs first, then the older
