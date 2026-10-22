@@ -77,7 +77,7 @@ slides show what's new.
 - **Watch folders** convert every file that lands in them.
 - **Recent conversions** on Home, each with a thumbnail: open the result, or open it with another app.
 - **Other ways in**: the right-click menu, a keyboard shortcut, the drop zone and the [`filee` command](#command-line).
-- Light and dark themes with your own accent colour and donut opacity, in English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (right to left), Português (Brasil) and Français.
+- Light and dark themes with your own accent colour and donut opacity, in English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (right to left), Português (Brasil), Français and नेपाली.
 
 ## Screenshots
 
@@ -152,12 +152,15 @@ Pull requests are welcome. If Filee saves you some clicks, a ⭐ helps other peo
 
 Filee is developed and published by **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
 
-Windows releases will be signed with a [Certum](https://www.certum.eu/) open source code signing certificate issued
-to Myeonggu Kim. The certificate is being issued; until then, releases are not code-signed and Windows SmartScreen
-may warn when you run the installer ("More info" → "Run anyway"). macOS packages are ad-hoc signed and not notarized.
+Windows releases are signed with a [Certum](https://www.certum.eu/) open source code signing certificate issued to
+Myeonggu Kim ("Open Source Developer MYEONGGU KIM"). Releases before it, up to 2.0.0, are not signed. SmartScreen can
+still warn about a new release until it has been downloaded enough ("More info" → "Run anyway"). macOS packages are
+ad-hoc signed and not notarized.
 
-Only the installer and files built by this repository's GitHub Actions release workflow are signed, and every release
-is approved by hand. Bundled third-party programs (rhwp, 7-Zip) keep their own publishers' files.
+Only files built by this repository's GitHub Actions release workflow are signed, and every release is signed and
+approved by hand. Libraries and programs their makers signed (.NET, SkiaSharp, ImageMagick, the Microsoft C++
+runtime …) keep their own signatures; bundled ones that come unsigned (rhwp, 7-Zip and most libraries) are signed with
+Filee's certificate, as part of Filee.
 
 ### Privacy policy
 

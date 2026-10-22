@@ -128,6 +128,9 @@ public sealed class LocalizationService : ILocalizer
         // "fr" and every region ("fr-FR", "fr-CA", …), but not North Frisian "frr".
         if (ui.Equals("fr", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("fr-", StringComparison.OrdinalIgnoreCase))
             return "fr";
+        // "ne" and "ne-NP", but not Newari "new".
+        if (ui.Equals("ne", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("ne-", StringComparison.OrdinalIgnoreCase))
+            return "ne";
         return "en";
     }
 

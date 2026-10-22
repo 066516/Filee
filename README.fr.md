@@ -77,7 +77,7 @@ mise à jour, quelques diapositives présentent les nouveautés.
 - **Des dossiers surveillés** convertissent chaque fichier qui y arrive.
 - **Conversions récentes** dans l'Accueil, chacune avec sa miniature : ouvrez le résultat, ou ouvrez-le avec une autre application.
 - **D'autres points d'entrée** : le menu contextuel, un raccourci clavier, la zone de dépôt et la [commande `filee`](#ligne-de-commande).
-- Thèmes clair et sombre avec votre propre couleur d'accentuation et l'opacité du menu circulaire, en English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (de droite à gauche), Português (Brasil) et Français.
+- Thèmes clair et sombre avec votre propre couleur d'accentuation et l'opacité du menu circulaire, en English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (de droite à gauche), Português (Brasil), Français et नेपाली.
 
 ## Captures d'écran
 
@@ -152,12 +152,13 @@ Les pull requests sont les bienvenues. Si Filee vous épargne quelques clics, un
 
 Filee est développé et publié par **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
 
-Les versions Windows seront signées avec un certificat de signature de code open source [Certum](https://www.certum.eu/) délivré
-à Myeonggu Kim. Le certificat est en cours de délivrance ; d'ici là, les versions ne sont pas signées et Windows SmartScreen
-peut afficher un avertissement au lancement du programme d'installation (« Informations complémentaires » → « Exécuter quand même »). Les paquets macOS sont signés ad hoc et ne sont pas notarisés.
+Les versions Windows sont signées avec un certificat de signature de code open source [Certum](https://www.certum.eu/) délivré
+à Myeonggu Kim. Les versions jusqu'à la 2.0.0 ne sont pas signées. Windows SmartScreen peut encore afficher un
+avertissement pour une nouvelle version tant qu'elle n'a pas été assez téléchargée (« Informations complémentaires » → « Exécuter quand même »). Les paquets macOS sont signés ad hoc et ne sont pas notarisés.
 
-Seuls le programme d'installation et les fichiers produits par le workflow de publication GitHub Actions de ce dépôt sont signés, et chaque version
-est approuvée manuellement. Les programmes tiers inclus (rhwp, 7-Zip) conservent les fichiers de leurs propres éditeurs.
+Seuls les fichiers produits par le workflow de publication GitHub Actions de ce dépôt sont signés, et chaque version
+est signée et approuvée manuellement. Les bibliothèques et programmes déjà signés par leurs éditeurs gardent leur
+signature ; ceux qui arrivent sans signature (rhwp, 7-Zip et la plupart des bibliothèques) sont signés avec le certificat de Filee.
 
 ### Politique de confidentialité
 

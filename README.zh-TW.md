@@ -73,7 +73,7 @@
 - **監視資料夾**，放入的檔案自動轉換。
 - **最近的轉換**顯示在首頁上，每項都有縮圖，可以直接「開啟檔案」，也可以用「開啟方式」換個應用程式開啟。
 - **其他方式** 右鍵選單、鍵盤快速鍵、拖放區域和 [`filee` 命令](#命令列)。
-- 淺色和深色主題，可自選強調色和環形工具列不透明度，支援 English、Español、日本語、한국어、简体中文、繁體中文、Polski、हिन्दी、Русский、العربية（從右到左）、Português (Brasil)、Français。
+- 淺色和深色主題，可自選強調色和環形工具列不透明度，支援 English、Español、日本語、한국어、简体中文、繁體中文、Polski、हिन्दी、Русский、العربية（從右到左）、Português (Brasil)、Français、नेपाली。
 
 ## 截圖
 
@@ -147,7 +147,7 @@ dotnet test
 ## 程式碼簽章政策
 
 Filee 由 **Myeonggu Kim**（[KnifeLemon](https://github.com/KnifeLemon)）開發和發布。
-Windows 版本將使用頒發給 Myeonggu Kim 的 [Certum](https://www.certum.eu/) 開放原始碼程式碼簽章憑證簽署，憑證正在辦理中。
+Windows 版本使用頒發給 Myeonggu Kim 的 [Certum](https://www.certum.eu/) 開放原始碼程式碼簽章憑證簽署。2.0.0 及更早的版本沒有簽署。
 
 詳細政策和隱私權政策見[英文 README](README.md#code-signing-policy)。
 Filee 不會上傳檔案，也不會傳送任何使用資料。

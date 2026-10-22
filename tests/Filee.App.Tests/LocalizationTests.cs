@@ -116,6 +116,8 @@ public partial class LocalizationTests
     [InlineData("fr-FR", "fr")]
     [InlineData("fr-CA", "fr")]
     [InlineData("frr-DE", "en")]
+    [InlineData("ne-NP", "ne")]
+    [InlineData("new-NP", "en")]
     [InlineData("de-DE", "en")]
     [InlineData("", "en")] // Linux without LANG: the invariant culture
     public void Auto_follows_the_language_the_user_reads_the_os_in(string os, string expected) =>
@@ -124,6 +126,7 @@ public partial class LocalizationTests
     [Theory]
     [InlineData("ko")]
     [InlineData("ar")]
+    [InlineData("ne")]
     [InlineData("en")]
     [InlineData("pt-PT")]
     [InlineData("pt-BR")]
@@ -147,6 +150,13 @@ public partial class LocalizationTests
         {
             System.Globalization.CultureInfo.CurrentUICulture = culture;
         }
+    }
+
+    [Fact]
+    public void Nepali_is_offered_under_its_own_name()
+    {
+        Assert.Contains(("ne", "नेपाली"), LocalizationService.Languages);
+        Assert.Equal("ne", LocalizationService.Resolve("NE"));
     }
 
     [Fact]
