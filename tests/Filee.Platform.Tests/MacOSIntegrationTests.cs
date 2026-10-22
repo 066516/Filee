@@ -37,7 +37,7 @@ public sealed class MacOSIntegrationTests
         // Each translation names the same menu title.
         foreach (var strings in Directory.GetFiles(installer, "ServicesMenu.strings", SearchOption.AllDirectories))
             Assert.StartsWith($"\"{MacOSServicesProvider.MenuItem}\" = ", File.ReadAllLines(strings).Single(l => l.StartsWith('"')));
-        Assert.Equal(3, Directory.GetFiles(installer, "ServicesMenu.strings", SearchOption.AllDirectories).Length);
+        Assert.Equal(4, Directory.GetFiles(installer, "ServicesMenu.strings", SearchOption.AllDirectories).Length);
     }
 
     private static string RepositoryRoot()
