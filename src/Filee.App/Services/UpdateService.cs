@@ -92,18 +92,19 @@ public sealed partial class UpdateService : ObservableObject
     /// On Linux: installed with .filee-package marker (install.sh).
     /// On macOS: app bundle inside /Applications or ~/Applications.
     /// </summary>
-    public static bool IsInstalled { get; } = IsInstalledIn(AppContext.BaseDirectory);
+    public static bool IsInstalled { get; } =
+        OperatingSystem.IsWindows()
+            ? IsInstalledIn(AppContext.BaseDirectory)
+            : OperatingSystem.IsLinux()
+                ? (File.Exists(Path.Combine(AppContext.BaseDirectory, ".filee-package")) || AppContext.BaseDirectory.Contains("/.local/share/filee", StringComparison.Ordinal))
+                : OperatingSystem.IsMacOS() && AppContext.BaseDirectory.Contains("/Applications/", StringComparison.Ordinal);
 
-    internal static bool IsInstalledIn(string folder)
-    {
-        if (OperatingSystem.IsWindows())
-            return File.Exists(Path.Combine(folder, "uninstall.exe")) || File.Exists(Path.Combine(folder, "unins000.exe"));
-        if (OperatingSystem.IsLinux())
-            return File.Exists(Path.Combine(folder, ".filee-package")) || folder.Contains("/.local/share/filee", StringComparison.Ordinal);
-        if (OperatingSystem.IsMacOS())
-            return folder.Contains("/Applications/", StringComparison.Ordinal);
-        return false;
-    }
+    internal static bool IsInstalledIn(string folder) =>
+        File.Exists(Path.Combine(folder, "uninstall.exe"))
+        || File.Exists(Path.Combine(folder, "unins000.exe"))
+        || File.Exists(Path.Combine(folder, ".filee-package"))
+        || folder.Contains("/.local/share/filee", StringComparison.Ordinal)
+        || folder.Contains("/Applications/", StringComparison.Ordinal);
 
     /// <summary>Whether <see cref="UpdateAsync"/> installs by itself (defaults to true; tests may override).</summary>
     internal bool InstallsItself { get; init; } = true;
@@ -735,6 +736,9 @@ rm -f ""$0""
             installer = allAssets.FirstOrDefault(a => a.Name.EndsWith(targetSuffix, StringComparison.OrdinalIgnoreCase))
                      ?? allAssets.FirstOrDefault(a => a.Name.Contains("-linux-", StringComparison.OrdinalIgnoreCase) && a.Name.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase));
         }
+
+        installer ??= allAssets.FirstOrDefault(a => a.Name.EndsWith("-win-Setup.exe", StringComparison.OrdinalIgnoreCase))
+                   ?? allAssets.FirstOrDefault(a => a.Name.EndsWith("-win-Portable.zip", StringComparison.OrdinalIgnoreCase));
 
         if (installer is not null)
         {
