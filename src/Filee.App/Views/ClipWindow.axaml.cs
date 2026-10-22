@@ -22,16 +22,22 @@ public partial class ClipWindow : Window
 
     private ClipWindowViewModel? _vm;
 
+    /// <summary>The focus came from the keyboard (Tab, arrows), not from a click.</summary>
+    private bool _focusByKeyboard;
+
     public ClipWindow()
     {
         InitializeComponent();
         Motion.Track(this);
         DataContextChanged += OnDataContextChanged;
+        AddHandler(GotFocusEvent, (_, e) => _focusByKeyboard = e.NavigationMethod is NavigationMethod.Tab or NavigationMethod.Directional,
+            RoutingStrategies.Bubble, handledEventsToo: true);
         AddHandler(KeyDownEvent, OnKeyDownFirst, RoutingStrategies.Tunnel);
-        // Space and Enter are the window's own: their key-up must not press a button either.
+        // Space and Enter are the window's own (play, save), so a button that was clicked can't be pressed by them
+        // later; their key-up must not press it either. A button reached with Tab is pressed by them as usual.
         AddHandler(KeyUpEvent, (_, e) =>
         {
-            if (e.Key is Key.Space or Key.Enter)
+            if (e.Key is Key.Space or Key.Enter && !ButtonHasKeyboard())
                 e.Handled = true;
         }, RoutingStrategies.Tunnel);
         ResizeGrip.PointerPressed += OnGripPressed;
@@ -49,10 +55,11 @@ public partial class ClipWindow : Window
         {
             var files = await StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
             {
+                Title = vm.MusicPickerTitle,
                 AllowMultiple = false,
                 FileTypeFilter =
                 [
-                    new Avalonia.Platform.Storage.FilePickerFileType("Audio")
+                    new Avalonia.Platform.Storage.FilePickerFileType(vm.MusicFilesName)
                     {
                         Patterns = ["*.mp3", "*.m4a", "*.aac", "*.wav", "*.flac", "*.ogg", "*.opus", "*.wma", "*.mp4", "*.mkv", "*.mov", "*.webm"],
                     },
@@ -113,10 +120,18 @@ public partial class ClipWindow : Window
 
     // ───────────────────────── Keys ─────────────────────────
 
-    /// <summary>Before any focused control: Enter always saves (not "click the focused button").</summary>
+    /// <summary>A button (or toggle) has the focus, reached with the keyboard: Space and Enter press it.</summary>
+    private bool ButtonHasKeyboard() => _focusByKeyboard && FocusManager?.GetFocusedElement() is Button;
+
+    /// <summary>
+    /// Before any focused control: Space plays and Enter saves, unless a button was reached with Tab (then they press
+    /// it, as everywhere else).
+    /// </summary>
     private void OnKeyDownFirst(object? sender, KeyEventArgs e)
     {
         if (_vm is not { } vm)
+            return;
+        if (e.Key is Key.Space or Key.Enter && e.KeyModifiers == KeyModifiers.None && ButtonHasKeyboard())
             return;
         var plain = e.KeyModifiers == KeyModifiers.None;
         var command = e.KeyModifiers == KeyModifiers.Control || e.KeyModifiers == KeyModifiers.Meta;
