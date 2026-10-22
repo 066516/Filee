@@ -418,6 +418,7 @@ internal static partial class ICalendar
 
     private static string PersonLine(string name, string cell)
     {
+        cell = cell.Replace("\r", "").Replace("\n", "");
         var marker = cell.LastIndexOf(" <", StringComparison.Ordinal);
         var display = marker >= 0 && cell.EndsWith('>') ? cell[..marker] : "";
         var address = display.Length > 0 ? cell[(marker + 2)..^1] : cell;
@@ -425,6 +426,7 @@ internal static partial class ICalendar
             address = "mailto:" + address;
         if (display.Length == 0)
             return name + ":" + address;
+        display = display.Replace("\"", "");
         if (display.IndexOfAny([';', ':', ',']) >= 0)
             display = "\"" + display + "\"";
         return $"{name};CN={display}:{address}";
@@ -440,18 +442,19 @@ internal static partial class ICalendar
         foreach (var component in components)
         {
             var cells = component.Cells!;
-            if (cells[5].Length == 0)
+            var zoneId = cells[5].IndexOfAny(['\r', '\n', ':', ';', '"']) < 0 ? cells[5] : "";
+            if (zoneId.Length == 0)
                 continue;
             try
             {
-                var zone = TimeZoneInfo.FindSystemTimeZoneById(cells[5]);
+                var zone = TimeZoneInfo.FindSystemTimeZoneById(zoneId);
                 var parsedStart = TryCsvDate(cells[2], out var start, out var startDate);
                 var hasStart = cells[2].Length > 0 && parsedStart && !startDate;
                 var candidate = hasStart
                     ? start : TryCsvDate(cells[3], out var end, out var endDate) && !endDate ? end : (DateTimeOffset?)null;
-                if (candidate is { } instant && (!zones.TryGetValue(cells[5], out var previous)
+                if (candidate is { } instant && (!zones.TryGetValue(zoneId, out var previous)
                     || hasStart && !previous.HasStart || hasStart == previous.HasStart && instant < previous.Instant))
-                    zones[cells[5]] = (zone, instant, hasStart);
+                    zones[zoneId] = (zone, instant, hasStart);
             }
             catch (TimeZoneNotFoundException) { }
             catch (InvalidTimeZoneException) { }
@@ -463,21 +466,22 @@ internal static partial class ICalendar
         foreach (var component in components)
         {
             var cells = component.Cells!;
+            var zoneId = cells[5].IndexOfAny(['\r', '\n', ':', ';', '"']) < 0 ? cells[5] : "";
             TimeZoneInfo? zone = null;
-            if (zones.TryGetValue(cells[5], out var definition))
+            if (zones.TryGetValue(zoneId, out var definition))
                 zone = definition.Zone;
             Line(output, "BEGIN:" + component.Type);
-            var uid = cells[13].Length == 0
+            var uid = cells[13].IndexOfAny(['\r', '\n']) >= 0 || cells[13].Length == 0
                 ? Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\0', cells))))[..16] + "@filee"
                 : cells[13];
             Line(output, "UID:" + uid);
             Line(output, "DTSTAMP:" + DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture));
             if (cells[1].Length > 0)
                 Line(output, "SUMMARY:" + Escape(cells[1]));
-            var start = DateLine("DTSTART", cells[2], cells[5], zone);
+            var start = DateLine("DTSTART", cells[2], zoneId, zone);
             if (start.Length > 0)
                 Line(output, start);
-            var end = DateLine(component.Type == "VTODO" ? "DUE" : "DTEND", cells[3], cells[5], zone);
+            var end = DateLine(component.Type == "VTODO" ? "DUE" : "DTEND", cells[3], zoneId, zone);
             if (end.Length > 0)
                 Line(output, end);
             if (cells[6].Length > 0)
@@ -488,12 +492,13 @@ internal static partial class ICalendar
                 Line(output, PersonLine("ORGANIZER", cells[8]));
             foreach (var attendee in cells[9].Split('\n', StringSplitOptions.RemoveEmptyEntries))
                 Line(output, PersonLine("ATTENDEE", attendee));
-            if (cells[10].Length > 0)
+            if (cells[10].Length > 0 && cells[10].IndexOfAny(['\r', '\n']) < 0)
                 Line(output, "RRULE:" + cells[10]);
-            foreach (var line in cells[11].Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                Line(output, line);
-            foreach (var line in cells[12].Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                Line(output, line);
+            foreach (var (index, name) in new[] { (11, "EXDATE"), (12, "RECURRENCE-ID") })
+                foreach (var line in cells[index].Split(["\r\n", "\n", "\r"], StringSplitOptions.RemoveEmptyEntries))
+                    if (line.StartsWith(name + ":", StringComparison.OrdinalIgnoreCase)
+                        || line.StartsWith(name + ";", StringComparison.OrdinalIgnoreCase))
+                        Line(output, line);
             Line(output, "END:" + component.Type);
         }
         Line(output, "END:VCALENDAR");

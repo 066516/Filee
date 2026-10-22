@@ -325,6 +325,124 @@ public class ICalendarTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public async Task Injected_rrule_and_exdate_cannot_create_events_or_alarms()
+    {
+        var row = Enumerable.Repeat("", ICalendar.Columns.Length).ToArray();
+        row[1] = "Safe";
+        row[2] = "2026-10-22T09:00:00Z";
+        row[10] = "FREQ=DAILY\nBEGIN:VALARM";
+        row[11] = "EXDATE:20261022T090000Z\r\nEND:VEVENT\nBEGIN:VEVENT\rSUMMARY:Injected"
+            + "\nexdate;VALUE=DATE:20261023\rEXDATEX:20261024T090000Z";
+        var second = (string[])row.Clone();
+        second[1] = "Second";
+        second[10] = "FREQ=WEEKLY\rX-INJECT:1";
+        second[11] = "";
+        var text = (await File.ReadAllTextAsync(await Convert(Csv(ICalendar.Columns, row, second),
+            "csv", "ics"), TestContext.Current.CancellationToken)).Replace("\r\n ", "");
+        var lines = text.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(2, lines.Count(line => line == "BEGIN:VEVENT"));
+        Assert.DoesNotContain("VALARM", text);
+        Assert.DoesNotContain("Injected", text);
+        Assert.DoesNotContain("RRULE:", text);
+        Assert.Contains("EXDATE:20261022T090000Z", lines);
+        Assert.Contains("exdate;VALUE=DATE:20261023", lines);
+        Assert.DoesNotContain("EXDATEX:20261024T090000Z", lines);
+        var stack = new Stack<string>();
+        foreach (var line in lines)
+        {
+            if (line.StartsWith("BEGIN:", StringComparison.Ordinal))
+                stack.Push(line[6..]);
+            if (line.StartsWith("END:", StringComparison.Ordinal))
+                Assert.Equal(stack.Pop(), line[4..]);
+        }
+        Assert.Empty(stack);
+        var names = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "BEGIN", "END", "VERSION", "PRODID", "UID", "DTSTAMP", "SUMMARY",
+            "DTSTART", "DTEND", "DUE", "LOCATION", "DESCRIPTION", "ORGANIZER",
+            "ATTENDEE", "RRULE", "EXDATE", "RECURRENCE-ID", "TZID",
+            "TZOFFSETFROM", "TZOFFSETTO", "TZNAME", "RDATE",
+        };
+        foreach (var line in lines)
+        {
+            Assert.Matches(@"^[A-Za-z-]+(?:;[^:\r\n]+)?:[^\r\n]*$", line);
+            Assert.Contains(line.Split([';', ':'], 2)[0].ToUpperInvariant(), names);
+        }
+    }
+
+    [Theory]
+    [InlineData("bad\nBEGIN:VEVENT")]
+    [InlineData("bad\rEND:VEVENT")]
+    public async Task Uid_with_line_break_uses_generated_uid(string uid)
+    {
+        var text = (await File.ReadAllTextAsync(await Convert(Csv(["Title", "Start", "UID"],
+            ["Safe", "2026-10-21", uid]), "csv", "ics"), TestContext.Current.CancellationToken))
+            .Replace("\r\n ", "");
+        Assert.Matches(@"(?m)^UID:[0-9a-f]{16}@filee\r?$", text);
+        Assert.Contains("SUMMARY:Safe\r\nDTSTART;VALUE=DATE:20261021", text);
+        Assert.Equal(1, text.Split("BEGIN:VEVENT").Length - 1);
+    }
+
+    [Theory]
+    [InlineData("Asia/Seoul\nX-INJECT:1")]
+    [InlineData("Asia/Seoul\rX-INJECT:1")]
+    [InlineData("Asia/Seoul:X")]
+    [InlineData("Asia/Seoul;X")]
+    [InlineData("Asia/Seoul\"X")]
+    public async Task Invalid_timezone_cell_is_discarded_for_dates_and_definitions(string timezone)
+    {
+        var text = await File.ReadAllTextAsync(await Convert(Csv(["Title", "Start", "Time zone"],
+            ["Safe", "2026-10-21T09:00:00+09:00", timezone]), "csv", "ics"),
+            TestContext.Current.CancellationToken);
+        Assert.DoesNotContain("TZID", text);
+        Assert.DoesNotContain("VTIMEZONE", text);
+        Assert.Contains("SUMMARY:Safe\r\nDTSTART:20261021T000000Z", text);
+        Assert.Equal(1, text.Split("BEGIN:VEVENT").Length - 1);
+    }
+
+    [Fact]
+    public async Task Invalid_timezone_cannot_borrow_another_events_valid_zone()
+    {
+        var text = (await File.ReadAllTextAsync(await Convert(Csv(
+            ["Title", "Start", "Time zone"],
+            ["Valid", "2026-10-21T09:00:00+09:00", "Asia/Seoul"],
+            ["Invalid", "2026-10-21T09:00:00+09:00", "Asia/Seoul;X"]),
+            "csv", "ics"), TestContext.Current.CancellationToken)).Replace("\r\n ", "");
+        Assert.Contains("BEGIN:VTIMEZONE\r\nTZID:Asia/Seoul", text);
+        Assert.Contains("SUMMARY:Valid\r\nDTSTART;TZID=Asia/Seoul:20261021T090000", text);
+        Assert.Contains("SUMMARY:Invalid\r\nDTSTART:20261021T000000Z", text);
+    }
+
+    [Fact]
+    public async Task Recurrence_id_accepts_only_its_own_content_lines()
+    {
+        var text = (await File.ReadAllTextAsync(await Convert(Csv(["Title", "Start", "Recurrence ID"],
+            ["Safe", "2026-10-21", "RECURRENCE-ID;TZID=Asia/Seoul:20261021T090000\nX-INJECT:1"
+                + "\rrecurrence-id:20261022T090000Z\r\nRECURRENCE-IDX:20261023T090000Z"]),
+            "csv", "ics"), TestContext.Current.CancellationToken)).Replace("\r\n ", "");
+        Assert.Contains("RECURRENCE-ID;TZID=Asia/Seoul:20261021T090000\r\n", text);
+        Assert.Contains("recurrence-id:20261022T090000Z\r\n", text);
+        Assert.DoesNotContain("X-INJECT", text);
+        Assert.DoesNotContain("RECURRENCE-IDX", text);
+    }
+
+    [Fact]
+    public async Task People_remove_quotes_and_line_breaks_without_new_content_lines()
+    {
+        var text = (await File.ReadAllTextAsync(await Convert(Csv(
+            ["Title", "Start", "Organizer", "Attendees"],
+            ["Safe", "2026-10-21", "Lee\r\nX-INJECT:1, B <o@example.com>",
+                "Kim \"A\", B <a@example.com>\r\nPark\rInjected, C <b@example.com>"]),
+            "csv", "ics"), TestContext.Current.CancellationToken)).Replace("\r\n ", "");
+        Assert.Contains("ORGANIZER;CN=\"LeeX-INJECT:1, B\":mailto:o@example.com\r\n", text);
+        Assert.Contains("ATTENDEE;CN=\"Kim A, B\":mailto:a@example.com\r\n", text);
+        Assert.Contains("ATTENDEE;CN=\"ParkInjected, C\":mailto:b@example.com\r\n", text);
+        Assert.DoesNotContain("\r\nX-INJECT:", text);
+        Assert.DoesNotContain("\r\nInjected,", text);
+        Assert.Equal(2, text.Split("ATTENDEE;").Length - 1);
+    }
+
+    [Fact]
     public async Task Long_combining_sequence_folds_within_seventy_five_octets_and_roundtrips()
     {
         var title = "e" + new string('\u0301', 40);
