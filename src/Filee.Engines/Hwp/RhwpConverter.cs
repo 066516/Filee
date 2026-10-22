@@ -62,9 +62,10 @@ public sealed class RhwpConverter : IConverter, ITextShapingCheck
         var temp = Path.Combine(step.WorkDirectory, $"rhwp-{Guid.NewGuid():N}.{step.To}");
         try
         {
-            var input = step.To == "pdf" ? await PrepareAsync(exe, step, cancellationToken) : step.InputPath;
-            if (step.To == "pdf" && DocumentFonts.Missing(input) is [_, ..] missing)
+            // Inspect the original HWPX before RhwpInput replaces absent fonts in its temporary rendering copy.
+            if (step.To == "pdf" && DocumentFonts.Missing(step.InputPath) is [_, ..] missing)
                 step.MissingFonts?.Invoke(missing);
+            var input = step.To == "pdf" ? await PrepareAsync(exe, step, cancellationToken) : step.InputPath;
             string[] arguments = step.To switch
             {
                 "pdf" => ["export-pdf", input, "-o", temp, .. RhwpInput.PdfOptions()],
