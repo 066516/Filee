@@ -217,7 +217,7 @@
   "preset.pdf_add.short": "Добавить",
   "preset.pdf_extract": "Извлечь страницу",
   "preset.pdf_extract.short": "Извлечь",
-  "preset.split_pdf.short": "Извлечь",
+  "preset.split_pdf.short": "Разделить",
   "pdf_editor.title": "Изменение страниц PDF",
   "pdf_editor.hint": "Меняйте порядок, поворачивайте и удаляйте страницы. Добавляйте их из другого PDF или извлекайте выбранную страницу.",
   "pdf_editor.add": "Добавить PDF",

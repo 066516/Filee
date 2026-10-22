@@ -217,7 +217,7 @@
   "preset.pdf_add.short": "Ajouter",
   "preset.pdf_extract": "Extraire la page",
   "preset.pdf_extract.short": "Extraire",
-  "preset.split_pdf.short": "Extraire",
+  "preset.split_pdf.short": "Scinder",
   "pdf_editor.title": "Modifier les pages PDF",
   "pdf_editor.hint": "Réorganisez, faites pivoter ou supprimez des pages. Ajoutez des pages d’un autre PDF ou extrayez la page sélectionnée.",
   "pdf_editor.add": "Ajouter un PDF",

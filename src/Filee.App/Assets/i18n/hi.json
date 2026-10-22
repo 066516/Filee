@@ -207,7 +207,7 @@
   "preset.pdf_add.short": "जोड़ें",
   "preset.pdf_extract": "पृष्ठ निकालें",
   "preset.pdf_extract.short": "निकालें",
-  "preset.split_pdf.short": "निकालें",
+  "preset.split_pdf.short": "विभाजित करें",
   "pdf_editor.title": "PDF पृष्ठ संपादित करें",
   "pdf_editor.hint": "पृष्ठों का क्रम बदलें, घुमाएँ या हटाएँ। दूसरे PDF से पृष्ठ जोड़ें या चुना हुआ पृष्ठ निकालें।",
   "pdf_editor.add": "PDF जोड़ें",

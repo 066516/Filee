@@ -105,7 +105,7 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IImageTransforme
         return [path];
     }
 
-    /// <summary>PDF → PDF: split into single pages, or extract the configured page range.</summary>
+    /// <summary>PDF → PDF: split into single pages, extract a range, or rotate the complete document in place.</summary>
     private static IReadOnlyList<string> SplitOrExtract(ConversionStep step, IProgress<double>? progress, CancellationToken ct)
     {
         using var source = Open(step.InputPath, PdfDocumentOpenMode.Import);
@@ -129,6 +129,21 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IImageTransforme
             return written;
         }
 
+        if (pages.SequenceEqual(Enumerable.Range(0, source.PageCount)))
+        {
+            var complete = step.Output.Allocate("pdf");
+            if (complete is null)
+                return [];
+            ct.ThrowIfCancellationRequested();
+            var degrees = RotationDegrees(step.Preset.Pdf.Rotation);
+            if (degrees == 0)
+                File.Copy(step.InputPath, complete, overwrite: true);
+            else
+                PdfPageTools.RotateAll(step.InputPath, complete, degrees, ct);
+            progress?.Report(1);
+            return [complete];
+        }
+
         using var extract = new PdfDocument();
         foreach (var index in pages)
             Rotate(extract.AddPage(source.Pages[index]), step.Preset.Pdf.Rotation);
@@ -141,16 +156,19 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IImageTransforme
 
     private static void Rotate(PdfPage page, PdfRotation rotation)
     {
-        var degrees = rotation switch
+        var degrees = RotationDegrees(rotation);
+        if (degrees != 0)
+            page.Rotate = ((page.Rotate + degrees) % 360 + 360) % 360;
+    }
+
+    private static int RotationDegrees(PdfRotation rotation) =>
+        rotation switch
         {
             PdfRotation.Left90 => -90,
             PdfRotation.Right90 => 90,
             PdfRotation.Rotate180 => 180,
             _ => 0,
         };
-        if (degrees != 0)
-            page.Rotate = ((page.Rotate + degrees) % 360 + 360) % 360;
-    }
 
     /// <summary>
     /// PDF → a smaller PDF (<see cref="PdfOptions.Compression"/>), also with a page range or one file per page: the whole
@@ -181,10 +199,18 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IImageTransforme
                     parts.Add((path, $"_p{index + 1}"));
                 }
             }
-            else if (options.Rotation == PdfRotation.None
-                     && pages.SequenceEqual(Enumerable.Range(0, source.PageCount)))
+            else if (pages.SequenceEqual(Enumerable.Range(0, source.PageCount)))
             {
-                parts.Add((step.InputPath, null));
+                if (options.Rotation == PdfRotation.None)
+                {
+                    parts.Add((step.InputPath, null));
+                }
+                else
+                {
+                    var path = Path.Combine(scratch, "rotated.pdf");
+                    PdfPageTools.RotateAll(step.InputPath, path, RotationDegrees(options.Rotation), ct);
+                    parts.Add((path, null));
+                }
             }
             else
             {

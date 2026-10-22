@@ -217,7 +217,7 @@
   "preset.pdf_add.short": "添加",
   "preset.pdf_extract": "提取页面",
   "preset.pdf_extract.short": "提取",
-  "preset.split_pdf.short": "提取",
+  "preset.split_pdf.short": "拆分",
   "pdf_editor.title": "编辑 PDF 页面",
   "pdf_editor.hint": "可重新排序、旋转或删除页面，也可从其他 PDF 添加页面或提取所选页面。",
   "pdf_editor.add": "添加 PDF",

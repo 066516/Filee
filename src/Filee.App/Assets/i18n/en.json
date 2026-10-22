@@ -217,7 +217,7 @@
   "preset.pdf_add.short": "Add",
   "preset.pdf_extract": "Extract page",
   "preset.pdf_extract.short": "Extract",
-  "preset.split_pdf.short": "Extract",
+  "preset.split_pdf.short": "Split",
   "pdf_editor.title": "Edit PDF pages",
   "pdf_editor.hint": "Reorder, rotate or delete pages. Add pages from another PDF, or extract the selected page as its own file.",
   "pdf_editor.add": "Add PDF",

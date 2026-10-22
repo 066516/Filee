@@ -207,7 +207,7 @@
   "preset.pdf_add.short": "追加",
   "preset.pdf_extract": "ページを抽出",
   "preset.pdf_extract.short": "抽出",
-  "preset.split_pdf.short": "抽出",
+  "preset.split_pdf.short": "分割",
   "pdf_editor.title": "PDF ページを編集",
   "pdf_editor.hint": "ページの並べ替え、回転、削除ができます。別の PDF から追加するか、選択したページを抽出できます。",
   "pdf_editor.add": "PDF を追加",

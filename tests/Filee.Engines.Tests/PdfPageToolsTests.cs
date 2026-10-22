@@ -23,6 +23,54 @@ public class PdfPageToolsTests(EngineFixture fx) : IClassFixture<EngineFixture>
         return path;
     }
 
+    private static string MakeStructuredPdf(string folder, string name)
+    {
+        var path = Path.Combine(folder, name);
+        using var document = new PdfDocument();
+        var first = document.AddPage();
+        document.AddPage();
+        document.Info.Title = "Preserve this title";
+        document.Info.Author = "Filee tests";
+        document.Outlines.Add("First page", first);
+        var field = new PdfDictionary(document);
+        field.Elements.SetName("/FT", "/Tx");
+        field.Elements.SetString("/T", "Customer");
+        field.Elements.SetString("/V", "Alice");
+        document.Internals.AddObject(field);
+        var fields = new PdfArray(document);
+        fields.Elements.Add(field.Reference!);
+        var form = new PdfDictionary(document);
+        form.Elements.SetString("/FileeFormMarker", "form stays");
+        form.Elements["/Fields"] = fields;
+        document.Internals.AddObject(form);
+        document.Internals.Catalog.Elements["/AcroForm"] = form.Reference;
+        var labelStyle = new PdfDictionary(document);
+        labelStyle.Elements.SetName("/S", "/D");
+        labelStyle.Elements.SetString("/P", "Page ");
+        var numbers = new PdfArray(document);
+        numbers.Elements.Add(new PdfInteger(0));
+        numbers.Elements.Add(labelStyle);
+        var labels = new PdfDictionary(document);
+        labels.Elements.SetString("/FileeLabelMarker", "labels stay");
+        labels.Elements["/Nums"] = numbers;
+        document.Internals.AddObject(labels);
+        document.Internals.Catalog.Elements["/PageLabels"] = labels.Reference;
+        document.Save(path);
+        return path;
+    }
+
+    private static void AssertStructurePreserved(string path)
+    {
+        using var result = PdfReader.Open(path, PdfDocumentOpenMode.Import);
+        Assert.Equal("Preserve this title", result.Info.Title);
+        Assert.Equal("Filee tests", result.Info.Author);
+        Assert.Equal("First page", Assert.Single(result.Outlines).Title);
+        Assert.Equal("form stays", result.AcroForm.Elements.GetString("/FileeFormMarker"));
+        Assert.Equal("Customer", Assert.Single(result.AcroForm.Fields.Names));
+        Assert.Equal("labels stay", result.Internals.Catalog.Elements
+            .GetDictionary("/PageLabels")!.Elements.GetString("/FileeLabelMarker"));
+    }
+
     [Fact]
     public void Save_reorders_combines_and_rotates_pages_without_rasterising()
     {
@@ -59,6 +107,46 @@ public class PdfPageToolsTests(EngineFixture fx) : IClassFixture<EngineFixture>
         AssertBox(result.Pages[1].CropBox, 120, 80, 480, 480);
     }
 
+    [Fact]
+    public void Whole_document_crop_preserves_outlines_forms_page_labels_and_information()
+    {
+        var folder = fx.NewFolder();
+        var source = MakeStructuredPdf(folder, "structured.pdf");
+        var output = Path.Combine(folder, "cropped.pdf");
+
+        PdfPageTools.CropAll(source, output, .1, .1, .8, .8, TestContext.Current.CancellationToken);
+
+        AssertStructurePreserved(output);
+    }
+
+    [Fact]
+    public void Whole_document_page_editor_rotation_preserves_document_structure()
+    {
+        var folder = fx.NewFolder();
+        var source = MakeStructuredPdf(folder, "structured.pdf");
+        var output = Path.Combine(folder, "rotated.pdf");
+
+        PdfPageTools.Save([new(source, 0, 90), new(source, 1, -90)], output,
+            TestContext.Current.CancellationToken);
+
+        AssertStructurePreserved(output);
+        using var result = PdfReader.Open(output, PdfDocumentOpenMode.Import);
+        Assert.Equal([90, 270], result.Pages.Cast<PdfPage>().Select(page => page.Rotate));
+    }
+
+    [Fact]
+    public void Preview_source_keeps_one_cached_snapshot_for_all_pages()
+    {
+        var folder = fx.NewFolder();
+        var source = MakePdf(folder, "preview.pdf", (200, 500, 0), (300, 500, 0));
+        var preview = PdfPreviewSource.Open(source);
+        File.Delete(source);
+
+        Assert.Equal(2, preview.PageCount);
+        Assert.NotEmpty(preview.Preview(0, 100).Png);
+        Assert.NotEmpty(preview.Preview(1, 100).Png);
+    }
+
     [Theory]
     [InlineData(PdfCompression.None)]
     [InlineData(PdfCompression.Ebook)]
@@ -78,6 +166,29 @@ public class PdfPageToolsTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal(Filee.Core.Conversion.JobState.Completed, job.State);
         using var result = PdfReader.Open(Assert.Single(job.Outputs), PdfDocumentOpenMode.Import);
         Assert.Equal([90, 180], result.Pages.Cast<PdfPage>().Select(p => p.Rotate));
+    }
+
+    [Theory]
+    [InlineData(PdfCompression.None)]
+    [InlineData(PdfCompression.Ebook)]
+    public async Task Pdf_rotation_preset_preserves_complete_document_structure(PdfCompression compression)
+    {
+        var folder = fx.NewFolder();
+        var source = MakeStructuredPdf(folder, "structured.pdf");
+        var preset = new Preset
+        {
+            TargetFormat = "pdf",
+            Output = { FileNamePattern = "{name}_right" },
+            Pdf = { Rotation = PdfRotation.Right90, Compression = compression },
+        };
+
+        var job = await fx.ConvertAsync([source], preset);
+
+        Assert.Equal(Filee.Core.Conversion.JobState.Completed, job.State);
+        var output = Assert.Single(job.Outputs);
+        AssertStructurePreserved(output);
+        using var result = PdfReader.Open(output, PdfDocumentOpenMode.Import);
+        Assert.All(result.Pages.Cast<PdfPage>(), page => Assert.Equal(90, page.Rotate));
     }
 
     private static void AssertBox(PdfRectangle actual, double x1, double y1, double x2, double y2)

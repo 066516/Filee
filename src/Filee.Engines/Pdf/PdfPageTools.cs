@@ -15,6 +15,63 @@ namespace Filee.Engines.Pdf;
 
 public sealed record PdfPagePreview(byte[] Png, int Width, int Height);
 
+/// <summary>
+/// One cached PDF snapshot for previews. The bytes and page geometry are read once, so an editor with hundreds of
+/// pages does not reopen and inspect the whole file for every thumbnail.
+/// </summary>
+public sealed class PdfPreviewSource
+{
+    private readonly byte[] _pdf;
+    private readonly IReadOnlyList<(double Width, double Height)> _sizes;
+
+    private PdfPreviewSource(string path, byte[] pdf, IReadOnlyList<(double Width, double Height)> sizes)
+    {
+        Path = path;
+        _pdf = pdf;
+        _sizes = sizes;
+    }
+
+    public string Path { get; }
+    public int PageCount => _sizes.Count;
+
+    public static PdfPreviewSource Open(string path)
+    {
+        var pdf = File.ReadAllBytes(path);
+        try
+        {
+            var sizes = Conversion.GetPageSizes(pdf, null)
+                .Select(size => ((double)size.Width, (double)size.Height))
+                .ToList();
+            return new PdfPreviewSource(path, pdf, sizes);
+        }
+        catch (PdfPasswordProtectedException)
+        {
+            throw PdfDocumentReader.PasswordProtected();
+        }
+    }
+
+    /// <summary>Renders one page, bounded so a poster-sized page cannot make an enormous bitmap.</summary>
+    public PdfPagePreview Preview(int pageIndex = 0, int maxDimension = 2560)
+    {
+        if (pageIndex < 0 || pageIndex >= _sizes.Count)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        var size = _sizes[pageIndex];
+        var longest = Math.Max(size.Width, size.Height);
+        var dpi = longest <= 0 ? 96 : Math.Clamp((int)Math.Floor(maxDimension * 72 / longest), 36, 150);
+        var options = new RenderOptions(Dpi: dpi, WithAnnotations: true, WithFormFill: true, BackgroundColor: SKColors.White);
+        try
+        {
+            using var bitmap = Conversion.ToImages(_pdf, [pageIndex], null, options).Single();
+            using var encoded = bitmap.Encode(SKEncodedImageFormat.Png, 100);
+            return new PdfPagePreview(encoded.ToArray(), bitmap.Width, bitmap.Height);
+        }
+        catch (PdfPasswordProtectedException)
+        {
+            throw PdfDocumentReader.PasswordProtected();
+        }
+    }
+}
+
 /// <summary>One page in an edited document. <see cref="Rotation"/> is an additional clockwise turn in degrees.</summary>
 public sealed record PdfPageReference(string Path, int PageIndex, int Rotation = 0);
 
@@ -32,6 +89,31 @@ public static class PdfPageTools
     {
         if (pages.Count == 0)
             throw new InvalidOperationException("A PDF must contain at least one page.");
+
+        // Keeping every page of one document in its original order only changes /Rotate. Modify a copy so outlines,
+        // AcroForm fields, page labels and document information are not discarded by a page-by-page rebuild.
+        var originalPath = pages[0].Path;
+        if (pages.All(page => FileSystemPaths.Comparer.Equals(page.Path, originalPath))
+            && pages.Select(page => page.PageIndex).SequenceEqual(Enumerable.Range(0, pages.Count)))
+        {
+            bool keepsEveryPage;
+            using (var source = PdfSharpConverter.Open(originalPath, PdfDocumentOpenMode.Import))
+                keepsEveryPage = source.PageCount == pages.Count;
+            if (keepsEveryPage)
+            {
+                ModifyCopy(originalPath, outputPath, document =>
+                {
+                    for (var index = 0; index < pages.Count; index++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (pages[index].Rotation != 0)
+                            document.Pages[index].Rotate = NormaliseRotation(document.Pages[index].Rotate + pages[index].Rotation);
+                    }
+                });
+                return;
+            }
+        }
+
         var sources = new Dictionary<string, PdfDocument>(FileSystemPaths.Comparer);
         try
         {
@@ -48,7 +130,7 @@ public static class PdfPageTools
                     throw new InvalidDataException($"Page {item.PageIndex + 1} no longer exists in {Path.GetFileName(item.Path)}.");
                 var page = output.AddPage(source.Pages[item.PageIndex]);
                 if (item.Rotation != 0)
-                    page.Rotate = ((page.Rotate + item.Rotation) % 360 + 360) % 360;
+                    page.Rotate = NormaliseRotation(page.Rotate + item.Rotation);
             }
             output.Save(outputPath);
         }
@@ -62,24 +144,7 @@ public static class PdfPageTools
     /// <summary>Renders one page for the crop UI, bounded so a poster-sized page cannot make an enormous bitmap.</summary>
     public static PdfPagePreview Preview(string path, int pageIndex = 0, int maxDimension = 2560)
     {
-        var pdf = File.ReadAllBytes(path);
-        try
-        {
-            var sizes = Conversion.GetPageSizes(pdf, null);
-            if (pageIndex < 0 || pageIndex >= sizes.Count)
-                throw new ArgumentOutOfRangeException(nameof(pageIndex));
-            var size = sizes[pageIndex];
-            var longest = Math.Max(size.Width, size.Height);
-            var dpi = longest <= 0 ? 96 : Math.Clamp((int)Math.Floor(maxDimension * 72 / longest), 36, 150);
-            var options = new RenderOptions(Dpi: dpi, WithAnnotations: true, WithFormFill: true, BackgroundColor: SKColors.White);
-            using var bitmap = Conversion.ToImages(pdf, [pageIndex], null, options).Single();
-            using var encoded = bitmap.Encode(SKEncodedImageFormat.Png, 100);
-            return new PdfPagePreview(encoded.ToArray(), bitmap.Width, bitmap.Height);
-        }
-        catch (PdfPasswordProtectedException)
-        {
-            throw PdfDocumentReader.PasswordProtected();
-        }
+        return PdfPreviewSource.Open(path).Preview(pageIndex, maxDimension);
     }
 
     /// <summary>
@@ -90,20 +155,42 @@ public static class PdfPageTools
         CancellationToken cancellationToken = default)
     {
         (x, y, width, height) = Clamp(x, y, width, height);
-        using var source = PdfSharpConverter.Open(inputPath, PdfDocumentOpenMode.Import);
-        using var output = new PdfDocument();
-        foreach (var sourcePage in source.Pages)
+        ModifyCopy(inputPath, outputPath, document =>
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var page = output.AddPage(sourcePage);
-            var box = page.EffectiveCropBoxReadOnly;
-            var (left, bottom, right, top) = MapFromDisplayed(page.Rotate, x, y, width, height);
-            page.CropBox = new PdfRectangle(
-                new XPoint(box.X1 + left * box.Width, box.Y1 + bottom * box.Height),
-                new XPoint(box.X1 + right * box.Width, box.Y1 + top * box.Height));
-        }
-        output.Save(outputPath);
+            foreach (var page in document.Pages)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var box = page.EffectiveCropBoxReadOnly;
+                var (left, bottom, right, top) = MapFromDisplayed(page.Rotate, x, y, width, height);
+                page.CropBox = new PdfRectangle(
+                    new XPoint(box.X1 + left * box.Width, box.Y1 + bottom * box.Height),
+                    new XPoint(box.X1 + right * box.Width, box.Y1 + top * box.Height));
+            }
+        });
     }
+
+    /// <summary>Turns every page while preserving the document catalogue, forms, labels, outlines and information.</summary>
+    internal static void RotateAll(string inputPath, string outputPath, int degrees,
+        CancellationToken cancellationToken = default) =>
+        ModifyCopy(inputPath, outputPath, document =>
+        {
+            foreach (var page in document.Pages)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                page.Rotate = NormaliseRotation(page.Rotate + degrees);
+            }
+        });
+
+    private static void ModifyCopy(string inputPath, string outputPath, Action<PdfDocument> change)
+    {
+        if (!FileSystemPaths.Comparer.Equals(Path.GetFullPath(inputPath), Path.GetFullPath(outputPath)))
+            File.Copy(inputPath, outputPath, overwrite: true);
+        using var document = PdfSharpConverter.Open(outputPath, PdfDocumentOpenMode.Modify);
+        change(document);
+        document.Save(outputPath);
+    }
+
+    private static int NormaliseRotation(int rotation) => ((rotation % 360) + 360) % 360;
 
     private static (double X, double Y, double Width, double Height) Clamp(double x, double y, double width, double height)
     {

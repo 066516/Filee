@@ -207,7 +207,7 @@
   "preset.pdf_add.short": "إضافة",
   "preset.pdf_extract": "استخراج صفحة",
   "preset.pdf_extract.short": "استخراج",
-  "preset.split_pdf.short": "استخراج",
+  "preset.split_pdf.short": "تقسيم",
   "pdf_editor.title": "تحرير صفحات PDF",
   "pdf_editor.hint": "أعد ترتيب الصفحات أو أدرها أو احذفها. أضف صفحات من PDF آخر أو استخرج الصفحة المحددة.",
   "pdf_editor.add": "إضافة PDF",

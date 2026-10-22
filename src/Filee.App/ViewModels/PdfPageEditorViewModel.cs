@@ -17,9 +17,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Filee.App.ViewModels;
 
-public sealed partial class PdfPageItem(string path, int pageIndex, ILocalizer loc) : ObservableObject, IDisposable
+public sealed partial class PdfPageItem(PdfPreviewSource previewSource, int pageIndex, ILocalizer loc) : ObservableObject, IDisposable
 {
-    public string Path { get; } = path;
+    public PdfPreviewSource PreviewSource { get; } = previewSource;
+    public string Path => PreviewSource.Path;
     public int PageIndex { get; } = pageIndex;
     public int PageNumber => PageIndex + 1;
     public string PageText => loc.Format("pdf_editor.page", PageIndex + 1);
@@ -72,7 +73,10 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject, IDisposab
     private readonly UserDataStore _store;
     private readonly ILogger? _log;
     private readonly string _primarySource;
+    private readonly IReadOnlyList<string> _initialFiles;
+    private readonly Dictionary<string, PdfPreviewSource> _previewSources = new(FileSystemPaths.Comparer);
     private readonly SemaphoreSlim _thumbnailGate = new(1, 1);
+    private Task? _initialLoad;
     private int _previewRequest;
     private bool _closed;
 
@@ -84,8 +88,7 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject, IDisposab
         _store = store;
         _log = log;
         _primarySource = files.First();
-        AddFiles(files);
-        SelectedPage = Pages.FirstOrDefault();
+        _initialFiles = files;
     }
 
     public ObservableCollection<PdfPageItem> Pages { get; } = [];
@@ -126,8 +129,12 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject, IDisposab
 
     partial void OnSelectedPageChanged(PdfPageItem? value) => _ = LoadSelectedPreviewAsync(value);
 
-    /// <summary>Renders the page strip after the window is visible; PDF parsing never blocks its first frame.</summary>
-    public Task LoadThumbnailsAsync() => LoadThumbnailsAsync(Pages.ToList());
+    /// <summary>Opens the PDFs and renders the page strip after the window is visible.</summary>
+    public async Task LoadThumbnailsAsync()
+    {
+        await EnsureInitialFilesAsync();
+        await LoadThumbnailsAsync(Pages.ToList());
+    }
 
     private async Task LoadThumbnailsAsync(IReadOnlyList<PdfPageItem> items)
     {
@@ -141,7 +148,7 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject, IDisposab
                 item.IsThumbnailLoading = true;
                 try
                 {
-                    var preview = await Task.Run(() => PdfPageTools.Preview(item.Path, item.PageIndex, 260));
+                    var preview = await Task.Run(() => item.PreviewSource.Preview(item.PageIndex, 260));
                     if (!_closed && Pages.Contains(item))
                         item.SetThumbnail(preview.Png);
                 }
@@ -171,7 +178,7 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject, IDisposab
             return;
         try
         {
-            var preview = await Task.Run(() => PdfPageTools.Preview(item.Path, item.PageIndex, 1400));
+            var preview = await Task.Run(() => item.PreviewSource.Preview(item.PageIndex, 1400));
             using var stream = new MemoryStream(preview.Png);
             var bitmap = new Bitmap(stream);
             if (_closed || request != _previewRequest || !ReferenceEquals(item, SelectedPage))
@@ -196,20 +203,33 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject, IDisposab
 
     public async Task AddFilesAsync(IReadOnlyList<string> paths)
     {
-        if (paths.Count == 0 || IsBusy)
+        await EnsureInitialFilesAsync();
+        if (paths.Count == 0 || IsBusy || _closed)
             return;
+        var added = await AddFilesCoreAsync(paths);
+        _ = LoadThumbnailsAsync(added);
+    }
+
+    private Task EnsureInitialFilesAsync() => _initialLoad ??= AddFilesCoreAsync(_initialFiles);
+
+    private async Task<IReadOnlyList<PdfPageItem>> AddFilesCoreAsync(IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0 || _closed)
+            return [];
         IsBusy = true;
         Status = _loc["pdf_editor.loading"];
         var added = new List<PdfPageItem>();
         try
         {
-            var counts = await Task.Run(() => paths.Select(path =>
+            var missing = paths.Distinct(FileSystemPaths.Comparer)
+                .Where(path => !_previewSources.ContainsKey(path)).ToList();
+            var opened = await Task.Run(() => missing.Select(path =>
             {
-                try { return (Path: path, Count: PdfPageTools.PageCount(path), Error: (Exception?)null); }
-                catch (Exception ex) when (ex is not OutOfMemoryException) { return (Path: path, Count: 0, Error: ex); }
+                try { return (Path: path, Source: PdfPreviewSource.Open(path), Error: (Exception?)null); }
+                catch (Exception ex) when (ex is not OutOfMemoryException) { return (Path: path, Source: (PdfPreviewSource?)null, Error: ex); }
             }).ToList());
             var failed = false;
-            foreach (var (path, count, error) in counts)
+            foreach (var (path, source, error) in opened)
             {
                 if (error is not null)
                 {
@@ -217,9 +237,15 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject, IDisposab
                     _log?.LogError(error, "Could not add {Path} to the PDF editor", path);
                     continue;
                 }
-                for (var page = 0; page < count; page++)
+                _previewSources[path] = source!;
+            }
+            foreach (var path in paths)
+            {
+                if (!_previewSources.TryGetValue(path, out var source))
+                    continue;
+                for (var page = 0; page < source.PageCount; page++)
                 {
-                    var item = new PdfPageItem(path, page, _loc);
+                    var item = new PdfPageItem(source, page, _loc);
                     Pages.Add(item);
                     added.Add(item);
                 }
@@ -237,25 +263,7 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject, IDisposab
         {
             IsBusy = false;
         }
-        _ = LoadThumbnailsAsync(added);
-    }
-
-    private void AddFiles(IEnumerable<string> paths)
-    {
-        foreach (var path in paths)
-        {
-            try
-            {
-                for (var page = 0; page < PdfPageTools.PageCount(path); page++)
-                    Pages.Add(new PdfPageItem(path, page, _loc));
-            }
-            catch (Exception ex) when (ex is not OutOfMemoryException)
-            {
-                _log?.LogError(ex, "Could not open {Path} in the PDF editor", path);
-                Status = _loc["error.conversion_failed"];
-            }
-        }
-        NotifyCollectionChanged();
+        return added;
     }
 
     private bool CanMoveUp() => !IsBusy && SelectedPage is not null && Pages.IndexOf(SelectedPage) > 0;

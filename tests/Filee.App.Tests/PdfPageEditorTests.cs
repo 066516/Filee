@@ -52,6 +52,8 @@ public class PdfPageEditorTests
             preset.Output.CustomFolder = folder;
             using var vm = new PdfPageEditorViewModel([first], preset, AppHost.Get<ILocalizer>(), store);
 
+            Assert.Empty(vm.Pages); // The constructor does not parse the PDF on the UI thread.
+            await vm.LoadThumbnailsAsync();
             await vm.AddFilesAsync([added]);
             vm.SelectedPage = vm.Pages[2];
             vm.MoveUpCommand.Execute(null);
@@ -91,12 +93,12 @@ public class PdfPageEditorTests
             {
                 SelectedPage = null,
             };
-            vm.SelectedPage = vm.Pages[1];
-            vm.RotateRightCommand.Execute(null);
             var window = new PdfPageEditorWindow { DataContext = vm };
             window.Show();
 
             await vm.LoadThumbnailsAsync();
+            vm.SelectedPage = vm.Pages[1];
+            vm.RotateRightCommand.Execute(null);
             for (var i = 0; i < 100 && !vm.HasSelectedPreview; i++)
             {
                 RenderTests.Pump();
