@@ -37,7 +37,7 @@ public partial class ClipWindow : Window
         // later; their key-up must not press it either. A button reached with Tab is pressed by them as usual.
         AddHandler(KeyUpEvent, (_, e) =>
         {
-            if (e.Key is Key.Space or Key.Enter && !ButtonHasKeyboard())
+            if (e.Key is Key.Space or Key.Enter && !ControlTakes(e))
                 e.Handled = true;
         }, RoutingStrategies.Tunnel);
         ResizeGrip.PointerPressed += OnGripPressed;
@@ -120,18 +120,32 @@ public partial class ClipWindow : Window
 
     // ───────────────────────── Keys ─────────────────────────
 
-    /// <summary>A button (or toggle) has the focus, reached with the keyboard: Space and Enter press it.</summary>
-    private bool ButtonHasKeyboard() => _focusByKeyboard && FocusManager?.GetFocusedElement() is Button;
+    /// <summary>
+    /// The control that has the focus, reached with the keyboard, takes <paramref name="e"/>'s key as it would anywhere
+    /// else: Space and Enter press a button, a toggle or a switch; the arrows move a slider or a list.
+    /// </summary>
+    private bool ControlTakes(KeyEventArgs e)
+    {
+        if (!_focusByKeyboard || e.KeyModifiers != KeyModifiers.None)
+            return false;
+        return FocusManager?.GetFocusedElement() switch
+        {
+            Button => e.Key is Key.Space or Key.Enter,
+            Slider => e.Key is Key.Left or Key.Right or Key.Up or Key.Down or Key.Home or Key.End or Key.PageUp or Key.PageDown,
+            ComboBox => e.Key is Key.Space or Key.Enter or Key.Up or Key.Down,
+            _ => false,
+        };
+    }
 
     /// <summary>
-    /// Before any focused control: Space plays and Enter saves, unless a button was reached with Tab (then they press
-    /// it, as everywhere else).
+    /// Before any focused control: Space plays and Enter saves, unless a control was reached with Tab (then its keys are
+    /// its own, as everywhere else).
     /// </summary>
     private void OnKeyDownFirst(object? sender, KeyEventArgs e)
     {
         if (_vm is not { } vm)
             return;
-        if (e.Key is Key.Space or Key.Enter && e.KeyModifiers == KeyModifiers.None && ButtonHasKeyboard())
+        if (ControlTakes(e))
             return;
         var plain = e.KeyModifiers == KeyModifiers.None;
         var command = e.KeyModifiers == KeyModifiers.Control || e.KeyModifiers == KeyModifiers.Meta;
