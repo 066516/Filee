@@ -150,8 +150,8 @@ PR 환영해요. Filee가 쓸만하다면 ⭐ 하나가 다른 사람들이 File
 ## 코드 서명 정책
 
 Filee는 **Myeonggu Kim**([KnifeLemon](https://github.com/KnifeLemon))이 개발하고 배포해요.
-Windows 릴리스는 Myeonggu Kim 명의의 [Certum](https://www.certum.eu/) 오픈소스 코드 서명 인증서로 서명할 예정이고,
-지금은 발급 절차가 진행 중이에요.
+Windows 릴리스는 Myeonggu Kim 명의의 [Certum](https://www.certum.eu/) 오픈소스 코드 서명 인증서로 서명해요.
+2.0.0까지의 릴리스는 서명되지 않았어요.
 
 자세한 정책과 개인정보 처리 방침은 [영문 README](README.md#code-signing-policy)에 있어요.
 Filee는 파일을 업로드하지 않고, 사용 기록도 보내지 않아요.

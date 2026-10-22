@@ -152,12 +152,13 @@ Pull requests são bem-vindos. Se o Filee poupar alguns cliques, uma ⭐ ajuda o
 
 O Filee é desenvolvido e publicado por **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
 
-As versões para Windows serão assinadas com um certificado de assinatura de código de código aberto da [Certum](https://www.certum.eu/), emitido
-para Myeonggu Kim. O certificado está sendo emitido; até lá, as versões não são assinadas e o SmartScreen do Windows
-pode avisar ao executar o instalador (“Mais informações” → “Executar mesmo assim”). Os pacotes de macOS são assinados ad hoc e não são notarizados.
+As versões para Windows são assinadas com um certificado de assinatura de código de código aberto da [Certum](https://www.certum.eu/), emitido
+para Myeonggu Kim. As versões até a 2.0.0 não são assinadas. O SmartScreen do Windows ainda pode avisar sobre uma versão
+nova até ela ser baixada o bastante (“Mais informações” → “Executar mesmo assim”). Os pacotes de macOS são assinados ad hoc e não são notarizados.
 
-Só o instalador e os arquivos gerados pelo fluxo de release das GitHub Actions deste repositório são assinados, e cada release
-é aprovada manualmente. Programas de terceiros incluídos (rhwp, 7-Zip) mantêm os arquivos dos próprios editores.
+Só os arquivos gerados pelo fluxo de release das GitHub Actions deste repositório são assinados, e cada release
+é assinada e aprovada manualmente. Bibliotecas e programas já assinados pelos próprios editores mantêm a assinatura;
+os que vêm sem assinatura (rhwp, 7-Zip e a maioria das bibliotecas) são assinados com o certificado do Filee.
 
 ### Política de privacidade
 

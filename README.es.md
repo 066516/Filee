@@ -151,8 +151,8 @@ Las pull requests son bienvenidas. Si Filee te ahorra unos cuantos clics, una �
 ## Política de firma de código
 
 Filee lo desarrolla y publica **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
-Las versiones para Windows se firmarán con un certificado de firma de código para código abierto de [Certum](https://www.certum.eu/)
-emitido a nombre de Myeonggu Kim. El certificado está en trámite.
+Las versiones para Windows se firman con un certificado de firma de código para código abierto de [Certum](https://www.certum.eu/)
+emitido a nombre de Myeonggu Kim. Las versiones hasta la 2.0.0 no están firmadas.
 
 La política completa y la política de privacidad están en el [README en inglés](README.md#code-signing-policy).
 Filee no sube tus archivos ni envía datos de uso.

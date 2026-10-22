@@ -161,8 +161,8 @@ dotnet test
 ## سياسة توقيع الشيفرة
 
 يطوّر Filee وينشره **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
-ستُوقَّع إصدارات Windows بشهادة توقيع شيفرة للمشاريع مفتوحة المصدر من [Certum](https://www.certum.eu/) صادرة باسم
-Myeonggu Kim، والشهادة قيد الإصدار.
+تُوقَّع إصدارات Windows بشهادة توقيع شيفرة للمشاريع مفتوحة المصدر من [Certum](https://www.certum.eu/) صادرة باسم
+Myeonggu Kim. الإصدارات حتى 2.0.0 غير موقَّعة.
 
 السياسة الكاملة وسياسة الخصوصية في [README الإنجليزي](README.md#code-signing-policy).
 لا يرفع Filee ملفاتك ولا يرسل أي بيانات استخدام.

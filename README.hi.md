@@ -151,8 +151,8 @@ dotnet test
 ## कोड साइनिंग नीति
 
 Filee को **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)) विकसित और प्रकाशित करते हैं।
-Windows रिलीज़ को Myeonggu Kim के नाम जारी [Certum](https://www.certum.eu/) ओपन-सोर्स कोड साइनिंग सर्टिफ़िकेट से साइन किया जाएगा।
-सर्टिफ़िकेट अभी जारी होने की प्रक्रिया में है।
+Windows रिलीज़ Myeonggu Kim के नाम जारी [Certum](https://www.certum.eu/) ओपन-सोर्स कोड साइनिंग सर्टिफ़िकेट से साइन की जाती हैं।
+2.0.0 तक की रिलीज़ साइन नहीं हैं।
 
 पूरी नीति और गोपनीयता नीति [अंग्रेज़ी README](README.md#code-signing-policy) में है।
 Filee आपकी फ़ाइलें अपलोड नहीं करता और इस्तेमाल का कोई डेटा नहीं भेजता।
