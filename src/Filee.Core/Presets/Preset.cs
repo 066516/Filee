@@ -586,6 +586,11 @@ public sealed class MediaOptions
     /// </summary>
     public bool Slideshow { get; set; }
 
+    /// <summary>
+    /// Most pictures one <see cref="Slideshow"/> takes: every picture is an FFmpeg input, held while the video is encoded.
+    /// </summary>
+    public const int MaxSlides = 300;
+
     /// <summary>Shortest and longest time one picture of a <see cref="Slideshow"/> is shown, in seconds.</summary>
     public const double MinSlideSeconds = 0.5, MaxSlideSeconds = 60;
 

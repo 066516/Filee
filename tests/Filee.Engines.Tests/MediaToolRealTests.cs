@@ -162,6 +162,25 @@ public class MediaToolRealTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public async Task A_join_that_fails_before_writing_keeps_the_file_it_was_to_overwrite()
+    {
+        SkipUnlessInstalled();
+        var folder = fx.NewFolder();
+        var first = await MakeClipAsync(folder, "a.mp4", 1, extra: ["-c:v", "libx264", "-c:a", "aac"]);
+        var broken = Path.Combine(folder, "b.mp4");
+        await File.WriteAllTextAsync(broken, "not a video", TestContext.Current.CancellationToken);
+        var existing = Path.Combine(folder, "a_merged.mp4");
+        await File.WriteAllTextAsync(existing, "the user's own file", TestContext.Current.CancellationToken);
+        var preset = BuiltIn("merge-videos").Clone();
+        preset.Output.Conflict = ConflictPolicy.Overwrite;
+
+        var job = await fx.ConvertAsync([first, broken], preset);
+
+        Assert.Equal(JobState.Failed, job.State); // FFmpeg can't read b.mp4: the join stops while probing
+        Assert.Equal("the user's own file", await File.ReadAllTextAsync(existing, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task Clips_of_other_sizes_and_without_sound_are_fitted_into_the_first_ones_frame()
     {
         SkipUnlessInstalled();

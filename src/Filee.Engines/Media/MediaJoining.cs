@@ -11,9 +11,6 @@ namespace Filee.Engines.Media;
 /// <summary>Command lines that join files.</summary>
 internal static class MediaJoining
 {
-    /// <summary>Most pictures one slideshow takes: every picture is an FFmpeg input, held while the video is encoded.</summary>
-    public const int MaxSlides = 300;
-
     /// <summary>Frames per second of a slideshow: smooth fades, and what every player plays.</summary>
     public const int SlideshowFps = 30;
 

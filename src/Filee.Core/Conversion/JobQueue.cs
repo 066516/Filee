@@ -352,6 +352,13 @@ public sealed class JobQueue : IAsyncDisposable
     {
         var slideshow = job.Preset.Media.Slideshow;
         var target = FormatRegistry.Get(job.Preset.TargetFormat);
+        // Before any picture is converted: too many fail at once instead of after minutes of PNG steps.
+        if (slideshow && job.Files.Count(f => !Stopped(f)) > MediaOptions.MaxSlides)
+        {
+            foreach (var f in job.Files.Where(f => !Stopped(f)))
+                FailFile(job, f, "error.too_many_pictures", $"{job.Files.Count} > {MediaOptions.MaxSlides}");
+            return;
+        }
         var parts = new IReadOnlyList<string>?[job.Files.Count];
         await Parallel.ForEachAsync(Enumerable.Range(0, job.Files.Count),
             new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
@@ -399,7 +406,8 @@ public sealed class JobQueue : IAsyncDisposable
         }
 
         var first = joined[0];
-        var output = CreateFinalAllocator(job, first.SourcePath, 1).Allocate(target.PrimaryExtension);
+        var allocator = CreateFinalAllocator(job, first.SourcePath, 1, oneFile: true);
+        var output = allocator.Allocate(target.PrimaryExtension);
         if (output is null)
         {
             foreach (var f in joined)
@@ -438,17 +446,20 @@ public sealed class JobQueue : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
+            allocator.Discard();
             foreach (var f in joined)
                 f.State = FileState.Cancelled;
         }
         catch (ConversionRefusedException ex)
         {
+            allocator.Discard();
             _log.LogInformation("Joining {Count} file(s) into {Output} was refused: {Reason}", inputs.Count, output, ex.Message);
             foreach (var f in joined)
                 FailFile(job, f, ex.ErrorKey, ex.Detail);
         }
         catch (Exception ex)
         {
+            allocator.Discard();
             _log.LogWarning(ex, "Joining {Count} file(s) into {Output} failed", inputs.Count, output);
             foreach (var f in joined)
                 FailFile(job, f, "error.conversion_failed", ex.Message);
@@ -713,10 +724,11 @@ public sealed class JobQueue : IAsyncDisposable
                 inputs = outputs;
             }
 
+            if (!zipResult && finalOutput && job.Preset.Output.OnlyIfSmaller && inputs.Count == 1 && CopyIfNotSmaller(file.SourcePath, inputs[0]))
+                file.NoticeKey = "notice.pdf_not_smaller";
+
             if (zipResult && inputs.Count > 0)
                 inputs = PackZip(job, file, index, inputs, ct);
-            else if (finalOutput && job.Preset.Output.OnlyIfSmaller && inputs.Count == 1 && CopyIfNotSmaller(file.SourcePath, inputs[0]))
-                file.NoticeKey = "notice.pdf_not_smaller";
             // One output, and nothing else handed out for it (a Markdown file's picture folder goes with it).
             else if (finalOutput && inputs.Count == 1 && final is { Handed: 1 })
                 inputs = [NextToSource(job, file, index, inputs[0], final)];

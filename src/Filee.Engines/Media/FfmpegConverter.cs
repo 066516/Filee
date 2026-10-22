@@ -201,6 +201,11 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
         return [output];
     }
 
+    /// <remarks>
+    /// Everything that can fail before FFmpeg writes (probing, the picture limit, preparing the slides) happens first, and
+    /// nothing here deletes <paramref name="outputPath"/>: with "Overwrite" it may be the user's own file. A join that
+    /// fails or is cancelled is undone by the queue, which deletes only paths that were the job's own.
+    /// </remarks>
     public async Task JoinAsync(IReadOnlyList<string> inputPaths, string outputPath, string format, Preset preset,
         string workDirectory, IProgress<double>? progress, CancellationToken cancellationToken)
     {
@@ -208,76 +213,72 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
         var scratch = Path.Combine(workDirectory, "join-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(scratch);
         var media = preset.Media;
-        try
+
+        List<string> args;
+        TimeSpan duration;
+        double start;
+        if (media.Slideshow)
         {
-            if (media.Slideshow)
+            var slides = await PrepareSlidesAsync(ffmpeg, inputPaths, scratch, progress, cancellationToken);
+            var encoder = MediaEncoding.VideoEncoder("mp4", "libx264", media.VideoCodec, EncodersOf(ffmpeg));
+            args = MediaJoining.Slideshow(slides, outputPath, media, encoder, scratch);
+            duration = MediaJoining.SlideshowDuration(slides.Count, media);
+            start = 0.2;
+        }
+        else
+        {
+            // Probing takes the first few percent.
+            var clips = new List<(string Path, MediaInfo Info)>();
+            for (var i = 0; i < inputPaths.Count; i++)
             {
-                await SlideshowAsync(ffmpeg, inputPaths, outputPath, media, scratch, progress, cancellationToken);
+                var path = Path.GetFullPath(inputPaths[i]);
+                clips.Add((path, await MediaInfo.ProbeAsync(ffprobe, path, cancellationToken)));
+                progress?.Report(0.05 * (i + 1) / inputPaths.Count);
+            }
+            duration = TimeSpan.FromSeconds(clips.Sum(c => c.Info.Duration?.TotalSeconds ?? 0));
+            start = 0.05;
+            if (format == "m4a")
+            {
+                if (clips.FirstOrDefault(c => c.Info.Audio is null && c.Info.Video is null) is { Path: { } silent })
+                    throw new InvalidOperationException($"{Path.GetFileName(silent)} has no sound.");
+                args = MediaJoining.EncodeAudio(clips, outputPath, media, scratch);
+            }
+            else if (MediaJoining.CanCopyVideos([.. clips.Select(c => c.Info)], media))
+            {
+                var list = Path.Combine(scratch, "clips.txt");
+                await File.WriteAllTextAsync(list, MediaJoining.ConcatList(clips.Select(c => c.Path)), cancellationToken);
+                args = MediaJoining.CopyVideos(list, outputPath, clips[0].Info);
             }
             else
             {
-                // Probing takes the first few percent.
-                var clips = new List<(string Path, MediaInfo Info)>();
-                for (var i = 0; i < inputPaths.Count; i++)
-                {
-                    var path = Path.GetFullPath(inputPaths[i]);
-                    clips.Add((path, await MediaInfo.ProbeAsync(ffprobe, path, cancellationToken)));
-                    progress?.Report(0.05 * (i + 1) / inputPaths.Count);
-                }
-                var duration = TimeSpan.FromSeconds(clips.Sum(c => c.Info.Duration?.TotalSeconds ?? 0));
-                List<string> args;
-                if (format == "m4a")
-                {
-                    if (clips.FirstOrDefault(c => c.Info.Audio is null && c.Info.Video is null) is { Path: { } silent })
-                        throw new InvalidOperationException($"{Path.GetFileName(silent)} has no sound.");
-                    args = MediaJoining.EncodeAudio(clips, outputPath, media, scratch);
-                }
-                else if (MediaJoining.CanCopyVideos([.. clips.Select(c => c.Info)], media))
-                {
-                    var list = Path.Combine(scratch, "clips.txt");
-                    await File.WriteAllTextAsync(list, MediaJoining.ConcatList(clips.Select(c => c.Path)), cancellationToken);
-                    args = MediaJoining.CopyVideos(list, outputPath, clips[0].Info);
-                }
-                else
-                {
-                    var encoder = MediaEncoding.VideoEncoder("mp4", "libx264", media.VideoCodec, EncodersOf(ffmpeg));
-                    args = MediaJoining.EncodeVideos(clips, outputPath, media, encoder, scratch);
-                }
-                await RunJoinPassAsync(ffmpeg, args, duration, progress, 0.05, 1, cancellationToken);
+                var encoder = MediaEncoding.VideoEncoder("mp4", "libx264", media.VideoCodec, EncodersOf(ffmpeg));
+                args = MediaJoining.EncodeVideos(clips, outputPath, media, encoder, scratch);
             }
-            if (!File.Exists(outputPath) || new FileInfo(outputPath).Length == 0)
-                throw new InvalidOperationException("FFmpeg did not write any output.");
         }
-        catch
-        {
-            TryDelete(outputPath);
-            throw;
-        }
+
+        await RunJoinPassAsync(ffmpeg, args, duration, progress, start, 1, cancellationToken);
+        if (!File.Exists(outputPath) || new FileInfo(outputPath).Length == 0)
+            throw new InvalidOperationException("FFmpeg did not write any output.");
         progress?.Report(1);
     }
 
-    /// <summary>
-    /// Pictures → one video: each picture is fitted into the frame as a small JPEG first (a fifth of the progress),
-    /// then the slides are encoded with their fades.
-    /// </summary>
-    private async Task SlideshowAsync(string ffmpeg, IReadOnlyList<string> pictures, string output, MediaOptions media, string scratch,
+    /// <summary>Every picture fitted into the slideshow frame as a small JPEG in the work folder (a fifth of the progress).</summary>
+    private static async Task<List<string>> PrepareSlidesAsync(string ffmpeg, IReadOnlyList<string> pictures, string scratch,
         IProgress<double>? progress, CancellationToken cancellationToken)
     {
-        if (pictures.Count > MediaJoining.MaxSlides)
-            throw new ConversionRefusedException("error.too_many_pictures", $"{pictures.Count} > {MediaJoining.MaxSlides}");
-        var (width, height) = (MediaJoining.SlideshowWidth, MediaJoining.SlideshowHeight);
+        // The queue checks the number of files; a multi-page picture can still give more slides than that.
+        if (pictures.Count > MediaOptions.MaxSlides)
+            throw new ConversionRefusedException("error.too_many_pictures", $"{pictures.Count} > {MediaOptions.MaxSlides}");
         var slides = new List<string>();
         for (var i = 0; i < pictures.Count; i++)
         {
             var slide = Path.Combine(scratch, $"slide-{i + 1:D4}.jpg");
-            await RunJoinPassAsync(ffmpeg, MediaJoining.PrepareSlide(Path.GetFullPath(pictures[i]), slide, width, height), null,
-                null, 0, 0, cancellationToken);
+            await RunJoinPassAsync(ffmpeg, MediaJoining.PrepareSlide(Path.GetFullPath(pictures[i]), slide,
+                MediaJoining.SlideshowWidth, MediaJoining.SlideshowHeight), null, null, 0, 0, cancellationToken);
             slides.Add(slide);
             progress?.Report(0.2 * (i + 1) / pictures.Count);
         }
-        var encoder = MediaEncoding.VideoEncoder("mp4", "libx264", media.VideoCodec, EncodersOf(ffmpeg));
-        await RunJoinPassAsync(ffmpeg, MediaJoining.Slideshow(slides, output, media, encoder, scratch),
-            MediaJoining.SlideshowDuration(slides.Count, media), progress, 0.2, 1, cancellationToken);
+        return slides;
     }
 
     /// <summary>Runs one join pass, mapping FFmpeg's position onto <paramref name="from"/> … <paramref name="to"/> of the progress.</summary>

@@ -221,6 +221,79 @@ public class MediaToolTests
     }
 
     [Fact]
+    public async Task A_failed_join_frees_its_name_and_removes_the_subfolder_it_made()
+    {
+        using var dir = new TempDir();
+        var a = dir.File("a.mp4");
+        var b = dir.File("b.mp4");
+        var preset = BuiltIn("merge-videos").Clone();
+        preset.Output.Location = OutputLocation.Subfolder;
+        preset.Output.SubfolderName = "joined";
+        var joiner = new FakeJoiner { Throw = true };
+        await using var queue = new JobQueue(new ConverterCatalog([]), mediaJoiner: joiner);
+
+        Assert.Equal(JobState.Failed, (await Run(queue, [a, b], preset)).State);
+        Assert.False(Directory.Exists(Path.Combine(dir.Path, "joined")));
+
+        joiner.Throw = false;
+        var again = await Run(queue, [a, b], preset);
+        Assert.Equal(Path.Combine(dir.Path, "joined", "a_merged.mp4"), again.Outputs.Single()); // not "a_merged (2)"
+    }
+
+    [Fact]
+    public async Task A_joined_file_is_one_file_for_subfolder_only_for_several_files()
+    {
+        using var dir = new TempDir();
+        var preset = BuiltIn("merge-videos").Clone();
+        preset.Output.Location = OutputLocation.Subfolder;
+        preset.Output.SubfolderName = "{name}";
+        preset.Output.SubfolderOnlyForSeveralFiles = true;
+        await using var queue = new JobQueue(new ConverterCatalog([]), mediaJoiner: new FakeJoiner());
+
+        var job = await Run(queue, [dir.File("a.mp4"), dir.File("b.mp4")], preset);
+
+        Assert.Equal(Path.Combine(dir.Path, "a_merged.mp4"), job.Outputs.Single());
+        Assert.False(Directory.Exists(Path.Combine(dir.Path, "a")));
+    }
+
+    [Fact]
+    public async Task Too_many_pictures_fail_before_any_of_them_is_converted()
+    {
+        using var dir = new TempDir();
+        var photos = Enumerable.Range(1, MediaOptions.MaxSlides + 1).Select(i => dir.File($"p{i:D3}.jpg")).ToList();
+        // A conversion that ran would fail as "conversion failed", not as "too many pictures".
+        var converter = new FakeConverter("magick", new ConversionEdge("jpg", "png")) { Throw = true };
+        var joiner = new FakeJoiner();
+        await using var queue = new JobQueue(new ConverterCatalog([converter]), mediaJoiner: joiner);
+
+        var job = await Run(queue, photos, BuiltIn("video-from-images"));
+
+        Assert.Equal(JobState.Failed, job.State);
+        Assert.All(job.Files, f => Assert.Equal("error.too_many_pictures", f.ErrorKey));
+        Assert.Empty(joiner.Inputs);
+    }
+
+    [Fact]
+    public async Task A_kept_original_goes_next_to_its_source_like_a_compressed_copy()
+    {
+        using var dir = new TempDir();
+        var tiny = dir.File("tiny.jpg", "x");
+        var preset = BuiltIn("compress-image").Clone();
+        preset.Output.Location = OutputLocation.Subfolder;
+        preset.Output.SubfolderName = "{name}";
+        preset.Output.SubfolderOnlyForSeveralFiles = true;
+        await using var queue = new JobQueue(new ConverterCatalog([new FakeConverter("magick", new ConversionEdge("jpg", "jpg"))]));
+
+        var job = await Run(queue, [tiny], preset);
+
+        var output = Path.Combine(dir.Path, "tiny_compressed.jpg");
+        Assert.Equal(output, job.Outputs.Single());
+        Assert.Equal("x", File.ReadAllText(output)); // the original, copied
+        Assert.Equal("notice.pdf_not_smaller", job.Files[0].NoticeKey);
+        Assert.False(Directory.Exists(Path.Combine(dir.Path, "tiny")));
+    }
+
+    [Fact]
     public async Task A_failed_join_fails_every_file_and_leaves_no_output()
     {
         using var dir = new TempDir();
