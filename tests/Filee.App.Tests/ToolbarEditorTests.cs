@@ -511,8 +511,7 @@ public class PresetAvailabilityTests
         Assert.Null(f.Availability.Check(studio, [Fixture.Format("xlsx")]));
         Assert.Equal(f.Loc["error.unsupported_source"],
             f.Availability.Check(studio, [Fixture.Format("ods")]));
-        Assert.Equal(f.Loc["error.unsupported_source"],
-            f.Availability.Check(studio, [Fixture.Format("xlsx"), Fixture.Format("xlsx")]));
+        Assert.Null(f.Availability.Check(studio, [Fixture.Format("xlsx"), Fixture.Format("xlsx")]));
 
         libreOffice.Available = false;
         Assert.Equal(f.Loc["error.no_route"],

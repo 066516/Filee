@@ -89,13 +89,3 @@ public sealed class PdfPreviewDocument
             ?? throw new InvalidOperationException("The PDF preview could not be resized.");
     }
 }
-
-public static class PdfPagePreviewRenderer
-{
-    public static IReadOnlyList<RenderedPdfPage> Render(string path, int maxLongEdge = 1400,
-        CancellationToken cancellationToken = default)
-    {
-        var document = PdfPreviewDocument.Open(path);
-        return document.RenderThumbnails(maxLongEdge, cancellationToken);
-    }
-}

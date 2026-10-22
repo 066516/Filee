@@ -148,8 +148,8 @@ multi-frame pictures refused, the EXIF thumbnail dropped), one history entry for
 
 ## Spreadsheet print studio
 
-The `tool-sheet-studio` tool opens `Views/SpreadsheetPrintStudioWindow` for one XLSX workbook instead of starting a
-normal conversion job. `SpreadsheetPrintStudioViewModel` owns an ordered, non-destructive print plan: each visible
+The `tool-sheet-studio` tool opens an independent `Views/SpreadsheetPrintStudioWindow` for each dropped XLSX workbook
+instead of starting a normal conversion job. `SpreadsheetPrintStudioViewModel` owns an ordered, non-destructive print plan: each visible
 sheet starts as one region and the user can add more regions, change paper, orientation, scale, margins, page order,
 hidden rows and manual breaks, then see the PDF that those settings will produce.
 

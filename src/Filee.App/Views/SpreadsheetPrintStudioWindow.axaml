@@ -103,27 +103,31 @@
 
             <TextBlock Text="{DynamicResource sheet_studio.print_area}" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-              <TextBox Grid.Column="0" Text="{Binding SelectedSheet.Range}" />
+              <TextBox Grid.Column="0" Text="{Binding SelectedSheet.Range}"
+                       AutomationProperties.Name="{DynamicResource sheet_studio.print_area}" />
               <Button Grid.Column="1" Content="{DynamicResource sheet_studio.use_content}" Command="{Binding UseContentRangeCommand}" />
             </Grid>
 
             <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
               <StackPanel Grid.Column="0" Spacing="5">
                 <TextBlock Text="{DynamicResource sheet_studio.paper}" />
-                <ComboBox ItemsSource="{Binding Papers}" SelectedValue="{Binding SelectedSheet.Paper}" SelectedValueBinding="{Binding Value}">
+                <ComboBox ItemsSource="{Binding Papers}" SelectedValue="{Binding SelectedSheet.Paper}" SelectedValueBinding="{Binding Value}"
+                          AutomationProperties.Name="{DynamicResource sheet_studio.paper}">
                   <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
                 </ComboBox>
               </StackPanel>
               <StackPanel Grid.Column="1" Spacing="5">
                 <TextBlock Text="{DynamicResource sheet_studio.orientation}" />
-                <ComboBox ItemsSource="{Binding Orientations}" SelectedValue="{Binding SelectedSheet.Orientation}" SelectedValueBinding="{Binding Value}">
+                <ComboBox ItemsSource="{Binding Orientations}" SelectedValue="{Binding SelectedSheet.Orientation}" SelectedValueBinding="{Binding Value}"
+                          AutomationProperties.Name="{DynamicResource sheet_studio.orientation}">
                   <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
                 </ComboBox>
               </StackPanel>
             </Grid>
 
             <TextBlock Text="{DynamicResource sheet_studio.scaling}" />
-            <ComboBox ItemsSource="{Binding ScaleModes}" SelectedValue="{Binding SelectedSheet.ScaleMode}" SelectedValueBinding="{Binding Value}">
+            <ComboBox ItemsSource="{Binding ScaleModes}" SelectedValue="{Binding SelectedSheet.ScaleMode}" SelectedValueBinding="{Binding Value}"
+                      AutomationProperties.Name="{DynamicResource sheet_studio.scaling}">
               <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
             </ComboBox>
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
@@ -169,7 +173,8 @@
             </Grid>
 
             <TextBlock Text="{DynamicResource sheet_studio.page_order}" />
-            <ComboBox ItemsSource="{Binding PageOrders}" SelectedValue="{Binding SelectedSheet.Order}" SelectedValueBinding="{Binding Value}">
+            <ComboBox ItemsSource="{Binding PageOrders}" SelectedValue="{Binding SelectedSheet.Order}" SelectedValueBinding="{Binding Value}"
+                      AutomationProperties.Name="{DynamicResource sheet_studio.page_order}">
               <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
             </ComboBox>
             <CheckBox Content="{DynamicResource sheet_studio.include_hidden}" IsChecked="{Binding SelectedSheet.IncludeHidden}" />

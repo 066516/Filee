@@ -2,9 +2,9 @@ using System.IO.Compression;
 using System.Xml.Linq;
 using Filee.Core.Conversion;
 using Filee.Core.Presets;
+using Filee.Engines.Infrastructure;
 using Filee.Engines.Office;
 using Filee.Engines.Office.Sheets;
-using Filee.Engines.Infrastructure;
 using static Filee.Engines.Tests.XlsxBuilder;
 
 namespace Filee.Engines.Tests;
@@ -254,7 +254,8 @@ public class SpreadsheetPrintPlanTests
                 pdf.Save(path);
             }
 
-            var pages = Filee.Engines.Pdf.PdfPagePreviewRenderer.Render(path, 400, TestContext.Current.CancellationToken);
+            var preview = Filee.Engines.Pdf.PdfPreviewDocument.Open(path);
+            var pages = preview.RenderThumbnails(400, TestContext.Current.CancellationToken);
 
             Assert.Equal(2, pages.Count);
             Assert.True(pages[0].Height > pages[0].Width);

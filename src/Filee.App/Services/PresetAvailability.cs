@@ -92,7 +92,7 @@ public sealed class PresetAvailability
         {
             if (preset.Id == "tool-sheet-studio")
             {
-                if (formats.Count == 1 && formats[0].Id == "xlsx")
+                if (formats.Count > 0 && formats.All(format => format.Id == "xlsx"))
                 {
                     var libreOffice = _catalog.All.FirstOrDefault(converter => converter.Id == "libreoffice");
                     if (libreOffice?.GetStatus().IsAvailable == true)
