@@ -85,7 +85,10 @@ public sealed class SetupTexts
         }
         if (Filee.App.Services.AppLanguages.PortugueseVariant(normalized) is { } portuguese)
             return portuguese;
-        // "ko-KR" → ko, "zh-Hans-CN" / "zh-TW" → zh-CN (the only Chinese), "es-MX" → es.
+        // "zh-Hant-HK" / "zh-HK" → zh-TW; the primary-language fallback below gives the other Chinese names zh-CN.
+        if (Filee.App.Services.AppLanguages.IsTraditionalChinese(normalized))
+            return "zh-TW";
+        // "ko-KR" → ko, "zh-Hans-CN" → zh-CN, "es-MX" → es.
         var primary = normalized.Split('-')[0];
         foreach (var (code, _) in Languages)
         {
