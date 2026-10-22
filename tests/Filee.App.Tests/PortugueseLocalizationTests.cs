@@ -81,6 +81,9 @@ public class PortugueseLocalizationTests
     // Contextual glossary: "arquivo" remains valid pt-PT in PDF/A's archival description, for example.
     [AvaloniaTheory]
     [InlineData("common.save", "Guardar", "Salvar")]
+    [InlineData("general.show_in_dock", "Mostrar o Filee na Dock", "Mostrar o Filee no Dock")]
+    [InlineData("crop.reset", "Repor", "Redefinir")]
+    [InlineData("crop.restore", "Restaurar", "Restaurar")]
     [InlineData("common.delete", "Eliminar", "Excluir")]
     [InlineData("nav.about", "Acerca de", "Sobre")]
     [InlineData("nav.engines", "Motores", "Mecanismos")]
