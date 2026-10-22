@@ -1,3 +1,6 @@
+using Filee.Core.Conversion;
+using Filee.Core.Presets;
+using Filee.Engines.Office;
 using Filee.Engines.Pdf;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
@@ -59,5 +62,41 @@ public class PdfBlankPagesTests
         {
             File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void Keeps_PdfA_spreadsheet_output_byte_for_byte()
+    {
+        var folder = Directory.CreateTempSubdirectory("filee-pdfa-pages-").FullName;
+        var path = Path.Combine(folder, "archive.pdf");
+        try
+        {
+            using (var document = new PdfDocument())
+            {
+                document.AddPage(); // would be removed from an ordinary Calc PDF
+                var painted = document.AddPage();
+                using var graphics = XGraphics.FromPdfPage(painted);
+                graphics.DrawLine(XPens.Black, 10, 10, 100, 100);
+                document.Save(path);
+            }
+            var before = File.ReadAllBytes(path);
+            var preset = new Preset { TargetFormat = "pdf", Document = { PdfA = true } };
+            var step = new ConversionStep(Path.Combine(folder, "sheet.xlsx"), "xlsx", "pdf", preset,
+                new FixedOutput(path), folder);
+
+            Assert.Equal(0, LibreOfficeConverter.RemoveEmptySpreadsheetPages(step, path));
+            Assert.Equal(before, File.ReadAllBytes(path));
+            using var result = PdfReader.Open(path, PdfDocumentOpenMode.Import);
+            Assert.Equal(2, result.PageCount);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    private sealed class FixedOutput(string path) : IOutputAllocator
+    {
+        public string? Allocate(string extension, string? suffix = null) => path;
     }
 }
