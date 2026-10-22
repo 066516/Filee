@@ -32,9 +32,8 @@ public partial class ToastWindow : Window
     {
         if ((sender as Control)?.DataContext is not JobViewModel { CanGetFonts: true } job)
             return;
-        // Keep one click reasonable for documents carrying a long historical font table.
-        foreach (var family in job.MissingFonts.Take(8))
-            await Launcher.LaunchUriAsync(FontSources.Url(family));
+        if (job.MissingFonts.Select(FontSources.Url).FirstOrDefault(uri => uri is not null) is { } source)
+            await Launcher.LaunchUriAsync(source);
     }
     private bool _closed;
 

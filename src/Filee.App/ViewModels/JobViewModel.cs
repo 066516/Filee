@@ -82,10 +82,11 @@ public sealed partial class JobViewModel : ObservableObject
     [ObservableProperty] private bool _hasNotices;
     /// <summary>Absent document font families, combined across this drop.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanGetFonts))]
+    [NotifyPropertyChangedFor(nameof(HasMissingFonts), nameof(CanGetFonts))]
     private IReadOnlyList<string> _missingFonts = [];
     [ObservableProperty] private string? _missingFontsText;
-    public bool CanGetFonts => MissingFonts.Count > 0;
+    public bool HasMissingFonts => MissingFonts.Count > 0;
+    public bool CanGetFonts => MissingFonts.Any(family => FontSources.Url(family) is not null);
     /// <summary>Extensions of failed files Filee can't read (".ncm"), for "Request this format".</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanRequestFormat))]

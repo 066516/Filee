@@ -38,10 +38,13 @@ public class JobQueueTests
         { FontsToReport = ["tahoma", "Noto Serif SC"] };
         await using var queue = new JobQueue(new ConverterCatalog([first, second]));
 
-        var job = await Run(queue, [dir.File("photo.jpg")], new Preset { TargetFormat = "webp" });
+        var source = dir.File("photo.jpg");
+        var job = await Run(queue, [source], new Preset { TargetFormat = "webp" });
 
         Assert.Equal(JobState.Completed, job.State);
         Assert.Equal(["Tahoma", "Arial", "Noto Serif SC"], job.Files.Single().MissingFonts);
+        Assert.Equal([source], first.OriginalSources);
+        Assert.Equal([source], second.OriginalSources);
         Assert.True(File.Exists(Path.Combine(dir.Path, "photo.webp")));
     }
 

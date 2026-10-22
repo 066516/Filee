@@ -107,7 +107,7 @@ public sealed class LibreOfficeConverter : IConverter
     public async Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
     {
         var soffice = _soffice ?? throw new InvalidOperationException("LibreOffice was not found.");
-        if (RenderedTargets.Contains(step.To) && DocumentFonts.Missing(step.InputPath) is [_, ..] missing)
+        if (RenderedTargets.Contains(step.To) && DocumentFonts.Missing(step.OriginalSourcePath ?? step.InputPath) is [_, ..] missing)
             step.MissingFonts?.Invoke(missing);
         var slot = await TakeProfileAsync(cancellationToken);
         try

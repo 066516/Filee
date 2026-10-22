@@ -111,6 +111,7 @@ public interface IOutputAllocator
 /// Reports document font families that aren't installed (and have no known metric-compatible installed substitute).
 /// Rendering continues: graphical clients can offer trusted sources without blocking CLI or watched jobs.
 /// </param>
+/// <param name="OriginalSourcePath">The user's original input, before any intermediate conversion steps.</param>
 /// <param name="MotionPhoto">
 /// The step takes a <see cref="ConversionEdge.MotionPhoto"/> edge: the video of the Live / Motion Photo becomes the
 /// output, not its still picture.
@@ -130,7 +131,8 @@ public sealed record ConversionStep(
     Action<string>? Notice = null,
     bool MotionPhoto = false,
     bool LivePhoto = false,
-    Action<IReadOnlyList<string>>? MissingFonts = null);
+    Action<IReadOnlyList<string>>? MissingFonts = null,
+    string? OriginalSourcePath = null);
 
 /// <summary>
 /// A conversion engine (ImageMagick, LibreOffice, rhwp, ...).

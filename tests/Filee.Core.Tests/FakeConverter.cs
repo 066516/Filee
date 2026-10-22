@@ -1,4 +1,5 @@
 using Filee.Core.Conversion;
+using System.Collections.Concurrent;
 
 namespace Filee.Core.Tests;
 
@@ -27,11 +28,13 @@ internal sealed class FakeConverter(string id, params ConversionEdge[] edges) : 
 
     /// <summary>Document fonts this test engine reports before writing.</summary>
     public IReadOnlyList<string> FontsToReport { get; set; } = [];
+    public ConcurrentQueue<string?> OriginalSources { get; } = new();
 
     public EngineStatus GetStatus() => Available ? EngineStatus.Available() : EngineStatus.Unavailable("engine.reason.not_installed");
 
     public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
     {
+        OriginalSources.Enqueue(step.OriginalSourcePath);
         if (Throw)
             throw new InvalidOperationException("boom");
         if (Failure is not null)

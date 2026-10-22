@@ -26,7 +26,15 @@ public static class FontSources
             ["Lohit Devanagari"] = "https://github.com/pravins/lohit",
         };
 
-    public static Uri Url(string family) => Microsoft.TryGetValue(family, out var page)
+    private static readonly HashSet<string> NoPublicFontPage = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "맑은 고딕", "Malgun Gothic", "함초롬바탕", "HCR Batang", "함초롬돋움", "HCR Dotum",
+        "MS Mincho", "MS Gothic", "MS PMincho", "MS PGothic", "Yu Mincho", "Yu Gothic",
+        "Wingdings", "Wingdings 2", "Wingdings 3", "Webdings", "Symbol", "OpenSymbol",
+    };
+
+    public static Uri? Url(string family) => NoPublicFontPage.Contains(family) ? null
+        : Microsoft.TryGetValue(family, out var page)
         ? new Uri("https://learn.microsoft.com/en-us/typography/font-list/" + page)
         : OtherOfficial.TryGetValue(family, out var official) ? new Uri(official)
         : new Uri("https://fonts.google.com/?query=" + Uri.EscapeDataString(family));
