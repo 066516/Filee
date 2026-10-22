@@ -23,6 +23,7 @@ body:
         1.
         2.
     validations:
+      required: true
 
   - type: textarea
     id: files

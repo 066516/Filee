@@ -4,11 +4,8 @@
 
 ## What does this change?
 
-<!-- One or two sentences: what changes, and why. -->
+<!-- One or two sentences. Link the issue if there is one: Fixes #123 -->
 
-
-<!-- Link the issue this PR resolves, e.g. "Fixes #123". It closes the issue when the PR is merged. Delete the line if there is no issue. -->
-Issue (optional): Fixes #
 
 ## Type of change
 

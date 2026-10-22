@@ -1,7 +1,7 @@
 name: Format request
 description: A file type Filee can't open yet
 title: "[Format]: "
-labels: ["enhancement"]
+labels: ["formats"]
 body:
   - type: markdown
     attributes:

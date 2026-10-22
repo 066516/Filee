@@ -30,12 +30,10 @@ jobs:
             const pull = context.payload.pull_request;
             const title = pull.title.toLowerCase();
             const rules = [
-              [/\b(feat|features?)\b/, 'feature'],
-              [/\bbug\b|^fix(\(.+\))?!?:/, 'bug'],
-              [/\bformats?\b/, 'formats'],
+              [/^feat(\(.+\))?!?:/, 'feature'],
+              [/^fix(\(.+\))?!?:/, 'bug'],
               [/^docs(\(.+\))?!?:/, 'documentation'],
-              [/^ci(\(.+\))?!?:/, 'ci'],
-              [/^build(\(.+\))?!?:/, 'build'],
+              [/^(ci|build)(\(.+\))?!?:/, 'build'],
               [/^(i18n|l10n)(\(.+\))?!?:/, 'translation'],
             ];
             // Only labels the repository has: adding an unknown name would create a new label.
