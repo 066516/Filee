@@ -47,7 +47,9 @@ A slide may supply `localizedMedia` entries, for example
 recording; regional variants do not borrow each other's recordings. Poster indices belong to each recording.
 The optional `FILEE_WHATSNEW_LANGUAGE` environment variable makes `WhatsNewMedia.Generate_2_0_0` generate a
 language's recordings and register them in the shared manifest. Rebuild App and Setup after generating them.
-The language-showcase slide intentionally demonstrates several languages and stays shared.
+The language-showcase slide intentionally demonstrates several languages and stays shared. Browser and flip
+are desktop recordings made outside the headless generator: retain the shared recordings until localized desktop
+scenes show the full interaction. Do not automatically replace them with abbreviated headless scenes.
 
 Compact action names can use `preset.<name>.donut` when the donut already shows the target format underneath.
 Keep the full action name for the preset editor; custom names always take priority. `.short` is for a group's inner
@@ -55,5 +57,10 @@ choices, whose group supplies additional context (Rotate → Left), and is a sep
 
 ## Adding a UI string
 
-Add the key to **all** language files in the same pull request. In XAML use
+Add the key to **all** language files in the same pull request. Until a language maintainer reviews a new
+translation, retain the English value and document that follow-up. In XAML use
 `Text="{DynamicResource my.key}"`; in code use `ILocalizer["my.key"]` or `ILocalizer.Format("my.key", arg)`.
+
+Set `FILEE_LOCALIZATION_SCREENSHOTS=1` for PNG captures in `PortugueseRenderTests`. Geometry assertions
+always run. Dispose directly created `MainWindowViewModel` fixtures: production `WindowService` owns their lifetime,
+but a window constructed directly in a test does not automatically unsubscribe its model.
