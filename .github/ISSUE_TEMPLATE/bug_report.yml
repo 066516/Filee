@@ -9,12 +9,10 @@ body:
       label: What happened?
     validations:
       required: true
-
   - type: textarea
     id: expected
     attributes:
       label: What did you expect?
-
   - type: textarea
     id: steps
     attributes:
@@ -24,13 +22,11 @@ body:
         2.
     validations:
       required: true
-
   - type: textarea
     id: files
     attributes:
       label: Files involved
       description: Formats and sizes. Attach a sample if you can share it.
-
   - type: input
     id: version
     attributes:
@@ -39,7 +35,6 @@ body:
       placeholder: "2.0.0"
     validations:
       required: true
-
   - type: input
     id: os
     attributes:
@@ -47,13 +42,11 @@ body:
       placeholder: "Windows 11 26H2, macOS 15, Ubuntu 24.04…"
     validations:
       required: true
-
   - type: textarea
     id: engines
     attributes:
       label: Engines page status
       description: A screenshot helps. Drag it into this box.
-
   - type: textarea
     id: log
     attributes:
