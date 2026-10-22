@@ -40,9 +40,9 @@ public sealed class ImageOcrConverter : IConverter
 
     public async Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
     {
-        if (!step.Preset.Document.Ocr)
-            throw new InvalidOperationException("OCR is disabled in preset settings.");
-
+        // Unlike PdfDocumentReader (where OCR is one option among several for an already-readable document),
+        // this converter exists only because OCR is the sole way to get text out of an image: Document.Ocr
+        // (off by default, so an ordinary PDF conversion isn't surprised by OCR) does not gate it.
         var language = step.Preset.Document.OcrLanguage;
         var engine = OcrEngineRegistry.GetDefault(language);
         if (engine is null || !engine.IsAvailable)

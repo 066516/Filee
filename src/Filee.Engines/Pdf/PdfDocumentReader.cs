@@ -412,7 +412,9 @@ internal sealed partial class PdfDocumentReader
                     }
                     finally
                     {
-                        if (isTempScan && words.Count > 0 && File.Exists(scanPath))
+                        // Kept only when it's about to become content.ScanPath below (words.Count == 0, !_textOnly);
+                        // every other outcome (OCR succeeded, or _textOnly never looks at ScanPath at all) is done with it.
+                        if (isTempScan && (words.Count > 0 || _textOnly) && File.Exists(scanPath))
                         {
                             try { File.Delete(scanPath); } catch { }
                         }
