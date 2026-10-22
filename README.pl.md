@@ -151,8 +151,8 @@ Pull requesty są mile widziane. Jeśli Filee oszczędza Ci kilka kliknięć, �
 ## Zasady podpisywania kodu
 
 Filee tworzy i publikuje **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
-Wydania dla Windows będą podpisywane certyfikatem [Certum](https://www.certum.eu/) do podpisywania kodu open source,
-wystawionym na Myeonggu Kim. Certyfikat jest w trakcie wydawania.
+Wydania dla Windows są podpisywane certyfikatem [Certum](https://www.certum.eu/) do podpisywania kodu open source,
+wystawionym na Myeonggu Kim. Wydania do 2.0.0 włącznie nie są podpisane.
 
 Pełne zasady i politykę prywatności znajdziesz w [angielskim README](README.md#code-signing-policy).
 Filee nie wysyła Twoich plików ani danych o użytkowaniu.

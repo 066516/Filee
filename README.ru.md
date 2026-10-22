@@ -151,8 +151,8 @@ dotnet test
 ## Подпись кода
 
 Filee разрабатывает и публикует **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
-Выпуски для Windows будут подписаны сертификатом [Certum](https://www.certum.eu/) для подписи кода open source,
-выданным на имя Myeonggu Kim. Сертификат сейчас оформляется.
+Выпуски для Windows подписываются сертификатом [Certum](https://www.certum.eu/) для подписи кода open source,
+выданным на имя Myeonggu Kim. Выпуски до 2.0.0 включительно не подписаны.
 
 Полные правила и политику конфиденциальности смотрите в [английском README](README.md#code-signing-policy).
 Filee не отправляет ни ваши файлы, ни данные об использовании.
