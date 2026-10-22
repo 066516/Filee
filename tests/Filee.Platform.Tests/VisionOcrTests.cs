@@ -194,6 +194,94 @@ public sealed class VisionOcrTests
         }
     }
 
+    [Fact]
+    public async Task ImageOcrConverterSucceedsWithDefaultPresetWhenDocumentOcrIsFalse()
+    {
+        if (!OperatingSystem.IsMacOS())
+        {
+            Assert.Skip("Requires macOS Vision framework.");
+            return;
+        }
+
+        var engine = new MacOsVisionOcrEngine();
+        OcrEngineRegistry.Register(engine);
+
+        var converter = new ImageOcrConverter();
+        var imagePath = Path.Combine(FindRepoRoot(), "docs", "media", "banner-en.jpg");
+        var workDir = Path.Combine(Path.GetTempPath(), $"filee-test-default-preset-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(workDir);
+
+        try
+        {
+            var defaultPreset = new Preset();
+            Assert.False(defaultPreset.Document.Ocr);
+
+            var txtOut = Path.Combine(workDir, "banner-default.txt");
+            var txtStep = new ConversionStep(
+                InputPath: imagePath,
+                From: "jpg",
+                To: "txt",
+                Preset: defaultPreset,
+                Output: new FixedPath(txtOut),
+                WorkDirectory: workDir);
+
+            var outputs = await converter.ConvertAsync(txtStep, null, TestContext.Current.CancellationToken);
+            Assert.Single(outputs);
+            Assert.True(File.Exists(outputs[0]));
+            var txt = await File.ReadAllTextAsync(outputs[0], TestContext.Current.CancellationToken);
+            Assert.Contains("Filee", txt, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Directory.Delete(workDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void PdfDocumentReaderDeletesTempScanInTextOnlyModeWhenOcrReturnsNoWords()
+    {
+        var emptyEngine = new EmptyMockEngine();
+        var workDir = Path.Combine(Path.GetTempPath(), $"filee-pdf-leak-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(workDir);
+
+        try
+        {
+            var pdfPath = Path.Combine(workDir, "blank-scanned.pdf");
+            using (var pdfDoc = new PdfSharp.Pdf.PdfDocument())
+            {
+                var page = pdfDoc.AddPage();
+                page.Width = PdfSharp.Drawing.XUnit.FromPoint(200);
+                page.Height = PdfSharp.Drawing.XUnit.FromPoint(200);
+                using var gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page);
+                gfx.DrawRectangle(PdfSharp.Drawing.XBrushes.White, 0, 0, 200, 200);
+                pdfDoc.Save(pdfPath);
+            }
+
+            var scanDir = Path.Combine(workDir, "pdf-scans");
+            var plainDoc = PdfDocumentReader.ReadText(pdfPath, emptyEngine, enableOcr: true, workDirectory: workDir);
+
+            if (Directory.Exists(scanDir))
+            {
+                var leftoverFiles = Directory.GetFiles(scanDir, "*.png");
+                Assert.Empty(leftoverFiles);
+            }
+        }
+        finally
+        {
+            Directory.Delete(workDir, recursive: true);
+        }
+    }
+
+    private sealed class EmptyMockEngine : IOcrEngine
+    {
+        public string Id => "empty-mock";
+        public string DisplayName => "Empty Mock";
+        public bool IsAvailable => true;
+        public IReadOnlyList<string> SupportedLanguages => ["en"];
+        public Task<OcrPageResult> RecognizeAsync(string imagePath, string? language = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(OcrPageResult.Empty(100, 100));
+    }
+
     private sealed class FixedPath(string path) : IOutputAllocator
     {
         public string? Allocate(string extension, string? suffix = null) => path;
