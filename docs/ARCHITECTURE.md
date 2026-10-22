@@ -373,4 +373,3 @@ and standalone shell scripts (`install.sh`, `uninstall.sh`).
   (`~/.local/share/Filee/engines`) and user settings (`~/.config/Filee`) remain untouched.
 - **Uninstallation**: `uninstall.sh` removes the application directory, desktop launcher, and `~/.local/bin/filee` symlink
   after verifying the `.filee-package` marker. User settings and converted files are kept.
-
