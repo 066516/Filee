@@ -86,7 +86,7 @@ public class PortugueseLocalizationTests
     [InlineData("crop.restore", "Restaurar", "Restaurar")]
     [InlineData("common.delete", "Eliminar", "Excluir")]
     [InlineData("nav.about", "Acerca de", "Sobre")]
-    [InlineData("nav.engines", "Motores", "Mecanismos")]
+    [InlineData("nav.engines", "Motores", "Motores")]
     [InlineData("general.language_auto", "Predefinição do sistema", "Padrão do sistema")]
     [InlineData("triggers.button", "Botão do rato", "Botão do mouse")]
     [InlineData("triggers.scope.FileManager", "Gestores de ficheiros e ambiente de trabalho", "Gerenciadores de arquivos e área de trabalho")]
@@ -125,8 +125,8 @@ public class PortugueseLocalizationTests
                 loc.SetLanguage(code);
                 Assert.False(loc.NeedsUpdate(code));
                 Assert.Equal(save, text.Text);
-                Assert.Equal("Ativado", toggle.OnContent);
-                Assert.Equal("Desativado", toggle.OffContent);
+                Assert.Equal(code == "pt-PT" ? "Ativado" : "Ligado", toggle.OnContent);
+                Assert.Equal(code == "pt-PT" ? "Desativado" : "Desligado", toggle.OffContent);
                 Assert.Equal(code, CultureInfo.CurrentUICulture.Name);
                 Assert.Equal(code, CultureInfo.DefaultThreadCurrentUICulture!.Name);
                 Assert.Equal("unknown.translation.key", loc["unknown.translation.key"]);
