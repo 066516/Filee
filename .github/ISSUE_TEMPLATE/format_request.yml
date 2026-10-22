@@ -1,6 +1,6 @@
 name: Format request
 description: A file type Filee can't open yet
-title: "Format request: "
+title: "[Format]: "
 labels: ["formats"]
 body:
   - type: markdown
