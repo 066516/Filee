@@ -1,6 +1,6 @@
 name: Format request
 description: A file type Filee can't open yet
-title: "[Format]: "
+title: "Format request: "
 labels: ["formats"]
 body:
   - type: markdown
@@ -24,7 +24,6 @@ body:
       placeholder: ".xyz"
     validations:
       required: true
-
   - type: input
     id: source
     attributes:
@@ -32,19 +31,16 @@ body:
       description: The program, device or website.
     validations:
       required: true
-
   - type: input
     id: target
     attributes:
       label: What should Filee convert them to?
       placeholder: "PDF, MP3, PNG…"
-
   - type: textarea
     id: details
     attributes:
       label: Anything else?
       description: A sample file if you can share one, a link to the format's documentation, or an open-source tool that reads it.
-
   - type: checkboxes
     id: not-protected
     attributes:

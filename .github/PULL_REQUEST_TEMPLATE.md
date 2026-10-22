@@ -6,7 +6,6 @@
 
 <!-- One or two sentences. Link the issue if there is one: Fixes #123 -->
 
-
 ## Type of change
 
 - [ ] Bug fix
