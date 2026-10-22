@@ -53,8 +53,7 @@ public static class EngineDownloads
     /// <summary>Total download size of a package in bytes.</summary>
     public static long DownloadSize(EnginePackage package) => package.Components.Sum(c => Components.GetValueOrDefault(c)?.Size ?? 0);
 
-    public static bool CanDownload(EnginePackage package) =>
-        package.Components.Count > 0 && package.Components.All(Components.ContainsKey);
+    public static bool CanDownload(EnginePackage package) => package.Components.Count > 0 && package.Components.All(Components.ContainsKey);
 
     public static string? UnavailableReason(EnginePackage package)
     {
