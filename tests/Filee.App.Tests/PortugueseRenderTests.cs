@@ -47,7 +47,7 @@ public class PortugueseRenderTests
         {
             window.Show();
             RenderTests.Pump();
-            RenderTests.Save(window, $"portuguese-preset-{preset}-{language}-{width}.png");
+            Capture(window, $"portuguese-preset-{preset}-{language}-{width}.png");
             var boxes = window.GetVisualDescendants().OfType<ComboBox>()
                 .Where(c => c.IsEffectivelyVisible && !c.Classes.Contains("targets"));
             Assert.NotEmpty(boxes);
@@ -79,7 +79,7 @@ public class PortugueseRenderTests
     {
         TestServices.EnsureInitialized(language);
         var loc = AppHost.Get<ILocalizer>();
-        var vm = new MainWindowViewModel(AppHost.Services, loc, AppHost.Get<UpdateService>());
+        using var vm = new MainWindowViewModel(AppHost.Services, loc, AppHost.Get<UpdateService>());
         var window = new MainWindow { DataContext = vm };
         try
         {
@@ -102,7 +102,7 @@ public class PortugueseRenderTests
     {
         TestServices.EnsureInitialized(language);
         var loc = AppHost.Get<ILocalizer>();
-        var vm = new MainWindowViewModel(AppHost.Services, loc, AppHost.Get<UpdateService>());
+        using var vm = new MainWindowViewModel(AppHost.Services, loc, AppHost.Get<UpdateService>());
         vm.Navigate("presets");
         var window = new MainWindow { DataContext = vm };
         try
@@ -130,7 +130,9 @@ public class PortugueseRenderTests
                 foreach (var page in new[] { "home", "general", "triggers", "toolbar", "presets", "theme", "engines", "about", "watch" })
                     foreach (var dark in new[] { false, true })
                         foreach (var scale in new[] { 1.0, 2.0 })
-                            data.Add(language, page, dark, scale);
+                            // Both themes at 1x; 2x checks text/layout geometry once per language and page.
+                            if (scale == 1 || !dark)
+                                data.Add(language, page, dark, scale);
             return data;
         }
     }
@@ -143,7 +145,7 @@ public class PortugueseRenderTests
         var theme = AppHost.Get<ThemeService>();
         var settings = AppHost.Get<UserDataStore>().Settings.Theme;
         theme.Apply(new ThemeSettings { Mode = dark ? ThemeMode.Dark : ThemeMode.Light, ReduceMotion = true }, language);
-        var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<ILocalizer>(), AppHost.Get<UpdateService>());
+        using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<ILocalizer>(), AppHost.Get<UpdateService>());
         vm.Navigate(page);
         var window = new MainWindow { DataContext = vm, Width = 820, Height = 820 };
         try
@@ -152,7 +154,7 @@ public class PortugueseRenderTests
             window.SetRenderScaling(scale);
             RenderTests.Pump();
             var name = $"portuguese-{page}-{language}-{(dark ? "dark" : "light")}{(scale == 2 ? "-2x" : "")}";
-            RenderTests.Save(window, name + ".png");
+            Capture(window, name + ".png");
             var scroller = window.FindControl<ScrollViewer>("PageScroller")!;
             // Complex editors keep a usable minimum width. On small windows every column remains reachable
             // by scrolling, instead of the grid crushing its middle column and drawing controls on top of it.
@@ -166,20 +168,55 @@ public class PortugueseRenderTests
                 editor.Offset = new Vector(editor.Extent.Width, 0);
                 RenderTests.Pump();
                 Assert.True(editor.Offset.X > 0, $"{name}: overflowing content is unreachable");
-                RenderTests.Save(window, name + "-right.png");
+                Capture(window, name + "-right.png");
                 editor.Offset = default;
             }
             if (scroller.Extent.Height > scroller.Viewport.Height)
             {
                 scroller.ScrollToEnd();
                 RenderTests.Pump();
-                RenderTests.Save(window, name + "-bottom.png");
+                Capture(window, name + "-bottom.png");
             }
         }
         finally
         {
             window.Close();
             theme.Apply(settings, language);
+        }
+    }
+
+    public static TheoryData<string, string> DefaultEditors
+    {
+        get
+        {
+            var data = new TheoryData<string, string>();
+            foreach (var language in new[] { "en", "pt-PT", "pt-BR" })
+                foreach (var page in new[] { "toolbar", "theme", "presets", "engines" })
+                    data.Add(language, page);
+            return data;
+        }
+    }
+
+    [AvaloniaTheory]
+    [MemberData(nameof(DefaultEditors))]
+    public void Editors_fit_at_the_default_window_width(string language, string page)
+    {
+        TestServices.EnsureInitialized(language);
+        using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<ILocalizer>(), AppHost.Get<UpdateService>());
+        vm.Navigate(page);
+        var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
+        try
+        {
+            window.Show();
+            RenderTests.Pump();
+            var editor = window.GetVisualDescendants().OfType<ScrollViewer>().Single(s => s.Name == "EditorScroller");
+            Capture(window, $"default-{page}-{language}.png");
+            Assert.True(editor.Extent.Width <= editor.Viewport.Width + 1,
+                $"{language}/{page}: horizontal scroll at the default size ({editor.Extent.Width} > {editor.Viewport.Width})");
+        }
+        finally
+        {
+            window.Close();
         }
     }
 
@@ -194,7 +231,7 @@ public class PortugueseRenderTests
         {
             window.Show();
             RenderTests.Pump();
-            RenderTests.Save(window, $"portuguese-close-{language}.png");
+            Capture(window, $"portuguese-close-{language}.png");
             foreach (var button in window.GetVisualDescendants().OfType<Button>())
             {
                 var start = button.TranslatePoint(default, window)!.Value;
@@ -210,4 +247,11 @@ public class PortugueseRenderTests
             window.Close();
         }
     }
+    // Geometry assertions always run; PNG encoding is opt-in for a visual review.
+    private static void Capture(TopLevel window, string name)
+    {
+        if (Environment.GetEnvironmentVariable("FILEE_LOCALIZATION_SCREENSHOTS") == "1")
+            RenderTests.Save(window, name);
+    }
+
 }

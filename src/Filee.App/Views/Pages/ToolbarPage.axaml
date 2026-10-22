@@ -133,7 +133,7 @@
   </UserControl.Styles>
 
   <ScrollViewer x:Name="EditorScroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-    <Grid x:Name="Root" RowDefinitions="Auto,*" MinWidth="800" Width="{Binding #EditorScroller.Viewport.Width}" HorizontalAlignment="Left">
+    <Grid x:Name="Root" RowDefinitions="Auto,*" MinWidth="786" Width="{Binding #EditorScroller.Viewport.Width}" HorizontalAlignment="Left">
       <StackPanel Spacing="4" Margin="0,0,0,18">
         <TextBlock Classes="h1" Text="{DynamicResource toolbar.title}" />
       </StackPanel>
