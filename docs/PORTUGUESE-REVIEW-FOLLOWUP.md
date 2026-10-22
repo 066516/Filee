@@ -33,18 +33,49 @@ a121a3c9e3254918f8b171bb7f675b0bdc532244, verified on 22 October 2026. Only Blac
 ## Current validation
 
 Validation uses .NET SDK 10.0.402 on Linux x64 and all fifteen SHA-256-verified pinned Noto files.
-The Release solution build succeeds with zero errors and eleven existing warnings.
+The Release solution build succeeds with zero errors and eleven existing obsolete-API/nullability warnings.
 
-- Initial App smoke selection: 41 passed, zero failures, including default action bounds in every registered locale.
-- Full Setup suite: 131 passed, 36 failed, one skipped. The 36 failure names exactly match a clean upstream a121a3c
-  checkout (53 passed / 36 failed in its non-UI suite), using the same Linux environment. Windows-style fixture paths,
-  PE and registry/path assumptions remain the cause. No production paths or test exclusions are changed to hide them.
-- The broader final App selection and Core/CLI/Platform suites are running; their final counters will be added.
-- Full solution formatting cannot connect to the build host pipe here (SocketException 13; host exit 137).
-  Changed-file whitespace checks and native CI provide the remaining formatter verification.
+| Check | Passed | Failed | Skipped |
+| --- | ---: | ---: | ---: |
+| App localization, Portuguese rendering, toolbar, release/installer contracts | 327 | 0 | 0 |
+| Setup full suite on Linux | 131 | 36 | 1 |
+| Core full suite | 460 | 0 | 0 |
+| CLI full suite | 28 | 0 | 0 |
+| Platform full suite | 48 | 0 | 5 |
+| Unique total across these runs | 994 | 36 | 6 |
 
-Earlier interrupted App runs are not full-suite passes. Real installation/UAC, Finder and permission prompts,
-keyboard/NVDA/VoiceOver checks, and full native CI remain required. The PR stays a draft.
+The initial 41-case smoke selection is included in the 327 App passes and is not counted twice. It covers the
+23 default-width cases (four editors in English/Portuguese and toolbar actions in eleven other languages), both
+catalog integrity cases, the contextual glossary and live language switching. The broader App selection also covers
+54 minimum-width cases, donut text layout, native identifiers, toolbar behavior and localized slideshow contracts.
+This is a focused App run, not a full-solution green result. Earlier interrupted broad runs are not certification.
+
+All 36 Setup failure names exactly match a clean a121a3c checkout in the same Linux environment: its non-UI suite
+has 53 passed / 36 failed. Windows-style fixture paths, PE imports and registry/path assumptions remain the cause.
+No production path behavior or test exclusions were changed to conceal these failures. Both media generators
+completed for the refreshed more clips; explicit generation runs are excluded from the test total. All fifteen
+shared/Portuguese WebP files have valid poster indices and fit the existing per-file/pack budgets (~3.87 MiB total).
+
+Full solution formatting cannot connect to this environment's build host pipe (SocketException 13; host exit 137).
+Changed-file whitespace verification and git diff --check pass; native CI must run the full formatter.
+
+Representative commands, after restoring packages and running build/fetch-fonts.ps1:
+
+```sh
+dotnet build Filee.slnx -m:1 -c Release
+FILEE_LOCALIZATION_SCREENSHOTS=1 dotnet test tests/Filee.App.Tests -c Release --no-build --filter "FullyQualifiedName~Localization|FullyQualifiedName~Portuguese|FullyQualifiedName~DonutLabelPlacement|FullyQualifiedName~ToolbarEditorTests|FullyQualifiedName~WhatsNewTests|FullyQualifiedName~InstallerTests|FullyQualifiedName~SupportersTests|FullyQualifiedName~ReleaseNotesTests|FullyQualifiedName~Live_photo_options_render_for_jpg_and_heic_and_save_only_there"
+dotnet test tests/Filee.Setup.Tests -c Release --no-build
+dotnet test tests/Filee.Core.Tests -c Release --no-build
+dotnet test tests/Filee.Cli.Tests -c Release --no-build
+dotnet test tests/Filee.Platform.Tests -c Release --no-build
+# On the clean upstream worktree, with the same SDK/environment:
+dotnet test tests/Filee.Setup.Tests -m:1 -c Release --filter "FullyQualifiedName!~SetupTextsTests&FullyQualifiedName!~SetupWindowTests"
+```
+
+Inspected fresh Skia captures include pt-PT and French default toolbars, Portuguese theme/history recordings, and
+the corrected complete action buttons and compact preview labels. The automated suite additionally captures the
+Portuguese pages/dialogs and installer states. Real installation/UAC, Finder and permission-prompt display,
+keyboard/NVDA/VoiceOver checks, and complete native CI remain required. The PR stays a draft.
 
 ## References
 
