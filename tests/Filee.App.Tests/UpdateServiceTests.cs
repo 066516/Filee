@@ -346,4 +346,31 @@ public class UpdateServiceTests
         Assert.EndsWith("/releases/latest", UpdateService.LatestReleaseUrl);
         Assert.StartsWith(UpdateService.RepositoryUrl.TrimEnd('/'), UpdateService.LatestReleaseUrl);
     }
+
+    [AvaloniaFact]
+    public void UpdateProgressWindow_tracks_download_percentage_and_status()
+    {
+        TestServices.EnsureInitialized();
+        var updates = new UpdateService(NullLogger<UpdateService>.Instance, new FakeNetwork("no network"));
+        updates.LatestVersion = "2.1.0";
+        updates.Step = UpdateStep.Downloading;
+        updates.DownloadPercent = 45;
+
+        var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+        var window = new Views.UpdateProgressWindow(updates, loc);
+
+        Assert.Equal(45, window.ProgressBar.Value);
+        Assert.Equal("45%", window.PercentText.Text);
+        Assert.Contains("45%", window.StatusText.Text);
+
+        updates.DownloadPercent = 90;
+        Assert.Equal(90, window.ProgressBar.Value);
+        Assert.Equal("90%", window.PercentText.Text);
+
+        updates.Step = UpdateStep.Installing;
+        Assert.True(window.ProgressBar.IsIndeterminate);
+
+        updates.Step = UpdateStep.Cancelled;
+        Assert.False(window.ProgressBar.IsVisible);
+    }
 }
