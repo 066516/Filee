@@ -33,9 +33,9 @@ public class JobQueueTests
     {
         using var dir = new TempDir();
         var first = new FakeConverter("first", new ConversionEdge("jpg", "png"))
-            { FontsToReport = ["Tahoma", "Arial"] };
+        { FontsToReport = ["Tahoma", "Arial"] };
         var second = new FakeConverter("second", new ConversionEdge("png", "webp"))
-            { FontsToReport = ["tahoma", "Noto Serif SC"] };
+        { FontsToReport = ["tahoma", "Noto Serif SC"] };
         await using var queue = new JobQueue(new ConverterCatalog([first, second]));
 
         var job = await Run(queue, [dir.File("photo.jpg")], new Preset { TargetFormat = "webp" });
