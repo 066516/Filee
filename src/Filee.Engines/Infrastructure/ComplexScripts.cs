@@ -244,23 +244,36 @@ internal static partial class ComplexScripts
     }
 
     /// <summary>The first script in <paramref name="text"/> that needs shaping, or null.</summary>
-    public static string? Find(ReadOnlySpan<char> text) => Find(text, ScriptOf, Blocks[0].Start);
+    public static string? Find(ReadOnlySpan<char> text) => Find(text, Shaping, Blocks[0].Start);
+
+    /// <summary>
+    /// Names the script of a code point, or null. <c>before</c> and <c>after</c> are the characters around it, or
+    /// <see cref="Unknown"/> for a character reference.
+    /// </summary>
+    private delegate string? Classifier(int codePoint, int before, int after);
+
+    /// <summary>Neighbour of a character reference: not known, so the reference counts as part of a word.</summary>
+    private const int Unknown = -2;
+
+    private static string? Shaping(int codePoint, int before, int after) => ScriptOf(codePoint);
 
     /// <summary>
     /// The first answer of <paramref name="classifier"/> in <paramref name="text"/>; code points below
     /// <paramref name="skipBelow"/> (the classifier's first block) are not asked about.
     /// </summary>
-    private static string? Find(ReadOnlySpan<char> text, Func<int, string?> classifier, int skipBelow)
+    private static string? Find(ReadOnlySpan<char> text, Classifier classifier, int skipBelow)
     {
         for (var i = 0; i < text.Length; i++)
         {
             var c = text[i];
             if (c < skipBelow)
                 continue;
+            var before = i > 0 ? text[i - 1] : -1;
             var codePoint = char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1])
                 ? char.ConvertToUtf32(c, text[++i])
                 : c;
-            if (classifier(codePoint) is { } script)
+            var after = i + 1 < text.Length ? text[i + 1] : -1;
+            if (classifier(codePoint, before, after) is { } script)
                 return script;
         }
         return null;
@@ -274,7 +287,7 @@ internal static partial class ComplexScripts
     /// here: the conversion then reports what is wrong with them).
     /// </summary>
     /// <param name="format">Format id of the file (docx, txt, hwpx, ...).</param>
-    public static string? FindInFile(string path, string format) => FindInFile(path, format, ScriptOf, Blocks[0].Start);
+    public static string? FindInFile(string path, string format) => FindInFile(path, format, Shaping, Blocks[0].Start);
 
     /// <summary>
     /// The first script in the text of a document that rhwp draws but cannot measure (rhwp#8143), or null.
@@ -284,7 +297,10 @@ internal static partial class ComplexScripts
 
     /// <summary>
     /// Both answers of the scan in one pass: the first script that needs shaping stops the scan and wins the
-    /// file; the first script rhwp cannot measure is remembered while the scan runs on.
+    /// file; the first script rhwp cannot measure is remembered while the scan runs on. Only letters inside words
+    /// count: a symbol or unit on its own (α, Ω, μm in a Korean report) draws fine, and rhwp, the most faithful
+    /// renderer for Korean documents, keeps them. An extended Latin letter or combining mark counts next to any letter
+    /// (Polish, Vietnamese words); a letter of another script only next to one of the same script (Отчёт, Αναφορά).
     /// </summary>
     /// <param name="format">Format id of the file (docx, txt, hwpx, ...).</param>
     public static (string? Shaping, string? Unmeasured) FindBothInFile(string path, string format)
@@ -294,16 +310,28 @@ internal static partial class ComplexScripts
         var shaping = FindInFile(path, format, Both, skipBelow: 0x0100);
         return (shaping, unmeasured);
 
-        string? Both(int codePoint)
+        string? Both(int codePoint, int before, int after)
         {
             if (ScriptOf(codePoint) is { } script)
                 return script;
-            unmeasured ??= UnmeasuredScriptOf(codePoint);
+            if (unmeasured is null && UnmeasuredScriptOf(codePoint) is { } name && InWord(name, before, after))
+                unmeasured = name;
             return null;
         }
+
+        static bool InWord(string name, int before, int after)
+        {
+            if (before == Unknown || after == Unknown)
+                return true;
+            return name is "Latin Extended" or "IPA" or "combining marks"
+                ? IsLetter(before) || IsLetter(after)
+                : (before >= 0 && UnmeasuredScriptOf(before) == name) || (after >= 0 && UnmeasuredScriptOf(after) == name);
+        }
+
+        static bool IsLetter(int c) => c >= 0 && char.IsLetter((char)c);
     }
 
-    private static string? FindInFile(string path, string format, Func<int, string?> classifier, int skipBelow)
+    private static string? FindInFile(string path, string format, Classifier classifier, int skipBelow)
     {
         try
         {
@@ -336,7 +364,7 @@ internal static partial class ComplexScripts
     /// <summary>Text files are read whole (as the readers do), up to this size; a larger one is scanned in its first part.</summary>
     private const int MaxTextBytes = 64 * 1024 * 1024;
 
-    private static string? FindInText(string path, Func<int, string?> classifier, int skipBelow)
+    private static string? FindInText(string path, Classifier classifier, int skipBelow)
     {
         byte[] bytes;
         using (var stream = File.OpenRead(path))
@@ -347,7 +375,7 @@ internal static partial class ComplexScripts
         return FindInString(DocumentReaders.DecodeText(bytes), classifier, skipBelow);
     }
 
-    private static string? FindInString(string text, Func<int, string?> classifier, int skipBelow)
+    private static string? FindInString(string text, Classifier classifier, int skipBelow)
     {
         if (Find(text, classifier, skipBelow) is { } script)
             return script;
@@ -361,7 +389,7 @@ internal static partial class ComplexScripts
                 value += 0x10000; // RTF writes code points above 32767 as negative numbers
             if (value is < 0 or > 0x10FFFF)
                 continue; // a reference can name a value outside Unicode (&#1114112;, \u-99999): it is no script
-            if (classifier(value) is { } referenced)
+            if (classifier(value, Unknown, Unknown) is { } referenced)
                 return referenced;
         }
         return null;
@@ -393,7 +421,7 @@ internal static partial class ComplexScripts
         };
     }
 
-    private static string? FindInPackage(string path, string format, Func<int, string?> classifier, int skipBelow)
+    private static string? FindInPackage(string path, string format, Classifier classifier, int skipBelow)
     {
         using var zip = ZipFile.OpenRead(path);
         var buffer = new char[64 * 1024];

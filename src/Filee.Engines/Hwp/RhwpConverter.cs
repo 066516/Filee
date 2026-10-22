@@ -55,7 +55,8 @@ public sealed class RhwpConverter : IConverter, ITextShapingCheck
     public TextScripts ScanScripts(string sourcePath, string sourceFormat)
     {
         var (shaping, unmeasured) = ComplexScripts.FindBothInFile(sourcePath, sourceFormat);
-        return new TextScripts(shaping, unmeasured);
+        // An HWPX stays with rhwp, the most faithful renderer for it; only shaping sends it elsewhere.
+        return new TextScripts(shaping, sourceFormat == "hwpx" ? null : unmeasured);
     }
 
     public EngineStatus GetStatus()

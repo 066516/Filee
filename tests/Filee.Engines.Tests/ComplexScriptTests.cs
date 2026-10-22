@@ -120,6 +120,38 @@ public class ComplexScriptTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public void A_lone_symbol_keeps_rhwp()
+    {
+        // A Greek letter or a unit between spaces (α, Ω, μ in a Korean report) draws fine on its own: only letters
+        // inside a word overlap, so only they send a document away from rhwp.
+        var folder = fx.NewFolder();
+        string Text(string name, string text)
+        {
+            var path = Path.Combine(folder, name);
+            File.WriteAllText(path, text, new UTF8Encoding(false));
+            return path;
+        }
+
+        Assert.Null(ComplexScripts.FindUnmeasuredInFile(Text("symbols.md", "각도 α = 30°, 저항 10 Ω, 두께 5 μm"), "md"));
+        Assert.Equal("Greek", ComplexScripts.FindUnmeasuredInFile(Text("word.md", "결과: Αναφορά"), "md"));
+        Assert.Equal("Cyrillic", ComplexScripts.FindUnmeasuredInFile(Text("short.md", "Да"), "md"));
+    }
+
+    [Fact]
+    public void An_hwpx_stays_with_rhwp_for_unmeasured_letters()
+    {
+        // rhwp is the most faithful renderer for HWPX: Cyrillic in one only goes elsewhere when it needs shaping.
+        var path = Path.Combine(fx.NewFolder(), "report.hwpx");
+        using (var zip = System.IO.Compression.ZipFile.Open(path, System.IO.Compression.ZipArchiveMode.Create))
+        {
+            using var writer = new StreamWriter(zip.CreateEntry("Contents/section0.xml").Open());
+            writer.Write("<hs:sec xmlns:hs=\"http://www.hancom.co.kr/hwpml/2011/section\"><hp:t xmlns:hp=\"x\">보고서 Отчёт</hp:t></hs:sec>");
+        }
+        Assert.Equal("Cyrillic", ComplexScripts.FindUnmeasuredInFile(path, "hwpx"));
+        Assert.Null(new RhwpConverter().ScanScripts(path, "hwpx").WithoutWidths);
+    }
+
+    [Fact]
     public void A_character_reference_outside_unicode_is_skipped()
     {
         // &#1114112; (0x110000) and RTF \u-99999 (still negative past +0x10000) name no code point: a malformed
