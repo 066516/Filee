@@ -231,9 +231,13 @@ public sealed partial class PdfPageEditorViewModel : ObservableObject
             PreserveDates(output, applied);
             _store.AddHistory(new HistoryEntry
             {
-                JobId = Guid.NewGuid().ToString("N")[..10], FinishedAt = DateTime.Now, PresetId = preset.Id,
-                PresetName = _loc.DisplayName(preset), State = JobState.Completed,
-                Sources = pages.Select(p => p.Path).Distinct(FileSystemPaths.Comparer).ToList(), Outputs = [output],
+                JobId = Guid.NewGuid().ToString("N")[..10],
+                FinishedAt = DateTime.Now,
+                PresetId = preset.Id,
+                PresetName = _loc.DisplayName(preset),
+                State = JobState.Completed,
+                Sources = pages.Select(p => p.Path).Distinct(FileSystemPaths.Comparer).ToList(),
+                Outputs = [output],
             });
             Status = _loc.Format("pdf_editor.saved", System.IO.Path.GetFileName(output));
             return closeWhenDone;
