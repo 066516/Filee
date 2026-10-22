@@ -5,6 +5,7 @@
 // without locking the file. A small cache keeps them while the files don't change: a search lists the same conversions
 // again at once.
 
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -131,7 +132,23 @@ internal static class HistoryThumbnails
 
             var result = FfmpegRunner.RunBriefly(ffmpeg, arguments, TimeSpan.FromSeconds(5));
             if (result.ExitCode != 0 || !File.Exists(temp))
-                return null;
+            {
+                // Trying once more without -ss when no file came out covers videos shorter than 1 s.
+                var fallbackArguments = new[]
+                {
+                    "-hide_banner",
+                    "-nostdin",
+                    "-v", "error",
+                    "-i", Path.GetFullPath(path),
+                    "-frames:v", "1",
+                    "-vf", $"scale={Size}:{Size}:force_original_aspect_ratio=increase,crop={Size}:{Size}",
+                    "-y",
+                    temp
+                };
+                result = FfmpegRunner.RunBriefly(ffmpeg, fallbackArguments, TimeSpan.FromSeconds(5));
+                if (result.ExitCode != 0 || !File.Exists(temp))
+                    return null;
+            }
 
             using var stream = new FileStream(temp, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             using var data = SKData.Create(stream);
@@ -149,7 +166,7 @@ internal static class HistoryThumbnails
 
             return Square(decoded, codec.EncodedOrigin);
         }
-        catch (Exception)
+        catch (Exception e) when (e is TimeoutException or InvalidOperationException or Win32Exception or IOException or UnauthorizedAccessException)
         {
             return null;
         }
@@ -160,7 +177,9 @@ internal static class HistoryThumbnails
                 if (File.Exists(temp))
                     File.Delete(temp);
             }
-            catch { }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+            }
         }
     }
 
