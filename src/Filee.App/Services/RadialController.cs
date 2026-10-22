@@ -214,18 +214,22 @@ public sealed class RadialController(
 
     private RadialWindow EnsureWindow()
     {
-        if (_window is { IsLoaded: true } w)
-            return w;
-
-        // On native Wayland, hiding a window can destroy its xdg_surface. Re-create if closed.
         if (_window is not null)
-        {
-            try { _window.Close(); } catch { }
-            _window = null;
-        }
+            return _window;
 
         var window = new RadialWindow { DataContext = viewModel };
         var donut = window.DonutControl;
+
+        // On native Wayland, hiding an xdg_toplevel surface causes the compositor to destroy its surface,
+        // and re-showing raises an InvalidOperationException. Track Closed to re-create on the next gesture.
+        if (OperatingSystem.IsLinux() && string.Equals(Environment.GetEnvironmentVariable("FILEE_USE_WAYLAND"), "1", StringComparison.Ordinal))
+        {
+            window.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_window, window))
+                    _window = null;
+            };
+        }
 
         window.DragEntered += () => _dragReachedDonut = true;
         // Tells "the drag reached the donut but brought no files" apart, with what it brought (file promises, say).

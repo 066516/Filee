@@ -23,9 +23,6 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
-    <PackageReference Include="Avalonia.Wayland" />
-    <PackageReference Include="Avalonia.Skia" />
-    <PackageReference Include="Avalonia.HarfBuzz" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="Avalonia.Controls.ColorPicker" />
     <PackageReference Include="AvaloniaUI.DiagnosticsSupport">
@@ -36,6 +33,13 @@
     <PackageReference Include="Markdig" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="SharpHook" />
+  </ItemGroup>
+
+  <!-- Linux-only Wayland packages to keep Windows and macOS binaries small -->
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <PackageReference Include="Avalonia.Wayland" />
+    <PackageReference Include="Avalonia.Skia" />
+    <PackageReference Include="Avalonia.HarfBuzz" />
   </ItemGroup>
 
   <ItemGroup>

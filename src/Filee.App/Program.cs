@@ -275,7 +275,9 @@ internal static class Program
     public static AppBuilder BuildAvaloniaApp()
     {
         var builder = AppBuilder.Configure<App>();
-        if (OperatingSystem.IsLinux() && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")))
+        if (OperatingSystem.IsLinux()
+            && string.Equals(Environment.GetEnvironmentVariable("FILEE_USE_WAYLAND"), "1", StringComparison.Ordinal)
+            && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")))
         {
             builder.UseWayland().UseSkia().UseHarfBuzz();
         }
