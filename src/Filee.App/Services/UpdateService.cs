@@ -154,6 +154,12 @@ public sealed partial class UpdateService : ObservableObject
     /// <summary>Allows tests to redirect Linux installation target directory to an isolated temporary folder.</summary>
     internal string? LinuxInstallDirectoryOverride { get; set; }
 
+    /// <summary>Allows tests to redirect update failure marker path to an isolated temporary location.</summary>
+    internal string? FailureMarkerPathOverride { get; set; }
+
+    /// <summary>The log file path recorded in the update failure marker from the previous run, if any.</summary>
+    internal string? LastFailureLogPath { get; private set; }
+
     /// <summary>Whether <see cref="UpdateAsync"/> installs by itself (<see cref="IsInstalled"/>; tests set it).</summary>
     internal bool InstallsItself { get; init; } = IsInstalled;
 
@@ -410,6 +416,7 @@ public sealed partial class UpdateService : ObservableObject
             var logDir = Path.Combine(UserDataStore.DefaultDirectory, "logs");
             Directory.CreateDirectory(logDir);
             var logFile = Path.Combine(logDir, $"filee-{DateTime.Now:yyyyMMdd}.log");
+            var markerFile = FailureMarkerPathOverride ?? Path.Combine(UserDataStore.DefaultDirectory, ".update-failed");
 
             Process? helper;
             try
@@ -422,11 +429,17 @@ public sealed partial class UpdateService : ObservableObject
                 startInfo.ArgumentList.Add("-c");
                 startInfo.ArgumentList.Add(
                     "for _ in $(seq 1 600); do if ! kill -0 \"$1\" 2>/dev/null; then break; fi; sleep 0.1; done; " +
-                    "if kill -0 \"$1\" 2>/dev/null; then echo \"Update aborted: Filee (PID $1) did not exit within timeout\" >> \"$4\"; exit 1; fi; " +
+                    "if kill -0 \"$1\" 2>/dev/null; then echo \"Update aborted: Filee (PID $1) did not exit within timeout\" >> \"$4\"; rm -rf \"$5\" 2>/dev/null; exit 1; fi; " +
                     "\"$2\" --upgrade >> \"$4\" 2>&1; " +
                     "status=$?; " +
                     "rm -rf \"$5\" 2>/dev/null; " +
-                    "if [ $status -eq 0 ]; then exec \"$3\" --background --whats-new; else echo \"Update failed with status $status\" >> \"$4\"; exit $status; fi"
+                    "if [ $status -eq 0 ]; then " +
+                    "if [ -x \"$3\" ]; then exec \"$3\" --background --whats-new; else echo \"Update succeeded but '$3' is not executable\" >> \"$4\"; exit 1; fi; " +
+                    "else " +
+                    "echo \"Update failed with status $status\" >> \"$4\"; " +
+                    "echo \"$4\" > \"$6.tmp\" 2>/dev/null && mv -f \"$6.tmp\" \"$6\" 2>/dev/null || true; " +
+                    "if [ -x \"$3\" ]; then exec \"$3\" --background; else echo \"Cannot restart Filee: '$3' is not executable after rollback\" >> \"$4\"; exit $status; fi; " +
+                    "fi"
                 );
                 startInfo.ArgumentList.Add("_");
                 startInfo.ArgumentList.Add(currentPid.ToString());
@@ -434,6 +447,7 @@ public sealed partial class UpdateService : ObservableObject
                 startInfo.ArgumentList.Add(newExe);
                 startInfo.ArgumentList.Add(logFile);
                 startInfo.ArgumentList.Add(workspace);
+                startInfo.ArgumentList.Add(markerFile);
 
                 helper = StartProcess(startInfo);
             }
@@ -559,6 +573,51 @@ public sealed partial class UpdateService : ObservableObject
         _log.LogWarning(ex, "In-app update failed ({Stage})", stage);
         Step = UpdateStep.Failed;
         UpdateFailed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Checks whether a previous in-app update attempt failed before restarting.
+    /// If an update failure marker exists, safely reads the log path, consumes (deletes) the marker,
+    /// logs the failure, sets <see cref="Step"/> to <see cref="UpdateStep.Failed"/>, and returns <c>true</c>.
+    /// </summary>
+    public bool CheckPendingFailure(string? dataDir = null)
+    {
+        var markerPath = FailureMarkerPathOverride ?? Path.Combine(dataDir ?? UserDataStore.DefaultDirectory, ".update-failed");
+        if (!File.Exists(markerPath))
+            return false;
+
+        string? logPath = null;
+        try
+        {
+            var content = File.ReadAllText(markerPath).Trim();
+            if (!string.IsNullOrWhiteSpace(content)
+                && Path.IsPathRooted(content)
+                && !content.Any(char.IsControl)
+                && (File.Exists(content) || content.EndsWith(".log", StringComparison.OrdinalIgnoreCase)))
+            {
+                logPath = content;
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Failed to read update failure marker at {MarkerPath}", markerPath);
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(markerPath);
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Failed to delete update failure marker at {MarkerPath}", markerPath);
+            }
+        }
+
+        LastFailureLogPath = logPath;
+        _log.LogWarning("In-app update failed during previous run. Log: {LogPath}", logPath ?? "(unknown)");
+        Step = UpdateStep.Failed;
+        return true;
     }
 
     private void Publish(string? newer, bool announce)
@@ -880,27 +939,27 @@ public sealed partial class UpdateService : ObservableObject
         }
     }
 
+    /// <summary>Gets the default root directory where secure workspaces are allocated.</summary>
+    internal static string GetDefaultWorkspaceBaseDirectory()
+    {
+        if (OperatingSystem.IsLinux())
+        {
+            var dataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+            var root = !string.IsNullOrWhiteSpace(dataHome)
+                ? dataHome
+                : Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            return Path.Combine(root, "filee");
+        }
+        return Path.GetTempPath();
+    }
+
     /// <summary>
     /// Creates a private, dedicated temporary workspace for this update instance.
     /// Mode 0700 on Unix, inaccessible to other local users, non-predictable, and never reusing pre-existing paths.
     /// </summary>
     internal static string CreateSecureWorkspace(string? baseDir = null)
     {
-        if (string.IsNullOrWhiteSpace(baseDir))
-        {
-            if (OperatingSystem.IsLinux())
-            {
-                var dataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
-                var root = !string.IsNullOrWhiteSpace(dataHome)
-                    ? dataHome
-                    : Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                baseDir = Path.Combine(root, "filee");
-            }
-            else
-            {
-                baseDir = Path.GetTempPath();
-            }
-        }
+        baseDir = string.IsNullOrWhiteSpace(baseDir) ? GetDefaultWorkspaceBaseDirectory() : baseDir;
 
         Directory.CreateDirectory(baseDir);
 
@@ -953,6 +1012,85 @@ public sealed partial class UpdateService : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Checks whether a process with the given <paramref name="pid"/> is currently running.
+    /// Used to protect active update workspaces from being swept.
+    /// </summary>
+    internal static bool IsProcessAlive(int pid)
+    {
+        if (pid <= 0)
+            return false;
+
+        try
+        {
+            if (OperatingSystem.IsLinux())
+                return Directory.Exists($"/proc/{pid}");
+
+            using var proc = Process.GetProcessById(pid);
+            return !proc.HasExited;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+        catch (Exception)
+        {
+            // If in doubt (e.g. access denied), assume alive to safeguard against deleting active workspaces
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Deletes stale update workspaces left behind by crashes, forced kills, or aborted updates.
+    /// Protects active workspaces by checking both an age threshold (default 1 day) and process liveness
+    /// (never deleting a workspace belonging to a running PID).
+    /// </summary>
+    public static void DeleteStaleWorkspaces(string? root = null, TimeSpan? age = null, ILogger? log = null)
+    {
+        var threshold = age ?? TimeSpan.FromDays(1);
+        try
+        {
+            var baseDir = root ?? GetDefaultWorkspaceBaseDirectory();
+            var dirInfo = new DirectoryInfo(baseDir);
+            if (!dirInfo.Exists || dirInfo.LinkTarget is not null || dirInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                return;
+
+            foreach (var folder in dirInfo.EnumerateDirectories(".update-*"))
+            {
+                if (folder.LinkTarget is not null || folder.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                    continue;
+
+                try
+                {
+                    var parts = folder.Name.Split('-');
+                    if (parts.Length >= 2 && int.TryParse(parts[1], out var pid))
+                    {
+                        if (IsProcessAlive(pid))
+                            continue;
+                    }
+
+                    if (DateTime.UtcNow - folder.LastWriteTimeUtc > threshold)
+                    {
+                        DeleteSecureWorkspace(folder.FullName);
+                        log?.LogInformation("Deleted stale update workspace {Workspace}", folder.FullName);
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    log?.LogWarning(ex, "Could not delete stale update workspace {Workspace}", folder.FullName);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            log?.LogWarning(ex, "Failed to enumerate update workspaces in {Root}", root);
+        }
+    }
+
     /// <summary>Locates the installation directory on Linux.</summary>
     internal static string GetLinuxInstallDirectory()
     {
@@ -963,106 +1101,6 @@ public sealed partial class UpdateService : ObservableObject
             ? dataHome
             : Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         return Path.Combine(root, "filee", "application");
-    }
-
-    /// <summary>Reads the installed Filee version from the specified installation folder.</summary>
-    internal static string? GetInstalledVersion(string installDir)
-    {
-        var dll = Path.Combine(installDir, "Filee.dll");
-        if (File.Exists(dll))
-        {
-            try
-            {
-                var info = FileVersionInfo.GetVersionInfo(dll);
-                if (!string.IsNullOrWhiteSpace(info.ProductVersion))
-                    return info.ProductVersion.Split('+')[0].Trim();
-                if (!string.IsNullOrWhiteSpace(info.FileVersion))
-                    return info.FileVersion.Trim();
-            }
-            catch
-            {
-                // Fall through
-            }
-        }
-
-        var exe = Path.Combine(installDir, "Filee");
-        if (File.Exists(exe))
-        {
-            try
-            {
-                var info = FileVersionInfo.GetVersionInfo(exe);
-                if (!string.IsNullOrWhiteSpace(info.ProductVersion))
-                    return info.ProductVersion.Split('+')[0].Trim();
-                if (!string.IsNullOrWhiteSpace(info.FileVersion))
-                    return info.FileVersion.Trim();
-            }
-            catch
-            {
-                // Fall through
-            }
-        }
-
-        var cli = Path.Combine(installDir, "filee-cli");
-        if (File.Exists(cli))
-        {
-            try
-            {
-                using var proc = Process.Start(new ProcessStartInfo(cli, "version")
-                {
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                });
-                if (proc is not null && proc.WaitForExit(3000) && proc.ExitCode == 0)
-                {
-                    var line = proc.StandardOutput.ReadLine()?.Trim();
-                    if (line?.StartsWith("filee ", StringComparison.OrdinalIgnoreCase) == true)
-                        return line["filee ".Length..].Trim();
-                }
-            }
-            catch
-            {
-                // Fall through
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>Verifies that the version installed in <paramref name="installDir"/> matches <paramref name="expectedVersion"/>.</summary>
-    internal static bool VerifyInstalledVersion(string installDir, string expectedVersion, out string? actualVersion)
-    {
-        actualVersion = GetInstalledVersion(installDir);
-        if (actualVersion is null)
-            return false;
-
-        if (TryParse(expectedVersion, out var expected) && TryParse(actualVersion, out var actual))
-            return expected == actual;
-
-        return string.Equals(actualVersion.Trim(), expectedVersion.Trim(), StringComparison.OrdinalIgnoreCase);
-    }
-
-    internal static string FindLinuxRecoveryInfo(string installDir)
-    {
-        var cleanInstallDir = Path.TrimEndingDirectorySeparator(installDir);
-        var parent = Path.GetDirectoryName(cleanInstallDir);
-        if (string.IsNullOrWhiteSpace(parent) || !Directory.Exists(parent))
-            return "";
-
-        try
-        {
-            var backups = Directory.GetDirectories(parent, ".backup-*");
-            if (backups.Length > 0)
-            {
-                var latestBackup = backups.OrderByDescending(Directory.GetCreationTimeUtc).First();
-                return $"Previous installation retained at '{latestBackup}'. To recover manually: mv '{latestBackup}' '{cleanInstallDir}'";
-            }
-        }
-        catch
-        {
-            // Ignore directory enumeration failures
-        }
-
-        return "No backup directory found.";
     }
 
     /// <summary>True when release tag <paramref name="tag"/> ("v1.2.0") is a higher version than <paramref name="current"/>.</summary>

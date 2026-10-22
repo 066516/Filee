@@ -137,6 +137,8 @@ public partial class App : Application
         _ = Task.Run(() => Filee.Core.Web.WebDrop.DeleteStale(Filee.Core.Web.WebDrop.DefaultWorkRoot, TimeSpan.FromDays(1)));
         // Likewise the work folders of conversions that never got to clean up after themselves.
         _ = Task.Run(() => JobQueue.DeleteStaleWorkFolders(JobQueue.DefaultWorkRoot, TimeSpan.FromDays(1)));
+        // Leftover update workspaces from cancelled or failed in-app updates.
+        _ = Task.Run(() => UpdateService.DeleteStaleWorkspaces());
         // Once LibreOffice is installed: prepare its profiles while the user isn't converting yet.
         AppHost.Get<EngineDownloadService>().WarmUpInBackground(TimeSpan.FromSeconds(10));
 
@@ -212,7 +214,9 @@ public partial class App : Application
             store.SaveSettings();
             AppHost.Get<WindowService>().ShowUpdateNotice(version);
         };
-        updates.UpdateFailed += async (_, _) => await AppHost.Get<WindowService>().ShowUpdateFailedAsync();
+        updates.UpdateFailed += async (_, _) => await AppHost.Get<WindowService>().ShowUpdateFailedAsync(updates.LastFailureLogPath);
+        if (updates.CheckPendingFailure(store.Directory))
+            Dispatcher.UIThread.Post(async () => await AppHost.Get<WindowService>().ShowUpdateFailedAsync(updates.LastFailureLogPath));
         updates.StartPeriodicChecks(() => store.Settings.CheckForUpdates, TimeSpan.FromSeconds(20));
         DispatcherTimer.RunOnce(() => NotifyEngineUpdates(store), TimeSpan.FromSeconds(25));
     }

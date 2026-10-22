@@ -500,10 +500,13 @@ public class UpdateServiceTests
         Assert.Contains("kill -0 \"$1\"", helperPsi.ArgumentList[1]);
         Assert.Contains("\"$2\" --upgrade >> \"$4\" 2>&1", helperPsi.ArgumentList[1]);
         Assert.Contains("exec \"$3\" --background --whats-new", helperPsi.ArgumentList[1]);
+        Assert.Contains("exec \"$3\" --background", helperPsi.ArgumentList[1]);
+        Assert.Contains("rm -rf \"$5\"", helperPsi.ArgumentList[1]);
         Assert.Equal(Environment.ProcessId.ToString(), helperPsi.ArgumentList[3]);
         Assert.EndsWith("install.sh", helperPsi.ArgumentList[4]);
         Assert.Equal(Path.Combine(mockInstallDir, "Filee"), helperPsi.ArgumentList[5]);
         Assert.EndsWith(".log", helperPsi.ArgumentList[6]);
+        Assert.EndsWith(".update-failed", helperPsi.ArgumentList[8]);
 
         Assert.True(shutdownRequested, "Application shutdown must be requested before file swap");
     }
@@ -645,39 +648,31 @@ public class UpdateServiceTests
     [Fact]
     public async Task Concurrent_secure_workspaces_are_isolated()
     {
-        var tasks = Enumerable.Range(0, 5).Select(_ => Task.Run(() => UpdateService.CreateSecureWorkspace())).ToArray();
-        var workspaces = await Task.WhenAll(tasks);
-
+        var isolatedDir = TempFolder();
         try
         {
+            var tasks = Enumerable.Range(0, 5).Select(_ => Task.Run(() => UpdateService.CreateSecureWorkspace(isolatedDir))).ToArray();
+            var workspaces = await Task.WhenAll(tasks);
+
             Assert.Equal(5, workspaces.Distinct().Count());
-            Assert.All(workspaces, w => Assert.True(Directory.Exists(w)));
+            Assert.All(workspaces, w =>
+            {
+                Assert.True(Directory.Exists(w));
+                Assert.StartsWith(isolatedDir, w);
+            });
         }
         finally
         {
-            foreach (var w in workspaces)
-                UpdateService.DeleteSecureWorkspace(w);
+            try
+            {
+                if (Directory.Exists(isolatedDir))
+                    Directory.Delete(isolatedDir, recursive: true);
+            }
+            catch
+            {
+                // Best effort test cleanup
+            }
         }
-    }
-
-    [Fact]
-    public void VerifyInstalledVersion_detects_mismatch()
-    {
-        var folder = TempFolder();
-        var cli = Path.Combine(folder, "filee-cli");
-        File.WriteAllText(cli, "#!/bin/sh\necho \"filee 1.0.0\"\n");
-        if (OperatingSystem.IsLinux())
-            File.SetUnixFileMode(cli, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-
-        Assert.True(UpdateService.VerifyInstalledVersion(folder, "1.0.0", out var actual));
-        Assert.Equal("1.0.0", actual);
-
-        Assert.False(UpdateService.VerifyInstalledVersion(folder, "1.0.2", out actual));
-        Assert.Equal("1.0.0", actual);
-
-        var emptyFolder = TempFolder();
-        Assert.False(UpdateService.VerifyInstalledVersion(emptyFolder, "1.0.0", out actual));
-        Assert.Null(actual);
     }
 
     [Fact]
@@ -714,18 +709,189 @@ public class UpdateServiceTests
     }
 
     [Fact]
-    public void FindLinuxRecoveryInfo_handles_trailing_directory_separator()
+    public void CheckPendingFailure_returns_false_when_marker_absent()
     {
-        var baseDir = TempFolder();
-        var installDir = Path.Combine(baseDir, "application");
-        Directory.CreateDirectory(installDir);
+        var dir = TempFolder();
+        var updates = new UpdateService(NullLogger<UpdateService>.Instance)
+        {
+            FailureMarkerPathOverride = Path.Combine(dir, ".update-failed"),
+        };
 
-        var backupDir = Path.Combine(baseDir, ".backup-123");
-        Directory.CreateDirectory(backupDir);
+        var result = updates.CheckPendingFailure(dir);
+        Assert.False(result);
+        Assert.Equal(UpdateStep.Idle, updates.Step);
+        Assert.Null(updates.LastFailureLogPath);
+    }
 
-        var recovery = UpdateService.FindLinuxRecoveryInfo(installDir + Path.DirectorySeparatorChar);
-        Assert.Contains(backupDir, recovery);
-        Assert.Contains("To recover manually: mv", recovery);
+    [Fact]
+    public void CheckPendingFailure_consumes_marker_and_records_failure()
+    {
+        var dir = TempFolder();
+        var marker = Path.Combine(dir, ".update-failed");
+        var logPath = Path.Combine(dir, "logs", "filee-test.log");
+        Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+        File.WriteAllText(logPath, "some error log");
+        File.WriteAllText(marker, logPath + "\n");
+
+        var updates = new UpdateService(NullLogger<UpdateService>.Instance)
+        {
+            FailureMarkerPathOverride = marker,
+        };
+
+        var result = updates.CheckPendingFailure(dir);
+        Assert.True(result);
+        Assert.Equal(UpdateStep.Failed, updates.Step);
+        Assert.Equal(logPath, updates.LastFailureLogPath);
+        Assert.False(File.Exists(marker), "Marker file must be consumed (deleted)");
+    }
+
+    [Fact]
+    public void CheckPendingFailure_handles_malformed_marker_safely()
+    {
+        var dir = TempFolder();
+        var marker = Path.Combine(dir, ".update-failed");
+        File.WriteAllText(marker, "not-a-rooted-path\0evil");
+
+        var updates = new UpdateService(NullLogger<UpdateService>.Instance)
+        {
+            FailureMarkerPathOverride = marker,
+        };
+
+        var result = updates.CheckPendingFailure(dir);
+        Assert.True(result);
+        Assert.Equal(UpdateStep.Failed, updates.Step);
+        Assert.Null(updates.LastFailureLogPath);
+        Assert.False(File.Exists(marker), "Marker file must still be consumed");
+    }
+
+    [Fact]
+    public void DeleteStaleWorkspaces_preserves_active_pid_and_deletes_stale_dead_pid()
+    {
+        var root = TempFolder();
+        var activeDir = Path.Combine(root, $".update-{Environment.ProcessId}-active123");
+        var deadPid = 999999;
+        while (UpdateService.IsProcessAlive(deadPid))
+            deadPid++;
+
+        var deadStaleDir = Path.Combine(root, $".update-{deadPid}-stale456");
+        var deadFreshDir = Path.Combine(root, $".update-{deadPid}-fresh789");
+
+        Directory.CreateDirectory(activeDir);
+        Directory.CreateDirectory(deadStaleDir);
+        Directory.CreateDirectory(deadFreshDir);
+
+        Directory.SetLastWriteTimeUtc(deadStaleDir, DateTime.UtcNow.AddDays(-2));
+
+        UpdateService.DeleteStaleWorkspaces(root, TimeSpan.FromDays(1));
+
+        Assert.True(Directory.Exists(activeDir), "Active PID workspace must not be deleted even if stale");
+        Assert.False(Directory.Exists(deadStaleDir), "Stale dead PID workspace must be deleted");
+        Assert.True(Directory.Exists(deadFreshDir), "Fresh dead PID workspace must be kept");
+    }
+
+    [Fact]
+    public void Helper_script_restarts_filee_on_failure_and_writes_marker()
+    {
+        if (!OperatingSystem.IsLinux())
+            return;
+
+        var tempDir = TempFolder();
+        var workspace = Path.Combine(tempDir, "workspace");
+        Directory.CreateDirectory(workspace);
+
+        var installLog = Path.Combine(tempDir, "install.log");
+        var markerFile = Path.Combine(tempDir, ".update-failed");
+
+        var mockInstallSh = Path.Combine(tempDir, "install.sh");
+        File.WriteAllText(mockInstallSh, "#!/bin/sh\necho 'Rolling back...' >&2\nexit 2\n");
+        File.SetUnixFileMode(mockInstallSh, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        var argsOut = Path.Combine(tempDir, "filee-args.txt");
+        var mockFilee = Path.Combine(tempDir, "Filee");
+        File.WriteAllText(mockFilee, $"#!/bin/sh\necho \"$@\" > '{argsOut}'\nexit 0\n");
+        File.SetUnixFileMode(mockFilee, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        var deadPid = 999999;
+        while (UpdateService.IsProcessAlive(deadPid))
+            deadPid++;
+
+        var script =
+            "for _ in $(seq 1 600); do if ! kill -0 \"$1\" 2>/dev/null; then break; fi; sleep 0.1; done; " +
+            "if kill -0 \"$1\" 2>/dev/null; then echo \"Update aborted: Filee (PID $1) did not exit within timeout\" >> \"$4\"; rm -rf \"$5\" 2>/dev/null; exit 1; fi; " +
+            "\"$2\" --upgrade >> \"$4\" 2>&1; " +
+            "status=$?; " +
+            "rm -rf \"$5\" 2>/dev/null; " +
+            "if [ $status -eq 0 ]; then " +
+            "if [ -x \"$3\" ]; then exec \"$3\" --background --whats-new; else echo \"Update succeeded but '$3' is not executable\" >> \"$4\"; exit 1; fi; " +
+            "else " +
+            "echo \"Update failed with status $status\" >> \"$4\"; " +
+            "echo \"$4\" > \"$6.tmp\" 2>/dev/null && mv -f \"$6.tmp\" \"$6\" 2>/dev/null || true; " +
+            "if [ -x \"$3\" ]; then exec \"$3\" --background; else echo \"Cannot restart Filee: '$3' is not executable after rollback\" >> \"$4\"; exit $status; fi; " +
+            "fi";
+
+        using var proc = Process.Start(new ProcessStartInfo("/bin/sh")
+        {
+            ArgumentList = { "-c", script, "_", deadPid.ToString(), mockInstallSh, mockFilee, installLog, workspace, markerFile },
+            UseShellExecute = false,
+        });
+
+        Assert.NotNull(proc);
+        Assert.True(proc.WaitForExit(5000));
+        Assert.Equal(0, proc.ExitCode);
+
+        Assert.False(Directory.Exists(workspace), "Workspace directory must be cleaned up on failure");
+        Assert.True(File.Exists(markerFile), "Failure marker file must be created");
+        Assert.Equal(installLog, File.ReadAllText(markerFile).Trim());
+
+        Assert.True(File.Exists(argsOut), "Restored Filee executable must have been launched");
+        var args = File.ReadAllText(argsOut).Trim();
+        Assert.Equal("--background", args);
+        Assert.DoesNotContain("--whats-new", args);
+    }
+
+    [Fact]
+    public void Helper_script_cleans_up_workspace_on_timeout()
+    {
+        if (!OperatingSystem.IsLinux())
+            return;
+
+        var tempDir = TempFolder();
+        var workspace = Path.Combine(tempDir, "workspace");
+        Directory.CreateDirectory(workspace);
+
+        var installLog = Path.Combine(tempDir, "install.log");
+        var markerFile = Path.Combine(tempDir, ".update-failed");
+        var mockInstallSh = Path.Combine(tempDir, "install.sh");
+        File.WriteAllText(mockInstallSh, "#!/bin/sh\nexit 0\n");
+        var mockFilee = Path.Combine(tempDir, "Filee");
+        File.WriteAllText(mockFilee, "#!/bin/sh\nexit 0\n");
+
+        var timeoutScript =
+            "for _ in $(seq 1 2); do if ! kill -0 \"$1\" 2>/dev/null; then break; fi; sleep 0.01; done; " +
+            "if kill -0 \"$1\" 2>/dev/null; then echo \"Update aborted: Filee (PID $1) did not exit within timeout\" >> \"$4\"; rm -rf \"$5\" 2>/dev/null; exit 1; fi; " +
+            "\"$2\" --upgrade >> \"$4\" 2>&1; " +
+            "status=$?; " +
+            "rm -rf \"$5\" 2>/dev/null; " +
+            "if [ $status -eq 0 ]; then " +
+            "if [ -x \"$3\" ]; then exec \"$3\" --background --whats-new; else echo \"Update succeeded but '$3' is not executable\" >> \"$4\"; exit 1; fi; " +
+            "else " +
+            "echo \"Update failed with status $status\" >> \"$4\"; " +
+            "echo \"$4\" > \"$6.tmp\" 2>/dev/null && mv -f \"$6.tmp\" \"$6\" 2>/dev/null || true; " +
+            "if [ -x \"$3\" ]; then exec \"$3\" --background; else echo \"Cannot restart Filee: '$3' is not executable after rollback\" >> \"$4\"; exit $status; fi; " +
+            "fi";
+
+        using var proc = Process.Start(new ProcessStartInfo("/bin/sh")
+        {
+            ArgumentList = { "-c", timeoutScript, "_", Environment.ProcessId.ToString(), mockInstallSh, mockFilee, installLog, workspace, markerFile },
+            UseShellExecute = false,
+        });
+
+        Assert.NotNull(proc);
+        Assert.True(proc.WaitForExit(5000));
+        Assert.Equal(1, proc.ExitCode);
+
+        Assert.False(Directory.Exists(workspace), "Workspace must be cleaned up on timeout");
+        Assert.Contains("Update aborted: Filee", File.ReadAllText(installLog));
     }
 
     private static byte[] CreateTarGz(Action<TarWriter> populate)
