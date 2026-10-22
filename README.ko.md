@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <b>한국어</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <b>한국어</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a></p>
 
 <table>
   <tr>
@@ -76,7 +76,7 @@
 - **자동 변환 폴더**에 들어온 파일을 바로 변환해요.
 - **최근 변환**: 홈에서 결과를 썸네일과 함께 보여 주고, 바로 열거나 연결 프로그램으로 열 수 있어요.
 - **다른 방법**: 우클릭 메뉴, 키보드 단축키, 드롭 영역, [`filee` 명령](#명령줄)
-- 밝은·어두운 테마, 원하는 강조색과 원형 툴바 불투명도, English · Español · 日本語 · 한국어 · 简体中文 · Polski · हिन्दी · Русский · العربية(오른쪽에서 왼쪽으로) · Português (Brasil)
+- 밝은·어두운 테마, 원하는 강조색과 원형 툴바 불투명도, English · Español · 日本語 · 한국어 · 简体中文 · 繁體中文 · Polski · हिन्दी · Русский · العربية(오른쪽에서 왼쪽으로) · Português (Brasil) · Français
 
 ## 스크린샷
 
@@ -150,8 +150,8 @@ PR 환영해요. Filee가 쓸만하다면 ⭐ 하나가 다른 사람들이 File
 ## 코드 서명 정책
 
 Filee는 **Myeonggu Kim**([KnifeLemon](https://github.com/KnifeLemon))이 개발하고 배포해요.
-Windows 릴리스는 Myeonggu Kim 명의의 [Certum](https://www.certum.eu/) 오픈소스 코드 서명 인증서로 서명할 예정이고,
-지금은 발급 절차가 진행 중이에요.
+Windows 릴리스는 Myeonggu Kim 명의의 [Certum](https://www.certum.eu/) 오픈소스 코드 서명 인증서로 서명해요.
+2.0.0까지의 릴리스는 서명되지 않았어요.
 
 자세한 정책과 개인정보 처리 방침은 [영문 README](README.md#code-signing-policy)에 있어요.
 Filee는 파일을 업로드하지 않고, 사용 기록도 보내지 않아요.

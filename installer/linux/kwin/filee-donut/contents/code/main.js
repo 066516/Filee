@@ -16,6 +16,13 @@ function centreOnCursor(w) {
     }
 }
 
+function bringToFront(w) {
+    // A Wayland popup can otherwise be stacked behind the file manager that
+    // owns the drag, making the donut appear not to have opened.
+    w.keepAbove = true;
+    workspace.raiseWindow(w);
+}
+
 workspace.windowAdded.connect(function (w) {
     if (!isDonut(w)) {
         return;
@@ -23,10 +30,12 @@ workspace.windowAdded.connect(function (w) {
     // Filee also positions the window itself (twice, to cope with DPI changes), so win the last few moves.
     var left = 4;
     centreOnCursor(w);
+    bringToFront(w);
     w.frameGeometryChanged.connect(function () {
         if (left > 0) {
             left--;
             centreOnCursor(w);
+            bringToFront(w);
         }
     });
 });

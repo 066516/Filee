@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <b>日本語</b> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <b>日本語</b> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a></p>
 
 <table>
   <tr>
@@ -78,7 +78,7 @@
 - **最近の変換**はホームにサムネイル付きで表示され、変換結果を開いたり、別のアプリで開いたりできます。
 - **ほかの使い方**：右クリックメニュー、キーボードショートカット、ドロップ領域、[`filee`コマンド](#コマンドライン)。
 - ライトテーマとダークテーマ。アクセントカラーとドーナツメニューの不透明度も選べます。English、Español、日本語、한국어、
-  简体中文、Polski、हिन्दी、Русский、العربية（右から左へ表示）、Português (Brasil)に対応。
+  简体中文、繁體中文、Polski、हिन्दी、Русский、العربية（右から左へ表示）、Português (Brasil)、Françaisに対応。
 
 ## スクリーンショット
 
@@ -151,8 +151,8 @@ dotnet test
 ## コード署名ポリシー
 
 Fileeは**Myeonggu Kim**（[KnifeLemon](https://github.com/KnifeLemon)）が開発・公開しています。
-Windows版のリリースには、Myeonggu Kim名義で発行される[Certum](https://www.certum.eu/)のオープンソース向けコード署名証明書で署名する予定です。
-証明書は現在、発行手続き中です。
+Windows版のリリースには、Myeonggu Kim名義で発行された[Certum](https://www.certum.eu/)のオープンソース向けコード署名証明書で署名しています。
+2.0.0までのリリースは署名されていません。
 
 ポリシーの詳細とプライバシーポリシーは[英語版README](README.md#code-signing-policy)をご覧ください。
 Fileeはファイルをアップロードせず、利用データも送信しません。
