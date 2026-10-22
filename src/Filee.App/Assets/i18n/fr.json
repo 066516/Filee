@@ -1,7 +1,6 @@
 {
   "app.name": "Filee",
   "app.tagline": "Glissez, déposez, c'est converti.",
-
   "nav.home": "Accueil",
   "nav.general": "Général",
   "nav.triggers": "Raccourcis",
@@ -11,7 +10,6 @@
   "nav.theme": "Thème",
   "nav.engines": "Moteurs",
   "nav.about": "À propos",
-
   "tray.open": "Ouvrir Filee",
   "tray.pause": "Suspendre les raccourcis",
   "tray.resume": "Réactiver les raccourcis",
@@ -23,7 +21,6 @@
   "close.tray": "Garder en arrière-plan",
   "close.quit": "Quitter",
   "close.dont_ask": "Ne plus demander",
-
   "home.title": "Accueil",
   "home.drop_title": "Déposez des fichiers ici",
   "home.drop_hint": "Ou maintenez {0} en glissant des fichiers dans l'Explorateur. Le menu circulaire s'ouvre sous le curseur.",
@@ -46,7 +43,6 @@
   "home.clear_history": "Effacer",
   "home.files": "{0} fichiers",
   "home.failed_files": "{0} en échec",
-
   "donut.center_drag": "Amenez les fichiers ici",
   "donut.files_same": "{0} × {1}",
   "donut.files_mixed": "{0} fichiers",
@@ -62,7 +58,6 @@
   "donut.group_caption": "{0} options",
   "donut.flip_to_back": "{0} ↻ verso",
   "donut.flip_to_front": "{0} ↻ recto",
-
   "toast.converting": "{0} → {1}",
   "toast.done": "Terminé",
   "toast.done_errors": "{0} sur {1} en échec",
@@ -73,7 +68,6 @@
   "toast.cancel": "Annuler",
   "download.badge": "{0}/s · {1}",
   "download.badge_files": "{0} · {1} sur {2} fichiers",
-
   "error.unsupported_source": "Ce type de fichier n'est pas pris en charge",
   "error.empty_file": "Le fichier est vide (0 octet). Un fichier créé avec « Nouveau » dans le menu contextuel reste vide tant que vous ne l'avez pas ouvert et enregistré dans son application",
   "format_request.request": "Demander ce format",
@@ -113,7 +107,6 @@
   "notice.geo_rows_without_location": "Certaines lignes sans emplacement exploitable ont été conservées sans forme",
   "notice.geo_field_names": "Les noms de champs Shapefile font 10 caractères au maximum : certains ont été raccourcis",
   "notice.geo_shapefile_split": "Un Shapefile ne contient qu'un type de forme : les points, lignes et polygones ont été enregistrés dans des fichiers distincts",
-
   "engine.reason.not_installed": "Non installé",
   "engine.reason.error": "Erreur lors de la vérification",
   "engine.reason.unsupported_platform": "Non disponible sur cette plateforme",
@@ -124,30 +117,47 @@
   "engine.pdfsharp.description": "Crée des PDF à partir d'images, fusionne et divise des PDF ou en extrait des plages de pages.\nRéduit aussi la taille des PDF en réduisant leurs images.",
   "engine.rhwp.description": "Convertit HWP/HWPX en PDF et HWP ↔ HWPX.\nDessine aussi les documents qui passent par HWPX pour devenir des PDF (DOCX, XLSX, PPTX, livres numériques…).",
   "engine.unhwp.description": "Extrait le texte, le Markdown et le HTML des fichiers HWP et HWPX.",
+  "engine.markdown.name": "Markdown (built-in)",
   "engine.markdown.description": "Markdown → HTML et texte brut.\nFichiers texte et sources de scripts → TXT UTF-8, sans exécuter les scripts.",
+  "engine.spreadsheet.name": "Spreadsheets (built-in)",
   "engine.spreadsheet.description": "XLSX, XLS, ODS, CSV et TSV entre eux (XLS en lecture seule).\nUn CSV par feuille.",
+  "engine.ooxml.name": "Office Open XML (built-in)",
   "engine.ooxml.description": "Fichiers avec macros et modèles (DOCM, XLSM, PPTM, DOTX…) ↔ DOCX, XLSX, PPTX.\nLes macros sont supprimées.",
+  "engine.hwpx-writer.name": "HWPX writer (built-in)",
   "engine.hwpx-writer.description": "Écrit du HWPX à partir de Word, Excel, PowerPoint, PDF, OFD, HTML, livres numériques et Markdown.\nPremière étape pour convertir des documents en PDF sans Office.",
+  "engine.docx-writer.name": "DOCX writer (built-in)",
   "engine.docx-writer.description": "Écrit des documents Word (DOCX) à partir de PDF, OFD, HWP/HWPX, Markdown, HTML, feuilles de calcul, diapositives et livres numériques.",
+  "engine.pdf-text.name": "PDF text (built-in)",
   "engine.pdf-text.description": "Extrait le texte des PDF dans l'ordre de lecture, y compris sur deux colonnes (pas d'OCR pour les numérisations).",
+  "engine.pdf-slides.name": "PDF slides (built-in)",
   "engine.pdf-slides.description": "Convertit les PDF en diapositives PowerPoint : chaque page devient une image sur sa propre diapositive (fidèle au PDF, non modifiable), avec le texte de la page dans les notes du présentateur.",
+  "engine.email.name": "E-mail (built-in)",
   "engine.email.description": "E-mails (EML, MSG Outlook) en HTML et texte avec expéditeur, destinataires et date, images comprises ; pièces jointes dans un ZIP.\nMSG en EML. Pages web enregistrées (MHTML) en un seul fichier HTML avec leurs images.",
+  "engine.data.name": "Data (built-in)",
   "engine.data.description": "JSON, JSON Lines, YAML, TOML, XML et CSV entre eux.\nContacts vCard en CSV et inversement.\nLes commentaires sont supprimés. Le CSV ne contient que des tableaux.",
+  "engine.vector.name": "Vector graphics (built-in)",
   "engine.vector.description": "SVG et SVGZ en PDF vectoriel, images et DXF ; images vectorisées en SVG ; fichiers Illustrator enregistrés avec contenu PDF.",
+  "engine.icns.name": "ICNS (built-in)",
   "engine.icns.description": "Icônes d'apps macOS (ICNS) depuis et vers des images.",
+  "engine.font.name": "Fonts (built-in)",
   "engine.font.description": "Polices : TTF, OTF, WOFF, WOFF2 et EOT entre eux.",
+  "engine.cad.name": "CAD (built-in)",
   "engine.cad.description": "Dessins AutoCAD : DWG ↔ DXF, et les deux en PDF, SVG et PNG.",
+  "engine.model3d.name": "3D models (built-in)",
   "engine.model3d.description": "Modèles 3D : GLB, glTF, STL, OBJ, 3MF et PLY entre eux, FBX vers chacun d'eux, et un aperçu PNG.",
+  "engine.geo.name": "Geospatial vector data (built-in)",
   "engine.geo.description": "Données géospatiales vectorielles : GeoJSON, KML, KMZ, GPX, Shapefile et CSV (longitude/latitude ou WKT) entre eux.\nLes résultats sont en longitude/latitude WGS 84 ; les Shapefiles projetés (UTM, Web Mercator, Lambert, Albers) sont convertis.",
+  "engine.archive.name": "Archives (7-Zip)",
   "engine.archive.description": "Extrait ZIP, 7Z, RAR, TAR, ISO et plus, et crée des archives ZIP, 7Z ou TAR.GZ (7-Zip).",
+  "engine.ebook.name": "E-books (built-in)",
   "engine.ebook.description": "EPUB, MOBI, AZW3, FB2 et bandes dessinées (CBZ, CBR) en PDF, EPUB, DOCX et texte.\nAussi des documents en EPUB, EPUB en KEPUB pour Kobo et PDF en CBZ.",
+  "engine.subtitle.name": "Subtitles (built-in)",
   "engine.subtitle.description": "Sous-titres : SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD et SCC entre eux, enregistrés en UTF-8.\nLes fichiers SMI et SRT coréens en CP949 / EUC-KR sont lus correctement.",
   "engine.ffmpeg.description": "Vidéo et audio : MP4, MOV, MKV, WEBM, MP3, M4A, WAV, FLAC et plus.\nExtrait aussi le son et les sous-titres, crée des animations GIF et APNG et enregistre des images en HEIC.",
   "engine.pandoc.description": "Markdown et HTML ↔ ODT et RTF, DOCX → Markdown\nreStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter et plus ↔ Markdown, HTML, DOCX et ODT\nMarkdown et Org → diapositives PPTX",
   "engine.ghostscript.description": "EPS, PostScript et anciens fichiers Illustrator en PDF et images ; PDF en EPS et PS.",
   "engine.calibre.description": "Formats de livres numériques rares (LIT, LRF, CHM, PDB, RB…) et sortie Kindle (MOBI, AZW3).\nPlacé au-dessus du rédacteur HWPX, il produit aussi les PDF des livres numériques (bien plus vite pour les longs livres).",
   "engine.libreoffice.description": "Lit les formats anciens et moins courants : DOC, PPT, Pages, Keynote, Numbers, WordPerfect, ClarisWorks, Publisher, Visio…\nEnregistre aussi en DOC, XLS, PPT, ODT, ODP, modèles OpenDocument et EMF.",
-
   "profile.images": "Images",
   "profile.pdf": "PDF",
   "profile.office": "Documents",
@@ -167,7 +177,6 @@
   "profile.models": "Modèles 3D",
   "profile.geo": "Géospatial",
   "profile.mixed": "Fichiers mixtes",
-
   "preset.crop": "Recadrer",
   "crop.save": "Recadrer et enregistrer",
   "crop.reset": "Réinitialiser",
@@ -189,8 +198,8 @@
   "crop.state_done": "Recadré",
   "crop.state_skipped": "Ignoré",
   "crop.state_failed": "Échec",
-
   "preset.half_size": "Taille 50 %",
+  "preset.half_size.donut": "Taille 50 %",
   "preset.grayscale": "Niveaux de gris",
   "preset.remove_background": "Détourer",
   "preset.group_rotate": "Rotation",
@@ -216,13 +225,14 @@
   "preset.zip_all": "Un seul ZIP",
   "preset.extract_subtitles": "Extraire les sous-titres",
   "preset.trace_svg": "Vectoriser en SVG",
+  "preset.trace_svg.donut": "Vectoriser en SVG",
   "preset.trace_line_art": "Trait en SVG",
+  "preset.trace_line_art.donut": "Trait en SVG",
   "preset.extract_frames_png": "Extraire les images (PNG)",
   "preset.extract_frames_jpg": "Extraire les images (JPG)",
   "preset.extract_motion": "Vidéo Live",
   "preset.live_photo_iphone": "Live Photo (iPhone)",
   "preset.motion_photo_android": "Motion Photo (Android)",
-
   "format.folder": "Dossier",
   "format.category.Image": "Image",
   "format.category.Pdf": "PDF",
@@ -242,7 +252,6 @@
   "format.category.Data": "Données",
   "format.category.Model3D": "Modèle 3D",
   "format.category.Geo": "Géospatial",
-
   "general.title": "Général",
   "general.language": "Langue",
   "general.language_auto": "Langue du système",
@@ -321,7 +330,6 @@
   "general.reset_library": "Rétablir les valeurs par défaut",
   "general.reset_confirm": "Remplacer tous les préréglages et profils de menu circulaire par ceux par défaut ?",
   "general.imported": "{0} éléments importés",
-
   "triggers.title": "Raccourcis",
   "triggers.description": "Choisissez comment s'ouvre le menu circulaire. Vous pouvez ajouter autant de gestes que vous voulez.",
   "triggers.macos_permissions": "Autorisez Filee dans Réglages Système > Confidentialité et sécurité > Accessibilité.\nLe Finder demande aussi l'autorisation d'automatisation la première fois que vous utilisez un raccourci sur la sélection.",
@@ -374,7 +382,6 @@
   "triggers.excluded_none_running": "Aucune autre application n'a de fenêtre ouverte.",
   "triggers.excluded_note": "Les gestes et raccourcis sont sans effet quand le pointeur survole ces applications.",
   "triggers.paused": "Raccourcis en pause",
-
   "toolbar.title": "Menu circulaire",
   "toolbar.step_profile": "1. Choisir un profil",
   "toolbar.step_arrange": "2. Organiser les préréglages",
@@ -436,7 +443,6 @@
   "toolbar.mixed_others": "Les autres mélanges de fichiers ouvrent « {0} ».",
   "toolbar.mixed_others_self": "Il ne reste aucun profil mixte sans case cochée : celui-ci sert donc aussi pour tous les autres mélanges.",
   "tags.remove": "Retirer",
-
   "presets.title": "Préréglages",
   "presets.add": "Nouveau",
   "presets.duplicate": "Dupliquer",
@@ -609,7 +615,6 @@
   "presets.delete_confirm": "Supprimer « {0} » ? Il sera aussi retiré de tous les menus circulaires et groupes.",
   "presets.name_required": "Saisissez un nom",
   "presets.select": "Sélectionnez un préréglage pour le modifier",
-
   "theme.title": "Thème",
   "theme.mode": "Apparence",
   "theme.mode.System": "Système",
@@ -622,7 +627,6 @@
   "theme.reduce_motion": "Réduire les animations",
   "theme.reduce_motion_hint": "Recommandé pour les PC anciens. Désactive les transitions et le rebond du menu circulaire.",
   "theme.preview": "Aperçu",
-
   "engines.title": "Moteurs de conversion",
   "engines.description": "Filee choisit le meilleur moteur disponible pour chaque conversion.\nQuand plusieurs peuvent faire le même travail, le plus haut l'emporte.",
   "engines.available": "Prêt",
@@ -693,7 +697,6 @@
   "engines.state.unpacking": "Installation…",
   "engines.state.installed": "Installé",
   "engines.state.failed": "Échec : {0}",
-
   "about.title": "À propos",
   "about.updates": "Mises à jour",
   "common.search": "Rechercher",
@@ -718,7 +721,6 @@
   "feedback.notice_text": "Une étoile sur GitHub aide d'autres personnes à découvrir Filee.\nLes problèmes et les idées sont aussi les bienvenus.",
   "feedback.star": "Étoile sur GitHub",
   "feedback.issue": "Signaler un problème ou une idée",
-
   "common.ok": "OK",
   "common.cancel": "Annuler",
   "common.save": "Enregistrer",
@@ -728,7 +730,6 @@
   "common.no": "Non",
   "common.on": "Activé",
   "common.off": "Désactivé",
-
   "setup.title": "Choisir les moteurs de conversion",
   "setup.description": "Images, PDF, documents Office, HWP, livres numériques, archives, polices, CAO et modèles 3D se convertissent déjà.\nNe téléchargez des moteurs que pour la vidéo, l'audio ou les formats rares.",
   "setup.note": "Vous pouvez installer ou supprimer des moteurs à tout moment dans Paramètres → Moteurs.",
@@ -889,7 +890,6 @@
   "watch.status_starting": "Démarrage…",
   "watch.status_error": "Impossible de surveiller ce dossier : {0}",
   "watch.cli_hint": "Aussi en ligne de commande : filee watch <folder> --to <format>",
-
   "whats_new.title": "Nouveautés de Filee {0}",
   "whats_new.previous": "Précédent",
   "whats_new.next": "Suivant",
@@ -908,5 +908,6 @@
   "whats_new.2_0_0.languages.title": "Filee parle plus de langues",
   "whats_new.2_0_0.languages.text": "L'espagnol, l'hindi, le japonais, le russe, l'arabe et le portugais du Brésil rejoignent l'anglais, le coréen, le chinois et le polonais.",
   "whats_new.2_0_0.more.title": "Et encore un peu plus",
-  "whats_new.2_0_0.more.text": "Réinitialisez un seul menu circulaire, recherchez dans tout votre historique, et convertissez des documents en gujarati, hindi ou arabe via LibreOffice."
+  "whats_new.2_0_0.more.text": "Réinitialisez un seul menu circulaire, recherchez dans tout votre historique, et convertissez des documents en gujarati, hindi ou arabe via LibreOffice.",
+  "preset.extract_motion.donut": "Vidéo Live"
 }

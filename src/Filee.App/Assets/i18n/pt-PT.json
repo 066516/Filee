@@ -1,7 +1,6 @@
 {
   "app.name": "Filee",
   "app.tagline": "Arrasta, larga, já está.",
-
   "nav.home": "Página inicial",
   "nav.general": "Geral",
   "nav.triggers": "Atalhos",
@@ -11,7 +10,6 @@
   "nav.theme": "Tema",
   "nav.engines": "Motores",
   "nav.about": "Acerca de",
-
   "tray.open": "Abrir o Filee",
   "tray.pause": "Pausar atalhos",
   "tray.resume": "Retomar atalhos",
@@ -23,7 +21,6 @@
   "close.tray": "Manter na área de notificação",
   "close.quit": "Sair",
   "close.dont_ask": "Não voltar a perguntar",
-
   "home.title": "Página inicial",
   "home.drop_title": "Larga os ficheiros aqui",
   "home.drop_hint": "Ou mantém {0} premido enquanto arrastas ficheiros no Explorador. A barra circular abre junto ao cursor.",
@@ -46,7 +43,6 @@
   "home.clear_history": "Limpar",
   "home.files": "{0} ficheiros",
   "home.failed_files": "Falhas: {0}",
-
   "donut.center_drag": "Arrasta ficheiros para aqui",
   "donut.files_same": "{0} × {1}",
   "donut.files_mixed": "{0} ficheiros",
@@ -62,7 +58,6 @@
   "donut.group_caption": "Grupo de {0}",
   "donut.flip_to_back": "{0} ↻ verso",
   "donut.flip_to_front": "{0} ↻ frente",
-
   "toast.converting": "{0} → {1}",
   "toast.done": "Concluído",
   "toast.done_errors": "Falhas: {0} de {1}",
@@ -73,7 +68,6 @@
   "toast.cancel": "Cancelar",
   "download.badge": "{0}/s · {1}",
   "download.badge_files": "{0} · {1} de {2} ficheiros",
-
   "error.unsupported_source": "Este tipo de ficheiro não é suportado",
   "error.empty_file": "O ficheiro está vazio (0 bytes). Um ficheiro criado com «Novo» no menu de contexto fica vazio até o abrires na respetiva aplicação e o guardares",
   "format_request.request": "Pedir este formato",
@@ -81,7 +75,7 @@
   "format_request.notice_text": "Diz-nos de que formato precisas.\nOs pedidos ajudam a decidir os próximos formatos suportados pelo Filee.\nNão é possível converter ficheiros encriptados ou protegidos contra cópia (DRM), seja qual for o formato.",
   "error.no_route": "Nenhum motor consegue fazer esta conversão",
   "error.cannot_turn": "Só é possível rodar e inverter imagens",
-  "error.too_many_frames": "Há demasiados fotogramas para guardar como imagens. Aumenta o valor de \"A cada N fotogramas\"",
+  "error.too_many_frames": "Há demasiados fotogramas para guardar como imagens. Aumenta o valor de «A cada N fotogramas»",
   "error.not_enough_space": "Não há espaço livre suficiente no disco para as imagens",
   "error.no_motion_photo": "Esta fotografia não tem um vídeo que o Filee consiga ler (no interior de uma Motion Photo de Android ou num MOV junto a uma Live Photo de iPhone)",
   "error.live_photo_start": "O início do excerto fica depois do fim deste vídeo. Escolhe um valor anterior em «Início do excerto»",
@@ -113,7 +107,6 @@
   "notice.geo_rows_without_location": "Algumas linhas não têm uma localização utilizável e foram mantidas sem geometria",
   "notice.geo_field_names": "Os nomes dos campos Shapefile admitem, no máximo, 10 carateres: alguns foram abreviados",
   "notice.geo_shapefile_split": "Um Shapefile guarda apenas um tipo de geometria, pelo que os pontos, linhas e polígonos foram guardados em ficheiros separados",
-
   "engine.reason.not_installed": "Não instalado",
   "engine.reason.error": "Erro na verificação",
   "engine.reason.unsupported_platform": "Indisponível nesta plataforma",
@@ -165,7 +158,6 @@
   "engine.ghostscript.description": "EPS, PostScript e ficheiros Illustrator antigos para PDF e imagens; PDF para EPS e PS.",
   "engine.calibre.description": "Formatos raros de livros digitais (LIT, LRF, CHM, PDB, RB…) e saída para Kindle (MOBI, AZW3).\nAcima do gerador HWPX, também cria PDF de livros digitais (muito mais depressa para livros longos).",
   "engine.libreoffice.description": "Lê formatos antigos e menos comuns: DOC, PPT, Pages, Keynote, Numbers, WordPerfect, ClarisWorks, Publisher, Visio…\nTambém guarda em DOC, XLS, PPT, ODT, ODP, modelos OpenDocument e EMF.",
-
   "profile.images": "Imagens",
   "profile.pdf": "PDF",
   "profile.office": "Documentos",
@@ -184,8 +176,7 @@
   "profile.data": "Dados",
   "profile.models": "Modelos 3D",
   "profile.geo": "Dados geoespaciais",
-  "profile.mixed": "Ficheiros de vários tipos",
-
+  "profile.mixed": "Ficheiros mistos",
   "preset.crop": "Recortar",
   "crop.save": "Recortar e guardar",
   "crop.reset": "Repor",
@@ -207,15 +198,14 @@
   "crop.state_done": "Recortado",
   "crop.state_skipped": "Ignorado",
   "crop.state_failed": "Falhou",
-
   "preset.half_size": "Metade do tamanho",
-  "preset.half_size.donut": "Tamanho 50 %",
+  "preset.half_size.donut": "Tamanho 50%",
   "preset.grayscale": "Escala de cinzentos",
   "preset.remove_background": "Remover fundo",
   "preset.group_rotate": "Rodar",
-  "preset.rotate_left": "Rodar à esquerda",
+  "preset.rotate_left": "Rodar para a esquerda",
   "preset.rotate_left.short": "Esquerda",
-  "preset.rotate_right": "Rodar à direita",
+  "preset.rotate_right": "Rodar para a direita",
   "preset.rotate_right.short": "Direita",
   "preset.rotate_180": "Rodar 180°",
   "preset.rotate_180.short": "180°",
@@ -243,7 +233,6 @@
   "preset.extract_motion": "Extrair vídeo da Live Photo",
   "preset.live_photo_iphone": "Live Photo (iPhone)",
   "preset.motion_photo_android": "Motion Photo (Android)",
-
   "format.folder": "Pasta",
   "format.category.Image": "Imagem",
   "format.category.Pdf": "PDF",
@@ -263,11 +252,10 @@
   "format.category.Data": "Dados",
   "format.category.Model3D": "Modelo 3D",
   "format.category.Geo": "Dados geoespaciais",
-
   "general.title": "Geral",
   "general.language": "Idioma",
   "general.language_auto": "Predefinição do sistema",
-  "general.start_with_system": "Iniciar o Filee ao iniciar sessão",
+  "general.start_with_system": "Abrir o Filee ao iniciar sessão",
   "general.show_in_dock": "Mostrar o Filee na Dock",
   "general.show_menu_bar_icon": "Mostrar o Filee na barra de menus",
   "general.dock_failed": "Não foi possível alterar o ícone do Filee na Dock.",
@@ -342,10 +330,9 @@
   "general.reset_library": "Repor valores de origem",
   "general.reset_confirm": "Substituir todas as predefinições e perfis da barra pelos de origem?",
   "general.imported": "Itens importados: {0}",
-
   "triggers.title": "Atalhos",
   "triggers.description": "Escolhe como abrir a barra circular. Podes adicionar os gestos que quiseres.",
-  "triggers.macos_permissions": "Autoriza o Filee em Definições do sistema > Privacidade e segurança > Acessibilidade.\nO Finder também pede permissão de Automação na primeira utilização de um atalho de seleção.",
+  "triggers.macos_permissions": "Autoriza o Filee em Definições do Sistema > Privacidade e Segurança > Acessibilidade.\nO Finder também pede permissão de Automatização na primeira utilização de um atalho de seleção.",
   "triggers.linux_x11": "Os gestos de arrastar funcionam em X11.\nCom a integração do gestor de ficheiros ativa, o primeiro atalho de teclado executa a ação Filee do Thunar (volta a abrir o Thunar após alterares o atalho).\nOs gestos de pressão prolongada e os atalhos noutros gestores de ficheiros não estão disponíveis. Utiliza o menu do Filee ou a zona de largada.",
   "triggers.linux_wayland": "Os gestos que seguem o cursor não estão disponíveis em Wayland.\nUtiliza uma sessão X11 ou converte pelo menu do gestor de ficheiros e pela zona de largada.\nO Thunar pode utilizar o primeiro atalho de teclado depois de reiniciar.",
   "triggers.linux_wayland_experimental": "Os gestos em Wayland são experimentais e só funcionam no KDE Plasma.\nO Filee lê o rato através de /dev/input e um script KWin posiciona a barra circular junto ao cursor (ver INSTALL.txt). Ctrl+arrastar noutras aplicações pode ser interrompido; utiliza outro modificador, como Ctrl+Shift, se interferir.",
@@ -371,7 +358,7 @@
   "triggers.button.X1": "Anterior (X1)",
   "triggers.button.X2": "Seguinte (X2)",
   "triggers.key": "Tecla",
-  "triggers.record": "Registar",
+  "triggers.record": "Gravar",
   "triggers.recording": "Prime uma combinação de teclas…",
   "triggers.clear": "Limpar",
   "triggers.recording_key": "Prime uma tecla…",
@@ -395,7 +382,6 @@
   "triggers.excluded_none_running": "Nenhuma outra aplicação tem uma janela aberta.",
   "triggers.excluded_note": "Os gestos e atalhos não têm efeito enquanto o ponteiro estiver sobre estas aplicações.",
   "triggers.paused": "Os atalhos estão em pausa",
-
   "toolbar.title": "Barra circular",
   "toolbar.step_profile": "1. Escolhe um perfil",
   "toolbar.step_arrange": "2. Organiza as predefinições",
@@ -425,7 +411,7 @@
   "toolbar.face_hint_wheel": "roda do rato",
   "toolbar.face_hint_off": "Escolhe uma tecla ou a roda do rato em Atalhos para virar a barra aberta",
   "group.editor_title": "Grupo",
-  "group.hint": "Um grupo reúne várias predefinições num segmento da barra: mantém o ponteiro sobre ele ou move-o para fora para as mostrar à sua volta.",
+  "group.hint": "Um grupo reúne várias predefinições num segmento da barra: mantém o ponteiro sobre o segmento ou move o ponteiro para fora para mostrar as predefinições à sua volta.",
   "group.members": "Predefinições ({0} / {1})",
   "group.empty": "Ainda não há predefinições. Adiciona algumas abaixo.",
   "group.add": "Adicionar",
@@ -457,7 +443,6 @@
   "toolbar.mixed_others": "As restantes misturas de ficheiros abrem «{0}».",
   "toolbar.mixed_others_self": "Não resta nenhum perfil misto sem opções selecionadas, pelo que este também é utilizado para todas as outras misturas.",
   "tags.remove": "Remover",
-
   "presets.title": "Predefinições",
   "presets.add": "Nova",
   "presets.duplicate": "Duplicar",
@@ -630,7 +615,6 @@
   "presets.delete_confirm": "Eliminar «{0}»? Também será removida de todas as barras e grupos.",
   "presets.name_required": "Introduz um nome",
   "presets.select": "Seleciona uma predefinição para a editar",
-
   "theme.title": "Tema",
   "theme.mode": "Aspeto",
   "theme.mode.System": "Sistema",
@@ -643,7 +627,6 @@
   "theme.reduce_motion": "Reduzir animações",
   "theme.reduce_motion_hint": "Recomendado para computadores antigos. Desativa as transições e o efeito de ressalto da barra circular.",
   "theme.preview": "Pré-visualização",
-
   "engines.title": "Motores de conversão",
   "engines.description": "O Filee escolhe o melhor motor disponível para cada conversão.\nQuando vários conseguem fazer o mesmo, tem prioridade o que estiver mais acima.",
   "engines.available": "Disponível",
@@ -714,13 +697,12 @@
   "engines.state.unpacking": "A instalar…",
   "engines.state.installed": "Instalado",
   "engines.state.failed": "Falhou: {0}",
-
   "about.title": "Acerca de",
   "about.updates": "Atualizações",
   "common.search": "Pesquisar",
   "common.retry": "Tentar novamente",
   "about.version": "Versão {0}",
-  "about.license": "O Filee é software livre ao abrigo da licença MIT.",
+  "about.license": "O Filee é software de código aberto, ao abrigo da licença MIT.",
   "about.notices": "Avisos de terceiros",
   "about.github": "Repositório no GitHub",
   "about.support_title": "Ajuda o Filee a crescer",
@@ -739,7 +721,6 @@
   "feedback.notice_text": "Uma estrela no GitHub ajuda outras pessoas a descobrir o Filee.\nTambém são bem-vindas sugestões e comunicações de problemas.",
   "feedback.star": "Dar uma estrela no GitHub",
   "feedback.issue": "Comunicar um problema ou ideia",
-
   "common.ok": "OK",
   "common.cancel": "Cancelar",
   "common.save": "Guardar",
@@ -749,7 +730,6 @@
   "common.no": "Não",
   "common.on": "Ativado",
   "common.off": "Desativado",
-
   "setup.title": "Escolhe os motores de conversão",
   "setup.description": "Já é possível converter imagens, PDF, documentos Office, HWP, livros digitais, ficheiros comprimidos, tipos de letra, CAD e modelos 3D.\nDescarrega motores apenas para vídeo e áudio ou formatos raros.",
   "setup.note": "Podes instalar ou remover motores a qualquer momento em Definições → Motores.",
@@ -910,7 +890,6 @@
   "watch.status_starting": "A iniciar…",
   "watch.status_error": "Não é possível monitorizar esta pasta: {0}",
   "watch.cli_hint": "Também na linha de comandos: filee watch <folder> --to <format>",
-
   "whats_new.title": "Novidades do Filee {0}",
   "whats_new.previous": "Anterior",
   "whats_new.next": "Seguinte",
@@ -929,5 +908,6 @@
   "whats_new.2_0_0.languages.title": "O Filee fala mais idiomas",
   "whats_new.2_0_0.languages.text": "O espanhol, o hindi, o japonês, o russo, o árabe e o português do Brasil juntam-se ao inglês, ao coreano, ao chinês e ao polaco.",
   "whats_new.2_0_0.more.title": "E mais algumas novidades",
-  "whats_new.2_0_0.more.text": "Repõe os valores de origem de uma só barra, pesquisa em todo o histórico e converte documentos em guzerate, hindi ou árabe através do LibreOffice."
+  "whats_new.2_0_0.more.text": "Repõe os valores de origem de uma só barra, pesquisa em todo o histórico e converte documentos em guzerate, hindi ou árabe através do LibreOffice.",
+  "preset.extract_motion.donut": "Extrair vídeo"
 }

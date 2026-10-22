@@ -114,6 +114,8 @@ public class DonutLabelPlacementTests
     [InlineData("pt-BR", "preset.trace_line_art")]
     [InlineData("pt-PT", "preset.trace_svg")]
     [InlineData("pt-BR", "preset.trace_svg")]
+    [InlineData("pt-PT", "preset.extract_motion")]
+    [InlineData("pt-BR", "preset.extract_motion")]
     public void Portuguese_image_actions_fit_the_two_line_slice_label(string language, string key)
     {
         TestServices.EnsureInitialized(language);
