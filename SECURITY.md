@@ -10,9 +10,8 @@ release before you report it.
 
 Please don't open a public issue for a security problem.
 
-- Use **[Report a vulnerability](https://github.com/KnifeLemon/Filee/security/advisories/new)** on the Security tab,
-  or
-- email Myeonggu Kim at knifelemon@gmail.com with "Filee security" in the subject.
+Report it privately with **[Report a vulnerability](https://github.com/KnifeLemon/Filee/security/advisories/new)** on
+the repository's Security tab.
 
 Include the Filee version, your operating system, what an attacker can do and the steps or file that show it. If a
 crafted file triggers it, attach the file, or say how to make one.
@@ -34,8 +33,9 @@ Out of scope:
 
 - Bugs in the engines (FFmpeg, LibreOffice, Ghostscript, Pandoc, rhwp, 7-Zip and others). Report those to their
   projects. Tell us too if Filee should update the pinned version.
-- SmartScreen or Gatekeeper warnings: Windows releases aren't code-signed yet and macOS builds aren't notarized
-  (see [Code signing policy](README.md#code-signing-policy)).
+- SmartScreen or Gatekeeper warnings: releases up to 2.0.0 aren't code-signed, SmartScreen can still warn about a new
+  signed release for a while, and macOS builds are ad-hoc signed and not notarized (see
+  [Code signing policy](README.md#code-signing-policy)).
 - Attacks that need someone who can already run programs as you on your computer.
 
 ## How downloads are checked
