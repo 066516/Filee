@@ -221,8 +221,9 @@ public class PortugueseRenderTests
                 {
                     var button = window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == name);
                     var text = button.GetVisualDescendants().OfType<TextBlock>().Single();
-                    var start = text.TranslatePoint(default, button)!.Value.X;
-                    Assert.True(start >= 0 && start + text.Bounds.Width <= button.Bounds.Width + 1,
+                    var bounds = new Rect(text.Bounds.Size).TransformToAABB(text.TransformToVisual(button)!.Value);
+                    Assert.True(bounds.Left >= -1 && bounds.Right <= button.Bounds.Width + 1 &&
+                                text.TextLayout.Width <= text.Bounds.Width + 1,
                         $"{language}: '{text.Text}' exceeds its action button");
                     Assert.All(text.TextLayout.TextLines, line => Assert.False(line.HasCollapsed));
                 }
