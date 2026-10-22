@@ -10,10 +10,10 @@ body:
         > **Filee can't convert files that are encrypted or copy-protected (DRM), whatever their format.** Converting them means breaking that protection, so these requests are closed.
         >
         > Some examples, not a complete list:
-        >  - music downloaded in a streaming app (NetEase Cloud Music `.ncm`, QQ Music `.qmc` / `.mflac` / `.mgg`, Kugou `.kgm`, Apple Music, Spotify)
-        >  - e-books bought with DRM (Kindle `.azw` / `.kfx`, Adobe DRM EPUB or PDF)
-        >  - videos saved by streaming apps or sites that don't allow downloading
-        >  - files locked with a password you don't have
+        > - music downloaded in a streaming app (NetEase Cloud Music `.ncm`, QQ Music `.qmc` / `.mflac` / `.mgg`, Kugou `.kgm`, Apple Music, Spotify)
+        > - e-books bought with DRM (Kindle `.azw` / `.kfx`, Adobe DRM EPUB or PDF)
+        > - videos saved by streaming apps or sites that don't allow downloading
+        > - files locked with a password you don't have
         >
         > If the app that made the file can export or save it in a common format, that is the way to go.
   - type: input
