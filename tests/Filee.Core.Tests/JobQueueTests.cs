@@ -29,6 +29,23 @@ public class JobQueueTests
     }
 
     [Fact]
+    public async Task Missing_fonts_from_every_step_are_combined_without_blocking_conversion()
+    {
+        using var dir = new TempDir();
+        var first = new FakeConverter("first", new ConversionEdge("jpg", "png"))
+            { FontsToReport = ["Tahoma", "Arial"] };
+        var second = new FakeConverter("second", new ConversionEdge("png", "webp"))
+            { FontsToReport = ["tahoma", "Noto Serif SC"] };
+        await using var queue = new JobQueue(new ConverterCatalog([first, second]));
+
+        var job = await Run(queue, [dir.File("photo.jpg")], new Preset { TargetFormat = "webp" });
+
+        Assert.Equal(JobState.Completed, job.State);
+        Assert.Equal(["Tahoma", "Arial", "Noto Serif SC"], job.Files.Single().MissingFonts);
+        Assert.True(File.Exists(Path.Combine(dir.Path, "photo.webp")));
+    }
+
+    [Fact]
     public async Task Is_busy_from_enqueueing_until_the_job_has_finished()
     {
         // The app frees memory only while the queue is idle: a waiting or running job must count.

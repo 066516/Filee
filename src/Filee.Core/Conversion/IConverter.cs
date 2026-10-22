@@ -107,6 +107,10 @@ public interface IOutputAllocator
 /// Records a note on a step that worked, as a localization key (e.g. <c>notice.pdf_not_smaller</c>): shown with the
 /// file's result. Null when nobody listens.
 /// </param>
+/// <param name="MissingFonts">
+/// Reports document font families that aren't installed (and have no known metric-compatible installed substitute).
+/// Rendering continues: graphical clients can offer trusted sources without blocking CLI or watched jobs.
+/// </param>
 /// <param name="MotionPhoto">
 /// The step takes a <see cref="ConversionEdge.MotionPhoto"/> edge: the video of the Live / Motion Photo becomes the
 /// output, not its still picture.
@@ -125,7 +129,8 @@ public sealed record ConversionStep(
     bool FrameSequence = false,
     Action<string>? Notice = null,
     bool MotionPhoto = false,
-    bool LivePhoto = false);
+    bool LivePhoto = false,
+    Action<IReadOnlyList<string>>? MissingFonts = null);
 
 /// <summary>
 /// A conversion engine (ImageMagick, LibreOffice, rhwp, ...).

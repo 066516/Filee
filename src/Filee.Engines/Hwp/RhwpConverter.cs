@@ -10,6 +10,7 @@ using System.IO.Compression;
 using Filee.Core.Conversion;
 using Filee.Engines.Ebooks;
 using Filee.Engines.Infrastructure;
+using Filee.Engines.Office;
 
 namespace Filee.Engines.Hwp;
 
@@ -62,6 +63,8 @@ public sealed class RhwpConverter : IConverter, ITextShapingCheck
         try
         {
             var input = step.To == "pdf" ? await PrepareAsync(exe, step, cancellationToken) : step.InputPath;
+            if (step.To == "pdf" && DocumentFonts.Missing(input) is [_, ..] missing)
+                step.MissingFonts?.Invoke(missing);
             string[] arguments = step.To switch
             {
                 "pdf" => ["export-pdf", input, "-o", temp, .. RhwpInput.PdfOptions()],
