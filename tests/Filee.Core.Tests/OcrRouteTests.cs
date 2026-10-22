@@ -3,6 +3,7 @@
 
 using Filee.Core.Conversion;
 using Filee.Core.Presets;
+using Filee.Core.Settings;
 
 namespace Filee.Core.Tests;
 
@@ -96,5 +97,20 @@ public class OcrRouteTests
 
         Assert.Equal(JobState.Completed, job.State);
         Assert.Equal([("jpg", "pdf", false), ("pdf", "pdf", false)], tesseract.Steps.OrderBy(s => s.From));
+    }
+
+    [Fact]
+    public void A_version_32_library_gets_searchable_pdf_after_compress_pdf()
+    {
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "searchable-pdf");
+        var profiles = BuiltInData.CreateProfiles();
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(32, presets, profiles));
+
+        var ids = presets.Select(p => p.Id).ToList();
+        Assert.Equal(ids.IndexOf("compress-pdf") + 1, ids.IndexOf("searchable-pdf"));
+        Assert.True(presets.Single(p => p.Id == "searchable-pdf").Pdf.Ocr);
+        Assert.False(SettingsMigrations.ApplyToLibrary(33, presets, profiles));
     }
 }
