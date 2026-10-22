@@ -74,8 +74,9 @@ the same on every PC. An external engine is looked for in this order:
    calibre and Ghostscript installers put it. Settings → *Engines* shows it as "Found on this PC", with a note when
    its version is older than the one Filee downloads.
 
-Where Filee has no download of an engine (FFmpeg and Ghostscript on macOS, LibreOffice and Ghostscript on Linux),
-step 3 is how it is found. Microsoft Office
+Where Filee has no download of an engine (FFmpeg and Ghostscript on macOS, LibreOffice and Ghostscript on Linux,
+Tesseract on all platforms), step 3 is how it is found; Settings → *Engines* shows install guidance (Homebrew, winget,
+apt) and a "Use my copy…" button to point to its executable. Microsoft Office
 and Hancom Office are never used, even when installed. Running from source, the repository's `engines/` folder
 (filled by `build/fetch-engines.ps1`) is used.
 

@@ -132,4 +132,13 @@ public static class OcrEngineRegistry
             return RegisteredEngines.FirstOrDefault(e => e.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
         }
     }
+
+    /// <summary>Clears registered engines for test isolation.</summary>
+    internal static void ResetForTesting()
+    {
+        lock (Sync)
+        {
+            RegisteredEngines.Clear();
+        }
+    }
 }

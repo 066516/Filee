@@ -1,6 +1,6 @@
-// Tesseract OCR engine: a single self-contained binary plus pinned .traineddata files, found the same way as every
-// other optional engine (OwnCopies, Filee's own copy, then one already on the PC). The real cross-platform, no-Python
-// fallback for platforms without a native OCR API (Windows, Linux) and for scripts Apple Vision doesn't recognize.
+// Tesseract OCR engine, run as a subprocess with ArgumentList and a timeout, found via the user's own copy or on
+// the system path. Cross-platform fallback for platforms without a native OCR API (Windows, Linux) and for scripts
+// Apple Vision does not recognize (Devanagari, Cyrillic beyond Russian/Ukrainian, Thai, Greek, Arabic script, ...).
 
 using System.Globalization;
 using Filee.Core.Ocr;
@@ -25,8 +25,7 @@ public sealed class TesseractOcrEngine : IOcrEngine
     /// <summary>
     /// Filee's language codes this engine can be asked to recognize, limited to what Tesseract's own trained-data
     /// set actually ships (tessdata_fast/best): asking for a code outside this list always fails, so the UI and
-    /// <see cref="OcrEngineRegistry"/> only offer what can really work, instead of PaddleOCR's old claimed-but-never
-    /// bundled 100+ languages.
+    /// <see cref="OcrEngineRegistry"/> only offer what can really work.
     /// </summary>
     public IReadOnlyList<string> SupportedLanguages => [.. LanguageMap.Keys];
 

@@ -1,3 +1,5 @@
+// Tests for Apple Vision OCR engine and macOS OCR pipelines.
+
 using Filee.Core.Conversion;
 using Filee.Core.Ocr;
 using Filee.Core.Presets;
@@ -68,12 +70,13 @@ public sealed class VisionOcrTests
 
         try
         {
+            var ocrPreset = new Preset { Document = new DocumentOptions { Ocr = true } };
             var txtOut = Path.Combine(workDir, "banner.txt");
             var txtStep = new ConversionStep(
                 InputPath: imagePath,
                 From: "jpg",
                 To: "txt",
-                Preset: new Preset(),
+                Preset: ocrPreset,
                 Output: new FixedPath(txtOut),
                 WorkDirectory: workDir);
 
@@ -88,7 +91,7 @@ public sealed class VisionOcrTests
                 InputPath: imagePath,
                 From: "jpg",
                 To: "docx",
-                Preset: new Preset(),
+                Preset: ocrPreset,
                 Output: new FixedPath(docxOut),
                 WorkDirectory: workDir);
 
@@ -139,7 +142,7 @@ public sealed class VisionOcrTests
 
             // Read the scanned PDF using PdfDocumentReader with OCR enabled
             var mediaFolder = Path.Combine(workDir, "media");
-            var document = PdfDocumentReader.Read(pdfPath, mediaFolder, engine);
+            var document = PdfDocumentReader.Read(pdfPath, mediaFolder, engine, enableOcr: true, workDirectory: workDir);
 
             Assert.NotEmpty(document.Sections);
             var paragraphs = document.Sections.SelectMany(s => s.Blocks).OfType<HParagraph>().ToList();
@@ -149,7 +152,7 @@ public sealed class VisionOcrTests
             Assert.Contains("Filee", allText, StringComparison.OrdinalIgnoreCase);
 
             // Verify plain text reader also extracts the OCR text
-            var plainDoc = PdfDocumentReader.ReadText(pdfPath, engine);
+            var plainDoc = PdfDocumentReader.ReadText(pdfPath, engine, enableOcr: true, workDirectory: workDir);
             var plainText = PdfDocumentReader.PlainText(plainDoc);
             Assert.Contains("Filee", plainText, StringComparison.OrdinalIgnoreCase);
         }

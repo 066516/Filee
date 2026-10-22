@@ -111,9 +111,9 @@ internal static class DocumentReaders
         var media = Path.Combine(workDirectory, $"media-{Guid.NewGuid():N}");
         if (format.Equals("pdf", StringComparison.OrdinalIgnoreCase))
         {
-            var enableOcr = preset?.Document.Ocr ?? true;
+            var enableOcr = preset?.Document.Ocr ?? false;
             var ocrLang = preset?.Document.OcrLanguage;
-            return await Task.Run(() => PdfDocumentReader.Read(path, media, null, ocrLang, enableOcr), cancellationToken);
+            return await PdfDocumentReader.ReadAsync(path, media, null, ocrLang, enableOcr, workDirectory, cancellationToken: cancellationToken);
         }
         if (BuiltIn.TryGetValue(format, out var reader))
             return await Task.Run(() => reader(path, media), cancellationToken);

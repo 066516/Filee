@@ -1,10 +1,15 @@
+// Tests for OcrEngineRegistry, OcrPageResult, and OCR document options.
+
 using Filee.Core.Ocr;
 using Filee.Core.Presets;
 
 namespace Filee.Core.Tests;
 
-public class OcrEngineRegistryTests
+public class OcrEngineRegistryTests : IDisposable
 {
+    public OcrEngineRegistryTests() => OcrEngineRegistry.ResetForTesting();
+    public void Dispose() => OcrEngineRegistry.ResetForTesting();
+
     private sealed class MockOcrEngine(string id, string name, bool available, IReadOnlyList<string> languages) : IOcrEngine
     {
         public string Id => id;
@@ -54,14 +59,14 @@ public class OcrEngineRegistryTests
     public void DocumentOptions_defaults_and_cloning()
     {
         var options = new DocumentOptions();
-        Assert.True(options.Ocr);
+        Assert.False(options.Ocr);
         Assert.Null(options.OcrLanguage);
 
-        options.Ocr = false;
+        options.Ocr = true;
         options.OcrLanguage = "ne";
 
         var clone = options.Clone();
-        Assert.False(clone.Ocr);
+        Assert.True(clone.Ocr);
         Assert.Equal("ne", clone.OcrLanguage);
     }
 

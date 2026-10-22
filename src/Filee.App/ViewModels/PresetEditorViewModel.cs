@@ -181,8 +181,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
             new Choice<string?>("tg", "Tajik / Тоҷикӣ"),
             new Choice<string?>("tt", "Tatar / Татарча"),
         ];
-        // Vision and Tesseract each claim a real, limited set of languages (SupportedLanguages); the old PaddleOCR
-        // engine claimed over 100 it could never actually recognize (no bundled model, no install path). Only offer
+        // Vision and Tesseract each claim a real, supported set of languages (SupportedLanguages). Only offer
         // what a registered engine can really attempt, so picking a language never leads straight to "engine missing".
         OcrLanguages = [.. OcrLanguages.Where(c => c.Value is null || OcrEngineRegistry.AnyEngineSupports(c.Value))];
 

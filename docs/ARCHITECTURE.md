@@ -16,15 +16,17 @@
             ┌──────────────────────────── Filee.Core ───────────────────────────────────────────┐
             │ JobQueue ──► RoutePlanner (Dijkstra over converter edges) ──► IConverter steps    │
             │ FormatRegistry · Preset · OutputPathResolver · ToolbarProfile · ProfileSelector   │
-            └──────────────────────────────────────────────┬──────────────────────────────────────┘
+            │ OcrEngineRegistry · IOcrEngine (Apple Vision on macOS, Tesseract elsewhere)       │
+            └──────────────────────────────────────────────┬──────────────────────────────────┘
                                                            ▼
             ┌──────────────────────────── Filee.Engines ────────────────────────────────────────┐
             │ Built in: Magick (images, RAW) · PdfSharp · Pdfium · PdfPig · Svg.Skia · ICNS      │
             │ HwpxWriter + DocxWriter over DocumentReaders (DOCX, XLSX, XLS, ODS, PPTX,          │
             │   PDF, HTML, EPUB, MOBI, FB2, HWPX, Markdown) · Spreadsheets · OOXML variants      │
-            │   · E-mail · Data · E-books · CAD · Fonts · Subtitles · 3D models                  │
+            │   · E-mail · Data · E-books · CAD · Fonts · Subtitles · 3D models · Image OCR     │
             │ Bundled: rhwp (HWP→PDF, HWP↔HWPX) · 7-Zip (archives) · Unhwp · Markdig             │
             │ Optional: FFmpeg · LibreOffice + H2Orestart · calibre · Ghostscript · Pandoc       │
+            │   · Tesseract OCR                                                                  │
             └────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -51,6 +53,18 @@
    "Merge into one PDF" converts each file to PDF and merges with PDFsharp.
    "Compress into one archive" packs the dropped files, unconverted, with the archive engine (`IFileCombiner`).
 6. **Report** – progress and results appear in the toast window and in Home → Recent conversions.
+
+## Optical Character Recognition (OCR)
+
+Filee provides engine-neutral OCR abstractions in `Filee.Core.Ocr` (`IOcrEngine`, `OcrEngineRegistry`, `OcrPageResult`, `OcrLine`, `OcrWord`, `OcrRect`).
+
+- **Engine Discovery**:
+  - `OcrEngineRegistry` discovers available OCR engines without requiring callers to couple to platform-specific projects.
+  - On macOS, `MacOsVisionOcrEngine` (in `Filee.Platform.MacOS`) calls Apple's Vision framework (`VNRecognizeTextRequest`) via Objective-C runtime P/Invoke (`objc_msgSend` on arm64, `objc_msgSend_stret` for 32-byte `CGRect` on x86_64, with `setAutomaticallyDetectsLanguage:` on macOS 13+). It is discovered via reflection at runtime so Windows and Linux builds remain decoupled.
+  - Across all desktop platforms, `TesseractOcrEngine` (in `Filee.Engines.Ocr`) runs Tesseract CLI out-of-process with timeouts and argument lists, supporting 100+ languages including Devanagari (Nepali/Hindi), Indic, Cyrillic, Thai, and Arabic scripts.
+- **Conversion Pipelines**:
+  - `ImageOcrConverter`: converts raster images directly to TXT, DOCX, and Markdown (`image-ocr` engine priority entry).
+  - `PdfDocumentReader`: when `DocumentOptions.Ocr` is enabled, runs OCR on scanned pages. Scanned PDFs with an existing invisible OCR layer (`TextRenderingMode.Neither`) use that layer directly when OCR is enabled, while preserving the scanned page picture when OCR is disabled. Rotated pages (`rotated && !_textOnly`) preserve their rendered scan picture.
 
 ## Files dragged from a web browser
 

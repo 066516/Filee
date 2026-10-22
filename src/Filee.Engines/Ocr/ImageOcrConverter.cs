@@ -15,7 +15,7 @@ namespace Filee.Engines.Ocr;
 /// </summary>
 public sealed class ImageOcrConverter : IConverter
 {
-    private static readonly string[] ImageFormats = ["png", "jpg", "jpeg", "webp", "tiff", "bmp"];
+    private static readonly string[] ImageFormats = ["png", "jpg", "webp", "tiff", "bmp"];
 
     public string Id => "image-ocr";
     public string DisplayName => "Image OCR (built-in)";

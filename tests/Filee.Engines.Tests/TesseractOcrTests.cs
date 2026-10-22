@@ -1,3 +1,5 @@
+// Tests for TesseractOcrEngine language mapping and image recognition.
+
 using Filee.Core.Ocr;
 using Filee.Engines.Ocr;
 using SkiaSharp;
@@ -19,8 +21,7 @@ public sealed class TesseractOcrTests
     [Fact]
     public void MapLanguage_returns_null_for_a_code_with_no_trained_data()
     {
-        // Unlike the old PaddleOCR engine, which silently fell back to English for any code it didn't
-        // recognize, an unmapped code must be reported as unsupported rather than guessed at.
+        // An unmapped code must be reported as unsupported rather than guessed at.
         Assert.Null(TesseractOcrEngine.MapLanguage("xal"));
     }
 

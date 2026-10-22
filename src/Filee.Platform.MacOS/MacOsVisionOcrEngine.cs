@@ -57,13 +57,15 @@ public sealed class MacOsVisionOcrEngine : IOcrEngine
             if (nsPath == 0)
                 return OcrPageResult.Empty(width, height);
 
+            nint request = 0;
+            nint handler = 0;
             try
             {
                 var urlClass = objc_getClass("NSURL");
                 var fileUrl = Send(urlClass, sel_registerName("fileURLWithPath:"), nsPath);
 
                 var reqClass = objc_getClass("VNRecognizeTextRequest");
-                var request = Send(Send(reqClass, sel_registerName("alloc")), sel_registerName("init"));
+                request = Send(Send(reqClass, sel_registerName("alloc")), sel_registerName("init"));
                 SendInteger(request, sel_registerName("setRecognitionLevel:"), 0); // 0 = VNRequestTextRecognitionLevelAccurate
                 SendBool(request, sel_registerName("setUsesLanguageCorrection:"), true);
 
@@ -78,11 +80,15 @@ public sealed class MacOsVisionOcrEngine : IOcrEngine
                         CFRelease(langString);
                     }
                 }
+                else if (OperatingSystem.IsMacOSVersionAtLeast(13))
+                {
+                    SendBool(request, sel_registerName("setAutomaticallyDetectsLanguage:"), true);
+                }
 
                 var dictClass = objc_getClass("NSDictionary");
                 var emptyDict = Send(dictClass, sel_registerName("dictionary"));
                 var handlerClass = objc_getClass("VNImageRequestHandler");
-                var handler = Send(Send(handlerClass, sel_registerName("alloc")), sel_registerName("initWithURL:options:"), fileUrl, emptyDict);
+                handler = Send(Send(handlerClass, sel_registerName("alloc")), sel_registerName("initWithURL:options:"), fileUrl, emptyDict);
 
                 var arrayClass2 = objc_getClass("NSArray");
                 var requestsArray = Send(arrayClass2, sel_registerName("arrayWithObject:"), request);
@@ -161,6 +167,10 @@ public sealed class MacOsVisionOcrEngine : IOcrEngine
             }
             finally
             {
+                if (handler != 0)
+                    SendVoid(handler, sel_registerName("release"));
+                if (request != 0)
+                    SendVoid(request, sel_registerName("release"));
                 CFRelease(nsPath);
             }
         }, cancellationToken);
@@ -180,8 +190,15 @@ public sealed class MacOsVisionOcrEngine : IOcrEngine
                 var image = Send(alloc, sel_registerName("initWithContentsOfFile:"), nsPath);
                 if (image == 0)
                     return (0, 0);
-                var size = SendSize(image, sel_registerName("size"));
-                return ((int)Math.Round(size.Width), (int)Math.Round(size.Height));
+                try
+                {
+                    var size = SendSize(image, sel_registerName("size"));
+                    return ((int)Math.Round(size.Width), (int)Math.Round(size.Height));
+                }
+                finally
+                {
+                    SendVoid(image, sel_registerName("release"));
+                }
             }
             finally
             {
@@ -262,7 +279,20 @@ public sealed class MacOsVisionOcrEngine : IOcrEngine
     private static extern float SendFloat(nint receiver, nint selector);
 
     [DllImport(ObjC, EntryPoint = "objc_msgSend")]
-    private static extern CGRect SendRect(nint receiver, nint selector);
+    private static extern CGRect SendRectArm64(nint receiver, nint selector);
+
+    [DllImport(ObjC, EntryPoint = "objc_msgSend_stret")]
+    private static extern void SendRectStret(out CGRect result, nint receiver, nint selector);
+
+    private static CGRect SendRect(nint receiver, nint selector)
+    {
+        if (RuntimeInformation.ProcessArchitecture == Architecture.X64)
+        {
+            SendRectStret(out var rect, receiver, selector);
+            return rect;
+        }
+        return SendRectArm64(receiver, selector);
+    }
 
     [DllImport(ObjC, EntryPoint = "objc_msgSend")]
     private static extern CGSize SendSize(nint receiver, nint selector);

@@ -35,12 +35,13 @@ public sealed class PdfTextConverter : IConverter
     public EngineStatus GetStatus() => EngineStatus.Available("PDF → TXT, Markdown", $"{EngineVersions.BuiltIn} · {EngineVersions.Library("PdfPig", typeof(UglyToad.PdfPig.PdfDocument))}");
 
     public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken) =>
-        Task.Run(() => step.To == "md" ? Markdown(step, progress, cancellationToken) : Text(step, progress, cancellationToken), cancellationToken);
+        step.To == "md" ? MarkdownAsync(step, progress, cancellationToken) : TextAsync(step, progress, cancellationToken);
 
-    private static IReadOnlyList<string> Text(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<string>> TextAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
     {
         progress?.Report(0.1);
-        var text = PdfDocumentReader.PlainText(PdfDocumentReader.ReadText(step.InputPath, null, step.Preset.Document.OcrLanguage, step.Preset.Document.Ocr));
+        var doc = await PdfDocumentReader.ReadTextAsync(step.InputPath, null, step.Preset.Document.OcrLanguage, step.Preset.Document.Ocr, step.WorkDirectory, cancellationToken: cancellationToken);
+        var text = PdfDocumentReader.PlainText(doc);
         cancellationToken.ThrowIfCancellationRequested();
         if (text.Length == 0)
             throw NoText();
@@ -54,13 +55,13 @@ public sealed class PdfTextConverter : IConverter
         return [output];
     }
 
-    private static IReadOnlyList<string> Markdown(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<string>> MarkdownAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
     {
         progress?.Report(0.1);
         var textOnly = step.Preset.Document.LeaveOutPictures;
         var document = textOnly
-            ? PdfDocumentReader.ReadText(step.InputPath, null, step.Preset.Document.OcrLanguage, step.Preset.Document.Ocr)
-            : PdfDocumentReader.Read(step.InputPath, Path.Combine(step.WorkDirectory, $"media-{Guid.NewGuid():N}"), null, step.Preset.Document.OcrLanguage, step.Preset.Document.Ocr);
+            ? await PdfDocumentReader.ReadTextAsync(step.InputPath, null, step.Preset.Document.OcrLanguage, step.Preset.Document.Ocr, step.WorkDirectory, cancellationToken: cancellationToken)
+            : await PdfDocumentReader.ReadAsync(step.InputPath, Path.Combine(step.WorkDirectory, $"media-{Guid.NewGuid():N}"), null, step.Preset.Document.OcrLanguage, step.Preset.Document.Ocr, step.WorkDirectory, cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (textOnly && PdfDocumentReader.PlainText(document).Length == 0)
             throw NoText();

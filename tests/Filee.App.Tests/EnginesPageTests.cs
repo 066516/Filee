@@ -113,15 +113,12 @@ public class EnginesPageTests
     }
 
     [AvaloniaFact]
-    public void Tesseract_package_has_install_available_when_not_installed()
+    public void Tesseract_package_exists_and_offers_own_copy_or_guidance()
     {
         TestServices.EnsureInitialized("en");
         var downloads = AppHost.Get<EngineDownloadService>();
         var tesseract = downloads.Packages.FirstOrDefault(p => p.Package.Id == "tesseract");
         Assert.NotNull(tesseract);
-        if (EnginePackageState.CanSystemInstall(tesseract.Package))
-        {
-            Assert.True(tesseract.CanInstall || tesseract.IsInstalled);
-        }
+        Assert.True(tesseract.CanUseOwnCopy || tesseract.IsInstalled);
     }
 }
