@@ -1195,6 +1195,14 @@ DocBook (`.dbk`, `.docbook`; written as DocBook 5), Jupyter notebooks (`.ipynb`)
 - DocBook, man pages, OPML, Typst, HTML and LaTeX are written with `--standalone` (a root element, a `.TH` header,
   a preamble), the text formats extract pictures into `<name>_files` next to the result (Markdown with *Leave out
   pictures* gets none: a Lua filter drops them).
+- Pictures are linked relative to the result (`<name>_files/media/…`; Pandoc runs in the result's folder, with
+  `--resource-path` pointing at the source's for pictures the source links to), so both can be moved together.
+  EMF and WMF pictures, common in Word documents, become PNG (ImageMagick draws metafiles on Windows only; elsewhere
+  they stay).
+- Markdown is GitHub-flavoured and kept free of HTML, which many Markdown editors show as code (#391). A Lua filter
+  lays every table out as a pipe table: a merged cell keeps its text in its first position and leaves the cells it
+  covered empty, the paragraphs and list items of a cell are joined with `<br>`, and a table without a header row
+  gets its first row as the header. Pictures lose their Word size, which only an `<img>` tag could hold.
 
 ## Subtitles
 
