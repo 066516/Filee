@@ -974,7 +974,9 @@ public sealed partial class DonutMenu : Control
         var showCaption = !string.IsNullOrEmpty(item.Caption) &&
                           !string.Equals(item.Caption, item.Label, StringComparison.OrdinalIgnoreCase) &&
                           label.Height + 14 < maxHeight;
-        var caption = showCaption ? MakeText(item.Caption!, regular, 10.5, hot ? OnAccentBrush : SecondaryForeground, width) : null;
+        var caption = showCaption
+            ? MakeCaption(item.Caption!, regular, hot ? OnAccentBrush : SecondaryForeground, width, label.Height, maxHeight)
+            : null;
 
         var total = label.Height + (caption?.Height ?? 0);
         var anchor = DonutGeometry.PointAt(center, radius, angle);
@@ -983,6 +985,14 @@ public sealed partial class DonutMenu : Control
         if (caption is not null)
             DrawCentered(context, caption, anchor.X, y + label.Height);
     }
+
+    /// <summary>
+    /// A slice's caption under its name: one line, or two where the slice is deep enough, so a caption wider than the
+    /// slice ("Same format" on a small donut) wraps instead of ending in "Same for…".
+    /// </summary>
+    internal static FormattedText MakeCaption(string caption, Typeface typeface, IBrush? brush, double width,
+        double labelHeight, double maxHeight) =>
+        MakeText(caption, typeface, 10.5, brush, width, maxLines: labelHeight + 28 < maxHeight ? 2 : 1);
 
     private const double LabelFontSize = 13;
     private const double MinLabelFontSize = 10;

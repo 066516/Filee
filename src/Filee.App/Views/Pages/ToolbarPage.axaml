@@ -365,10 +365,12 @@
               <DataTemplate x:DataType="vm:PaletteChip">
                 <Border Classes="chip" Classes.dimmed="{Binding IsDimmed}" ToolTip.Tip="{Binding Reason}"
                         PointerPressed="OnChipPressed" DoubleTapped="OnChipDoubleTapped">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                    <TextBlock Classes="caption" Text="{Binding Caption}" VerticalAlignment="Center" />
-                  </StackPanel>
+                  <!-- A chip wider than the palette ends its caption with "…" instead of being cut at the edge. -->
+                  <DockPanel>
+                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="caption" Text="{Binding Caption}" VerticalAlignment="Center" Margin="6,0,0,0"
+                               TextTrimming="CharacterEllipsis" />
+                  </DockPanel>
                 </Border>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
