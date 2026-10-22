@@ -6,34 +6,14 @@
       "media": "browser.webp",
       "poster": 52,
       "title": "whats_new.2_0_0.browser.title",
-      "text": "whats_new.2_0_0.browser.text",
-      "localizedMedia": {
-        "pt-PT": {
-          "media": "pt-PT/browser.webp",
-          "poster": 0
-        },
-        "pt-BR": {
-          "media": "pt-BR/browser.webp",
-          "poster": 0
-        }
-      }
+      "text": "whats_new.2_0_0.browser.text"
     },
     {
       "id": "flip",
       "media": "flip.webp",
       "poster": 75,
       "title": "whats_new.2_0_0.flip.title",
-      "text": "whats_new.2_0_0.flip.text",
-      "localizedMedia": {
-        "pt-PT": {
-          "media": "pt-PT/flip.webp",
-          "poster": 0
-        },
-        "pt-BR": {
-          "media": "pt-BR/flip.webp",
-          "poster": 0
-        }
-      }
+      "text": "whats_new.2_0_0.flip.text"
     },
     {
       "id": "formats",

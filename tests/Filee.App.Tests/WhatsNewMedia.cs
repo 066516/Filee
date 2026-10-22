@@ -80,8 +80,8 @@ public class WhatsNewMedia
             // browser.webp and flip.webp come from the demo-video generator (branch media/demo-videos: a scripted desktop
             // with a browser and a file manager). These headless versions are written only when asked for by name
             // (FILEE_WHATSNEW_ONLY=browser,flip).
-            Write(folder, "browser.webp", BrowserDrop, onRequestOnly: language == "en");
-            Write(folder, "flip.webp", DonutFlip, onRequestOnly: language == "en");
+            Write(folder, "browser.webp", BrowserDrop, onRequestOnly: true);
+            Write(folder, "flip.webp", DonutFlip, onRequestOnly: true);
             Write(folder, "formats.webp", FormatDonuts);
             Write(folder, "crop.webp", Crop);
             Write(folder, "theme.webp", () => Theme("2.0.0"));
@@ -576,13 +576,15 @@ public class WhatsNewMedia
         var store = AppHost.Get<UserDataStore>();
         var loc = AppHost.Get<ILocalizer>();
         var report = loc.Language.StartsWith("pt-", StringComparison.Ordinal) ? "relatório" : "report";
+        var work = OperatingSystem.IsWindows() ? @"C:\Work" : OperatingSystem.IsMacOS() ? "/Users/demo/Documents" : "/home/demo/Documents";
+        var photos = OperatingSystem.IsWindows() ? @"C:\Photos" : OperatingSystem.IsMacOS() ? "/Users/demo/Pictures" : "/home/demo/Pictures";
         store.ClearHistory();
         store.History.AddRange(Enumerable.Range(0, store.Settings.EffectiveHistoryLimit).Select(i => new Filee.Core.History.HistoryEntry
         {
             FinishedAt = DateTime.Now.AddMinutes(-7 * i - 3),
             PresetName = i == 150 ? "PDF" : i % 3 == 0 ? "JPG" : "PNG",
             State = Filee.Core.Conversion.JobState.Completed,
-            Sources = i == 150 ? [$@"C:\Work\{report}.docx"] : [$@"C:\Photos\IMG_{4000 + i:0000}.heic"],
+            Sources = i == 150 ? [Path.Combine(work, $"{report}.docx")] : [Path.Combine(photos, $"IMG_{4000 + i:0000}.heic")],
         }));
         var profiles = store.Profiles.Select(p => p.Clone()).ToList();
         try

@@ -94,7 +94,7 @@ public class WhatsNewTests
     [AvaloniaTheory]
     [InlineData("pt-PT")]
     [InlineData("pt-BR")]
-    public void Portuguese_recordings_ship_for_every_single_language_demonstration(string language)
+    public void Portuguese_recordings_preserve_the_desktop_context_and_localize_the_other_slides(string language)
     {
         TestServices.EnsureInitialized(language);
         var deck = Assert.Single(SlideDeck.LoadAll("Filee"), d => d.Version == V2);
@@ -102,7 +102,7 @@ public class WhatsNewTests
         {
             var media = slide.MediaFor(language);
             Assert.True(AssetLoader.Exists(media.Source), $"{media.Source} is missing");
-            if (slide.Id == "languages")
+            if (slide.Id is "languages" or "browser" or "flip")
                 Assert.Equal(slide.Media, media.Source);
             else
                 Assert.Contains($"/{language}/", media.Source.AbsolutePath);
