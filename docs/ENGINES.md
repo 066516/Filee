@@ -1328,8 +1328,9 @@ format, and FFmpeg reads what the file holds, so a `.dat` with no video in it fa
   A video without subtitles fails with "The video has no subtitle track."; one with only picture subtitles (Blu-ray
   PGS, DVD, DVB) says they can't be turned into text without OCR. Video → SAMI, LRC, TTML, … goes through SRT and the
   subtitle engine (ASS and WebVTT extraction cost 11 so SRT is the hub).
-- The first video stream (cover pictures excluded) and the first audio stream are converted; files without sound
-  still convert to video. Title, artist and other tags and chapters are kept, album art too for MP3, M4A, M4B and
+- The first video stream (cover pictures excluded) is converted. Video to video keeps every audio track (languages,
+  commentary), each copied where the target takes its codec or encoded on its own, with its language tag; FLV and DV
+  hold one and keep the first. Video to audio takes the first. Files without sound still convert to video. Title, artist and other tags and chapters are kept, album art too for MP3, M4A, M4B and
   FLAC. Portrait phone videos are turned upright. Odd sizes are evened out, frame rates that MPEG-2/MXF/MPEG-4 part 2
   cannot store are converted, and channels WMA or AMR cannot hold are mixed down.
 - Progress comes from `-progress` (position ÷ duration from ffprobe); the GIF palette pass reports per-frame stats of
