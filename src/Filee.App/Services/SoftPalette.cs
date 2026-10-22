@@ -30,6 +30,12 @@ internal static class SoftPalette
     private static readonly (string Embedded, string System) Chinese =
         ("fonts:Filee#Noto Sans SC", "Microsoft YaHei, PingFang SC");
 
+    /// <summary>
+    /// Traditional Chinese has no embedded font (two more Noto CJK files would add 11 MB): Windows and macOS always carry
+    /// these. Listed before the embedded Noto Sans SC, whose Han shapes differ, so zh-TW text takes Traditional shapes.
+    /// </summary>
+    private const string TraditionalChineseSystem = "Microsoft JhengHei UI, Microsoft JhengHei, PingFang TC";
+
     /// <summary>All resource keys written by ApplyAccent that must be cleared from top level when per-variant dictionaries are used.</summary>
     public static readonly string[] AccentResourceKeys =
     [
@@ -118,8 +124,9 @@ internal static class SoftPalette
             language.StartsWith("ja", StringComparison.OrdinalIgnoreCase) ? [Japanese, Korean, Chinese]
             : language.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? [Chinese, Korean, Japanese]
             : [Korean, Chinese, Japanese];
+        var traditional = AppLanguages.IsTraditionalChinese(language) ? $"{TraditionalChineseSystem}, " : "";
         // Noto Sans comes first: the first face also draws the trimming ellipsis, which Noto Sans Arabic lacks.
-        return $"{Latin}, {Arabic}, {Devanagari}, {string.Join(", ", cjk.Select(f => f.Embedded))}, Segoe UI, Nirmala UI, "
+        return $"{Latin}, {Arabic}, {Devanagari}, {traditional}{string.Join(", ", cjk.Select(f => f.Embedded))}, Segoe UI, Nirmala UI, "
             + $"{string.Join(", ", cjk.Select(f => f.System))}, Kohinoor Devanagari, Geeza Pro, sans-serif";
     }
 
@@ -133,7 +140,8 @@ internal static class SoftPalette
             language.StartsWith("ja", StringComparison.OrdinalIgnoreCase) ? [Japanese, Korean, Chinese]
             : language.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? [Chinese, Korean, Japanese]
             : [Korean, Chinese, Japanese];
-        return $"Segoe UI, Nirmala UI, {string.Join(", ", cjk.Select(f => f.System))}, sans-serif";
+        var traditional = AppLanguages.IsTraditionalChinese(language) ? $"{TraditionalChineseSystem}, " : "";
+        return $"Segoe UI, Nirmala UI, {traditional}{string.Join(", ", cjk.Select(f => f.System))}, sans-serif";
     }
 
     /// <summary>The resource Soft.axaml's Window style takes <see cref="Visual.FlowDirection"/> from.</summary>
