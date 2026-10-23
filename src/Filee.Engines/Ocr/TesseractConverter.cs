@@ -17,6 +17,7 @@ using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
 using PDFtoImage;
 using SkiaSharp;
+using UglyToad.PdfPig.Core;
 using UglyToad.PdfPig.Exceptions;
 
 // PDFtoImage marks its API for the platforms PDFium ships for; Filee only targets desktop platforms, all covered.
@@ -201,18 +202,39 @@ public sealed class TesseractConverter : IConverter
         }
     }
 
-    /// <summary>For each page: true when it has any text, visible or not (an OCR layer counts).</summary>
+    /// <summary>
+    /// For each page: true when it has text of its own. An OCR layer (invisible text) always counts. A scan with a
+    /// stamp does not: a picture over most of the page whose only text is a little visible text (a page number or a
+    /// Bates number the scanner software added, under <see cref="StampCoverage"/> of the page).
+    /// </summary>
     internal static List<bool> PagesWithText(string path)
     {
         try
         {
             using var pdf = UglyToad.PdfPig.PdfDocument.Open(path, new UglyToad.PdfPig.ParsingOptions { UseLenientParsing = true, SkipMissingFonts = true });
-            return [.. pdf.GetPages().Select(page => page.Letters.Any(l => !string.IsNullOrWhiteSpace(l.Value)))];
+            return [.. pdf.GetPages().Select(HasText)];
         }
         catch (PdfDocumentEncryptedException)
         {
             throw PdfDocumentReader.PasswordProtected();
         }
+    }
+
+    /// <summary>The share of a page that visible text may cover on a scan and still be only a stamp.</summary>
+    internal const double StampCoverage = 0.01;
+
+    private static bool HasText(UglyToad.PdfPig.Content.Page page)
+    {
+        var letters = page.Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToList();
+        if (letters.Count == 0)
+            return false;
+        if (letters.Any(l => l.RenderingMode is TextRenderingMode.Neither or TextRenderingMode.NeitherClip))
+            return true;
+        var area = page.Width * page.Height;
+        if (area <= 0 || letters.Sum(l => l.GlyphRectangle.Area) >= StampCoverage * area)
+            return true;
+        // A page drawn with little text and no picture under it (a cover, a short note) is not a scan.
+        return !page.GetImages().Any(image => image.Bounds.Area >= area / 2);
     }
 
     /// <summary>

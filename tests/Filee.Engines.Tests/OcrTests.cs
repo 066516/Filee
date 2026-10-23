@@ -3,6 +3,7 @@
 // language data they read the first time (English, German).
 
 using System.IO.Compression;
+using System.Text;
 using Filee.Core.Conversion;
 using Filee.Core.Presets;
 using Filee.Engines.Infrastructure;
@@ -40,6 +41,62 @@ public class OcrLanguageListTests
 
         Assert.False(EngineDownloads.IsSuggested(package));
         Assert.Equal(OperatingSystem.IsWindows() ? "tesseract.exe" : "tesseract", Assert.Single(EngineEnvironment.OwnCopyPrograms["tesseract"]));
+    }
+}
+
+/// <summary>Which pages count as having text, so OCR leaves them alone (no Tesseract needed).</summary>
+public class OcrPagesWithTextTests(EngineFixture fx) : IClassFixture<EngineFixture>
+{
+    /// <summary>
+    /// A one-page A4 PDF written by hand: optionally a picture over the whole page (a scan), then lines of Helvetica
+    /// text, visible or invisible (render mode 3, as an OCR layer is written).
+    /// </summary>
+    private string Pdf(bool scan, int lines, string text = "ABC-000123", bool invisible = false)
+    {
+        var content = new StringBuilder();
+        if (scan)
+            content.Append("q 595 0 0 842 0 0 cm /Im1 Do Q\n");
+        for (var i = 0; i < lines; i++)
+            content.Append($"BT /F1 10 Tf {(invisible ? "3" : "0")} Tr 40 {800 - i * 12} Td ({text}) Tj ET\n");
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> /XObject << /Im1 6 0 R >> >> >>",
+            $"<< /Length {content.Length} >>\nstream\n{content}endstream",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Length 1 >>\nstream\n\u00c8\nendstream",
+        ];
+        var pdf = new StringBuilder("%PDF-1.4\n");
+        var offsets = new List<int>();
+        for (var i = 0; i < objects.Length; i++)
+        {
+            offsets.Add(pdf.Length);
+            pdf.Append($"{i + 1} 0 obj\n{objects[i]}\nendobj\n");
+        }
+        var xref = pdf.Length;
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (var offset in offsets)
+            pdf.Append($"{offset:D10} 00000 n \n");
+        pdf.Append($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        var path = Path.Combine(fx.NewFolder(), "page.pdf");
+        File.WriteAllBytes(path, Encoding.Latin1.GetBytes(pdf.ToString()));
+        return path;
+    }
+
+    [Fact]
+    public void A_scan_with_only_a_stamp_is_recognized()
+    {
+        Assert.Equal([false], TesseractConverter.PagesWithText(Pdf(scan: true, lines: 1)));
+        Assert.Equal([false], TesseractConverter.PagesWithText(Pdf(scan: true, lines: 0)));
+    }
+
+    [Fact]
+    public void An_ocr_layer_a_page_of_text_and_a_drawn_note_are_left_alone()
+    {
+        Assert.Equal([true], TesseractConverter.PagesWithText(Pdf(scan: true, lines: 1, invisible: true)));
+        Assert.Equal([true], TesseractConverter.PagesWithText(Pdf(scan: true, lines: 40, text: "The quick brown fox jumps over the lazy dog again and again")));
+        Assert.Equal([true], TesseractConverter.PagesWithText(Pdf(scan: false, lines: 1)));
     }
 }
 
