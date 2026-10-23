@@ -42,8 +42,9 @@ libwayland-client0 on Ubuntu). To turn it on:
      qdbus6 org.kde.KWin /KWin reconfigure
    After updating Filee, upgrade the installed script the same way, with
    --upgrade instead of --install, then run the reconfigure line again.
-   For Hyprland: Add the floating window rule in ~/.config/hypr/hyprland.conf (or hyprland.lua):
+   For Hyprland: Add the floating and placement window rules in ~/.config/hypr/hyprland.conf (or hyprland.lua):
      windowrulev2 = float, title:^(Filee Donut)$
+     windowrulev2 = move cursor -50% -50%, title:^(Filee Donut)$
      windowrulev2 = noborder, title:^(Filee Donut)$
      windowrulev2 = noshadow, title:^(Filee Donut)$
      windowrulev2 = noblur, title:^(Filee Donut)$

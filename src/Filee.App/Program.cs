@@ -275,16 +275,21 @@ internal static class Program
     public static AppBuilder BuildAvaloniaApp()
     {
         var builder = AppBuilder.Configure<App>();
-        if (OperatingSystem.IsLinux()
-            && string.Equals(Environment.GetEnvironmentVariable("FILEE_USE_WAYLAND"), "1", StringComparison.Ordinal)
-            && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")))
+#if FILEE_NATIVE_WAYLAND
+        if (Filee.Platform.Linux.LinuxPlatformServices.IsNativeWaylandRequested(
+            OperatingSystem.IsLinux(),
+            Environment.GetEnvironmentVariable("FILEE_USE_WAYLAND"),
+            Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")))
         {
-            builder.UseWayland().UseSkia().UseHarfBuzz();
+            builder.UseWayland();
         }
         else
         {
             builder.UsePlatformDetect();
         }
+#else
+        builder.UsePlatformDetect();
+#endif
 
         if (OperatingSystem.IsMacOS())
             builder = builder.With(new MacOSPlatformOptions { ShowInDock = PreloadedStore?.Settings.ShowInDock ?? true });

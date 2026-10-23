@@ -222,7 +222,10 @@ public sealed class RadialController(
 
         // On native Wayland, hiding an xdg_toplevel surface causes the compositor to destroy its surface,
         // and re-showing raises an InvalidOperationException. Track Closed to re-create on the next gesture.
-        if (OperatingSystem.IsLinux() && string.Equals(Environment.GetEnvironmentVariable("FILEE_USE_WAYLAND"), "1", StringComparison.Ordinal))
+        if (Filee.Platform.Linux.LinuxPlatformServices.IsNativeWaylandRequested(
+            OperatingSystem.IsLinux(),
+            Environment.GetEnvironmentVariable("FILEE_USE_WAYLAND"),
+            Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")))
         {
             window.Closed += (_, _) =>
             {
