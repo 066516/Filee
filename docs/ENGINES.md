@@ -12,7 +12,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | PDFsharp | built in (library) | images → PDF, merge, split, page ranges, **compression** (smaller PDFs, see below), PDFs without their metadata |
 | PDFium | built in (library) | PDF → images (multi-page TIFF/GIF supported) |
 | Unhwp | built in (library) | HWP/HWPX → TXT, Markdown, HTML (pictures in a `<name>_files` folder next to the Markdown, embedded in the HTML) |
-| Text & Markdown (Markdig) | built in (library) | **Markdown → HTML, TXT**; **TXT, LOG, PY, PAC, BAT, COMMAND, LUA, CSS → UTF-8 TXT**, preserving source text without running scripts (and → PDF / DOCX through the HWPX writer, rhwp or LibreOffice) |
+| Text & Markdown (Markdig) | built in (library) | **Markdown → HTML, TXT**; **TXT, LOG, PY, PAC, BAT, COMMAND, LUA, CSS, PS1 → UTF-8 TXT**, preserving source text without running scripts (and → PDF / DOCX through the HWPX writer, rhwp or LibreOffice) |
 | Spreadsheets (ExcelDataReader for XLS) | built in (library) | **XLSX, XLS, ODS, CSV, TSV → XLSX, ODS, CSV, TSV** (one CSV / TSV per sheet) |
 | Office Open XML | built in | **DOCM / DOTX / DOTM ↔ DOCX, XLSM / XLTX ↔ XLSX, PPTM / POTX / POTM / PPSX ↔ PPTX** (macros removed for macro-free types) |
 | Fonts | built in | **TTF, OTF, WOFF, WOFF2, EOT ↔ each other**; CFF (PostScript) outlines become TrueType for TTF and EOT |
@@ -318,6 +318,10 @@ Readers turn the source into a small document model (`Hwp/Hwpx/HwpxModel.cs`) an
   - paragraph formatting (alignment, indents, spacing, line spacing, tab stops, keep with next);
   - character formatting (fonts incl. theme fonts, size, colour, highlight and shading, bold/italic/underline/strike, super/subscript, spacing);
   - lists with Word's numbering formats (1., 가., ①, i., bullets);
+  - symbols of Wingdings, Wingdings 2, Wingdings 3, Webdings and Symbol (Insert → Symbol, bullets, text typed in
+    those fonts) as the Unicode characters they show: check boxes ☐ ☑ ☒, check marks and crosses, arrows, stars,
+    hands, phone and mail signs, Greek letters and math signs (`Hwp/Hwpx/SymbolFonts.cs`, #350; PPTX bullets and
+    text too). Codes without a table entry stay as before (an unknown bullet is "●");
   - tables with merged cells, column widths, borders and shading from the table style and cells, repeated header rows;
   - pictures inline and floating, text boxes, rectangles/ellipses/lines with solid or gradient fills, groups;
   - footnotes, endnotes, bookmarks, hyperlinks (web and within the document, e.g. a table of contents);
