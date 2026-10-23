@@ -192,6 +192,20 @@ public sealed class Preset
     public static string NewId() => Guid.NewGuid().ToString("N")[..12];
 
     /// <summary>Deep copy, used by editors so changes can be cancelled.</summary>
+    /// <summary>
+    /// This preset without its PDF password, for copies that leave the library (history, an export).
+    /// <paramref name="mark"/> records that it was taken out (<see cref="PdfOptions.PasswordLeftOut"/>).
+    /// </summary>
+    public Preset WithoutPassword(bool mark)
+    {
+        if (Pdf.Password.Length == 0)
+            return this;
+        var copy = Clone();
+        copy.Pdf.Password = "";
+        copy.Pdf.PasswordLeftOut = mark;
+        return copy;
+    }
+
     public Preset Clone() => new()
     {
         Id = Id,
@@ -453,6 +467,28 @@ public sealed class PdfOptions
     /// result is smaller. Off by default: it rewrites the whole file (fonts, structure), not only the pictures.
     /// </summary>
     public bool CompressWithGhostscript { get; set; }
+
+    /// <summary>Text written large and faint across every page of a PDF ("DRAFT", "CONFIDENTIAL"); empty for none.</summary>
+    public string Watermark { get; set; } = "";
+
+    /// <summary>"1 / 5" at the bottom of every page of a PDF.</summary>
+    public bool PageNumbers { get; set; }
+
+    /// <summary>
+    /// A password the PDF opens with (AES-256); empty for none. Saved with the preset in the settings file, like the
+    /// rest of it.
+    /// </summary>
+    public string Password { get; set; } = "";
+
+    /// <summary>
+    /// The <see cref="Password"/> was left out of this copy (the one history keeps to convert failed files again): a
+    /// retry takes it from the preset again, and fails rather than write a PDF without it.
+    /// </summary>
+    public bool PasswordLeftOut { get; set; }
+
+    /// <summary>A PDF this preset writes gets a watermark, page numbers or a password (<see cref="Conversion.IPdfFinisher"/>).</summary>
+    [JsonIgnore]
+    public bool FinishesPdf => !string.IsNullOrWhiteSpace(Watermark) || PageNumbers || Password.Length > 0 || PasswordLeftOut;
 
     /// <summary>Formats text read from scans can go into (<see cref="Ocr"/>): those Filee writes from a PDF's text itself.</summary>
     public static readonly IReadOnlyList<string> OcrTargets = ["pdf", "docx", "txt", "md", "hwpx"];

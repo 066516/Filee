@@ -220,6 +220,17 @@ public sealed class RadialController(
         var window = new RadialWindow { DataContext = viewModel };
         var donut = window.DonutControl;
 
+        // On native Wayland, hiding an xdg_toplevel surface causes the compositor to destroy its surface,
+        // and re-showing raises an InvalidOperationException. Track Closed to re-create on the next gesture.
+        if (Filee.Platform.Linux.WaylandSupport.NativeWaylandRequested)
+        {
+            window.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_window, window))
+                    _window = null;
+            };
+        }
+
         window.DragEntered += () => _dragReachedDonut = true;
         // Tells "the drag reached the donut but brought no files" apart, with what it brought (file promises, say).
         window.DragWithoutFiles += formats =>
@@ -321,7 +332,7 @@ public sealed class RadialController(
             var near = _window?.Position;
             Close(animate: false);
             if (web is null)
-                windows.ShowCropOverlay(sources, preset, near);
+                ShowTool(sources, preset, near);
             else
                 _ = ShowToolForBrowserFilesAsync(web, preset, near);
             return;
@@ -374,6 +385,17 @@ public sealed class RadialController(
         var files = await conversions.SaveBrowserFilesAsync(web, (placeholder, ex) =>
             log.LogWarning(ex, "Saving {File} from a browser for {Preset} failed", Path.GetFileName(placeholder), preset.Id));
         if (files.Count > 0)
+            ShowTool(files, preset, near);
+    }
+
+    private void ShowTool(IReadOnlyList<string> files, Preset preset, PixelPoint? near)
+    {
+        if (preset.Id == "tool-sheet-studio")
+        {
+            foreach (var workbook in files.Where(file => Path.GetExtension(file).Equals(".xlsx", StringComparison.OrdinalIgnoreCase)))
+                windows.ShowSpreadsheetPrintStudio(workbook);
+        }
+        else
             windows.ShowCropOverlay(files, preset, near);
     }
 

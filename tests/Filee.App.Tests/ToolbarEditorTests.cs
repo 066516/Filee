@@ -566,6 +566,23 @@ public class PresetAvailabilityTests
     }
 
     [AvaloniaFact]
+    public void Spreadsheet_print_studio_requires_xlsx_and_LibreOffice()
+    {
+        var libreOffice = new FakeConverter("libreoffice", ("xlsx", "pdf"));
+        using var f = new Fixture(libreOffice);
+        var studio = f.Preset("tool-sheet-studio");
+
+        Assert.Null(f.Availability.Check(studio, [Fixture.Format("xlsx")]));
+        Assert.Equal(f.Loc["error.unsupported_source"],
+            f.Availability.Check(studio, [Fixture.Format("ods")]));
+        Assert.Null(f.Availability.Check(studio, [Fixture.Format("xlsx"), Fixture.Format("xlsx")]));
+
+        libreOffice.Available = false;
+        Assert.Equal(f.Loc["error.no_route"],
+            f.Availability.Check(studio, [Fixture.Format("xlsx")]));
+    }
+
+    [AvaloniaFact]
     public void The_palette_session_matches_check_and_sorts_the_reasons()
     {
         using var f = new Fixture();
@@ -1553,8 +1570,8 @@ public class ToolbarPaletteModelTests
             var delete = vm.DeleteProfileCommand.ExecuteAsync(null);
             Dispatcher.UIThread.RunJobs();
             var dialog = Assert.Single(windows.Main!.OwnedWindows);
-            var button = ((StackPanel)dialog.Content!).Children.OfType<StackPanel>()
-                .Single().Children.OfType<Button>().Single(b => b.IsDefault);
+            // Found wherever it sits: the window zoom wraps a dialog's content.
+            var button = dialog.GetVisualDescendants().OfType<Button>().Single(b => b.IsDefault);
             button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             await delete.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
             Assert.False(vm.HasJudgement(original.Id, "test-jpg"));

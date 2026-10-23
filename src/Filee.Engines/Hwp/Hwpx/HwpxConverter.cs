@@ -60,6 +60,6 @@ public sealed class HwpxConverter : IConverter
     /// <summary>Plain text: one paragraph per line (see <see cref="DocumentReaders.TextDocument"/>).</summary>
     internal static HDocument TextDocument(byte[] bytes) => DocumentReaders.TextDocument(bytes);
 
-    /// <summary>UTF-8, UTF-16 with BOM or CP949 (see <see cref="DocumentReaders.DecodeText"/>).</summary>
+    /// <summary>Text in the encoding its PC used (see <see cref="DocumentReaders.DecodeText"/>).</summary>
     internal static string DecodeText(byte[] bytes) => DocumentReaders.DecodeText(bytes);
 }

@@ -48,6 +48,8 @@
    Each name stays reserved while a conversion holds it. A conversion that fails or is cancelled deletes what it began
    writing, but only at a path that was its alone: nothing was there before and no other conversion was handed the
    same name ("Overwrite"). It frees its names and removes an output folder it made if that is left empty.
+   A PDF target's finishing (watermark, page numbers, password; `IPdfFinisher`) runs after the last step, on every
+   PDF a file became, and once on a merged PDF.
    *Replace the original* (`OutputRule.ReplaceOriginal`, off by default) comes after that, for a finished result of
    the source's own format and extension, or another spelling of it (`.jpeg` / `.jpg`; TXT also covers scripts and
    logs, PPT also `.pps` and `.pot`, so those need the same extension). The result is first
@@ -164,6 +166,25 @@ multi-frame pictures refused, the EXIF thumbnail dropped), one history entry for
 - `Controls/CropMath` holds the arithmetic (ratios and their portrait forms, nudging by whole pixels, the frame in
   pixels, where the size chip goes, where the dial opens) and is unit tested.
 
+## Spreadsheet print studio
+
+The `tool-sheet-studio` tool opens an independent `Views/SpreadsheetPrintStudioWindow` for each dropped XLSX workbook
+instead of starting a normal conversion job. `SpreadsheetPrintStudioViewModel` owns an ordered, non-destructive print plan: each visible
+sheet starts as one region and the user can add more regions, change paper, orientation, scale, margins, page order,
+hidden rows and manual breaks, then see the PDF that those settings will produce.
+
+- `SpreadsheetPrintInspector` reads workbook metadata and streams the large worksheet data with `XmlReader`; opening
+  a large workbook neither builds nor retains an `XDocument` for every sheet.
+- `SpreadsheetPrintPackage` makes a disposable XLSX under `JobQueue.DefaultWorkRoot`. It keeps every worksheet and
+  named range so cross-sheet formulas remain valid, hides the sheets not being rendered, and changes only the chosen
+  sheet's print settings. A new print area is written only after the user explicitly changes or accepts the range.
+- `SpreadsheetPrintService` runs LibreOffice once for each region. Preview and export use the same disposable-workbook
+  path; export then joins the region PDFs in the chosen order with PDFsharp. The ordinary XLSX → PDF donut conversion
+  can still differ because route planning may select Filee's built-in spreadsheet reader instead of LibreOffice.
+- `PdfPreviewDocument` caches a PDF's bytes and page geometry. The studio asks PDFium/PDFtoImage for small thumbnails
+  and only one large selected page, all decoded away from the UI thread; exporting never performs preview rendering.
+  Cancellation closes LibreOffice and the temporary job folder is removed on success, error or window close.
+
 ## Settings and data
 
 `UserDataStore` owns `settings.json`, `presets.json`, `profiles.json` and `history.json`
@@ -180,6 +201,20 @@ Bump `AppSettings.CurrentSchemaVersion` and add a step to `SettingsMigrations` w
   stay left to right. Light/dark surface colours are theme dictionaries in `Styles/Soft.axaml`; a user's
   `theme.json` (`CustomTheme`, see [CUSTOM-THEMES.md](CUSTOM-THEMES.md)) overrides them with theme dictionaries in
   application resources, which are searched first.
+- Window zoom (`Services/UiZoom`): Theme → *Window size* (− / + and *Reset*), and in any tracked window the
+  platform's command key (`HotkeyConfiguration.CommandModifiers`: Ctrl, Cmd on macOS) with the mouse wheel, plus /
+  minus (Shift allowed, Alt not: AltGr is Ctrl + Alt) or 0 for 100 %. 70–180 % in 10 % steps, every window at once.
+  `UiZoom.Track(window)` wraps the window's content in a `LayoutTransformControl`, so layouts see the room they really
+  have. Small wheel deltas (touchpads, smooth wheels, pinching on a Windows touchpad) add up to one step per whole notch.
+  Windows that can't be resized grow with the zoom (their designed width × the zoom) up to their screen, cap their
+  height to it and scroll; the engine setup keeps itself on screen and scrolls its own list (`fitsItself`).
+  Tracked: the main window, the preset, group, rename and merge-order editors, the engine setup, LibreOffice options,
+  close, sponsor, what's new and update-progress windows and `WindowService`'s message dialog. Not tracked, so at
+  100 %: the donut (it has its own size), the toast and the corner notices (update, engine update, feedback, format
+  request, elevation), which are placed in a screen corner like system notifications, and the crop overlay, whose
+  wheel zooms the crop. Drop-down lists, context menus and tooltips open in their own popup windows outside the
+  transform and stay at 100 % too. The size is `UiScale` in settings.json (1 when missing, so no schema step); it is
+  written by `UserDataStore.SaveUiScale` 0.6 s after the last change (and on exit), without raising `SettingsChanged`.
 
 ## "What's new" slides
 
@@ -370,3 +405,27 @@ have no semibold) instead of the app's embedded Noto fonts.
   against `MemoryRegistry`, a fake `ISetupSystem` and scratch folders, and renders every page. `/SANDBOX=<folder>`
   runs the real Setup with a registry file and all folders inside `<folder>`; `build-installer.ps1 -CheckOnly` (CI)
   installs, updates and uninstalls that way.
+
+## Linux installer and updates
+
+On Linux, Filee is distributed as a self-contained archive (`Filee-<version>-<rid>.tar.gz` for `linux-x64` and
+`linux-arm64`) containing the application, `filee-cli`, bundled conversion engines, application icon, `.desktop` launcher,
+and standalone shell scripts (`install.sh`, `uninstall.sh`).
+
+- **Installation**: `install.sh` installs for the current user into `~/.local/share/filee/application` without root,
+  creating a launcher symlink at `~/.local/bin/filee` and desktop registration at
+  `~/.local/share/applications/com.filee.app.desktop`. A `.filee-package` marker containing `com.filee.app` identifies
+  the directory as an authentic managed installation. Running without `--upgrade` refuses to overwrite an existing
+  installation.
+- **In-app updates** (`UpdateService`): Checks GitHub releases for matching `<rid>.tar.gz` and `<rid>-SHA256SUMS.txt`
+  assets. The tarball is verified against SHA-256 before extraction. Archive extraction validates that all entries stay
+  within the target directory, rejecting absolute paths, directory symlinks, and escaping links, and masks permissions to
+  standard rwx bits (excluding setuid/setgid/sticky bits).
+- **Transactional upgrade**: `UpdateAsync` stages the payload in a private directory (`~/.local/share/filee/.update-*`),
+  spawns a detached `/bin/sh` helper, and requests application shutdown (`App.Quit`). Once the old process exits, the
+  helper executes `install.sh --upgrade` (which safely moves the existing installation to a backup directory, validates the
+  new files, and rolls back on failure or signal interruption), and restarts Filee with `--background --whats-new`.
+  Output and rollback diagnostics are appended to Filee's daily log (`~/.config/Filee/logs/`). Downloaded conversion engines
+  (`~/.local/share/Filee/engines`) and user settings (`~/.config/Filee`) remain untouched.
+- **Uninstallation**: `uninstall.sh` removes the application directory, desktop launcher, and `~/.local/bin/filee` symlink
+  after verifying the `.filee-package` marker. User settings and converted files are kept.

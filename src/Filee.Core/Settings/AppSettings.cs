@@ -123,7 +123,7 @@ public sealed class DonutSettings
 public sealed class AppSettings
 {
     /// <summary>Current schema version. Increase when the format changes and add a migration.</summary>
-    public const int CurrentSchemaVersion = 41;
+    public const int CurrentSchemaVersion = 42;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -254,6 +254,12 @@ public sealed class AppSettings
 
     /// <summary>Every geospatial conversion is saved as a ZIP, whatever the preset says (see <see cref="OutputRule.ZipResult"/>).</summary>
     public bool ZipGeoResults { get; set; }
+
+    /// <summary>
+    /// How large Filee's windows draw everything (Theme → Window size; Ctrl + mouse wheel, Ctrl + plus / minus, Ctrl + 0):
+    /// 1 as designed, 0.7 to 1.8. A missing value (settings from before it) reads as 1, so it needs no schema step.
+    /// </summary>
+    public double UiScale { get; set; } = 1;
 
     /// <summary>
     /// Returns <paramref name="preset"/> itself, or a copy with the app-wide output settings applied: it saves to

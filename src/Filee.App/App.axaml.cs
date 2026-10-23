@@ -68,6 +68,19 @@ public partial class App : Application
         var loc = AppHost.Get<LocalizationService>();
         loc.Attach(this);
         ApplySettings(store.Settings);
+        // Window zoom: set once here, not with the other settings, since the zoom saves itself (UiZoom) without
+        // raising SettingsChanged.
+        UiZoom.Configure(store.Settings.UiScale, scale =>
+        {
+            try
+            {
+                store.SaveUiScale(scale);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                log.LogWarning(ex, "Could not remember the window zoom");
+            }
+        });
         // Every engine's availability, checked once off the UI thread: the first donut or drop otherwise starts
         // every engine's check (FFmpeg -version, folder searches) on the UI thread and freezes it meanwhile.
         _ = AppHost.Get<ConverterCatalog>().CheckInBackgroundAsync();
@@ -140,6 +153,9 @@ public partial class App : Application
         _ = Task.Run(() => Filee.Core.Web.WebDrop.DeleteStale(Filee.Core.Web.WebDrop.DefaultWorkRoot, TimeSpan.FromDays(1)));
         // Likewise the work folders of conversions that never got to clean up after themselves.
         _ = Task.Run(() => JobQueue.DeleteStaleWorkFolders(JobQueue.DefaultWorkRoot, TimeSpan.FromDays(1)));
+        // Leftover update workspaces from cancelled or failed in-app updates (Linux only).
+        if (OperatingSystem.IsLinux())
+            _ = Task.Run(() => UpdateService.DeleteStaleWorkspaces());
         // Once LibreOffice is installed: prepare its profiles while the user isn't converting yet.
         AppHost.Get<EngineDownloadService>().WarmUpInBackground(TimeSpan.FromSeconds(10));
 
@@ -150,6 +166,7 @@ public partial class App : Application
 
         desktop.Exit += (_, _) =>
         {
+            UiZoom.Flush();
             watchdog.Dispose();
             AppHost.Get<MemoryTrimmer>().Dispose();
             AppHost.Get<TriggerService>().Dispose();
@@ -203,6 +220,7 @@ public partial class App : Application
     private static void WatchForUpdates(UserDataStore store)
     {
         var updates = AppHost.Get<UpdateService>();
+        updates.RequestApplicationShutdown = Quit;
         // Required: the card every time Filee starts (UpdateFound fires once per run). Recommended: once per version.
         // Optional: no card, the sidebar button only. Frequent releases no longer ask every day.
         updates.UpdateFound += (_, version) =>
@@ -215,6 +233,9 @@ public partial class App : Application
             AppHost.Get<WindowService>().ShowUpdateNotice(version);
         };
         updates.UpdateFailed += async (_, _) => await AppHost.Get<WindowService>().ShowUpdateFailedAsync();
+        // The last run's update failed after Filee closed (Linux): the installer rolled back and started this copy.
+        if (updates.CheckPendingFailure(store.Directory))
+            Dispatcher.UIThread.Post(async () => await AppHost.Get<WindowService>().ShowUpdateRolledBackAsync(updates.LastFailureLogPath));
         updates.StartPeriodicChecks(() => store.Settings.CheckForUpdates, TimeSpan.FromSeconds(20));
         DispatcherTimer.RunOnce(() => NotifyEngineUpdates(store), TimeSpan.FromSeconds(25));
     }
