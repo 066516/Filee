@@ -210,6 +210,25 @@ public class UpdateServiceTests
     }
 
     [Fact]
+    public void Failed_revocation_check_is_named_in_the_error()
+    {
+        // Offline or behind a proxy, the signature is fine but the certificate authority can't be asked: the
+        // installer is still thrown away, and the log says why instead of blaming the publisher.
+        var path = Path.Combine(TempFolder(), "Filee-9.9.9-win-Setup.exe");
+        File.WriteAllText(path, "setup");
+        var updates = new UpdateService(NullLogger<UpdateService>.Instance, new FakeNetwork("no network"))
+        {
+            OwnProgram = "Filee.exe",
+            SignerOf = (file, revocation) => file == "Filee.exe" || !revocation ? Publisher : null,
+        };
+
+        var error = Assert.Throws<InvalidDataException>(() => updates.CheckPublisher(path));
+
+        Assert.Contains("revocation check failed", error.Message);
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
     public void Installer_is_checked_for_revocation_but_this_copy_is_not()
     {
         var checks = new List<(string Path, bool Revocation)>();

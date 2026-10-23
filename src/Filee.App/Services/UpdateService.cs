@@ -279,7 +279,8 @@ public sealed partial class UpdateService : ObservableObject
         {
             var progress = new Progress<int>(percent => DownloadPercent = percent);
             installer = await DownloadInstallerAsync(Path.Combine(Path.GetTempPath(), "Filee-update"), progress);
-            CheckPublisher(installer);
+            // WinVerifyTrust hashes the whole installer and may ask the certificate authority about revocation.
+            await Task.Run(() => CheckPublisher(installer));
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException
                                        or InvalidDataException or UnauthorizedAccessException)
@@ -373,9 +374,14 @@ public sealed partial class UpdateService : ObservableObject
         var signer = SignerOf(installer, true);
         if (signer == publisher)
             return;
+        // A signature that holds without the revocation check failed only that check: the certificate authority
+        // could not be reached (offline, a proxy or a firewall) or the certificate was revoked.
+        var reason = signer is null && SignerOf(installer, false) == publisher
+            ? $"is signed by {publisher}, but the revocation check failed (the certificate authority could not be " +
+              "reached, or the certificate was revoked)"
+            : $"is signed by {signer ?? "no publisher Windows trusts"}, not by {publisher}";
         TryDelete(installer);
-        throw new InvalidDataException(
-            $"{Path.GetFileName(installer)} is signed by {signer ?? "no publisher Windows trusts"}, not by {publisher}");
+        throw new InvalidDataException($"{Path.GetFileName(installer)} {reason}");
     }
 
     private async Task DownloadAsync(ReleaseFile file, string path, IProgress<int>? progress, CancellationToken cancellationToken)
