@@ -30,7 +30,7 @@
   "home.drop_hint": "또는 탐색기에서 {0} 키를 누른 채 파일을 드래그하면 커서 위치에 원형 툴바가 열려요.",
   "home.drop_hint_macos": "또는 Finder에서 {0} 키를 누른 채 파일을 드래그하면 커서 위치에 원형 툴바가 열려요.",
   "home.drop_hint_linux": "또는 파일 관리자에서 {0} 키를 누른 채 파일을 드래그하면 커서 위치에 원형 툴바가 열려요.",
-  "home.accessibility_needed": "⌥ Option 드래그로 원형 툴바를 열려면 손쉬운 사용에서 Filee를 허용해 주세요.\n켜는 즉시 동작해요.",
+  "home.accessibility_needed": "⌥ Option 드래그로 원형 툴바를 열려면 손쉬운 사용에서 Filee를 허용해 주세요.\n켜는 즉시 동작해요. 이미 목록에 있고 켜져 있다면 − 버튼으로 지운 뒤 + 버튼으로 다시 추가해 주세요. 업데이트하거나 다시 설치한 Filee에는 macOS가 예전 권한을 적용하지 않아요.",
   "home.elevated": "Filee가 관리자 권한으로 실행 중이에요.\n그래서 탐색기에서 파일을 끌어 놓거나 메뉴를 쓸 수 없어요.\n단축키도 탐색기에서 선택한 파일을 읽지 못해요.\n관리자 권한 없이 다시 시작해 주세요.",
   "home.elevated_restart": "관리자 권한 없이 다시 시작",
   "home.elevated_restart_failed": "Filee를 다시 시작하지 못했어요.\n트레이에서 Filee를 종료한 뒤 다시 실행해 주세요.",
@@ -341,7 +341,7 @@
 
   "triggers.title": "단축키",
   "triggers.description": "원형 툴바를 여는 방법을 정하세요. 제스처는 원하는 만큼 추가할 수 있어요.",
-  "triggers.macos_permissions": "시스템 설정 > 개인정보 보호 및 보안 > 손쉬운 사용에서 Filee를 허용해 주세요.\n선택 파일 단축키를 처음 쓸 때 Finder 자동화 권한도 요청해요.",
+  "triggers.macos_permissions": "시스템 설정 > 개인정보 보호 및 보안 > 손쉬운 사용에서 Filee를 허용해 주세요.\n이미 켜져 있는데도 제스처가 시작되지 않으면 − 버튼으로 Filee를 지운 뒤 + 버튼으로 다시 추가해 주세요.\n선택 파일 단축키를 처음 쓸 때 Finder 자동화 권한도 요청해요.",
   "triggers.linux_x11": "드래그 제스처는 X11에서 작동해요.\n파일 관리자 연동을 켜면 첫 번째 키보드 단축키가 Thunar의 Filee 동작에 연결돼요(바꾼 뒤 Thunar를 다시 열어 주세요).\n길게 누르기와 다른 파일 관리자의 단축키는 지원하지 않아요. Filee 메뉴나 드롭 영역을 써 주세요.",
   "triggers.linux_wayland": "Wayland에서는 커서를 따라가는 제스처를 쓸 수 없어요.\nX11 세션을 쓰거나, 파일 관리자 메뉴와 드롭 영역으로 변환해 주세요.\nThunar는 다시 시작하면 첫 번째 키보드 단축키를 쓸 수 있어요.",
   "triggers.linux_wayland_experimental": "Wayland에서 제스처는 실험 기능이고 KDE Plasma에서만 동작해요.\nFilee가 /dev/input에서 마우스 입력을 읽고, KWin 스크립트가 원형 툴바를 커서 위치로 옮겨요(INSTALL.txt 참고). 다른 앱에서 Ctrl+드래그가 방해받을 수 있으니, 불편하면 Ctrl+Shift 같은 다른 보조 키를 쓰세요.",
