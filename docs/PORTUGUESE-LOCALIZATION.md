@@ -1,20 +1,21 @@
 # Portuguese localization
 
 Phase 1 adds European Portuguese and refines regional integration with the Brazilian translation already merged
-in #322. The current baseline is upstream `a121a3c9e3254918f8b171bb7f675b0bdc532244` (22 October 2026).
-French, Traditional Chinese, Nepali, KWin, caption wrapping and the other merged upstream fixes are retained.
+in #322. The current baseline is upstream `4c3a3e1cbedec48c3033c68fd0da161977e7afdf` (23 October 2026).
+French, Traditional Chinese, Nepali, Thai, Material You, OCR, palette tabs and the other merged upstream changes
+are retained.
 Phase 2 has not started.
 
 ## Coverage and wording
 
-Both Portuguese catalogs contain all **911 English keys**, in English key order: 889 existing entries,
+Both Portuguese catalogs contain all **978 English keys**, in English key order: 956 upstream entries,
 18 descriptive engine names and four compact donut labels. Three native macOS strings per variant are additional
-to those JSON entries. There are fourteen registered languages. The eleven non-Portuguese translations retain
+to those JSON entries. There are fifteen registered languages. The twelve non-Portuguese translations retain
 English for the new engine names pending maintainer review; compact labels reuse their existing full translations.
 This preserves their earlier metadata-based display rather than claiming unreviewed native translations.
 
 European Portuguese follows AO90 and informal `tu`. Brazilian Portuguese preserves the community wording from
-#322; only seven of its 889 existing entries change, correcting count agreement and an ambiguous pointer reference.
+#322; only seven existing upstream entries change, correcting count agreement and an ambiguous pointer reference.
 Earlier broad Brazilian editorial changes are superseded. Valid Brazilian wording includes `no Dock`, `Gravar`,
 `Redefinir` versus `Restaurar`, `Relatar`, `E-books`, `Ligado` and curly quotes. Similarity between variants alone
 is not evidence of an error.
@@ -35,14 +36,15 @@ is not evidence of an error.
 | Home | Página inicial | Início |
 | Sponsor action | Apoiar | Patrocinar |
 | Sponsor dialog | Apoiar o Filee | Patrocinar o Filee |
-| Supporter acknowledgements | patrocinadores | patrocinadores |
+| Supporter acknowledgements | Obrigado a quem apoia o Filee | Obrigado aos nossos patrocinadores |
 | Percent | Percentagem | Porcentagem |
 | Mixed files | Ficheiros mistos | Arquivos mistos |
 
 Glossary checks are contextual: `arquivo` is appropriate pt-PT when describing PDF/A archiving, for example.
 Tests preserve placeholder multiplicity, numeric format specifiers, newlines and NFC. Actual folder names,
 regexes, replacement references and command switches stay unchanged. Quotation style and descriptions such as
-`<pasta>` in command examples are translatable; `filee watch` and `--to` are literal syntax.
+`<pasta>` in command examples are translatable; `filee watch` and `--to` are literal syntax. For this contribution,
+the approved CLI hint keeps `<folder>` and `<format>` unchanged.
 
 ## Language and region policy
 
@@ -103,27 +105,48 @@ titles and explanations are localized. The multilingual language showcase also r
 ignored. App and Setup refresh the selected media on a language change without resetting the current slide.
 Every file stays under 400 KiB, each pack under 2 MiB and all shared/Portuguese media under 6 MiB.
 
-## Approved editorial follow-up — 23 October 2026
+## Earlier editorial follow-up — 23 October 2026
 
 `about.sponsor` is now `Apoiar` and `sponsor.title` is `Apoiar o Filee` in pt-PT. `Página inicial` and the
 acknowledgement `patrocinadores` remain unchanged; no pt-BR or other JSON catalog was edited in this follow-up.
 The existing glossary and sponsor-window render cases cover both variants. pt-PT theme/history clips and the
 shared language showcase were regenerated; App and Setup were rebuilt afterwards.
 
-The [current validation report](PORTUGUESE-NATIVE-VALIDATION.md#editorial-follow-up--23-october-2026) separates
+The [earlier validation report](PORTUGUESE-NATIVE-VALIDATION.md#editorial-follow-up--23-october-2026) separates
 local automated results, headless PNGs and partial real Windows interaction. It also links the new CI run;
-the historical successful run below must not be treated as validation of the new head. The PR remains a draft.
+the historical successful run below must not be treated as validation of the new head. The earlier head remained
+a draft. See the current integration report for readiness.
+
+## Current integration and approved final wording — 23 October 2026
+
+Merge `47616f7` integrates upstream `4c3a3e1` without rewriting published history. All seventeen conflicts are
+resolved; the current upstream translations are retained key by key. pt-PT gains 67 translations and updates the
+three messages whose English sources changed. Thai receives the same 22 contribution-specific fallback/compact
+keys as the other catalogs; its upstream translations are preserved.
+
+The contributor approved `Obrigado a quem apoia o Filee` for `sponsor.thanks` and a clearer `merge.order_hint`
+explaining that files are combined from top to bottom. `about.sponsor` / `sponsor.title` remain `Apoiar` /
+`Apoiar o Filee`, and Home remains `Página inicial`. The glossary case follows the new acknowledgement. pt-BR has
+no new editorial rewrite. The eight Portuguese recordings and shared language showcase are regenerated against
+the integrated UI, and App/Setup resources are rebuilt afterwards.
+
+The [latest validation report](PORTUGUESE-NATIVE-VALIDATION.md#current-upstream-integration--23-october-2026)
+records the current tests, real Windows interaction and the earlier CI timing failure that is fixed separately.
+The unavailable OS-language, installation/UAC, Finder/permission and screen-reader sessions remain disclosed
+follow-ups for maintainer review. At the contributor's request they do not indefinitely prevent submission of
+Phase 1; the release-package manual matrix in CONTRIBUTING.md is separate from an ordinary translation PR.
+Draft status remains appropriate while current automated checks or concrete integration defects are unresolved.
 
 ## Validation and remaining checks
 
 [Independent-review follow-up](PORTUGUESE-REVIEW-FOLLOWUP.md) records current commands, results and the disposition
 of each finding. Earlier test counts describe previous snapshots and must not be used as certification of this head.
 Set FILEE_LOCALIZATION_SCREENSHOTS=1 for PNG captures in PortugueseRenderTests; geometry assertions always run.
-All fifteen pinned Noto font files are used for the visual checks.
+All eighteen pinned Noto font files, including the new upstream Thai fonts, are used for the visual checks.
 
 [Native CI validation](PORTUGUESE-NATIVE-VALIDATION.md) records run 39800321618: all nine jobs passed on the
 validated code commit 9d357e7, including full formatting, the Windows installer suite, portable packages and
-native startup checks. The following interactive checks remain open; the PR stays a draft until they are recorded:
+native startup checks. The following interactive checks remain open and must not be reported as passed:
 
 - Windows pt-PT/pt-BR display language with automatic selection, explicit opposite choice and restart; repeat with
   a different number/date region.

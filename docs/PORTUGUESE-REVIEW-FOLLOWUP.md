@@ -1,7 +1,8 @@
 # Independent Portuguese review: follow-up
 
-The independent review examined b694dad, based on Filee 2.0.0 at 799e394. This follow-up integrates current upstream
-a121a3c9e3254918f8b171bb7f675b0bdc532244, verified on 22 October 2026. Only Blackspirits/Filee is changed.
+The independent review examined b694dad, based on Filee 2.0.0 at 799e394. The first follow-up integrated upstream
+a121a3c9e3254918f8b171bb7f675b0bdc532244 on 22 October. The current integration is
+4c3a3e1cbedec48c3033c68fd0da161977e7afdf, verified on 23 October 2026. Only Blackspirits/Filee is changed.
 
 ## Findings and responses
 
@@ -78,9 +79,9 @@ dotnet test tests/Filee.Setup.Tests -m:1 -c Release --filter "FullyQualifiedName
 Inspected fresh Skia captures include pt-PT and French default toolbars, Portuguese theme/history recordings, and
 the corrected complete action buttons and compact preview labels. The automated suite additionally captures the
 Portuguese pages/dialogs and installer states. Real installation/UAC, Finder and permission-prompt display,
-and keyboard/NVDA/VoiceOver checks remain required. Complete native CI has since passed all nine jobs; the
+and keyboard/NVDA/VoiceOver checks remained open at that snapshot. Historical native CI passed all nine jobs; the
 [native validation report](PORTUGUESE-NATIVE-VALIDATION.md) records the evidence and interactive checklist.
-The PR stays a draft pending those interactive checks.
+That historical head stayed a draft; current readiness and native limitations are recorded below.
 
 ## Approved Phase 1 follow-up — 23 October 2026
 
@@ -98,7 +99,7 @@ from committed code, and local full-format diagnostics from the successful forma
 The real isolated Windows app passed the pt-PT automatic → explicit pt-BR → full exit/restart → automatic sequence.
 Selected native focus/preset keyboard checks and the new support title were observed. Reverse OS-language,
 mismatched native numeric region, modal keyboard, real release installation/UAC/Explorer, macOS/Finder/permissions
-and NVDA/VoiceOver checks remain open. The PR stays a draft and Phase 2 has not started.
+and NVDA/VoiceOver checks remained open. That earlier head stayed a draft; current readiness is recorded below.
 
 Commands used for this follow-up (PowerShell, Release):
 
@@ -134,6 +135,54 @@ The successful media/capture commands used temporary output-folder adapters as d
 those adapters are not repository features or committed changes. The local logs retain failed attempts as well as
 final successes. Local commits were created without SSH signatures because the configured signing key required an
 unavailable passphrase; the user's signing configuration was not changed.
+
+## Current upstream integration and final review — 23 October 2026
+
+The remote was checked before editing and again before publication. Merge `47616f7` brings upstream `4c3a3e1`
+into the contribution without resetting or rewriting published history. Seventeen merge conflicts were resolved;
+there were no competing value changes in the three-way JSON merge. Material You, OCR, palette tabs, Thai and all
+other upstream changes are retained. All fifteen catalogs have 978 keys; the 67 missing pt-PT translations and
+three changed-source messages are complete. Upstream Brazilian wording is retained key by key. Catalog section
+spacing is preserved. Thai receives English engine-name fallbacks and its own existing full compact-label values,
+following the existing contribution policy; no new native-language review is claimed for it.
+
+Approved final pt-PT edits: `sponsor.thanks` is `Obrigado a quem apoia o Filee`; `merge.order_hint` explains that
+files are combined from the top of the list to the bottom. The CLI hint keeps `<folder>` and `<format>` at the
+contributor's request; they are argument descriptions, while `filee watch` / `--to` remain literal syntax.
+`Página inicial`, `Apoiar` and `Apoiar o Filee` remain. The contextual glossary follows the approved acknowledgement.
+
+Commit `fea4fa0` fixes the old CI's Setup slide-timer race without changing production behavior or dropping an
+assertion. The media commit regenerates all eight Portuguese clips and the shared multilingual showcase; complete
+browser/flip desktop recordings remain. Both App and Setup embed the regenerated files after the final build. The existing supporter render fixture
+also covers en, pt-PT and pt-BR and asserts that the acknowledgement fits in both windows.
+
+See the [current native report](PORTUGUESE-NATIVE-VALIDATION.md#current-upstream-integration--23-october-2026)
+for final counts, the temporary build-copy workaround and separate headless/native evidence. The contributor has
+accepted unavailable native sessions as explicit follow-ups for maintainer review. The full port-package release
+matrix in CONTRIBUTING.md is not an indefinite gate for submitting this translation PR. Actual current CI and
+concrete integration failures still gate readiness. The fork PR remains the coordination point; no upstream code
+write, PR merge or Phase 2 work is included.
+
+Commands for the integrated snapshot (run from the temporary copy when checkout output is refused):
+
+```powershell
+./build/fetch-fonts.ps1
+dotnet restore Filee.slnx --disable-parallel
+dotnet build Filee.slnx -m:1 -c Release --no-restore -p:UseSharedCompilation=false
+# FILEE_WHATSNEW_LANGUAGE=pt-PT, then pt-BR; FILEE_WHATSNEW_ONLY=formats,crop,theme,more
+# Then en with FILEE_WHATSNEW_ONLY=languages. Rebuild App/Setup afterwards.
+./tests/Filee.App.Tests/bin/Release/net10.0/Filee.App.Tests.exe -method Filee.App.Tests.WhatsNewMedia.Generate_2_0_0 -explicit only
+$env:FILEE_LOCALIZATION_SCREENSHOTS='1'
+$appFilter='FullyQualifiedName~Localization|FullyQualifiedName~Portuguese|FullyQualifiedName~DonutLabelPlacement|FullyQualifiedName~ToolbarEditorTests|FullyQualifiedName~ToolbarPaletteViewTests|FullyQualifiedName~ThemePageTests|FullyQualifiedName~MaterialYouThemeTests|FullyQualifiedName~WhatsNewTests|FullyQualifiedName~InstallerTests|FullyQualifiedName~SupportersTests|FullyQualifiedName~ReleaseNotesTests|FullyQualifiedName~Live_photo_options_render_for_jpg_and_heic_and_save_only_there|FullyQualifiedName~Sponsor_window_renders'
+dotnet test tests/Filee.App.Tests -c Release --no-build --filter $appFilter --logger trx
+dotnet test tests/Filee.Setup.Tests -c Release --no-build --logger trx
+dotnet test tests/Filee.Core.Tests -c Release --no-build --logger trx
+dotnet test tests/Filee.Cli.Tests -c Release --no-build --logger trx
+dotnet test tests/Filee.Platform.Tests -c Release --no-build --logger trx
+dotnet format Filee.slnx --verify-no-changes --no-restore --severity warn
+dotnet format Filee.slnx --verify-no-changes --no-restore --severity warn --include tests/Filee.App.Tests/PortugueseLocalizationTests.cs tests/Filee.Setup.Tests/SetupWindowTests.cs tests/Filee.App.Tests/RenderTests.cs
+git diff --check
+```
 
 ## References
 
