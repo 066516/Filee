@@ -94,6 +94,53 @@ public class CadVersionTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Contains(@"\U+8FD9", raw); // 这 isn't in CP949
     }
 
+    [Theory]
+    [InlineData("dxf", CadVersion.AutoCad2000)]
+    [InlineData("dxf", CadVersion.AutoCad2004)]
+    [InlineData("dwg", CadVersion.AutoCad2000)]
+    [InlineData("dwg", CadVersion.AutoCad2004)]
+    public async Task Korean_names_pick_the_code_page_even_with_english_text(string format, CadVersion version)
+    {
+        // A layer and a block named in Korean, an attribute tag too, and only English text: common in Korean drawings.
+        var doc = new CadDocument();
+        doc.Header.CodePage = "ANSI_1252";
+        var wall = new Layer("벽체") { Color = CadBuilder.Visible };
+        doc.Layers.Add(wall);
+        CadBuilder.Add(doc, wall, new Line(new XYZ(0, 0, 0), new XYZ(100, 0, 0)));
+        CadBuilder.Add(doc, wall, new TextEntity("Wall A") { InsertPoint = new XYZ(0, 5, 0), Height = 3 });
+        CadBuilder.Add(doc, wall, new AttributeDefinition { Tag = "도면번호", Value = "A-101", Height = 3 });
+        var source = format == "dxf" ? CadBuilder.SaveDxf(doc, fx.NewFolder(), "walls.dxf") : SaveDwg(doc, "walls.dwg");
+
+        var back = ReadBack(await ConvertAsync(source, format, version));
+
+        Assert.Contains(back.Layers, l => l.Name == "벽체");
+        Assert.Contains(back.Entities.OfType<AttributeDefinition>(), a => a.Tag == "도면번호");
+        Assert.Contains("Wall A", Shown(back));
+    }
+
+    [Fact]
+    public async Task Names_and_text_the_code_page_cant_hold_are_escaped_and_an_emoji_is_one_question_mark()
+    {
+        var doc = new CadDocument();
+        doc.Header.CodePage = "ANSI_1252";
+        var layer = new Layer("평면 这") { Color = CadBuilder.Visible };
+        doc.Layers.Add(layer);
+        CadBuilder.Add(doc, layer, new TextEntity("한글 도면 😀 끝") { InsertPoint = new XYZ(0, 0, 0), Height = 3 });
+        var source = CadBuilder.SaveDxf(doc, fx.NewFolder(), "mixed.dxf");
+
+        var back = ReadBack(await ConvertAsync(source, "dxf", CadVersion.AutoCad2004));
+
+        Assert.Contains(back.Layers, l => CadTextCodes.DecodeText(l.Name) == "평면 这");
+        Assert.Contains("한글 도면 ? 끝", Shown(back));
+    }
+
+    private string SaveDwg(CadDocument doc, string name)
+    {
+        var path = Path.Combine(fx.NewFolder(), name);
+        DwgWriter.Write(path, doc);
+        return path;
+    }
+
     [Fact]
     public void The_code_page_follows_the_text()
     {

@@ -70,8 +70,10 @@ internal static class CadCodePages
         {
             if (c <= 0x7F || Holds(encoding, c))
                 result.Append(c);
-            else if (char.IsSurrogate(c))
-                result.Append('?'); // \U+ takes four hex digits: nothing outside the BMP fits
+            else if (char.IsHighSurrogate(c))
+                result.Append('?'); // \U+ takes four hex digits: nothing outside the BMP fits, one ? per character
+            else if (char.IsLowSurrogate(c))
+                continue;
             else
                 result.Append($"\\U+{(int)c:X4}");
         }
@@ -98,14 +100,36 @@ internal static class CadCodePages
         _ => null,
     };
 
-    /// <summary>Every text a drawing shows: TEXT and attributes, MTEXT, dimension text, attributes of inserts.</summary>
+    /// <summary>
+    /// Every text a drawing holds in its code page: TEXT and attributes (values and tags), MTEXT, dimension text, and
+    /// the names of layers, blocks, text and dimension styles, linetypes and layouts. Korean layer names with English
+    /// labels are common, so names count when the code page is picked, and are escaped like text.
+    /// </summary>
     private static IEnumerable<(Func<string> Get, Action<string> Set)> Texts(CadDocument document)
     {
+        foreach (var layer in document.Layers)
+            yield return (() => layer.Name, v => layer.Name = v);
+        foreach (var style in document.TextStyles)
+            yield return (() => style.Name, v => style.Name = v);
+        foreach (var style in document.DimensionStyles)
+            yield return (() => style.Name, v => style.Name = v);
+        foreach (var lineType in document.LineTypes)
+            yield return (() => lineType.Name, v => lineType.Name = v);
+        foreach (var layout in document.Layouts)
+            yield return (() => layout.Name, v => layout.Name = v);
         foreach (var record in document.BlockRecords)
+        {
+            // *Model_Space, *Paper_Space and anonymous blocks are ASCII by definition.
+            if (!record.Name.StartsWith('*'))
+                yield return (() => record.Name, v => record.Name = v);
             foreach (var entity in record.Entities)
             {
                 switch (entity)
                 {
+                    case AttributeDefinition definition:
+                        yield return (() => definition.Value ?? "", v => definition.Value = v);
+                        yield return (() => definition.Tag ?? "", v => definition.Tag = v);
+                        break;
                     case TextEntity text:
                         yield return (() => text.Value ?? "", v => text.Value = v);
                         break;
@@ -117,9 +141,13 @@ internal static class CadCodePages
                         break;
                     case Insert insert:
                         foreach (var attribute in insert.Attributes)
+                        {
                             yield return (() => attribute.Value ?? "", v => attribute.Value = v);
+                            yield return (() => attribute.Tag ?? "", v => attribute.Tag = v);
+                        }
                         break;
                 }
             }
+        }
     }
 }
