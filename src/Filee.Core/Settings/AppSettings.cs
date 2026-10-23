@@ -196,6 +196,9 @@ public sealed class AppSettings
     /// <summary>Set once the "Is Filee helping you?" card (GitHub star / feedback) has been shown.</summary>
     public bool FeedbackPromptShown { get; set; }
 
+    /// <summary>macOS: set once Filee has shown the system's Accessibility alert, which it shows only once (#316).</summary>
+    public bool AccessibilityPromptShown { get; set; }
+
     /// <summary>Folders whose new files are converted automatically (Settings → Watch folders).</summary>
     public List<Watching.WatchRule> WatchFolders { get; set; } = [];
 
