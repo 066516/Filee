@@ -1553,8 +1553,8 @@ public class ToolbarPaletteModelTests
             var delete = vm.DeleteProfileCommand.ExecuteAsync(null);
             Dispatcher.UIThread.RunJobs();
             var dialog = Assert.Single(windows.Main!.OwnedWindows);
-            var button = ((StackPanel)dialog.Content!).Children.OfType<StackPanel>()
-                .Single().Children.OfType<Button>().Single(b => b.IsDefault);
+            // Found wherever it sits: the window zoom wraps a dialog's content.
+            var button = dialog.GetVisualDescendants().OfType<Button>().Single(b => b.IsDefault);
             button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             await delete.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
             Assert.False(vm.HasJudgement(original.Id, "test-jpg"));
