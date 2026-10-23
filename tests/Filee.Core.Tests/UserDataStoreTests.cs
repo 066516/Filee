@@ -1393,6 +1393,38 @@ public class UserDataStoreTests
     }
 
     [Fact]
+    public void Version_41_libraries_get_the_spreadsheet_print_studio_after_crop_and_on_the_back()
+    {
+        var presets = BuiltInData.CreatePresets();
+        presets.RemoveAll(p => p.Id == "tool-sheet-studio");
+        var profiles = BuiltInData.CreateProfiles();
+        profiles.Single(p => p.Id == "spreadsheets").BackPresetIds!.Remove("tool-sheet-studio");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(41, presets, profiles));
+
+        var studio = presets.Single(p => p.Id == "tool-sheet-studio");
+        Assert.Equal((PresetKind.Tool, "pdf"), (studio.Kind, studio.TargetFormat));
+        Assert.Equal(presets.FindIndex(p => p.Id == "tool-crop") + 1, presets.IndexOf(studio)); // as in a new library
+        Assert.Equal("tool-sheet-studio", profiles.Single(p => p.Id == "spreadsheets").BackPresetIds![0]);
+        Assert.False(SettingsMigrations.ApplyToLibrary(41, presets, profiles));
+    }
+
+    [Fact]
+    public void Version_41_libraries_keep_the_print_studio_off_the_back_when_the_front_has_it()
+    {
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var spreadsheets = profiles.Single(p => p.Id == "spreadsheets");
+        spreadsheets.BackPresetIds!.Remove("tool-sheet-studio");
+        spreadsheets.PresetIds.Add("tool-sheet-studio"); // the user put it on the front
+
+        SettingsMigrations.ApplyToLibrary(41, presets, profiles);
+
+        Assert.DoesNotContain("tool-sheet-studio", spreadsheets.BackPresetIds);
+        Assert.Single(presets, p => p.Id == "tool-sheet-studio");
+    }
+
+    [Fact]
     public void Back_from_an_older_Filee_tool_crop_works_again_and_keeps_the_users_changes()
     {
         // What a Filee before 26 leaves after saving: kind read as Group, TargetFormat dropped, SubPresetIds empty, the rest as it was.
