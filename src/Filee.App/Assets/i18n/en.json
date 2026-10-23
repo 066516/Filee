@@ -276,6 +276,7 @@
   "general.integration_macos": "Finder shows it in the right-click menu (under Quick Actions or Services when the menu is long).\nKeep Filee in Applications.",
   "general.integration_linux": "Adds file actions to Thunar, Nautilus, Nemo and Dolphin.\nTo change Thunar's shortcut, close Thunar first and reopen it afterwards.",
   "general.integration_failed": "Could not apply system integration: {0}",
+  "general.startup_entry_missing": "The sign-in entry was removed or changed right after it was saved. Security software may be blocking it.",
   "general.modern_menu_hint": "On Windows 11 this entry is under “Show more options”.\nIt can also go in the main menu (Windows asks for administrator permission once).",
   "general.modern_menu_on": "“Convert with Filee” is in the main Windows 11 menu.",
   "general.modern_menu_outdated": "The main-menu entry belongs to an older or moved copy of Filee.\nAdd it again to update it.",

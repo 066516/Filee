@@ -264,6 +264,7 @@
   "general.integration_macos": "Finder lo muestra en el menú contextual (en Acciones rápidas o Servicios si el menú es largo).\nMantén Filee en Aplicaciones.",
   "general.integration_linux": "Añade acciones de archivos a Thunar, Nautilus, Nemo y Dolphin.\nPara cambiar el atajo de Thunar, cierra Thunar antes y vuelve a abrirlo después.",
   "general.integration_failed": "No se pudo aplicar la integración con el sistema: {0}",
+  "general.startup_entry_missing": "La entrada de inicio de sesión se eliminó o cambió justo después de guardarse. Puede que un software de seguridad la esté bloqueando.",
   "general.modern_menu_hint": "En Windows 11 esta entrada está en «Mostrar más opciones».\nTambién puede ir al menú principal (Windows pide permiso de administrador una sola vez).",
   "general.modern_menu_on": "«Convertir con Filee» está en el menú principal de Windows 11.",
   "general.modern_menu_outdated": "La entrada del menú principal pertenece a una copia antigua de Filee o a una que cambió de carpeta.\nAñádela otra vez para actualizarla.",
