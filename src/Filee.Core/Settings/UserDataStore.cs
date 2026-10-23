@@ -804,6 +804,9 @@ internal static class SettingsMigrations
             presets.Insert(at < 0 ? presets.Count : at + 1, BuiltInData.OcrPresets().Single());
             changed = true;
         }
+        // v41: PNG/JPEG download aliases learn the images donut; custom claims stay put.
+        if (from < 41)
+            changed |= LearnExtensions(profiles, out _, ["png_large", "jpg_large"]);
         // v42: the print studio for XLSX → PDF (a tool), after "Crop" as in a new library, and first on the back of the
         //      spreadsheets donut when it has room and the user hasn't put it on either face.
         if (from < 42)
