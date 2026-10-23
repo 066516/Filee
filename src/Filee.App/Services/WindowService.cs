@@ -198,6 +198,23 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         notice.Show();
     }
 
+    /// <summary>
+    /// Starts downloading and installing an update, and opens the progress dialog.
+    /// Used by the sidebar, About page, and tray menu (the update notice has its own progress bar).
+    /// </summary>
+    public async Task StartUpdateAsync(UpdateService updates)
+    {
+        if (updates.IsBusy)
+        {
+            ShowUpdateProgress(updates);
+            return;
+        }
+
+        var update = updates.UpdateAsync();
+        ShowUpdateProgress(updates);
+        await update;
+    }
+
     /// <summary>Shows the update download progress dialog with a progress bar.</summary>
     public void ShowUpdateProgress(UpdateService updates)
     {
@@ -361,6 +378,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     public async Task ShowUpdateFailedAsync()
     {
         _updateNotice?.Close();
+        _updateProgress?.Close();
         await MessageAsync(_main is { IsVisible: true } main ? main : null, loc["update.failed_alert"]);
         services.GetRequiredService<UpdateService>().OpenDownloadPage();
     }

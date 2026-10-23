@@ -30,15 +30,7 @@ public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformSe
         _quit = new NativeMenuItem();
         _quit.Click += (_, _) => (app.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown();
         _update = new NativeMenuItem();
-        _update.Click += async (_, _) =>
-        {
-            if (updates.IsBusy)
-            {
-                windows.ShowUpdateProgress(updates);
-                return;
-            }
-            await updates.UpdateAsync();
-        };
+        _update.Click += async (_, _) => await windows.StartUpdateAsync(updates);
 
         _tray = new TrayIcon
         {

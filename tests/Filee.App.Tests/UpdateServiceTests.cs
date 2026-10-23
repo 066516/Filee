@@ -318,7 +318,8 @@ public class UpdateServiceTests
 
         Assert.Equal(45, window.ProgressBar.Value);
         Assert.Equal("45%", window.PercentText.Text);
-        Assert.Contains("45%", window.StatusText.Text);
+        Assert.DoesNotContain("45%", window.StatusText.Text);
+        Assert.StartsWith(loc["update.downloading"].Split('…')[0], window.StatusText.Text);
 
         updates.DownloadPercent = 90;
         Assert.Equal(90, window.ProgressBar.Value);

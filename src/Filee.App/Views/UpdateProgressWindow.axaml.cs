@@ -64,7 +64,9 @@ public partial class UpdateProgressWindow : Window
                 ProgressBar.IsIndeterminate = false;
                 ProgressBar.Value = _updates.DownloadPercent;
                 PercentText.Text = $"{_updates.DownloadPercent}%";
-                StatusText.Text = _loc.Format("update.downloading", _updates.DownloadPercent);
+                var text = _loc["update.downloading"];
+                var ellipsis = text.IndexOf('…');
+                StatusText.Text = ellipsis >= 0 ? text[..(ellipsis + 1)] : text;
                 break;
 
             case UpdateStep.Installing:
