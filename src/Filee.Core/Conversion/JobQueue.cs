@@ -29,6 +29,7 @@ public sealed class JobQueue : IAsyncDisposable
     /// <summary>Output folders this queue made (a subfolder, a fixed folder that wasn't there): removed again when left empty.</summary>
     private readonly HashSet<string> _madeFolders = new(Platform.FileSystemPaths.Comparer);
     private readonly Task _worker;
+    private readonly Func<string, string?>? _moveToTrash;
     private int _busy;
 
     /// <param name="catalog">Converters and their priority.</param>
@@ -37,9 +38,14 @@ public sealed class JobQueue : IAsyncDisposable
     /// <param name="combiner">Used by "Compress into one archive" presets (<see cref="ArchiveOptions.CombineIntoOne"/>).</param>
     /// <param name="tiffMerger">Used by multi-page TIFF presets (<see cref="ImageOptions.MultiPageTiff"/>).</param>
     /// <param name="mediaJoiner">Used by "Merge videos", "Merge audio" and "Video from images" (<see cref="Preset.JoinsIntoOneMedia"/>).</param>
+    /// <param name="moveToTrash">
+    /// Moves a file to the Recycle Bin / Trash for <see cref="OutputRule.ReplaceOriginal"/>: null when it worked, else
+    /// why not. Without it originals are always kept.
+    /// </param>
     public JobQueue(ConverterCatalog catalog, IPdfMerger? pdfMerger = null, ILogger<JobQueue>? log = null, IFileCombiner? combiner = null,
-        ITiffMerger? tiffMerger = null, IMediaJoiner? mediaJoiner = null)
+        ITiffMerger? tiffMerger = null, IMediaJoiner? mediaJoiner = null, Func<string, string?>? moveToTrash = null)
     {
+        _moveToTrash = moveToTrash;
         _catalog = catalog;
         _pdfMerger = pdfMerger;
         _combiner = combiner;
@@ -766,6 +772,9 @@ public sealed class JobQueue : IAsyncDisposable
             else if (finalOutput && inputs.Count == 1 && final is { Handed: 1 })
                 inputs = [NextToSource(job, file, index, inputs[0], final)];
 
+            if (finalOutput && !zipResult && inputs.Count == 1)
+                inputs = [ReplaceOriginal(job, file, source.Id, inputs[0])];
+
             // A name the engine took but wrote nothing to is free again.
             final?.Release(except: inputs);
             if (finalOutput)
@@ -983,6 +992,38 @@ public sealed class JobQueue : IAsyncDisposable
         }
         _reservedOutputs[path] = new Reservation();
         return true;
+    }
+
+    /// <summary>
+    /// "Replace the original" (<see cref="OutputRule.ReplaceOriginal"/>): moves the source to the Recycle Bin / Trash and
+    /// the finished <paramref name="output"/> to its path, which is returned. Anything that stops it keeps the source and
+    /// the output as they are, with a note saying why.
+    /// </summary>
+    private string ReplaceOriginal(ConversionJob job, FileResult file, string sourceFormat, string output)
+    {
+        if (!job.Preset.Output.ReplaceOriginal || job.Fetcher is not null || !File.Exists(output)
+            || FormatRegistry.Detect(output)?.Id != sourceFormat
+            || string.Equals(Path.GetFullPath(output), Path.GetFullPath(file.SourcePath), Platform.FileSystemPaths.Comparison))
+            return output;
+        var reason = _moveToTrash is null ? "no Recycle Bin / Trash here" : _moveToTrash(file.SourcePath);
+        if (reason is null)
+        {
+            try
+            {
+                File.Move(output, file.SourcePath);
+                return file.SourcePath;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // The original is already in the Trash: the result stays where it was written.
+                _log.LogWarning(ex, "Could not move {Output} to {Source}", output, file.SourcePath);
+                reason = ex.Message;
+            }
+        }
+        _log.LogInformation("Kept the original {Source}: {Reason}", file.SourcePath, reason);
+        file.NoticeKey = File.Exists(file.SourcePath) ? "notice.original_kept" : "notice.original_in_trash";
+        file.NoticeDetail = reason;
+        return output;
     }
 
     /// <summary>Lets go of <paramref name="path"/> (under the lock): free once nobody holds it.</summary>

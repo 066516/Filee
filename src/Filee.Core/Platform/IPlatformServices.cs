@@ -21,6 +21,12 @@ public interface IPlatformServices
     /// <summary>True if the window at the screen point belongs to the file manager or desktop. Coordinates are pixels on Windows/Linux and desktop points on macOS.</summary>
     bool IsFileManagerAt(int x, int y);
 
+    /// <summary>
+    /// Moves a file to the Recycle Bin / Trash, where the user can restore it (<see cref="Presets.OutputRule.ReplaceOriginal"/>).
+    /// Null when it worked; otherwise why not, in a few words, and the file is left where it is.
+    /// </summary>
+    string? MoveToTrash(string path) => "there is no Recycle Bin / Trash here";
+
     /// <summary>Process name (without extension) owning the window under the point, or <c>null</c>.</summary>
     string? ProcessNameAt(int x, int y);
 

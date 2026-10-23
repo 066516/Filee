@@ -57,6 +57,9 @@ public sealed class FileResult
     /// </summary>
     public string? NoticeKey { get; set; }
 
+    /// <summary>Non-localized detail shown after the notice in brackets (why the original was kept), or null.</summary>
+    public string? NoticeDetail { get; set; }
+
     /// <summary>
     /// Referenced document font families that weren't installed before rendering. Conversion still completes with the
     /// renderer's substitutions; the UI can offer trusted sources afterwards.

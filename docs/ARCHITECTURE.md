@@ -48,6 +48,11 @@
    Each name stays reserved while a conversion holds it. A conversion that fails or is cancelled deletes what it began
    writing, but only at a path that was its alone: nothing was there before and no other conversion was handed the
    same name ("Overwrite"). It frees its names and removes an output folder it made if that is left empty.
+   *Replace the original* (`OutputRule.ReplaceOriginal`, off by default) comes after that, for a finished result of
+   the source's own format: the source goes to the Recycle Bin / Trash (`IPlatformServices.MoveToTrash`) and the
+   result is moved to its path. When it can't go there (no Recycle Bin on the drive, a network share, a file open
+   elsewhere, the command line), both stay and the file's notice says why. Watch folders and files from a browser
+   never replace.
    "Merge into one PDF" converts each file to PDF and merges with PDFsharp.
    "Compress into one archive" packs the dropped files, unconverted, with the archive engine (`IFileCombiner`).
    "Merge videos", "Merge audio" and "Video from images" join the files, in the order picked in the merge order
