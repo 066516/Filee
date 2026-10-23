@@ -264,6 +264,7 @@
   "general.integration_macos": "Finder ले यसलाई दायाँ-क्लिक मेनुमा देखाउँछ (मेनु लामो हुँदा Quick Actions वा Services भित्र)।\nFilee लाई Applications मा राख्नुहोस्।",
   "general.integration_linux": "Thunar, Nautilus, Nemo र Dolphin मा फाइल कार्यहरू थप्छ।\nThunar को सर्टकट परिवर्तन गर्न, पहिले Thunar बन्द गर्नुहोस् र पछि पुन: खोल्नुहोस्।",
   "general.integration_failed": "प्रणाली एकीकरण लागू गर्न सकिएन: {0}",
+  "general.startup_entry_missing": "साइन इन गर्दा सुरु हुने प्रविष्टि सेभ गरेलगत्तै हटाइयो वा बदलियो। सुरक्षा सफ्टवेयरले यसलाई रोकिरहेको हुन सक्छ।",
   "general.modern_menu_hint": "Windows 11 मा यो प्रविष्टि “थप विकल्पहरू देखाउनुहोस्” अन्तर्गत हुन्छ।\nयसलाई मुख्य मेनुमा पनि राख्न सकिन्छ (Windows ले एक पटक प्रशासक अनुमति माग्छ)।",
   "general.modern_menu_on": "“Filee मार्फत रूपान्तरण गर्नुहोस्” मुख्य Windows 11 मेनुमा छ।",
   "general.modern_menu_outdated": "मुख्य मेनुको प्रविष्टि Filee को पुरानो वा सारिएको प्रतिलिपिसँग सम्बन्धित छ।\nयसलाई अपडेट गर्न पुन: थप्नुहोस्।",
