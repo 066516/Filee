@@ -20,6 +20,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | **DOCX writer** | built in | **HWPX (and HWP through rhwp), PDF, OFD, HTML, MHTML, EPUB, MOBI/AZW3, FB2, Markdown, TXT, XLSX, XLS, ODS, CSV, PPTX (+ variants) → DOCX** |
 | PDF text | built in (PdfPig) | **PDF → TXT, Markdown** (reading order, also two columns; Markdown keeps headings, emphasis, links and the pictures; no OCR) |
 | PDF slides | built in (PDFium, PdfPig) | **PDF → PPTX**: a picture of each page on its own slide (looks like the PDF, not editable), the page's text in the speaker notes |
+| PDF tables | built in (PdfPig) | **PDF → XLSX** (#267): each table drawn with lines on its own sheet, numbers and dates as real values, merged cells and column widths kept |
 | E-mail | built in (MimeKit, MsgReader) | **EML, Outlook MSG → HTML** (headers + body, inline pictures), **TXT**, **ZIP** (the attachments); **MSG → EML**; **MHTML → HTML** (the saved page in one file, pictures inlined; on to PDF, DOCX, HWPX, TXT, Markdown, EPUB from there) |
 | Data | built in (System.Text.Json, YamlDotNet, Tomlyn, System.Xml) | **JSON, JSON Lines, YAML, TOML, XML, CSV ↔ each other** (CSV for tables); **vCard, iCalendar ↔ CSV**; spreadsheets, contacts and events reach JSON / YAML / TOML / XML through CSV |
 | **E-books** | built in | **EPUB, MOBI/AZW/AZW3/PRC, FB2, HTMLZ, TXTZ → EPUB, HWPX (→ PDF), TXT, HTML, Markdown, FB2, HTMLZ, TXTZ**; HTML, Markdown, TXT, DOCX → EPUB/FB2/HTMLZ/TXTZ; HTML → TXT; comics CBZ/CBR/CB7/CBT/CBC → PDF, EPUB, CBZ; PDF → CBZ; AZW4 → PDF; **EPUB ↔ KEPUB** (Kobo) |
@@ -634,6 +635,26 @@ in tabbed rows), clipping. Two text blocks side by side without rules share thei
 differently inside an exact line (Word and LibreOffice at its foot, 한글 and rhwp at its head), so in the rhwp PDF
 text sits up to 0.2 sizes higher than on the page. LibreOffice adds cell borders to row heights: the DOCX of a
 full 140 mm invoice opened there puts its last line on a second page (rhwp's PDF keeps it on one).
+
+## PDF → XLSX
+
+`Pdf/PdfTablesConverter.cs` puts the tables of a PDF into a workbook (#267). The tables are the ruled ones PDF → DOCX
+finds (`PdfDocumentReader.Tables.cs`, above): drawn with lines, with their merged cells, column widths and row
+heights. Text outside the tables is left out, as the XLSX preset's hint says; tables aligned by white space only are
+not found.
+
+- **One sheet per table** ("Table 1", "Table 2" …). A table that goes on at the top of the next page with the same
+  columns (widths within 5 %), right after one that ended its page, joins it on one sheet; a header row repeated on
+  the new page is left out.
+- **Numbers and dates** become real values with a number format that shows them as the PDF did: `1,234.50`
+  (`#,##0.00`), `(120)` (negative), `$9.99` / `€1,000.00` / `₩` `£` `¥` `₹` (the symbol in the format), `12.5%`
+  (`0.0%`), and dates with the year first, `2026-10-23`, `2026/1/5`, `2026. 10. 23.` (Korean style). Everything else
+  stays text: a leading zero (codes, phone numbers), more than 15 digits, a decimal comma (`1.234,50`, which can't be
+  told from thousands), day- or month-first dates.
+- Every cell gets thin borders (the table was drawn with lines), its shading, vertical alignment and bold when all
+  its text is bold; text wraps. Merged areas keep their borders on every covered cell.
+- A PDF with no such table, or a scan (no text), fails with `error.pdf_no_tables` instead of writing an empty
+  workbook. Through XLSX, the tables reach ODS and CSV too.
 
 ## PDF → PPTX
 

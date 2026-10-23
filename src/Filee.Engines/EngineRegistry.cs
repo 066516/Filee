@@ -55,6 +55,7 @@ public static class EngineRegistry
         new DocxWriterConverter(),
         new PdfTextConverter(),
         new PdfSlidesConverter(),
+        new PdfTablesConverter(),
         new EmlConverter(),
         new DataConverter(),
         new SubtitleConverter(),
