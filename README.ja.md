@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <b>日本語</b> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <b>日本語</b> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a> · <a href="README.th.md">ไทย</a></p>
 
 <table>
   <tr>
@@ -55,7 +55,7 @@
   セットアップはFilee独自のインストーラーで、Fileeと同じ言語で表示され、PCにほかのソフトは必要ありません。エクスプローラーの
   メニュー、サインイン時の起動、`filee`コマンド、追加の変換エンジンを選べます。サイレントインストールにはInno Setupと同じ
   スイッチ（`/VERYSILENT /SUPPRESSMSGBOXES`）が使えます。
-- **macOS 13以降**（プレビュー版）：`osx-arm64`または`osx-x64`のパッケージを展開し、`./install.sh`を実行します。
+- **macOS 13以降**（プレビュー版）：`osx-arm64`または`osx-x64`のパッケージを展開し、`./install.sh`を実行します。または`.dmg`を開いてFileeを「アプリケーション」へドラッグします（`filee`コマンドは`install.sh`で追加されます）。
   まだ公証を受けていないため、初回起動時は「システム設定」→「プライバシーとセキュリティ」→「**このまま開く**」で許可してください。
 - **Linux x64/ARM64**（Ubuntu 22.04以降）：パッケージを展開して`./install.sh`を実行します（root権限は不要、Python 3が必要）。
   ドラッグ操作にはX11が必要です。Waylandでは、ドロップ領域とファイルマネージャーの右クリックメニューを使ってください。
@@ -78,7 +78,7 @@
 - **最近の変換**はホームにサムネイル付きで表示され、変換結果を開いたり、別のアプリで開いたりできます。
 - **ほかの使い方**：右クリックメニュー、キーボードショートカット、ドロップ領域、[`filee`コマンド](#コマンドライン)。
 - ライトテーマとダークテーマ。アクセントカラーとドーナツメニューの不透明度も選べます。English、Español、日本語、한국어、
-  简体中文、繁體中文、Polski、हिन्दी、Русский、العربية（右から左へ表示）、Português (Brasil)、Françaisに対応。
+  简体中文、繁體中文、Polski、हिन्दी、Русский、العربية（右から左へ表示）、Português (Brasil)、Français、नेपाली、ไทยに対応。
 
 ## スクリーンショット
 
