@@ -242,8 +242,6 @@ pt-BR: Correções de segurança para e-books, SVG, modelos 3D e e-mails, e muit
 
 ### Fixed
 
-- PNG and JPEG pictures named `.png_large` or `.jpg_large` are recognised for conversion and by the images donut,
-  including existing libraries. Custom extension assignments stay as they are.
 - A failed or cancelled conversion left a half-written file where the result should be, and converting again gave
   `photo (2).png` (by @flexeykinDev). A file the preset was going to overwrite is never deleted.
 - Work folders a crash or a shutdown left in the temp folder stayed there for good. They are deleted after a day (by
