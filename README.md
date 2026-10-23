@@ -10,6 +10,7 @@
 <p align="center">
   <a href="https://filee.sh"><b>Website</b></a> ·
   <a href="https://github.com/KnifeLemon/Filee/releases/latest"><b>Download</b></a> ·
+  <a href="https://www.linkedin.com/company/filee-sh/"><b>LinkedIn</b></a> ·
   <a href="#install">Install</a> ·
   <a href="#command-line">Command line</a> ·
   <a href="#development">Development</a>
@@ -215,7 +216,7 @@ It connects to the internet only:
 
 - to ask GitHub (`api.github.com`) whether a newer release exists, shortly after start and then every few hours.
   Turn this off in Settings → About ("Check for updates automatically").
-- to download the conversion engines you choose to install, from the official locations pinned in [`engines.json`](src/Filee.Engines/Infrastructure/engines.json).
+- to download the conversion engines you choose to install, from the official locations pinned in [`engines.json`](src/Filee.Engines/Infrastructure/engines.json), and the text recognition (OCR) languages a preset uses, pinned in [`ocr-languages.json`](src/Filee.Engines/Infrastructure/ocr-languages.json).
 - when you click a link, which opens your web browser.
 
 ## Sponsor

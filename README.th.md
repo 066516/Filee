@@ -10,6 +10,7 @@
 <p align="center">
   <a href="https://filee.sh"><b>เว็บไซต์</b></a> ·
   <a href="https://github.com/KnifeLemon/Filee/releases/latest"><b>ดาวน์โหลด</b></a> ·
+  <a href="https://www.linkedin.com/company/filee-sh/"><b>LinkedIn</b></a> ·
   <a href="#การติดตั้ง">การติดตั้ง</a> ·
   <a href="#การใช้งานผ่านบรรทัดคำสั่ง-command-line">บรรทัดคำสั่ง</a> ·
   <a href="#การพัฒนา-development">การพัฒนา</a>
@@ -214,7 +215,7 @@ Filee ทำการแปลงไฟล์ภายในเครื่อ�
 การเชื่อมต่ออินเทอร์เน็ตจะเกิดขึ้นเฉพาะในกรณีต่อไปนี้:
 
 - ตรวจสอบเวอร์ชันใหม่กับ GitHub (`api.github.com`) หลังเปิดโปรแกรมและทุกๆ สองสามชั่วโมง (ปิดได้ที่ การตั้งค่า → เกี่ยวกับ "ตรวจสอบการอัปเดตอัตโนมัติ")
-- ดาวน์โหลดเครื่องมือแปลงไฟล์ที่คุณเลือกติดตั้ง จากแหล่งทางการที่ระบุไว้ใน [`engines.json`](src/Filee.Engines/Infrastructure/engines.json)
+- ดาวน์โหลดเครื่องมือแปลงไฟล์ที่คุณเลือกติดตั้ง จากแหล่งทางการที่ระบุไว้ใน [`engines.json`](src/Filee.Engines/Infrastructure/engines.json) และภาษาสำหรับการรู้จำข้อความ (OCR) ที่พรีเซ็ตใช้ ซึ่งระบุไว้ใน [`ocr-languages.json`](src/Filee.Engines/Infrastructure/ocr-languages.json)
 - เมื่อคุณคลิกลิงก์ ซึ่งจะเปิดหน้าเว็บในเบราว์เซอร์ของคุณ
 
 ## ผู้สนับสนุน (Sponsor)

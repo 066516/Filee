@@ -797,8 +797,15 @@ internal static class SettingsMigrations
         // v39: PowerShell scripts (.ps1) learn the text donut; custom claims stay put.
         if (from < 39)
             changed |= LearnExtensions(profiles, out _, ["ps1"]);
-        // v40: PNG/JPEG download aliases learn the images donut; custom claims stay put.
-        if (from < 40)
+        // v40: "Searchable PDF" (text recognition), after "Compress PDF" as in a new library, on no donut.
+        if (from < 40 && !presets.Any(p => p.Id == "searchable-pdf"))
+        {
+            var at = presets.FindIndex(p => p.Id == "compress-pdf");
+            presets.Insert(at < 0 ? presets.Count : at + 1, BuiltInData.OcrPresets().Single());
+            changed = true;
+        }
+        // v41: PNG/JPEG download aliases learn the images donut; custom claims stay put.
+        if (from < 41)
             changed |= LearnExtensions(profiles, out _, ["png_large", "jpg_large"]);
         return changed;
     }

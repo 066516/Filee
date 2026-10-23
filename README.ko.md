@@ -11,6 +11,7 @@
 <p align="center">
   <a href="https://filee.sh/ko/"><b>웹사이트</b></a> ·
   <a href="https://github.com/KnifeLemon/Filee/releases/latest"><b>다운로드</b></a> ·
+  <a href="https://www.linkedin.com/company/filee-sh/"><b>LinkedIn</b></a> ·
   <a href="#설치">설치</a> ·
   <a href="#명령줄">명령줄</a> ·
   <a href="#개발">개발</a>
