@@ -364,7 +364,7 @@
   "triggers.gnome_waiting": "Filee GNOME 확장을 기다리고 있어요.\n확장 앱에서 “Filee donut at the cursor”를 켜 주세요. 설치하거나 업데이트한 뒤에는 필요하면 로그아웃했다가 다시 로그인해 주세요. 파일 관리자 메뉴와 드롭 영역은 사용할 수 있어요.",
   "triggers.gnome_version_mismatch": "실행 중인 Filee GNOME 확장이 이 Filee와 버전이 맞지 않아요.\nGNOME이 설치된 확장을 불러오도록 로그아웃했다가 다시 로그인해 주세요. 그래도 이 메시지가 보이면 Filee를 다시 설치해 주세요.\n파일 관리자 메뉴와 드롭 영역은 사용할 수 있어요.",
   "triggers.linux_wayland": "Wayland에서는 커서를 따라가는 제스처를 쓸 수 없어요.\nX11 세션을 쓰거나, 파일 관리자 메뉴와 드롭 영역으로 변환해 주세요.\nThunar는 다시 시작하면 첫 번째 키보드 단축키를 쓸 수 있어요.",
-  "triggers.linux_wayland_experimental": "Wayland에서 제스처는 실험 기능이고 KDE Plasma에서만 동작해요.\nFilee가 /dev/input에서 마우스 입력을 읽고, KWin 스크립트가 원형 툴바를 커서 위치로 옮겨요(INSTALL.txt 참고). 다른 앱에서 Ctrl+드래그가 방해받을 수 있으니, 불편하면 Ctrl+Shift 같은 다른 보조 키를 쓰세요.",
+  "triggers.linux_wayland_experimental": "Wayland에서 제스처는 실험 기능이고 KDE Plasma와 Hyprland에서 동작해요.\nFilee가 /dev/input에서 마우스 입력을 읽어요. KDE Plasma에서는 KWin 스크립트가, Hyprland에서는 hyprland.conf의 창 규칙이 원형 툴바를 커서 위치로 옮겨요(INSTALL.txt 참고). 다른 앱에서 Ctrl+드래그가 방해받을 수 있으니, 불편하면 Ctrl+Shift 같은 다른 보조 키를 쓰세요.",
   "triggers.open_accessibility": "손쉬운 사용 설정 열기",
   "triggers.retry_hook": "제스처 다시 시도",
   "triggers.hook_running": "전역 입력을 감지하고 있어요.",

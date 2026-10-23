@@ -351,7 +351,7 @@
   "triggers.gnome_waiting": "FileeのGNOME拡張機能を待っています。\n「拡張機能」アプリで「Filee donut at the cursor」を有効にしてください。インストールや更新の後は、必要に応じてログアウトしてログインし直してください。ファイルマネージャーの操作とドロップ領域は引き続き使えます。",
   "triggers.gnome_version_mismatch": "実行中のFilee GNOME拡張機能は、このFileeとバージョンが合っていません。\nインストール済みの拡張機能をGNOMEが読み込むよう、ログアウトしてログインし直してください。それでもこの表示が消えない場合は、Fileeを再インストールしてください。\nファイルマネージャーの操作とドロップ領域は引き続き使えます。",
   "triggers.linux_wayland": "Waylandではカーソルに追従するジェスチャーを使えません。\nX11セッションを使うか、ファイルマネージャーのメニューまたはドロップ領域から変換してください。\nThunarでは再起動後に最初のキーボードショートカットを使えます。",
-  "triggers.linux_wayland_experimental": "Waylandでのジェスチャー機能は実験的で、KDE Plasmaでのみ動作します。\nFileeは/dev/inputからマウス入力を読み取り、KWinスクリプトでカーソル位置にドーナツメニューを表示します（INSTALL.txtを参照）。ほかのアプリのCtrl+ドラッグ操作が妨げられることがあります。支障がある場合は、Ctrl+Shiftなど別の修飾キーを使ってください。",
+  "triggers.linux_wayland_experimental": "Waylandでのジェスチャー機能は実験的で、KDE PlasmaとHyprlandで動作します。\nFileeは/dev/inputからマウス入力を読み取ります。カーソル位置へのドーナツメニューの配置は、KDE PlasmaではKWinスクリプト、Hyprlandではhyprland.confのウィンドウルールが行います（INSTALL.txtを参照）。ほかのアプリのCtrl+ドラッグ操作が妨げられることがあります。支障がある場合は、Ctrl+Shiftなど別の修飾キーを使ってください。",
   "triggers.open_accessibility": "アクセシビリティ設定を開く",
   "triggers.retry_hook": "ジェスチャーを再試行",
   "triggers.hook_running": "グローバル入力検知は動作中です。",

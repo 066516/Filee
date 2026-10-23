@@ -351,7 +351,7 @@
   "triggers.gnome_waiting": "Filee GNOME एक्सटेंशन का इंतज़ार है।\nExtensions में “Filee donut at the cursor” चालू करें। इंस्टॉल या अपडेट के बाद ज़रूरत हो तो साइन आउट करके दोबारा साइन इन करें। फ़ाइल मैनेजर एक्शन और ड्रॉप ज़ोन उपलब्ध रहते हैं।",
   "triggers.gnome_version_mismatch": "चल रहा Filee GNOME एक्सटेंशन Filee के किसी दूसरे वर्शन का है।\nसाइन आउट करके दोबारा साइन इन करें ताकि GNOME इंस्टॉल किया गया एक्सटेंशन लोड करे। अगर यह संदेश बना रहे, तो Filee दोबारा इंस्टॉल करें।\nफ़ाइल मैनेजर एक्शन और ड्रॉप ज़ोन उपलब्ध रहते हैं।",
   "triggers.linux_wayland": "कर्सर का पीछा करने वाले जेस्चर Wayland पर उपलब्ध नहीं हैं।\nX11 सेशन इस्तेमाल करें, या फ़ाइल मैनेजर मेनू और ड्रॉप ज़ोन से कन्वर्ट करें।\nThunar रीस्टार्ट होने के बाद पहला कीबोर्ड शॉर्टकट इस्तेमाल कर सकता है।",
-  "triggers.linux_wayland_experimental": "Wayland पर जेस्चर प्रायोगिक हैं और सिर्फ़ KDE Plasma पर काम करते हैं।\nFilee माउस को /dev/input से पढ़ता है और एक KWin स्क्रिप्ट डोनट को कर्सर पर दिखाती है (INSTALL.txt देखें)। दूसरे ऐप्स में Ctrl+ड्रैग बीच में रुक सकता है; अगर इससे परेशानी हो, तो Ctrl+Shift जैसा कोई दूसरा मॉडिफ़ायर इस्तेमाल करें।",
+  "triggers.linux_wayland_experimental": "Wayland पर जेस्चर प्रायोगिक हैं और KDE Plasma और Hyprland पर काम करते हैं।\nFilee माउस को /dev/input से पढ़ता है। KDE Plasma पर एक KWin स्क्रिप्ट और Hyprland पर hyprland.conf का एक विंडो रूल डोनट को कर्सर पर दिखाता है (INSTALL.txt देखें)। दूसरे ऐप्स में Ctrl+ड्रैग बीच में रुक सकता है; अगर इससे परेशानी हो, तो Ctrl+Shift जैसा कोई दूसरा मॉडिफ़ायर इस्तेमाल करें।",
   "triggers.open_accessibility": "Accessibility सेटिंग्स खोलें",
   "triggers.retry_hook": "जेस्चर फिर आज़माएँ",
   "triggers.hook_running": "ग्लोबल इनपुट डिटेक्शन चल रहा है।",

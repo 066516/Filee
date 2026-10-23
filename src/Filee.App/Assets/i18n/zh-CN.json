@@ -364,7 +364,7 @@
   "triggers.gnome_waiting": "正在等待 Filee GNOME 扩展。\n请在“扩展”应用中启用“Filee donut at the cursor”。安装或更新后，如有需要请注销并重新登录。仍可使用文件管理器操作和拖放区域。",
   "triggers.gnome_version_mismatch": "正在运行的 Filee GNOME 扩展与此版本的 Filee 不匹配。\n请注销并重新登录，让 GNOME 加载已安装的扩展。如果此提示仍然存在，请重新安装 Filee。\n仍可使用文件管理器操作和拖放区域。",
   "triggers.linux_wayland": "Wayland 下无法使用跟随光标的手势。\n请使用 X11 会话，或通过文件管理器菜单和拖放区域转换。\nThunar 重启后可以使用第一个键盘快捷键。",
-  "triggers.linux_wayland_experimental": "Wayland 下的手势为实验性功能，仅在 KDE Plasma 中可用。\nFilee 从 /dev/input 读取鼠标输入，并由 KWin 脚本将环形工具栏移到光标处（参见 INSTALL.txt）。在其他应用中按住 Ctrl 拖动可能会被打断，如有影响，请改用其他修饰键，例如 Ctrl+Shift。",
+  "triggers.linux_wayland_experimental": "Wayland 下的手势为实验性功能，可在 KDE Plasma 和 Hyprland 中使用。\nFilee 从 /dev/input 读取鼠标输入。在 KDE Plasma 中由 KWin 脚本、在 Hyprland 中由 hyprland.conf 里的窗口规则将环形工具栏移到光标处（参见 INSTALL.txt）。在其他应用中按住 Ctrl 拖动可能会被打断，如有影响，请改用其他修饰键，例如 Ctrl+Shift。",
   "triggers.open_accessibility": "打开辅助功能设置",
   "triggers.retry_hook": "重试手势",
   "triggers.hook_running": "正在检测全局输入。",

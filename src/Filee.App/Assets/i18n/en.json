@@ -364,7 +364,7 @@
   "triggers.gnome_waiting": "Waiting for the Filee GNOME extension.\nEnable “Filee donut at the cursor” in Extensions. After installation or update, sign out and sign in if needed. The drop zone and file manager actions remain available.",
   "triggers.gnome_version_mismatch": "The Filee GNOME extension that's running belongs to another version of Filee.\nSign out and sign in again so GNOME loads the installed extension. If this stays, reinstall Filee.\nFile manager actions and the drop zone remain available.",
   "triggers.linux_wayland": "Gestures that follow the cursor aren't available on Wayland.\nUse an X11 session, or convert with the file manager menu and the drop zone.\nThunar can use the first keyboard shortcut after it restarts.",
-  "triggers.linux_wayland_experimental": "Gestures on Wayland are experimental and only work on KDE Plasma.\nFilee reads the mouse from /dev/input and a KWin script places the donut at the cursor (see INSTALL.txt). Ctrl+drag in other apps can be interrupted; use another modifier such as Ctrl+Shift if it gets in the way.",
+  "triggers.linux_wayland_experimental": "Gestures on Wayland are experimental and work on KDE Plasma and Hyprland.\nFilee reads the mouse from /dev/input. On KDE Plasma a KWin script places the donut at the cursor; on Hyprland a window rule in hyprland.conf does (see INSTALL.txt). Ctrl+drag in other apps can be interrupted; use another modifier such as Ctrl+Shift if it gets in the way.",
   "triggers.open_accessibility": "Open Accessibility settings",
   "triggers.retry_hook": "Retry gestures",
   "triggers.hook_running": "Global input detection is running.",

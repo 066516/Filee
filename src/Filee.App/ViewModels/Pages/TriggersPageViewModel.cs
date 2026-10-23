@@ -267,7 +267,8 @@ public sealed partial class TriggersPageViewModel : ObservableObject, IDisposabl
     public string? PlatformNotice => _platform switch
     {
         MacOSPlatformServices => _loc["triggers.macos_permissions"],
-        LinuxPlatformServices when OperatingSystem.IsLinux() && LinuxPlatformServices.IsGnomeWaylandSession =>
+        // FILEE_WAYLAND_GESTURES=0 turns the GNOME bridge off; the plain Wayland notice applies then.
+        LinuxPlatformServices when OperatingSystem.IsLinux() && LinuxPlatformServices.UsesGnomePointerBridge =>
             _loc["triggers.linux_gnome_wayland"],
         LinuxPlatformServices linux when OperatingSystem.IsLinux() && LinuxPlatformServices.IsWaylandSession =>
             _loc[linux.SupportsGlobalPointerGestures ? "triggers.linux_wayland_experimental" : "triggers.linux_wayland"],
