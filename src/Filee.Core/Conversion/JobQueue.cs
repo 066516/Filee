@@ -352,11 +352,13 @@ public sealed class JobQueue : IAsyncDisposable
     {
         var slideshow = job.Preset.Media.Slideshow;
         var target = FormatRegistry.Get(job.Preset.TargetFormat);
-        // Before any picture is converted: too many fail at once instead of after minutes of PNG steps.
-        if (slideshow && job.Files.Count(f => !Stopped(f)) > MediaOptions.MaxSlides)
+        // Before any picture is converted: too many fail at once instead of after minutes of PNG steps. Files whose
+        // download already failed don't count.
+        var pictures = job.Files.Count(f => !Stopped(f));
+        if (slideshow && pictures > MediaOptions.MaxSlides)
         {
             foreach (var f in job.Files.Where(f => !Stopped(f)))
-                FailFile(job, f, "error.too_many_pictures", $"{job.Files.Count} > {MediaOptions.MaxSlides}");
+                FailFile(job, f, "error.too_many_pictures", $"{pictures} > {MediaOptions.MaxSlides}");
             return;
         }
         var parts = new IReadOnlyList<string>?[job.Files.Count];
@@ -754,7 +756,8 @@ public sealed class JobQueue : IAsyncDisposable
                 inputs = outputs;
             }
 
-            if (!zipResult && finalOutput && job.Preset.Output.OnlyIfSmaller && inputs.Count == 1 && CopyIfNotSmaller(file.SourcePath, inputs[0]))
+            // Under "Save as ZIP" the output is still in the work folder: the source copied over it goes into the ZIP.
+            if (finalOutput && job.Preset.Output.OnlyIfSmaller && inputs.Count == 1 && CopyIfNotSmaller(file.SourcePath, inputs[0]))
                 file.NoticeKey = "notice.pdf_not_smaller";
 
             if (zipResult && inputs.Count > 0)

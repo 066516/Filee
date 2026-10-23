@@ -98,8 +98,41 @@ public class MediaToolTests
         var video = profiles.Single(p => p.Id == "video").BackPresetIds!;
         Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "video").BackPresetIds, video);
         Assert.Equal(full, pdf.BackPresetIds);
+        Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "images").BackPresetIds,
+            profiles.Single(p => p.Id == "images").BackPresetIds);
         Assert.False(SettingsMigrations.ApplyToLibrary(36, presets, profiles)); // once only
         Assert.False(SettingsMigrations.ApplyToLibrary(AppSettings.CurrentSchemaVersion, presets, profiles));
+    }
+
+    [Fact]
+    public void A_new_library_images_back_face_is_full_without_the_live_photo_video()
+    {
+        var presets = BuiltInData.CreatePresets();
+        var images = BuiltInData.CreateProfiles().Single(p => p.Id == "images").BackPresetIds!;
+        Assert.Equal(ToolbarProfile.MaxSlices, images.Count);
+        Assert.Contains("compress-image", images);
+        Assert.Contains("remove-metadata", images);
+        Assert.DoesNotContain("extract-motion", images);
+        Assert.Single(presets, p => p.Id == "extract-motion"); // still in the library
+    }
+
+    [Fact]
+    public void A_schema_36_images_back_face_takes_what_fits_and_never_more_than_the_donut_holds()
+    {
+        var presets = BuiltInData.CreatePresets().Where(p => !ToolIds.Contains(p.Id)).ToList();
+        var profiles = BuiltInData.CreateProfiles();
+        // The images back face as schema 36 wrote it: eleven slices, "Extract Live Photo video" among them.
+        var images = profiles.Single(p => p.Id == "images");
+        images.BackPresetIds = ["tool-crop", "rotate", "flip", "remove-background", "trim-transparent", "grayscale", "extract-motion",
+            "to-avif", "to-gif", "merge-pdf", "zip-all"];
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(36, presets, profiles));
+
+        Assert.Equal(ToolbarProfile.MaxSlices, images.BackPresetIds.Count);
+        Assert.Equal(["merge-pdf", "compress-image", "zip-all"], images.BackPresetIds[^3..]);
+        Assert.DoesNotContain("remove-metadata", images.BackPresetIds); // no room left, still in the library
+        Assert.Single(presets, p => p.Id == "remove-metadata");
+        Assert.All(profiles, p => Assert.InRange(p.BackPresetIds!.Count, 0, ToolbarProfile.MaxSlices));
     }
 
     [Fact]
@@ -221,6 +254,33 @@ public class MediaToolTests
     }
 
     [Fact]
+    public async Task Compressing_into_a_zip_keeps_the_original_when_the_copy_would_not_be_smaller()
+    {
+        using var dir = new TempDir();
+        var big = dir.File("big.jpg", new string('x', 10_000));
+        var tiny = dir.File("tiny.jpg", "x");
+        var preset = BuiltIn("compress-image").Clone();
+        preset.Output.ZipResult = true;
+        await using var queue = new JobQueue(new ConverterCatalog([new FakeConverter("magick", new ConversionEdge("jpg", "jpg"))]));
+
+        var job = await Run(queue, [big, tiny], preset);
+
+        Assert.Equal(JobState.Completed, job.State);
+        Assert.Null(job.Files[0].NoticeKey);
+        Assert.True(ZipEntry(job.Files[0].Outputs.Single()).Length < 10_000);
+        Assert.Equal("notice.pdf_not_smaller", job.Files[1].NoticeKey);
+        Assert.Equal("x", ZipEntry(job.Files[1].Outputs.Single())); // the original, packed
+        Assert.Equal("x", File.ReadAllText(tiny));
+
+        static string ZipEntry(string zip)
+        {
+            using var archive = System.IO.Compression.ZipFile.OpenRead(zip);
+            using var reader = new StreamReader(Assert.Single(archive.Entries).Open());
+            return reader.ReadToEnd();
+        }
+    }
+
+    [Fact]
     public async Task A_failed_join_frees_its_name_and_removes_the_subfolder_it_made()
     {
         using var dir = new TempDir();
@@ -270,7 +330,36 @@ public class MediaToolTests
 
         Assert.Equal(JobState.Failed, job.State);
         Assert.All(job.Files, f => Assert.Equal("error.too_many_pictures", f.ErrorKey));
+        Assert.All(job.Files, f => Assert.Equal($"{MediaOptions.MaxSlides + 1} > {MediaOptions.MaxSlides}", f.ErrorDetail));
         Assert.Empty(joiner.Inputs);
+    }
+
+    [Fact]
+    public async Task Too_many_pictures_counts_only_the_ones_that_were_saved()
+    {
+        using var dir = new TempDir();
+        var photos = Enumerable.Range(1, MediaOptions.MaxSlides + 1).Select(i => dir.File($"p{i:D3}.jpg")).ToList();
+        var converter = new FakeConverter("magick", new ConversionEdge("jpg", "png")) { Throw = true };
+        await using var queue = new JobQueue(new ConverterCatalog([converter]), mediaJoiner: new FakeJoiner());
+        var job = new ConversionJob([.. photos, "web/lost.jpg"], BuiltIn("video-from-images"), "Test", new FailingFetcher());
+
+        await queue.RunAsync(job);
+
+        Assert.Equal("error.web_download_failed", job.Files[^1].ErrorKey);
+        Assert.All(job.Files.SkipLast(1), f => Assert.Equal($"{MediaOptions.MaxSlides + 1} > {MediaOptions.MaxSlides}", f.ErrorDetail));
+    }
+
+    /// <summary>A browser download that never arrives.</summary>
+    private sealed class FailingFetcher : ISourceFetcher
+    {
+        public bool Fetches(string source) => source.StartsWith("web/", StringComparison.Ordinal);
+
+        public Task<string> FetchAsync(string source, IProgress<TransferProgress> progress, CancellationToken cancellationToken) =>
+            throw new IOException("gone");
+
+        public void Release(ConversionJob job)
+        {
+        }
     }
 
     [Fact]

@@ -435,8 +435,9 @@ public static class BuiltInData
             Id = "images", NameKey = "profile.images",
             Extensions = ExtensionsOf(FormatCategory.Image),
             PresetIds = ["to-png", "to-jpg", "to-webp", "to-pdf", "trace-svg", "trace-line-art", "to-tiff", "to-bmp", "to-ico", "half-size"],
-            BackPresetIds = ["tool-crop", "rotate", "flip", "remove-background", "trim-transparent", "grayscale", "extract-motion", "to-avif", "to-gif",
-                "merge-pdf", "compress-image", "remove-metadata", "zip-all"],
+            // Full (ToolbarProfile.MaxSlices): "Extract Live Photo video" stays in the library, on no donut.
+            BackPresetIds = ["tool-crop", "rotate", "flip", "remove-background", "trim-transparent", "grayscale", "to-avif", "to-gif", "merge-pdf",
+                "compress-image", "remove-metadata", "zip-all"],
         },
         new()
         {

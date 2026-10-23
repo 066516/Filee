@@ -703,11 +703,13 @@ PDFsharp and Magick.NET; nothing has to be installed.
 
 ## Media tools
 
-The everyday presets on the back faces of the images, PDF, video and audio donuts. Video and audio need FFmpeg.
+Everyday presets, on the back faces of the images, PDF, video and audio donuts where they fit ("Video from images" is
+in the preset library only). Video and audio need FFmpeg.
 
 - **Compress image / video / audio** re-encode smaller (quality 75, never above a JPEG's own and PNG at zlib level 9;
   H.264 at the Small quality, at most 1080p; AAC at the Small quality). A copy in the same format that isn't smaller is
-  replaced by the source, with the same notice as Compress PDF (`OutputRule.OnlyIfSmaller`).
+  replaced by the source, with the same notice as Compress PDF (`OutputRule.OnlyIfSmaller`); under "Save as ZIP" the
+  source goes into the ZIP instead.
 - **Extract audio** copies AAC or ALAC into M4A without an encode (`MediaOptions.CopyAudioWhenPossible`); other sound
   is encoded to AAC.
 - **Merge videos** copies the clips with the concat demuxer only when all share the codec setup (ffprobe's extradata
@@ -715,12 +717,14 @@ The everyday presets on the back faces of the images, PDF, video and audio donut
   frame and encoded, a clip without sound silent for its length. **Merge audio** always decodes and joins the sound
   into one M4A, so no encoder padding or gap is left between files. Both are in `Media/MediaJoining.cs`.
 - **Video from images**: each picture is fitted into 1920 × 1080 as a JPEG, then shown for the preset's seconds with
-  1 s crossfades (`xfade`) or cuts. At most `MediaOptions.MaxSlides` (300) pictures; the queue refuses more before any
-  is converted. A filter graph too long for a command line goes into a `-/filter_complex` file.
+  crossfades (`xfade`) of 1 s, at most half a picture's time, or cuts. At most `MediaOptions.MaxSlides` (300)
+  pictures, not counting downloads that failed; the queue refuses more before any is converted. A filter graph too
+  long for a command line goes into a `-/filter_complex` file.
 - **Remove metadata** keeps the format. Images lose EXIF, XMP, IPTC, comments and the ICC profile, and a JPEG keeps
   its own quality. Video and audio are copied without global and per-stream tags, chapters and data tracks; an MKV's
   attachments (subtitle fonts) stay, with their file name and type. PDFs lose their document information and every
-  XMP packet (`PdfSharpConverter.StripMetadata`); pages, links, bookmarks and form fields stay.
+  XMP packet (`PdfSharpConverter.StripMetadata`), and PDFsharp writes a new one holding only its own name and the save
+  date; pages, links, bookmarks and form fields stay.
 
 ## Office Open XML variants
 

@@ -144,8 +144,8 @@ pt-BR: Correções de segurança para e-books, SVG, modelos 3D e e-mails, e muit
   run. Attachments dragged out of Outlook and files dragged out of a ZIP in Explorer open the donut too.
 - **The donut's back face** (issue #195). Every donut has a second set of up to 12 slices. While the donut is open,
   press **Tab** or turn the **mouse wheel** to flip it; the hub shows the hint when the back has something for your
-  files. Built-in donuts come with a back face: Crop, Rotate, Flip, Remove background and Live Photo video on the image
-  donut, Compress PDF on the PDF donut, frame extraction and Live / Motion Photos on the video donut, One ZIP on most.
+  files. Built-in donuts come with a back face: Crop, Rotate, Flip and Remove background on the image donut,
+  Compress PDF on the PDF donut, frame extraction and Live / Motion Photos on the video donut, One ZIP on most.
   The Front / Back switch in Settings → Donut toolbar edits it, and Settings → Shortcuts → "Flip the donut" changes the
   key or turns the wheel off.
 - **Crop** (by @smjrifle). The Crop slice (on the back of the image donut) opens your pictures one after another in a
