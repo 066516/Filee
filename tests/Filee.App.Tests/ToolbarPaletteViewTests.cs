@@ -24,6 +24,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Filee.App.Tests;
 
+[Collection("MainWindow")]
 public class ToolbarPaletteViewTests
 {
     /// <summary>A ToolbarPage for a fixture view model in a window, and the controls of its palette column.</summary>
