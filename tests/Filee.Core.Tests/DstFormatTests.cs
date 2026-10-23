@@ -17,20 +17,20 @@ public class DstFormatTests
     }
 
     [Fact]
-    public void Version_32_vector_donuts_learn_it_without_taking_a_custom_claim()
+    public void Version_37_vector_donuts_learn_it_without_taking_a_custom_claim()
     {
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
         foreach (var profile in profiles)
             profile.Extensions.Remove("dst");
-        Assert.True(SettingsMigrations.ApplyToLibrary(32, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(37, presets, profiles));
         Assert.Contains("dst", profiles.Single(p => p.Id == "vector").Extensions);
 
         profiles = BuiltInData.CreateProfiles();
         foreach (var profile in profiles)
             profile.Extensions.Remove("dst");
         profiles.Insert(0, new ToolbarProfile { Id = "my-cad", Name = "Sheet sets", Extensions = ["dst"] });
-        SettingsMigrations.ApplyToLibrary(32, presets, profiles);
+        SettingsMigrations.ApplyToLibrary(37, presets, profiles);
         Assert.DoesNotContain("dst", profiles.Single(p => p.Id == "vector").Extensions);
     }
 }

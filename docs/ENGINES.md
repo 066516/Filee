@@ -1397,9 +1397,10 @@ format, and FFmpeg reads what the file holds, so a `.dat` with no video in it fa
   subtitle engine (ASS and WebVTT extraction cost 11 so SRT is the hub).
 - The first video stream (cover pictures excluded) is converted. Video to video keeps every audio track (languages,
   commentary), each copied where the target takes its codec or encoded on its own, with its language tag; FLV and DV
-  hold one and keep the first. Video to audio takes the first. Files without sound still convert to video. Title, artist and other tags and chapters are kept, album art too for MP3, M4A, M4B and
-  FLAC. Portrait phone videos are turned upright. Odd sizes are evened out, frame rates that MPEG-2/MXF/MPEG-4 part 2
-  cannot store are converted, and channels WMA or AMR cannot hold are mixed down.
+  hold one and keep the first. Video to audio takes the first. Files without sound still convert to video. Title, artist
+  and other tags and chapters are kept, album art too for MP3, M4A, M4B and FLAC. Portrait phone videos are turned
+  upright. Odd sizes are evened out, frame rates that MPEG-2/MXF/MPEG-4 part 2 cannot store are converted, and channels
+  WMA or AMR cannot hold are mixed down.
 - Progress comes from `-progress` (position ÷ duration from ffprobe); the GIF palette pass reports per-frame stats of
   a discarded copy of its frames. Cancelling kills the process tree, waits (up to 10 seconds) until it has exited and
   deletes the partial output. There is no time limit, but FFmpeg is stopped when it reports nothing for 10 minutes.

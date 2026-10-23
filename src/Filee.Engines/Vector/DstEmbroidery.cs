@@ -1,8 +1,9 @@
 // Tajima DST embroidery designs (issue #397) as SVG: the stitches as lines, a colour per thread, for the vector engine
 // to render to PNG, JPG or PDF. A DST file is a 512-byte text header ("LA:" name, stitch count, extents) and 3-byte
-// stitch records. Each record moves the needle by up to ±121 in X and Y (0.1 mm units), the bits standing for ±1, ±3,
-// ±9, ±27 and ±81, and is a stitch, a jump, a colour change, a sequin-mode switch or the end (the same bits as
-// pyembroidery's DstReader). Threads have no colours in DST, so the colour changes cycle through a fixed palette.
+// stitch records. Each record moves the needle by up to ±121 in X and Y (0.1 mm units): byte 0 holds the ±1 and ±9
+// bits of both axes, byte 1 the ±3 and ±27 bits, byte 2 the ±81 bits and, in its top two bits, what the record is (a
+// stitch, a jump, a colour change or a sequin-mode switch; 0xF3 there ends the design). Threads have no colours in DST,
+// so the colour changes cycle through a fixed palette.
 
 using System.Globalization;
 using System.Text;
