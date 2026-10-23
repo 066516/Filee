@@ -9,8 +9,8 @@ using CSMath;
 using Filee.Core.Conversion;
 using Filee.Core.Presets;
 using Filee.Engines.Cad;
-using PDFtoImage;
 using PdfSharp.Pdf.IO;
+using PDFtoImage;
 using SkiaSharp;
 
 #pragma warning disable CA1416
@@ -44,10 +44,15 @@ public class CadLayoutTests(EngineFixture fx) : IClassFixture<EngineFixture>
         var block = layout.AssociatedBlock;
         // The sheet border (title block) in paper space, and one 200 × 150 viewport in the middle of the sheet.
         block.Entities.Add(new LwPolyline(new LwPolyline.Vertex(0, 0), new LwPolyline.Vertex(420, 0), new LwPolyline.Vertex(420, 297),
-            new LwPolyline.Vertex(0, 297)) { IsClosed = true });
+            new LwPolyline.Vertex(0, 297))
+        { IsClosed = true });
         block.Entities.Add(new Viewport
         {
-            Center = new XYZ(210, 148.5, 0), Width = 200, Height = 150, ViewCenter = viewCenter, ViewHeight = viewHeight,
+            Center = new XYZ(210, 148.5, 0),
+            Width = 200,
+            Height = 150,
+            ViewCenter = viewCenter,
+            ViewHeight = viewHeight,
         });
     }
 
