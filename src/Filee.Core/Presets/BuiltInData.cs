@@ -76,6 +76,7 @@ public static class BuiltInData
         .. FramePresets(),
         .. MotionPhotoPresets(),
         .. LivePhotoPresets(),
+        .. MediaToolPresets(),
         new() { Id = "to-docx", Name = "DOCX", TargetFormat = "docx" },
         new() { Id = "to-hwpx", Name = "HWPX", TargetFormat = "hwpx" },
         .. HwpPresets(),
@@ -122,6 +123,62 @@ public static class BuiltInData
         {
             Id = "trim-transparent", NameKey = "preset.trim_transparent", TargetFormat = SameAsSource,
             Image = { TrimTransparent = true }, Output = { FileNamePattern = "{name}_trimmed" },
+        },
+    ];
+
+    /// <summary>
+    /// Everyday tools (added in settings schema 33): smaller copies of images, videos and audio, a video of photos,
+    /// a video's sound as M4A, videos or audio files joined into one, and a copy without metadata. On the back faces
+    /// of the images, PDF, video and audio donuts where they have room.
+    /// </summary>
+    public static List<Preset> MediaToolPresets() =>
+    [
+        new()
+        {
+            // Quality 75 like most photo apps' "smaller"; a JPEG saved below it stays at its own quality.
+            Id = "compress-image", NameKey = "preset.compress_image", TargetFormat = SameAsSource,
+            Image = { Quality = 75, MaxCompression = true, TiffCompression = TiffCompression.Zip },
+            Output = { FileNamePattern = "{name}_compressed", OnlyIfSmaller = true },
+        },
+        new()
+        {
+            // H.264 at the Small quality, at most 1080p: plays everywhere, a fraction of a phone video's size.
+            Id = "compress-video", NameKey = "preset.compress_video", TargetFormat = "mp4",
+            Media = { Quality = MediaQuality.Small, MaxHeight = 1080 }, Output = { FileNamePattern = "{name}_compressed", OnlyIfSmaller = true },
+        },
+        new()
+        {
+            Id = "video-from-images", NameKey = "preset.video_from_images", TargetFormat = "mp4",
+            Media = { Slideshow = true }, Output = { FileNamePattern = "{name}_video" },
+        },
+        new()
+        {
+            Id = "extract-audio", NameKey = "preset.extract_audio", TargetFormat = "m4a",
+            Media = { CopyAudioWhenPossible = true },
+        },
+        new()
+        {
+            Id = "merge-videos", NameKey = "preset.merge_videos", TargetFormat = "mp4",
+            Media = { JoinIntoOne = true }, Output = { FileNamePattern = "{name}_merged" },
+        },
+        new()
+        {
+            // AAC at the Small quality: 128 kbit/s for stereo.
+            Id = "compress-audio", NameKey = "preset.compress_audio", TargetFormat = "m4a",
+            Media = { Quality = MediaQuality.Small }, Output = { FileNamePattern = "{name}_compressed", OnlyIfSmaller = true },
+        },
+        new()
+        {
+            Id = "merge-audio", NameKey = "preset.merge_audio", TargetFormat = "m4a",
+            Media = { JoinIntoOne = true }, Output = { FileNamePattern = "{name}_merged" },
+        },
+        new()
+        {
+            // Everything goes, the colour profile too; the preset editor can keep it. File dates are new ones.
+            Id = "remove-metadata", NameKey = "preset.remove_metadata", TargetFormat = SameAsSource,
+            Image = { Quality = 90, KeepMetadata = false, KeepColorProfile = false, KeepSourceQuality = true },
+            Pdf = { RemoveMetadata = true }, Media = { RemoveMetadata = true },
+            Output = { FileNamePattern = "{name}_clean" },
         },
     ];
 
@@ -379,14 +436,14 @@ public static class BuiltInData
             Extensions = ExtensionsOf(FormatCategory.Image),
             PresetIds = ["to-png", "to-jpg", "to-webp", "to-pdf", "trace-svg", "trace-line-art", "to-tiff", "to-bmp", "to-ico", "half-size"],
             BackPresetIds = ["tool-crop", "rotate", "flip", "remove-background", "trim-transparent", "grayscale", "extract-motion", "to-avif", "to-gif",
-                "merge-pdf", "zip-all"],
+                "merge-pdf", "compress-image", "remove-metadata", "zip-all"],
         },
         new()
         {
             Id = "pdf", NameKey = "profile.pdf",
             Extensions = ["pdf"],
             PresetIds = [.. PdfDonut],
-            BackPresetIds = ["compress-pdf", "to-webp", "to-tiff", "to-html", "to-odt", "to-rtf", "to-azw3", "to-cbz", "zip-all"],
+            BackPresetIds = ["compress-pdf", "to-webp", "to-tiff", "to-html", "to-odt", "to-rtf", "to-azw3", "to-cbz", "remove-metadata", "zip-all"],
         },
         new()
         {
@@ -476,14 +533,14 @@ public static class BuiltInData
             // Every frame as pictures is on no front (a long video gives thousands of files): behind a flip, a drop that
             // misses its slice doesn't start it. Live / Motion Photos of a clip are there too.
             BackPresetIds = ["mp4-av1", "to-webp", "extract-frames-png", "extract-frames-jpg", "live-photo-iphone", "motion-photo-android",
-                "to-m4a", "to-wav", "to-flac", "zip-all"],
+                "extract-audio", "to-wav", "to-flac", "compress-video", "merge-videos", "zip-all"],
         },
         new()
         {
             Id = "audio", NameKey = "profile.audio",
             Extensions = ExtensionsOf(FormatCategory.Audio),
             PresetIds = ["to-mp3", "mp3-128", "to-m4a", "to-wav", "to-flac", "to-ogg", "to-opus", "to-aac"],
-            BackPresetIds = ["to-alac", "zip-all"],
+            BackPresetIds = ["to-alac", "compress-audio", "merge-audio", "remove-metadata", "zip-all"],
         },
         new()
         {
