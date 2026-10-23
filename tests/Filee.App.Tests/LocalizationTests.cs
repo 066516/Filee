@@ -52,6 +52,33 @@ public partial class LocalizationTests
         Assert.Empty(other.Except(english));
     }
 
+    [Fact]
+    public void Toolbar_tabs_and_reused_categories_exist_in_every_language()
+    {
+        string[] required =
+        [
+            "toolbar.tab.all",
+            "toolbar.tab.media",
+            "toolbar.tab.edit",
+            "toolbar.tab.model3d_cad",
+            "format.category.Image",
+            "format.category.Document",
+            "format.category.Geo",
+            "format.category.Archive",
+            "format.category.Font"
+        ];
+
+        foreach (var language in LocalizationService.Languages)
+        {
+            var translations = Load(language.Code);
+            foreach (var key in required)
+            {
+                Assert.True(translations.TryGetValue(key, out var value), $"{language.Code}:{key} is missing");
+                Assert.False(string.IsNullOrWhiteSpace(value), $"{language.Code}:{key} is empty");
+            }
+        }
+    }
+
     [Theory]
     [MemberData(nameof(Languages))]
     public void Format_placeholders_match_english(string code)
@@ -107,6 +134,8 @@ public partial class LocalizationTests
     [InlineData("frr-DE", "en")]
     [InlineData("ne-NP", "ne")]
     [InlineData("new-NP", "en")]
+    [InlineData("th-TH", "th")]
+    [InlineData("thl-NP", "en")]
     [InlineData("de-DE", "en")]
     [InlineData("", "en")] // Linux without LANG: the invariant culture
     public void Auto_follows_the_language_the_user_reads_the_os_in(string os, string expected) =>
@@ -166,6 +195,14 @@ public partial class LocalizationTests
     {
         Assert.Contains(("fr", "Français"), LocalizationService.Languages);
         Assert.Equal("fr", LocalizationService.Resolve("FR"));
+    }
+
+    [Fact]
+    public void Thai_is_offered_under_its_own_name()
+    {
+        Assert.Contains(("th", "ไทย"), LocalizationService.Languages);
+        Assert.Equal("th", LocalizationService.Resolve("TH"));
+        Assert.Contains("fonts:Filee#Noto Sans Thai", ThemeService.FontFamilies("th"));
     }
 
     /// <summary>Han characters look different in Japanese, Korean and Chinese fonts: the UI language's come first.</summary>

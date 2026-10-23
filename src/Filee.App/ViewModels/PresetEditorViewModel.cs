@@ -6,8 +6,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Filee.Core.Formats;
 using Filee.Core.Localization;
-using Filee.Core.Ocr;
 using Filee.Core.Presets;
+using Filee.Engines.Ocr;
 
 namespace Filee.App.ViewModels;
 
@@ -82,6 +82,11 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         Flips = Enum.GetValues<ImageFlip>().Select(v => new Choice<ImageFlip>(v, loc[$"presets.flip.{v}"])).ToList();
         PageSizes = Enum.GetValues<PdfPageSize>().Select(v => new Choice<PdfPageSize>(v, loc[$"presets.page_size.{v}"])).ToList();
         CompressionLevels = Enum.GetValues<PdfCompression>().Select(v => new Choice<PdfCompression>(v, loc[$"presets.pdf_compression.{v}"])).ToList();
+        // Each language under its own name; one not downloaded yet shows its size (it downloads with the first file).
+        OcrLanguageChoices = [.. OcrLanguages.All
+            .OrderBy(l => l.Code != OcrLanguages.Default).ThenBy(l => l.NativeName, StringComparer.CurrentCulture)
+            .Select(l => new Choice<string>(l.Code, l.NativeName,
+                OcrLanguages.IsInstalled(l.Code) ? null : loc.Format("presets.ocr_language_size", $"{l.Size / 1_000_000.0:0.#} MB")))];
         Locations = Enum.GetValues<OutputLocation>().Select(v => new Choice<OutputLocation>(v, loc[$"presets.location.{v}"])).ToList();
         Conflicts = Enum.GetValues<ConflictPolicy>().Select(v => new Choice<ConflictPolicy>(v, loc[$"presets.conflict.{v}"])).ToList();
         TiffCompressions = Enum.GetValues<TiffCompression>().Select(v => new Choice<TiffCompression>(v, v.ToString().ToUpperInvariant())).ToList();
@@ -98,93 +103,6 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         AnimationSpeeds = [.. ImageOptions.AnimationSpeeds.Append(_edit.Image.PlaybackSpeed).Distinct().Order()
             .Select(s => new Choice<double>(s, s == 1 ? loc["presets.animation_speed.original"] : SpeedLabel(s)))];
 
-        OcrLanguages =
-        [
-            new Choice<string?>(null, loc["presets.ocr_language.auto"]),
-            // Popular / Primary Languages
-            new Choice<string?>("en", "English"),
-            new Choice<string?>("ne", "Nepali / नेपाली"),
-            new Choice<string?>("hi", "Hindi / हिन्दी"),
-            new Choice<string?>("zh-Hans", "Chinese Simplified / 简体中文"),
-            new Choice<string?>("zh-Hant", "Chinese Traditional / 繁體中文"),
-            new Choice<string?>("ja", "Japanese / 日本語"),
-            new Choice<string?>("ko", "Korean / 한국어"),
-            new Choice<string?>("es", "Spanish / Español"),
-            new Choice<string?>("fr", "French / Français"),
-            new Choice<string?>("de", "German / Deutsch"),
-            new Choice<string?>("it", "Italian / Italiano"),
-            new Choice<string?>("pt", "Portuguese / Português"),
-            new Choice<string?>("ru", "Russian / Русский"),
-            new Choice<string?>("ar", "Arabic / العربية"),
-            new Choice<string?>("th", "Thai / ไทย"),
-            new Choice<string?>("el", "Greek / Ελληνικά"),
-            new Choice<string?>("uk", "Ukrainian / Українська"),
-            new Choice<string?>("tr", "Turkish / Türkçe"),
-            new Choice<string?>("vi", "Vietnamese / Tiếng Việt"),
-            new Choice<string?>("id", "Indonesian / Bahasa Indonesia"),
-            new Choice<string?>("pl", "Polish / Polski"),
-            new Choice<string?>("nl", "Dutch / Nederlands"),
-            new Choice<string?>("sv", "Swedish / Svenska"),
-            new Choice<string?>("da", "Danish / Dansk"),
-            new Choice<string?>("fi", "Finnish / Suomi"),
-            new Choice<string?>("no", "Norwegian / Norsk"),
-            new Choice<string?>("cs", "Czech / Čeština"),
-            new Choice<string?>("sk", "Slovak / Slovenčina"),
-            new Choice<string?>("hu", "Hungarian / Magyar"),
-            new Choice<string?>("ro", "Romanian / Română"),
-            new Choice<string?>("bg", "Bulgarian / Български"),
-            new Choice<string?>("hr", "Croatian / Hrvatski"),
-            new Choice<string?>("sr-Cyrl", "Serbian (Cyrillic) / Српски"),
-            new Choice<string?>("sr-Latn", "Serbian (Latin) / Srpski"),
-            new Choice<string?>("sl", "Slovenian / Slovenščina"),
-            new Choice<string?>("et", "Estonian / Eesti"),
-            new Choice<string?>("lv", "Latvian / Latviešu"),
-            new Choice<string?>("lt", "Lithuanian / Lietuvių"),
-            new Choice<string?>("be", "Belarusian / Беларуская"),
-            // South Asian / Indic Languages
-            new Choice<string?>("sa", "Sanskrit / संस्कृतम्"),
-            new Choice<string?>("mr", "Marathi / मराठी"),
-            new Choice<string?>("ta", "Tamil / தமிழ்"),
-            new Choice<string?>("te", "Telugu / తెలుగు"),
-            new Choice<string?>("ur", "Urdu / اردو"),
-            new Choice<string?>("fa", "Persian / فارسی"),
-            new Choice<string?>("ps", "Pashto / پښتو"),
-            new Choice<string?>("sd", "Sindhi / سنڌي"),
-            new Choice<string?>("ug", "Uyghur / ئۇيغۇرچە"),
-            // European, Regional & World Languages
-            new Choice<string?>("af", "Afrikaans"),
-            new Choice<string?>("az", "Azerbaijani / Azərbaycan"),
-            new Choice<string?>("bs", "Bosnian / Bosanski"),
-            new Choice<string?>("ca", "Catalan / Català"),
-            new Choice<string?>("cy", "Welsh / Cymraeg"),
-            new Choice<string?>("eu", "Basque / Euskara"),
-            new Choice<string?>("ga", "Irish / Gaeilge"),
-            new Choice<string?>("gl", "Galician / Galego"),
-            new Choice<string?>("is", "Icelandic / Íslenska"),
-            new Choice<string?>("ka", "Georgian / ქართული"),
-            new Choice<string?>("ku", "Kurdish / Kurdî"),
-            new Choice<string?>("la", "Latin / Latina"),
-            new Choice<string?>("lb", "Luxembourgish / Lëtzebuergesch"),
-            new Choice<string?>("mi", "Maori / Te Reo Māori"),
-            new Choice<string?>("mk", "Macedonian / Македонски"),
-            new Choice<string?>("mn", "Mongolian / Монгол"),
-            new Choice<string?>("ms", "Malay / Bahasa Melayu"),
-            new Choice<string?>("mt", "Maltese / Malti"),
-            new Choice<string?>("oc", "Occitan / Lenga d'òc"),
-            new Choice<string?>("qu", "Quechua / Runasimi"),
-            new Choice<string?>("sq", "Albanian / Shqip"),
-            new Choice<string?>("sw", "Swahili / Kiswahili"),
-            new Choice<string?>("tl", "Tagalog / Filipino"),
-            new Choice<string?>("uz", "Uzbek / Oʻzbekcha"),
-            new Choice<string?>("kk", "Kazakh / Қазақша"),
-            new Choice<string?>("ky", "Kyrgyz / Кыргызча"),
-            new Choice<string?>("tg", "Tajik / Тоҷикӣ"),
-            new Choice<string?>("tt", "Tatar / Татарча"),
-        ];
-        // Vision and Tesseract each claim a real, supported set of languages (SupportedLanguages). Only offer
-        // what a registered engine can really attempt, so picking a language never leads straight to "engine missing".
-        OcrLanguages = [.. OcrLanguages.Where(c => c.Value is null || OcrEngineRegistry.AnyEngineSupports(c.Value))];
-
         _name = string.IsNullOrWhiteSpace(_edit.Name) ? loc.DisplayName(_edit) : _edit.Name;
         _target = Targets.FirstOrDefault(t => t.Value == _edit.TargetFormat) ?? Targets[1];
         _resize = ResizeModes.First(r => r.Value == _edit.Image.Resize);
@@ -193,6 +111,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _pageSize = PageSizes.First(p => p.Value == _edit.Pdf.PageSize);
         _compressionLevel = CompressionLevels.FirstOrDefault(c => c.Value == _edit.Pdf.Compression) ?? CompressionLevels[0];
         _compressWithGhostscript = _edit.Pdf.CompressWithGhostscript;
+        _ocr = _edit.Pdf.Ocr;
+        _ocrLanguage = OcrLanguageChoices.FirstOrDefault(l => l.Value == _edit.Pdf.OcrLanguage) ?? OcrLanguageChoices[0];
         _location = Locations.First(l => l.Value == _edit.Output.Location);
         _conflict = Conflicts.First(c => c.Value == _edit.Output.Conflict);
         _tiffCompression = TiffCompressions.First(t => t.Value == _edit.Image.TiffCompression);
@@ -215,6 +135,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _livePhotoLength = _edit.Media.LivePhotoLength;
         _livePhotoCover = _edit.Media.LivePhotoCover;
         _frameInterval = _edit.Media.FrameInterval > 0 ? _edit.Media.FrameInterval : 1;
+        _isSlideshow = _edit.Media.Slideshow;
+        _slideSeconds = _edit.Media.SlideDuration;
+        _crossfade = _edit.Media.Crossfade;
         _traceMode = TraceModes.First(m => m.Value == _edit.Trace.Mode);
         _animationSpeed = AnimationSpeeds.First(s => s.Value == _edit.Image.PlaybackSpeed);
         _traceColors = Math.Clamp(_edit.Trace.Colors, TracingOptions.MinColors, TracingOptions.MaxColors);
@@ -251,13 +174,6 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _pattern = _edit.Output.FileNamePattern;
         _keepDates = _edit.Output.KeepDates;
         _zipResult = _edit.Output.ZipResult;
-        _ocr = _edit.Document.Ocr;
-        _selectedOcrLanguage = OcrLanguages.FirstOrDefault(l =>
-            l.Value == _edit.Document.OcrLanguage ||
-            (l.Value is not null && _edit.Document.OcrLanguage is not null &&
-             (_edit.Document.OcrLanguage.StartsWith(l.Value, StringComparison.OrdinalIgnoreCase) ||
-              l.Value.StartsWith(_edit.Document.OcrLanguage, StringComparison.OrdinalIgnoreCase))))
-            ?? OcrLanguages[0];
     }
 
     public string PresetId => _original.Id;
@@ -271,6 +187,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public IReadOnlyList<Choice<ImageRotation>> Rotations { get; }
     public IReadOnlyList<Choice<ImageFlip>> Flips { get; }
     public IReadOnlyList<Choice<PdfPageSize>> PageSizes { get; }
+
+    /// <summary>Languages Tesseract reads (PdfOptions.OcrLanguage), English first.</summary>
+    public IReadOnlyList<Choice<string>> OcrLanguageChoices { get; }
 
     /// <summary>PDF → PDF: don't compress, or the level (pictures at 72, 150 or 300 dpi).</summary>
     public IReadOnlyList<Choice<PdfCompression>> CompressionLevels { get; }
@@ -288,7 +207,6 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     /// <summary>Playback speeds of animations, 0.25× to 4× (ImageOptions.AnimationSpeed).</summary>
     public IReadOnlyList<Choice<double>> AnimationSpeeds { get; }
-    public IReadOnlyList<Choice<string?>> OcrLanguages { get; }
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(NameError), nameof(IsValid))]
     private string _name;
@@ -296,14 +214,13 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowImage), nameof(ShowTurnForPdf), nameof(ShowQuality), nameof(ShowTiff), nameof(ShowMultiPageTiff), nameof(ShowWebp), nameof(ShowIco),
         nameof(ShowZipResult), nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowLeaveOutPictures), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
-        nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions),
+        nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions), nameof(ShowOcr), nameof(ShowPageSize),
         nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec), nameof(ShowHardwareEncoding),
         nameof(AudioCodecs), nameof(AudioCodecChoice), nameof(ShowAudioCodec),
         nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote),
-        nameof(ShowSaveEveryFrame), nameof(ShowAnimationSpeed), nameof(ShowTrace), nameof(ShowExtractMotionPhoto),
-        nameof(ShowLivePhotoChoice), nameof(LivePhotoKinds), nameof(LivePhotoChoice), nameof(IsLivePhoto), nameof(LivePhotoHint),
-        nameof(ShowOcr), nameof(ShowOcrLanguage), nameof(ShowOcrMissingWarning), nameof(OcrDisabledOnLinux))]
+        nameof(ShowSaveEveryFrame), nameof(ShowAnimationSpeed), nameof(ShowTrace), nameof(ShowExtractMotionPhoto), nameof(ShowSlideshow),
+        nameof(ShowLivePhotoChoice), nameof(LivePhotoKinds), nameof(LivePhotoChoice), nameof(IsLivePhoto), nameof(LivePhotoHint))]
     private Choice<string> _target;
 
     private LivePhotoKind _livePhotoValue;
@@ -482,6 +399,18 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty] private bool _compressWithGhostscript;
 
+    /// <summary>Recognize the text of scans and pictures (PdfOptions.Ocr), in <see cref="OcrLanguage"/>.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowPdfSplit), nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions), nameof(ShowPageSize))]
+    private bool _ocr;
+
+    /// <summary>
+    /// Text recognition makes the PDF itself (Tesseract): one file with each page the size of its scan or picture, so one
+    /// file per page, compression (and with it removing metadata), page size and margin don't apply and are hidden.
+    /// </summary>
+    private bool Recognizes => ShowOcr && Ocr;
+    [ObservableProperty] private Choice<string> _ocrLanguage;
+
     /// <summary>PDF → image: one tall image of all pages.</summary>
     [ObservableProperty] private bool _combinePages;
     [ObservableProperty] private bool _trimPageMargins;
@@ -490,8 +419,6 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     /// <summary>Markdown: the text only, no picture folder next to it (DocumentOptions.LeaveOutPictures).</summary>
     [ObservableProperty] private bool _leaveOutPictures;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowOcrLanguage)), NotifyPropertyChangedFor(nameof(ShowOcrMissingWarning))] private bool _ocr;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasOcrEngine)), NotifyPropertyChangedFor(nameof(ShowOcrMissingWarning))] private Choice<string?> _selectedOcrLanguage;
     [ObservableProperty] private string _subfolderName;
     /// <summary>The subfolder only for a file that becomes several (OutputRule.SubfolderOnlyForSeveralFiles).</summary>
     [ObservableProperty] private bool _subfolderOnlyForSeveralFiles;
@@ -517,6 +444,11 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(FrameEstimate))]
     private int _frameInterval = 1;
+
+    /// <summary>"Video from images" (MediaOptions.Slideshow): how long each picture shows, and fades between them.</summary>
+    private readonly bool _isSlideshow;
+    [ObservableProperty] private double _slideSeconds;
+    [ObservableProperty] private bool _crossfade;
 
     /// <summary>How many pictures a minute of 30 fps video gives at the chosen interval, and the limit per video.</summary>
     public string FrameEstimate => _loc.Format("presets.frame_estimate",
@@ -584,11 +516,17 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     /// <summary>"Save as ZIP" is offered for geospatial targets, whose results are several files (a Shapefile) or travel zipped.</summary>
     public bool ShowZipResult => TargetCategory == FormatCategory.Geo;
     public bool ShowPdfBuild => TargetId == "pdf";
-    public bool ShowPdfSplit => TargetId == "pdf";
+
+    /// <summary>Page size and margin of a PDF built from pictures; not with text recognition (<see cref="Recognizes"/>).</summary>
+    public bool ShowPageSize => ShowPdfBuild && !Recognizes;
+    public bool ShowPdfSplit => TargetId == "pdf" && !Recognizes;
 
     /// <summary>Compression is for PDF → PDF; Ghostscript and metadata only matter while it is on.</summary>
-    public bool ShowPdfCompression => TargetId == "pdf";
+    public bool ShowPdfCompression => TargetId == "pdf" && !Recognizes;
     public bool ShowPdfCompressionOptions => ShowPdfCompression && CompressionLevel.Value != PdfCompression.None;
+
+    /// <summary>Text from scans goes into the formats Filee writes from a PDF's text itself (PdfOptions.OcrTargets).</summary>
+    public bool ShowOcr => !IsTool && PdfOptions.OcrTargets.Contains(TargetId);
 
     /// <summary>PDF → a single-image format: the pages can be stacked into one tall image (TIFF, GIF, APNG and MNG keep pages).</summary>
     public bool ShowPdfCombine => TargetCategory == FormatCategory.Image
@@ -596,17 +534,6 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowDocument => TargetId == "pdf";
     /// <summary>Markdown can't hold pictures: they go into a folder next to it, or are left out.</summary>
     public bool ShowLeaveOutPictures => TargetId == "md";
-
-    /// <summary>OCR (Optical Character Recognition) for text recognition in scanned documents / images.</summary>
-    public bool ShowOcr => !IsTool && (TargetCategory is FormatCategory.Document or FormatCategory.Text or FormatCategory.Ebook
-        || TargetId is "docx" or "txt" or "md" or "hwpx" or "pdf" or "rtf" or "odt");
-    public bool ShowOcrLanguage => ShowOcr && Ocr;
-    public bool HasOcrEngine => OcrEngineRegistry.GetDefault(SelectedOcrLanguage?.Value) is not null;
-    public bool HasAnyOcrEngine => OcrEngineRegistry.All.Any(e => e.IsAvailable);
-    /// <summary>Linux has no built-in OCR (unlike Apple Vision on macOS), so Tesseract isn't just optional there: with
-    /// nothing installed, OCR can't run at all, and the toggle is disabled rather than left on to fail at conversion time.</summary>
-    public bool OcrDisabledOnLinux => ShowOcr && OperatingSystem.IsLinux() && !HasAnyOcrEngine;
-    public bool ShowOcrMissingWarning => ShowOcr && !OcrDisabledOnLinux && (!HasAnyOcrEngine || (Ocr && !HasOcrEngine));
     public bool ShowMedia => ShowMediaQuality || ShowMaxHeight || ShowRemoveAudio || ShowAudioChannels || ShowVideoCodec || ShowAudioCodec;
     /// <summary>Mono / stereo for every audio target but AMR, which is mono by definition.</summary>
     public bool ShowAudioChannels => TargetIsAudio && TargetId != "amr";
@@ -628,6 +555,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowExtractNote => TargetId == FormatRegistry.Folder;
     /// <summary>"Save every frame" of a video: PNG and JPG (format ids, <see cref="MediaOptions.FrameTargets"/>).</summary>
     public bool ShowSaveEveryFrame => !IsTool && !IsLivePhoto && MediaOptions.FrameTargets.Contains(TargetId);
+    /// <summary>The slideshow options, for a preset that makes a video of pictures (MP4).</summary>
+    public bool ShowSlideshow => _isSlideshow && MediaOptions.JoinTargets.Contains(TargetId) && TargetIsVideo;
     /// <summary>The video of a Live / Motion Photo: MP4 and MOV (<see cref="MediaOptions.MotionPhotoTargets"/>).</summary>
     public bool ShowExtractMotionPhoto => !IsTool && MediaOptions.MotionPhotoTargets.Contains(TargetId);
     /// <summary>
@@ -705,11 +634,21 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         pdf.SplitTallImage = SplitTallImage;
         pdf.Compression = CompressionLevel.Value;
         pdf.CompressWithGhostscript = CompressWithGhostscript;
+        // Only where the option is shown, as with SaveEveryFrame below.
+        pdf.Ocr = Recognizes;
+        pdf.OcrLanguage = OcrLanguage.Value;
+        if (pdf.Ocr)
+        {
+            // Hidden while text is recognized, so nothing is kept behind it that the PDF wouldn't do (Recognizes).
+            pdf.SplitPages = false;
+            pdf.Compression = PdfCompression.None;
+            pdf.CompressWithGhostscript = false;
+            pdf.PageSize = PdfPageSize.FitImage;
+            pdf.MarginMm = 0;
+        }
         _original.Document.PdfA = PdfA;
         // Only where the option is shown, as with SaveEveryFrame below.
         _original.Document.LeaveOutPictures = ShowLeaveOutPictures && LeaveOutPictures;
-        _original.Document.Ocr = ShowOcr && Ocr;
-        _original.Document.OcrLanguage = ShowOcr && Ocr ? SelectedOcrLanguage.Value : null;
 
         var media = _original.Media;
         media.Quality = MediaQuality.Value;
@@ -729,6 +668,11 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         media.SaveEveryFrame = ShowSaveEveryFrame && SaveEveryFrame;
         media.FrameInterval = media.SaveEveryFrame ? Math.Clamp(FrameInterval, 1, 1000) : 1;
         media.ExtractMotionPhoto = ShowExtractMotionPhoto && ExtractMotionPhoto;
+        if (ShowSlideshow)
+        {
+            media.SlideSeconds = double.IsFinite(SlideSeconds) ? Math.Clamp(SlideSeconds, MediaOptions.MinSlideSeconds, MediaOptions.MaxSlideSeconds) : 3;
+            media.Crossfade = Crossfade;
+        }
         media.LivePhoto = IsLivePhoto ? _livePhotoValue : LivePhotoKind.None;
         static double Seconds(double value, double fallback, double min, double max) =>
             double.IsFinite(value) ? Math.Clamp(value, min, max) : fallback;

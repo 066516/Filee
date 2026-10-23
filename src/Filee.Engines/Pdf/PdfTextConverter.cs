@@ -2,7 +2,7 @@
 // two-column pages), without running headers, footers and page numbers.
 //
 // TXT has one paragraph per line and an empty line between paragraphs. The invisible text layer of OCR-processed
-// scans is included; scans without one have no text to extract (Filee does no OCR).
+// scans is included; scans without one have no text to extract unless the preset recognizes it first (PdfOptions.Ocr).
 //
 // Markdown keeps headings, bold / italic and links (MarkdownWriter, as for e-books). The pictures go into a
 // "<name>_files" folder next to the Markdown file and are linked relatively (MarkdownPictures); a page without text
@@ -35,13 +35,12 @@ public sealed class PdfTextConverter : IConverter
     public EngineStatus GetStatus() => EngineStatus.Available("PDF → TXT, Markdown", $"{EngineVersions.BuiltIn} · {EngineVersions.Library("PdfPig", typeof(UglyToad.PdfPig.PdfDocument))}");
 
     public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken) =>
-        step.To == "md" ? MarkdownAsync(step, progress, cancellationToken) : TextAsync(step, progress, cancellationToken);
+        Task.Run(() => step.To == "md" ? Markdown(step, progress, cancellationToken) : Text(step, progress, cancellationToken), cancellationToken);
 
-    private static async Task<IReadOnlyList<string>> TextAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
+    private static IReadOnlyList<string> Text(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
     {
         progress?.Report(0.1);
-        var doc = await PdfDocumentReader.ReadTextAsync(step.InputPath, null, step.Preset.Document.OcrLanguage, step.Preset.Document.Ocr, step.WorkDirectory, cancellationToken: cancellationToken);
-        var text = PdfDocumentReader.PlainText(doc);
+        var text = PdfDocumentReader.PlainText(PdfDocumentReader.ReadText(step.InputPath));
         cancellationToken.ThrowIfCancellationRequested();
         if (text.Length == 0)
             throw NoText();
@@ -55,13 +54,15 @@ public sealed class PdfTextConverter : IConverter
         return [output];
     }
 
-    private static async Task<IReadOnlyList<string>> MarkdownAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
+    private static IReadOnlyList<string> Markdown(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken)
     {
         progress?.Report(0.1);
         var textOnly = step.Preset.Document.LeaveOutPictures;
         var document = textOnly
-            ? await PdfDocumentReader.ReadTextAsync(step.InputPath, null, step.Preset.Document.OcrLanguage, step.Preset.Document.Ocr, step.WorkDirectory, cancellationToken: cancellationToken)
-            : await PdfDocumentReader.ReadAsync(step.InputPath, Path.Combine(step.WorkDirectory, $"media-{Guid.NewGuid():N}"), null, step.Preset.Document.OcrLanguage, step.Preset.Document.Ocr, step.WorkDirectory, cancellationToken: cancellationToken);
+            ? PdfDocumentReader.ReadText(step.InputPath)
+            : step.Preset.Pdf.Ocr
+                ? PdfDocumentReader.ReadWithOcrLayer(step.InputPath, Path.Combine(step.WorkDirectory, $"media-{Guid.NewGuid():N}"))
+                : PdfDocumentReader.Read(step.InputPath, Path.Combine(step.WorkDirectory, $"media-{Guid.NewGuid():N}"));
         cancellationToken.ThrowIfCancellationRequested();
         if (textOnly && PdfDocumentReader.PlainText(document).Length == 0)
             throw NoText();

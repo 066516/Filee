@@ -30,7 +30,7 @@ namespace Filee.Core.Conversion;
 /// <param name="FrameSequence">
 /// The edge writes every frame of a video as numbered pictures into a folder (<see cref="Presets.MediaOptions.SaveEveryFrame"/>).
 /// It is never part of an ordinary route (a video → JPG stays one still frame), and with
-/// <see cref="RoutePlanner.Plan(string, string, bool, bool, bool, bool)"/> asking for frames it is the whole route.
+/// <see cref="RoutePlanner.Plan(string, string, bool, bool, bool, bool, bool)"/> asking for frames it is the whole route.
 /// </param>
 /// <param name="Unshaped">
 /// The engine draws text one character after the other, left to right, without complex-script shaping (no joined
@@ -43,16 +43,22 @@ namespace Filee.Core.Conversion;
 /// <param name="MotionPhoto">
 /// The edge takes the video out of a Live / Motion Photo (<see cref="Presets.MediaOptions.ExtractMotionPhoto"/>). It is
 /// never part of an ordinary route (a photo → MP4 is otherwise a video of the still picture), and with
-/// <see cref="RoutePlanner.Plan(string, string, bool, bool, bool, bool)"/> asking for it it is the whole route.
+/// <see cref="RoutePlanner.Plan(string, string, bool, bool, bool, bool, bool)"/> asking for it it is the whole route.
 /// </param>
 /// <param name="LivePhoto">
 /// The edge makes a Live / Motion Photo of a short clip of a video (<see cref="Presets.MediaOptions.LivePhoto"/>). It is
 /// never part of an ordinary route (a video → JPG is otherwise one still frame), and with
-/// <see cref="RoutePlanner.Plan(string, string, bool, bool, bool, bool)"/> asking for it it is the whole route.
+/// <see cref="RoutePlanner.Plan(string, string, bool, bool, bool, bool, bool)"/> asking for it it is the whole route.
+/// </param>
+/// <param name="Ocr">
+/// The edge recognizes the text of a scan or a picture and writes a searchable PDF (<see cref="Presets.PdfOptions.Ocr"/>).
+/// It is never part of an ordinary route, and with <see cref="RoutePlanner.Plan(string, string, bool, bool, bool, bool, bool)"/>
+/// asking for it the route starts with it.
 /// </param>
 public readonly record struct ConversionEdge(
     string From, string To, int Cost = 10, bool ImageSourcesOnly = false, bool NotForImageSources = false,
-    bool DirectOnly = false, bool FrameSequence = false, bool Unshaped = false, bool MotionPhoto = false, bool LivePhoto = false);
+    bool DirectOnly = false, bool FrameSequence = false, bool Unshaped = false, bool MotionPhoto = false, bool LivePhoto = false,
+    bool Ocr = false);
 
 /// <summary>
 /// A conversion an engine refuses with a reason the user can act on, shown in their language (the file's
@@ -109,6 +115,11 @@ public interface IOutputAllocator
 /// Records a note on a step that worked, as a localization key (e.g. <c>notice.pdf_not_smaller</c>): shown with the
 /// file's result. Null when nobody listens.
 /// </param>
+/// <param name="MissingFonts">
+/// Reports document font families that aren't installed (and have no known metric-compatible installed substitute).
+/// Rendering continues: graphical clients can offer trusted sources without blocking CLI or watched jobs.
+/// </param>
+/// <param name="OriginalSourcePath">The user's original input, before any intermediate conversion steps.</param>
 /// <param name="MotionPhoto">
 /// The step takes a <see cref="ConversionEdge.MotionPhoto"/> edge: the video of the Live / Motion Photo becomes the
 /// output, not its still picture.
@@ -127,7 +138,9 @@ public sealed record ConversionStep(
     bool FrameSequence = false,
     Action<string>? Notice = null,
     bool MotionPhoto = false,
-    bool LivePhoto = false);
+    bool LivePhoto = false,
+    Action<IReadOnlyList<string>>? MissingFonts = null,
+    string? OriginalSourcePath = null);
 
 /// <summary>
 /// A conversion engine (ImageMagick, LibreOffice, rhwp, ...).
@@ -213,6 +226,26 @@ public interface IPdfMerger
 public interface ITiffMerger
 {
     Task MergeAsync(IReadOnlyList<string> inputPaths, string outputPath, Presets.ImageOptions options, CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// Joins several videos or audio files into one, one after the other, or turns pictures into one video ("Merge
+/// videos", "Merge audio", "Video from images"). Implemented by the FFmpeg engine; <see cref="JobQueue"/> uses it when
+/// a preset joins files (<see cref="Preset.JoinsIntoOneMedia"/>).
+/// </summary>
+public interface IMediaJoiner
+{
+    /// <summary>
+    /// Writes every file of <paramref name="inputPaths"/>, in order, into <paramref name="outputPath"/>: video or audio
+    /// clips back to back, or pictures shown one after the other (<see cref="MediaOptions.Slideshow"/>).
+    /// </summary>
+    /// <param name="inputPaths">Videos, audio files, or pictures (PNG, as the image engines wrote them).</param>
+    /// <param name="outputPath">File to create; removed again when the join fails.</param>
+    /// <param name="format">Target format id, <c>"mp4"</c> or <c>"m4a"</c>.</param>
+    /// <param name="preset">Options, e.g. <see cref="MediaOptions.SlideSeconds"/>.</param>
+    /// <param name="workDirectory">Scratch directory for intermediate files; deleted after the job.</param>
+    Task JoinAsync(IReadOnlyList<string> inputPaths, string outputPath, string format, Preset preset,
+        string workDirectory, IProgress<double>? progress, CancellationToken cancellationToken);
 }
 
 /// <summary>

@@ -1,6 +1,6 @@
 // Shared context for engines: where Filee's own engine copies live and where engines keep their state.
 // Built-in engines never use software installed on the system (Microsoft Office, Hancom Office). The optional
-// engines (FFmpeg, calibre, Pandoc, Ghostscript, LibreOffice) are looked up in this order: a copy the user chose in
+// engines (FFmpeg, calibre, Pandoc, Ghostscript, LibreOffice, Tesseract) are looked up in this order: a copy the user chose in
 // Settings → Engines (OwnCopies), Filee's own copy (installer or download, the tested version), then one already on
 // the PC (on the PATH or where its installer puts it), so nobody has to download a second FFmpeg they already have.
 
@@ -218,8 +218,6 @@ public sealed class EngineEnvironment(string dataDirectory)
             }
             if (id == "calibre")
                 folders.AddRange(["/Applications/calibre.app", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Applications", "calibre.app"), "/opt/calibre"]);
-            if (id == "tesseract")
-                folders.AddRange(["/opt/homebrew/opt/tesseract/bin", "/usr/local/opt/tesseract/bin"]);
         }
         foreach (var root in (OperatingSystem.IsWindows()
                      ? new[] { Environment.SpecialFolder.ProgramFiles, Environment.SpecialFolder.ProgramFilesX86 }
@@ -235,7 +233,6 @@ public sealed class EngineEnvironment(string dataDirectory)
                     folders.Add(Path.Combine(root, "Calibre2"));
                     break;
                 case "tesseract":
-                    // The official UB-Mannheim installer's default location.
                     folders.Add(Path.Combine(root, "Tesseract-OCR"));
                     break;
                 case "ghostscript":

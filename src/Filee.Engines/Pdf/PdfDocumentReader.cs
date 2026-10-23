@@ -1,11 +1,12 @@
-// PDF → HDocument with PdfPig (Apache-2.0), so PDF → DOCX / HWPX / TXT needs no Word, LibreOffice or OCR engine.
+// PDF → HDocument with PdfPig (Apache-2.0), so PDF → DOCX / HWPX / TXT needs no Word or LibreOffice.
 //
 // Every page's words (with their positions, fonts, sizes and colours) become lines, lines become paragraphs, and the
 // paragraphs and pictures are put in reading order, also on two-column pages (PdfDocumentReader.Layout). Headings
 // come from font sizes, bold / italic from the fonts, page size and margins from the page. Running headers and
 // footers (also those that change with the chapter), page numbers and a logo repeated at the top or bottom of the
 // pages are left out. A page without text (a scan) becomes the rendered page as a picture (PDFium via PDFtoImage), so
-// the result is complete; there is no OCR.
+// the result is complete. With "Recognize text" (PdfOptions.Ocr) Tesseract reads the scans first, and their invisible
+// OCR layer is the page's text (ReadWithOcrLayer).
 //
 // Rows laid out with tab stops (a number, a label and a date far to the right) stay one line with tabs at the PDF's
 // positions, and a line that ends early although the next line's first word would have fitted (an address) keeps its
@@ -17,11 +18,8 @@
 
 using System.Text;
 using System.Text.RegularExpressions;
-using Filee.Core.Ocr;
 using Filee.Engines.Hwp.Hwpx;
 using Filee.Engines.Infrastructure;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using PDFtoImage;
 using SkiaSharp;
 using UglyToad.PdfPig;
@@ -105,47 +103,32 @@ internal sealed partial class PdfDocumentReader
     private readonly string _path;
     private readonly string _mediaFolder;
     private readonly bool _textOnly;
-    private readonly IOcrEngine? _ocrEngine;
-    private readonly string? _ocrLanguage;
-    private readonly bool _enableOcr;
-    private readonly string? _workDirectory;
-    private readonly ILogger _logger;
+    private readonly bool _ocrLayer;
     private byte[]? _pdfBytes;
     private int _pictures;
 
-    private PdfDocumentReader(string path, string mediaFolder, bool textOnly, IOcrEngine? ocrEngine = null, string? ocrLanguage = null, bool enableOcr = false, string? workDirectory = null, ILogger? logger = null)
+    private PdfDocumentReader(string path, string mediaFolder, bool textOnly, bool ocrLayer = false)
     {
         _path = path;
         _mediaFolder = mediaFolder;
         _textOnly = textOnly;
-        _ocrEngine = ocrEngine;
-        _ocrLanguage = ocrLanguage;
-        _enableOcr = enableOcr;
-        _workDirectory = workDirectory;
-        _logger = logger ?? NullLogger.Instance;
+        _ocrLayer = ocrLayer;
     }
 
     /// <summary>Reads <paramref name="path"/> with pictures (extracted into <paramref name="mediaFolder"/>) and scans.</summary>
-    public static HDocument Read(string path, string mediaFolder) =>
-        new PdfDocumentReader(path, mediaFolder, textOnly: false).ReadDocument();
+    public static HDocument Read(string path, string mediaFolder) => new PdfDocumentReader(path, mediaFolder, textOnly: false).ReadDocument();
 
-    public static HDocument Read(string path, string mediaFolder, IOcrEngine? ocrEngine, string? ocrLanguage = null, bool enableOcr = false, string? workDirectory = null, ILogger? logger = null) =>
-        new PdfDocumentReader(path, mediaFolder, textOnly: false, ocrEngine, ocrLanguage, enableOcr, workDirectory, logger).ReadDocument();
-
-    public static Task<HDocument> ReadAsync(string path, string mediaFolder, IOcrEngine? ocrEngine, string? ocrLanguage = null, bool enableOcr = false, string? workDirectory = null, ILogger? logger = null, CancellationToken cancellationToken = default) =>
-        new PdfDocumentReader(path, mediaFolder, textOnly: false, ocrEngine, ocrLanguage, enableOcr, workDirectory, logger).ReadDocumentAsync(cancellationToken);
+    /// <summary>
+    /// Like <see cref="Read"/>, but the invisible text of a scan (its OCR layer, PdfOptions.Ocr) is the page's text:
+    /// the words become paragraphs and the scan under them is left out.
+    /// </summary>
+    public static HDocument ReadWithOcrLayer(string path, string mediaFolder) =>
+        new PdfDocumentReader(path, mediaFolder, textOnly: false, ocrLayer: true).ReadDocument();
 
     /// <summary>
     /// Reads only the text, including invisible text (the OCR layer of scanned PDFs); pictures and scans are left out.
     /// </summary>
-    public static HDocument ReadText(string path) =>
-        new PdfDocumentReader(path, "", textOnly: true).ReadDocument();
-
-    public static HDocument ReadText(string path, IOcrEngine? ocrEngine, string? ocrLanguage = null, bool enableOcr = false, string? workDirectory = null, ILogger? logger = null) =>
-        new PdfDocumentReader(path, "", textOnly: true, ocrEngine, ocrLanguage, enableOcr, workDirectory, logger).ReadDocument();
-
-    public static Task<HDocument> ReadTextAsync(string path, IOcrEngine? ocrEngine, string? ocrLanguage = null, bool enableOcr = false, string? workDirectory = null, ILogger? logger = null, CancellationToken cancellationToken = default) =>
-        new PdfDocumentReader(path, "", textOnly: true, ocrEngine, ocrLanguage, enableOcr, workDirectory, logger).ReadDocumentAsync(cancellationToken);
+    public static HDocument ReadText(string path) => new PdfDocumentReader(path, "", textOnly: true).ReadDocument();
 
     // ───────────────────────── Model of a page ─────────────────────────
 
@@ -227,9 +210,7 @@ internal sealed partial class PdfDocumentReader
 
     // ───────────────────────── Document ─────────────────────────
 
-    private HDocument ReadDocument() => ReadDocumentAsync(CancellationToken.None).GetAwaiter().GetResult();
-
-    private async Task<HDocument> ReadDocumentAsync(CancellationToken cancellationToken)
+    private HDocument ReadDocument()
     {
         PdfDocument pdf;
         try
@@ -247,10 +228,7 @@ internal sealed partial class PdfDocumentReader
             try
             {
                 foreach (var page in pdf.GetPages())
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    pages.Add(await ReadPageAsync(page, cancellationToken));
-                }
+                    pages.Add(ReadPage(page));
             }
             catch (PdfDocumentEncryptedException)
             {
@@ -269,7 +247,7 @@ internal sealed partial class PdfDocumentReader
         new("The PDF is password-protected. Open it with its password and save a copy without one, then convert that copy.");
 
     /// <summary>
-    /// The text of each page in <paramref name="pages"/> (zero-based), read like <see cref="ReadText(string)"/> (reading order,
+    /// The text of each page in <paramref name="pages"/> (zero-based), read like <see cref="ReadText"/> (reading order,
     /// invisible OCR text included) but page by page, with running heads and page numbers kept: "" for a page without
     /// text. Paragraphs are separated by an empty line, lines end with CR LF.
     /// </summary>
@@ -300,22 +278,12 @@ internal sealed partial class PdfDocumentReader
         }
     }
 
-    private PageContent ReadPage(Page page) => ReadPageAsync(page, CancellationToken.None).GetAwaiter().GetResult();
-
-    private async Task<PageContent> ReadPageAsync(Page page, CancellationToken cancellationToken)
+    private PageContent ReadPage(Page page)
     {
         var crop = page.CropBox.Bounds;
         // A page turned by 90° is shown (and rendered) with width and height swapped.
         var rotated = page.Rotation.Value % 180 != 0;
         var content = new PageContent(page.Number - 1, rotated ? crop.Height : crop.Width, rotated ? crop.Width : crop.Height);
-
-        // Turned pages when not text-only: always keep the rendered page, exactly as in main.
-        if (rotated && !_textOnly)
-        {
-            content.Scanned = true;
-            content.ScanPath = RenderScan(page.Number - 1);
-            return content;
-        }
 
         var links = page.GetHyperlinks()
             .Where(h => h.Uri is { } uri && (uri.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase) || uri.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)))
@@ -338,106 +306,30 @@ internal sealed partial class PdfDocumentReader
             var letters = word.Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToList();
             if (letters.Count == 0)
                 continue;
-            // Invisible text is the OCR layer of a scan: part of the text, not of the page's look.
-            if (!_textOnly && letters.All(l => l.RenderingMode == TextRenderingMode.Neither))
+            // Invisible text is the OCR layer of a scan: part of the text, not of the page's look (unless OCR was asked for).
+            var invisible = letters.All(l => l.RenderingMode == TextRenderingMode.Neither);
+            if (!_textOnly && !_ocrLayer && invisible)
                 continue;
             var lead = string.IsNullOrWhiteSpace(word.Lead.Value) ? letters[0] : word.Lead;
             var box = Shift(word.Box, crop);
             var size = Median(letters.Select(LetterSize));
             var center = new PdfPoint((box.Left + box.Right) / 2, (box.Top + box.Bottom) / 2);
             var link = links.FirstOrDefault(l => Inside(l.Bounds, center)).Uri;
+            var format = Format(lead, size);
+            // An OCR layer's font only places the words (Tesseract's GlyphLessFont): the document's own font is used.
+            if (invisible)
+                format = format with { Font = null, Bold = false, Italic = false };
             words.Add(new TextWord(CleanText(word.Text), box.Left, box.Right, box.Top, box.Bottom,
-                lead.StartBaseLine.Y - crop.Bottom, Math.Max(1, size), Format(lead, size), link));
+                lead.StartBaseLine.Y - crop.Bottom, Math.Max(1, size), format, link));
         }
 
-        if (words.Count == 0)
+        if (words.Count == 0 || (rotated && !_textOnly))
         {
-            // When OCR is enabled, first check if the page already has an invisible OCR text layer (TextRenderingMode.Neither)
-            if (_enableOcr)
-            {
-                foreach (var word in pageWords)
-                {
-                    if (string.IsNullOrWhiteSpace(word.Text))
-                        continue;
-                    var letters = word.Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToList();
-                    if (letters.Count == 0)
-                        continue;
-                    var lead = string.IsNullOrWhiteSpace(word.Lead.Value) ? letters[0] : word.Lead;
-                    var box = Shift(word.Box, crop);
-                    var size = Median(letters.Select(LetterSize));
-                    var center = new PdfPoint((box.Left + box.Right) / 2, (box.Top + box.Bottom) / 2);
-                    var link = links.FirstOrDefault(l => Inside(l.Bounds, center)).Uri;
-                    words.Add(new TextWord(CleanText(word.Text), box.Left, box.Right, box.Top, box.Bottom,
-                        lead.StartBaseLine.Y - crop.Bottom, Math.Max(1, size), Format(lead, size), link));
-                }
-            }
-
-            // If still no words and OCR is enabled, run the OCR engine on the rendered scan
-            if (words.Count == 0 && _enableOcr)
-            {
-                var ocr = _ocrEngine ?? OcrEngineRegistry.GetDefault(_ocrLanguage);
-                if (ocr is not null && ocr.IsAvailable)
-                {
-                    var scanPath = RenderScan(page.Number - 1);
-                    var isTempScan = _textOnly || string.IsNullOrEmpty(_mediaFolder);
-                    try
-                    {
-                        var ocrResult = await ocr.RecognizeAsync(scanPath, OcrEngineRegistry.ResolveLanguage(ocr, _ocrLanguage), cancellationToken);
-                        if (ocrResult.Words.Count > 0)
-                        {
-                            var scaleX = content.Width / (double)ocrResult.ImageWidth;
-                            var scaleY = content.Height / (double)ocrResult.ImageHeight;
-                            foreach (var line in ocrResult.Lines)
-                            {
-                                var pdfTop = content.Height - (line.Box.Top * scaleY);
-                                var pdfBottom = content.Height - (line.Box.Bottom * scaleY);
-                                var size = Math.Max(4, pdfTop - pdfBottom);
-                                var format = new HCharFormat(Size: (int)Math.Round(size * 100));
-                                foreach (var w in line.Words)
-                                {
-                                    var pdfLeft = w.Box.Left * scaleX;
-                                    var pdfRight = w.Box.Right * scaleX;
-                                    words.Add(new TextWord(CleanText(w.Text), pdfLeft, pdfRight, pdfTop, pdfBottom, pdfBottom, size, format, null));
-                                }
-                            }
-                        }
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        throw;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "OCR failed on PDF page {Page}", page.Number);
-                    }
-                    finally
-                    {
-                        // Kept only when it's about to become content.ScanPath below (words.Count == 0, !_textOnly);
-                        // every other outcome (OCR succeeded, or _textOnly never looks at ScanPath at all) is done with it.
-                        if (isTempScan && (words.Count > 0 || _textOnly) && File.Exists(scanPath))
-                        {
-                            try { File.Delete(scanPath); } catch { }
-                        }
-                    }
-
-                    if (words.Count == 0)
-                    {
-                        content.Scanned = true;
-                        if (!_textOnly)
-                            content.ScanPath = scanPath;
-                        return content;
-                    }
-                }
-            }
-
-            if (words.Count == 0)
-            {
-                // A scan, a page of drawings, or a page without OCR: the rendered page keeps everything.
-                content.Scanned = true;
-                if (!_textOnly)
-                    content.ScanPath = RenderScan(page.Number - 1);
-                return content;
-            }
+            // A scan, a page of drawings, or a turned page: the rendered page keeps everything.
+            content.Scanned = true;
+            if (!_textOnly)
+                content.ScanPath = RenderScan(page.Number - 1);
+            return content;
         }
 
         // Plain text (TXT, page texts for slides) keeps table cells as paragraphs in reading order.
@@ -607,13 +499,8 @@ internal sealed partial class PdfDocumentReader
 
     private string NewMediaPath(string extension)
     {
-        var folder = !string.IsNullOrEmpty(_mediaFolder)
-            ? _mediaFolder
-            : !string.IsNullOrEmpty(_workDirectory)
-                ? Path.Combine(_workDirectory, "pdf-scans")
-                : Path.Combine(Path.GetTempPath(), $"filee-pdf-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(folder);
-        return Path.Combine(folder, $"pdf-{++_pictures}.{extension}");
+        Directory.CreateDirectory(_mediaFolder);
+        return Path.Combine(_mediaFolder, $"pdf-{++_pictures}.{extension}");
     }
 
     private SKBitmap Render(int pageIndex)
@@ -1094,7 +981,7 @@ internal sealed partial class PdfDocumentReader
 
     private static string? NullIfBlank(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
 
-    /// <summary>Plain text of a document read by <see cref="ReadText(string)"/>: paragraphs separated by an empty line.</summary>
+    /// <summary>Plain text of a document read by <see cref="ReadText"/>: paragraphs separated by an empty line.</summary>
     public static string PlainText(HDocument document)
     {
         var sb = new StringBuilder();
