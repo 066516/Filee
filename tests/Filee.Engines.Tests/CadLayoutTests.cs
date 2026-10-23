@@ -128,6 +128,36 @@ public class CadLayoutTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public async Task Empty_model_space_shows_nothing_through_the_viewports()
+    {
+        // Model space is empty, so the one-picture scene is the active layout's paper space; that must not be drawn
+        // again inside the viewport. The blue border runs along the sheet edges, and a view of model space around
+        // (50, 50) would put its corner in the middle of the frame.
+        var doc = new CadDocument();
+        var border = new Layer("Border") { Color = CadBuilder.Visible };
+        doc.Layers.Add(border);
+        doc.PaperSpace.Entities.Add(new LwPolyline(new LwPolyline.Vertex(0, 0), new LwPolyline.Vertex(420, 0),
+            new LwPolyline.Vertex(420, 297), new LwPolyline.Vertex(0, 297))
+        { IsClosed = true, Layer = border });
+        doc.PaperSpace.Entities.Add(new Viewport
+        {
+            Center = new XYZ(210, 148.5, 0),
+            Width = 200,
+            Height = 150,
+            ViewCenter = new XY(50, 50),
+            ViewHeight = 150,
+        });
+        var dxf = CadBuilder.SaveDxf(doc, fx.NewFolder(), "paper.dxf");
+
+        var job = await fx.ConvertAsync([dxf], new Preset { TargetFormat = "pdf" });
+
+        Assert.True(job.State == JobState.Completed, string.Join("; ", job.Files.Select(f => $"{f.ErrorKey} {f.ErrorDetail}")));
+        var pdf = job.Outputs.Single();
+        Assert.True(Blue(pdf, 0, 0, 0, 1, 1) > 20, "the border is on the page");
+        Assert.Equal(0, Blue(pdf, 0, 0.27, 0.26, 0.73, 0.74));
+    }
+
+    [Fact]
     public async Task Images_and_svg_stay_one_picture_of_model_space()
     {
         var dxf = CadBuilder.SaveDxf(TwoSheets(), fx.NewFolder(), "sheets.dxf");

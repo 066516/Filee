@@ -86,8 +86,11 @@ public sealed class CadConverter(ILogger? logger = null) : IConverter, IImageTra
                 case "pdf":
                     using (var stream = File.Create(output))
                     {
+                        // With empty model space the scene is the active layout's paper space, which must not show
+                        // through the viewports.
                         if (sheets.Count > 0)
-                            CadRenderer.WritePdf(sheets, scene, step.Preset.Pdf, Path.GetFileNameWithoutExtension(step.InputPath), stream);
+                            CadRenderer.WritePdf(sheets, scene.Space == "model" ? scene : new CadScene(), step.Preset.Pdf,
+                                Path.GetFileNameWithoutExtension(step.InputPath), stream);
                         else
                             CadRenderer.WritePdf(scene, step.Preset.Pdf, Path.GetFileNameWithoutExtension(step.InputPath), stream);
                     }
