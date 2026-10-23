@@ -323,6 +323,8 @@
   "update.installing": "インストーラーを実行中です。完了するとFileeが再起動します。",
   "update.failed": "自動更新に失敗しました。filee.shから新しいバージョンをダウンロードしてください。",
   "update.failed_alert": "更新をダウンロードできませんでした。\n「OK」を押すとfilee.shを開き、新しいバージョンをダウンロードできます。",
+  "update.rolled_back_alert": "更新をインストールできなかったため、Filee はこれまでのバージョンのままです。\n「OK」を押すとfilee.shを開き、新しいバージョンをダウンロードできます。",
+  "update.rolled_back_log": "詳細はログにあります：{0}",
   "update.cancelled": "更新をキャンセルしました。インストールするには、もう一度「更新」を押してください。",
   "update.level.Required": "必須の更新",
   "update.level.Recommended": "推奨の更新",

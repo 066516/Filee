@@ -438,6 +438,20 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         services.GetRequiredService<UpdateService>().OpenDownloadPage();
     }
 
+    /// <summary>
+    /// The last run's in-app update (Linux) failed while installing and the installer put the old version back: say so,
+    /// with the log that has the details, then open the website to download the new version there.
+    /// </summary>
+    public async Task ShowUpdateRolledBackAsync(string? logPath)
+    {
+        _updateNotice?.Close();
+        var message = loc["update.rolled_back_alert"];
+        if (!string.IsNullOrWhiteSpace(logPath))
+            message += "\n\n" + loc.Format("update.rolled_back_log", logPath);
+        await MessageAsync(_main is { IsVisible: true } main ? main : null, message);
+        services.GetRequiredService<UpdateService>().OpenDownloadPage();
+    }
+
     private async Task<bool> ShowMessageAsync(Window? owner, string message, bool destructive, bool withCancel)
     {
         var dialog = new Window
