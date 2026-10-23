@@ -692,6 +692,11 @@
   "theme.donut_opacity": "Непрозрачность кругового меню",
   "theme.reduce_motion": "Меньше анимации",
   "theme.reduce_motion_hint": "Рекомендуется для старых компьютеров. Отключает переходы и подпрыгивание кругового меню.",
+  "theme.window_size": "Размер окон",
+  "theme.window_size_smaller": "Меньше",
+  "theme.window_size_larger": "Больше",
+  "theme.window_size_reset": "Сбросить",
+  "theme.window_size_hint": "Увеличивает или уменьшает всё в окнах Filee. В любом окне то же делают {0} + колесо мыши и {0} + плюс / минус, а {0} + 0 возвращает 100%.",
   "theme.preview": "Предпросмотр",
 
   "engines.title": "Движки конвертации",
