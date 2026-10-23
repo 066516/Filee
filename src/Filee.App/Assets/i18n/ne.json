@@ -1,6 +1,7 @@
 {
   "app.name": "Filee",
   "app.tagline": "तान्नुहोस्, छाड्नुहोस्, रूपान्तरण भयो।",
+
   "nav.home": "गृहपृष्ठ",
   "nav.general": "सामान्य",
   "nav.triggers": "सर्टकटहरू",
@@ -10,6 +11,7 @@
   "nav.theme": "थिम",
   "nav.engines": "इन्जिनहरू",
   "nav.about": "परिचय",
+
   "tray.open": "Filee खोल्नुहोस्",
   "tray.pause": "सर्टकटहरू पज गर्नुहोस्",
   "tray.resume": "सर्टकटहरू पुनः सुरु गर्नुहोस्",
@@ -21,6 +23,7 @@
   "close.tray": "ट्रेमा राख्नुहोस्",
   "close.quit": "बन्द गर्नुहोस्",
   "close.dont_ask": "फेरि नसोध्नुहोस्",
+
   "home.title": "गृहपृष्ठ",
   "home.drop_title": "फाइलहरू यहाँ छाड्नुहोस्",
   "home.drop_select": "फाइलहरू छान्न डबल-क्लिक गर्नुहोस्",
@@ -44,6 +47,7 @@
   "home.clear_history": "खाली गर्नुहोस्",
   "home.files": "{0} फाइलहरू",
   "home.failed_files": "{0} असफल",
+
   "donut.center_drag": "फाइलहरू यहाँ ल्याउनुहोस्",
   "donut.files_same": "{0} × {1}",
   "donut.files_mixed": "{0} फाइलहरू",
@@ -59,6 +63,7 @@
   "donut.group_caption": "{0} को समूह",
   "donut.flip_to_back": "{0} ↻ पछाडि",
   "donut.flip_to_front": "{0} ↻ अगाडि",
+
   "toast.converting": "{0} → {1}",
   "toast.done": "सम्पन्न भयो",
   "toast.done_errors": "{1} मध्ये {0} असफल भयो",
@@ -71,6 +76,7 @@
   "toast.get_fonts": "फन्टहरू प्राप्त गर्नुहोस्",
   "download.badge": "{0}/s · {1}",
   "download.badge_files": "{0} · {2} मध्ये {1} फाइलहरू",
+
   "error.unsupported_source": "यो फाइल प्रकार समर्थित छैन",
   "error.empty_file": "फाइल खाली छ (० बाइट)। दायाँ-क्लिक मेनुमा “नयाँ” बाट सिर्जना गरिएको फाइल सम्बन्धित एपमा खोलेर सुरक्षित नगरेसम्म खाली रहन्छ",
   "format_request.request": "नयाँ ढाँचा अनुरोध गर्नुहोस्",
@@ -126,6 +132,7 @@
   "notice.geo_rows_without_location": "केही पङ्क्तिहरूमा प्रयोगयोग्य स्थान छैन, तिनीहरूलाई आकार बिना राखियो",
   "notice.geo_field_names": "Shapefile फिल्ड नामहरू बढीमा १० अक्षरका हुन्छन्: केही छोट्याइए",
   "notice.geo_shapefile_split": "Shapefile मा एक प्रकारको आकार मात्र रहन्छ, त्यसैले पोइन्ट, रेखा र पोलिगनहरू छुट्टाछुट्टै फाइलमा सुरक्षित गरिए",
+
   "engine.reason.not_installed": "स्थापना गरिएको छैन",
   "engine.reason.error": "जाँच गर्दा त्रुटि भयो",
   "engine.reason.unsupported_platform": "यस प्लेटफर्ममा उपलब्ध छैन",
@@ -179,6 +186,7 @@
   "engine.vision.description": "macOS को आफ्नै पाठ पहिचानले स्क्यान र तस्बिरको पाठ पहिचान गर्छ (OCR): खोज्न मिल्ने PDF, DOCX, TXT। केही डाउनलोड गर्नु पर्दैन।",
   "engine.calibre.description": "दुर्लभ इ-पुस्तक ढाँचाहरू (LIT, LRF, CHM, PDB, RB…) र Kindle आउटपुट (MOBI, AZW3)।\nHWPX writer भन्दा माथि राख्दा, यसले इ-पुस्तकका PDF पनि बनाउँछ (लामो पुस्तकका लागि धेरै छिटो)।",
   "engine.libreoffice.description": "पुराना र कम प्रचलित ढाँचाहरू पढ्छ: DOC, PPT, Pages, Keynote, Numbers, WordPerfect, ClarisWorks, Publisher, Visio…\nसाथै DOC, XLS, PPT, ODT, ODP, OpenDocument टेम्प्लेट र EMF को रूपमा सुरक्षित गर्दछ।",
+
   "profile.images": "छविहरू",
   "profile.pdf": "PDF",
   "profile.office": "कार्यालय कागजातहरू",
@@ -198,6 +206,7 @@
   "profile.models": "थ्रीडी मोडलहरू",
   "profile.geo": "भौगोलिक",
   "profile.mixed": "मिश्रित",
+
   "preset.crop": "क्रप गर्नुहोस्",
   "crop.save": "क्रप गरी सुरक्षित गर्नुहोस्",
   "crop.reset": "रिसेट गर्नुहोस्",
@@ -219,6 +228,7 @@
   "crop.state_done": "क्रप गरियो",
   "crop.state_skipped": "छोडियो",
   "crop.state_failed": "असफल भयो",
+
   "preset.half_size": "आधा आकार",
   "preset.half_size.donut": "आधा आकार",
   "preset.grayscale": "ग्रेस्केल",
@@ -264,6 +274,7 @@
   "preset.compress_audio": "अडियो कम्प्रेस गर्नुहोस्",
   "preset.merge_audio": "अडियो मर्ज गर्नुहोस्",
   "preset.remove_metadata": "मेटाडाटा हटाउनुहोस्",
+
   "format.folder": "फोल्डर",
   "format.category.Image": "छवि",
   "format.category.Pdf": "PDF",
@@ -283,6 +294,7 @@
   "format.category.Data": "डाटा",
   "format.category.Model3D": "थ्रीडी मोडल",
   "format.category.Geo": "भौगोलिक डाटा",
+
   "general.title": "सामान्य",
   "general.language": "भाषा",
   "general.language_auto": "प्रणाली पूर्वनिर्धारित",
@@ -362,6 +374,7 @@
   "general.reset_library": "पूर्वनिर्धारितमा रिसेट गर्नुहोस्",
   "general.reset_confirm": "सबै प्रिसेटहरू र टुलबार प्रोफाइलहरूलाई पूर्वनिर्धारितहरूसँग बदल्ने?",
   "general.imported": "{0} वस्तुहरू आयात गरियो",
+
   "triggers.title": "सर्टकटहरू",
   "triggers.description": "डोनट टुलबार कसरी खुल्छ रोज्नुहोस्। तपाईंले चाहे जति जेस्चरहरू थप्न सक्नुहुन्छ।",
   "triggers.macos_permissions": "Filee लाई प्रणाली सेटिङहरू > गोपनीयता र सुरक्षा > पहुँच (Accessibility) मा अनुमति दिनुहोस्।\nFilee पहिले नै अन छ तर जेस्चरहरू सुरु हुँदैनन् भने, यसलाई − ले हटाउनुहोस् र + ले फेरि थप्नुहोस्।\nतपाईंले पहिलो पटक छनोट सर्टकट प्रयोग गर्दा Finder ले Automation अनुमतिका लागि पनि सोध्नेछ।",
@@ -414,6 +427,7 @@
   "triggers.excluded_none_running": "कुनै अन्य एपको विन्डो खुला छैन।",
   "triggers.excluded_note": "यी एपहरूमाथि पोइन्टर हुँदा जेस्चर र सर्टकटहरूले केही गर्दैनन्।",
   "triggers.paused": "सर्टकटहरू रोकिएका छन्",
+
   "toolbar.title": "डोनट टुलबार",
   "toolbar.step_profile": "१. प्रोफाइल छनोट गर्नुहोस्",
   "toolbar.step_arrange": "२. प्रिसेटहरू व्यवस्थित गर्नुहोस्",
@@ -479,6 +493,7 @@
   "toolbar.mixed_others": "फाइलहरूको अन्य मिश्रणहरूले “{0}” खोल्छन्।",
   "toolbar.mixed_others_self": "कुनै पनि अनचेक गरिएको मिश्रित प्रोफाइल बाँकी छैन, त्यसैले यो प्रोफाइल हरेक अन्य मिश्रणका लागि पनि प्रयोग हुन्छ।",
   "tags.remove": "ट्याग हटाउनुहोस्",
+
   "presets.title": "प्रिसेटहरू",
   "presets.add": "नयाँ",
   "presets.duplicate": "प्रतिलिपि बनाउनुहोस्",
@@ -661,6 +676,7 @@
   "presets.delete_confirm": "“{0}” हटाउने? यो प्रत्येक टुलबार र समूहबाट पनि हटाइनेछ।",
   "presets.name_required": "नाम प्रविष्ट गर्नुहोस्",
   "presets.select": "सम्पादन गर्न प्रिसेट छनोट गर्नुहोस्",
+
   "theme.title": "थिम",
   "theme.style": "थिम शैली",
   "theme.style.Soft": "Filee Soft",
@@ -690,6 +706,7 @@
   "theme.reduce_motion": "एनिमेसन कम गर्नुहोस्",
   "theme.reduce_motion_hint": "पुराना कम्प्युटरहरूका लागि सिफारिस गरिन्छ। ट्रान्जिसन र डोनटको बाउन्स बन्द गर्दछ।",
   "theme.preview": "पूर्वावलोकन",
+
   "engines.title": "रूपान्तरण इन्जिनहरू",
   "engines.description": "Filee ले प्रत्येक रूपान्तरणका लागि उपलब्ध उत्तम इन्जिन छान्दछ।\nजब धेरैले उही काम गर्न सक्छन्, माथि भएको इन्जिनले प्राथमिकता पाउँछ।",
   "engines.available": "तयार",
@@ -764,6 +781,7 @@
   "engines.state.unpacking": "स्थापना हुँदैछ…",
   "engines.state.installed": "स्थापना गरियो",
   "engines.state.failed": "असफल भयो: {0}",
+
   "about.title": "बारेमा",
   "about.updates": "अपडेटहरू",
   "common.search": "खोज्नुहोस्",
@@ -788,6 +806,7 @@
   "feedback.notice_text": "GitHub मा स्टार दिँदा अरूलाई Filee फेला पार्न मद्दत पुग्छ।\nसमस्या र विचारहरूको पनि स्वागत छ।",
   "feedback.star": "GitHub मा स्टार दिनुहोस्",
   "feedback.issue": "समस्या वा विचार दर्ता गर्नुहोस्",
+
   "common.ok": "ठीक छ",
   "common.cancel": "रद्द गर्नुहोस्",
   "common.save": "सुरक्षित गर्नुहोस्",
@@ -797,6 +816,7 @@
   "common.no": "होइन",
   "common.on": "चालु",
   "common.off": "बन्द",
+
   "setup.title": "रूपान्तरण इन्जिनहरू छनोट गर्नुहोस्",
   "setup.description": "छविहरू, PDF, Office कागजातहरू, HWP, इ-पुस्तकहरू, अभिलेखहरू, फन्टहरू, CAD र थ्रीडी मोडलहरू पहिले नै रूपान्तरण हुन्छन्।\nइन्जिनहरू केवल भिडियो र अडियो वा दुर्लभ ढाँचाहरूका लागि मात्र डाउनलोड गर्नुहोस्।",
   "setup.note": "तपाईंले जुनसुकै बेला सेटिङहरू → इन्जिनहरूमा गएर इन्जिनहरू स्थापना वा हटाउन सक्नुहुन्छ।",
@@ -957,6 +977,7 @@
   "watch.status_starting": "सुरु हुँदैछ…",
   "watch.status_error": "यो फोल्डर निगरानी गर्न सकिँदैन: {0}",
   "watch.cli_hint": "कमान्ड लाइनमा पनि: filee watch <folder> --to <format>",
+
   "whats_new.title": "Filee {0} मा के नयाँ छ",
   "whats_new.previous": "अघिल्लो",
   "whats_new.next": "अर्को",

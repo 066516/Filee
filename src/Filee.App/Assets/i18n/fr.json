@@ -1,6 +1,7 @@
 {
   "app.name": "Filee",
   "app.tagline": "Glissez, déposez, c'est converti.",
+
   "nav.home": "Accueil",
   "nav.general": "Général",
   "nav.triggers": "Raccourcis",
@@ -10,6 +11,7 @@
   "nav.theme": "Thème",
   "nav.engines": "Moteurs",
   "nav.about": "À propos",
+
   "tray.open": "Ouvrir Filee",
   "tray.pause": "Suspendre les raccourcis",
   "tray.resume": "Réactiver les raccourcis",
@@ -21,6 +23,7 @@
   "close.tray": "Garder en arrière-plan",
   "close.quit": "Quitter",
   "close.dont_ask": "Ne plus demander",
+
   "home.title": "Accueil",
   "home.drop_title": "Déposez des fichiers ici",
   "home.drop_select": "Double-cliquez pour sélectionner des fichiers",
@@ -44,6 +47,7 @@
   "home.clear_history": "Effacer",
   "home.files": "{0} fichiers",
   "home.failed_files": "{0} en échec",
+
   "donut.center_drag": "Amenez les fichiers ici",
   "donut.files_same": "{0} × {1}",
   "donut.files_mixed": "{0} fichiers",
@@ -59,6 +63,7 @@
   "donut.group_caption": "{0} options",
   "donut.flip_to_back": "{0} ↻ verso",
   "donut.flip_to_front": "{0} ↻ recto",
+
   "toast.converting": "{0} → {1}",
   "toast.done": "Terminé",
   "toast.done_errors": "{0} sur {1} en échec",
@@ -71,6 +76,7 @@
   "toast.get_fonts": "Obtenir les polices",
   "download.badge": "{0}/s · {1}",
   "download.badge_files": "{0} · {1} sur {2} fichiers",
+
   "error.unsupported_source": "Ce type de fichier n'est pas pris en charge",
   "error.empty_file": "Le fichier est vide (0 octet). Un fichier créé avec « Nouveau » dans le menu contextuel reste vide tant que vous ne l'avez pas ouvert et enregistré dans son application",
   "format_request.request": "Demander ce format",
@@ -126,6 +132,7 @@
   "notice.geo_rows_without_location": "Certaines lignes sans emplacement exploitable ont été conservées sans forme",
   "notice.geo_field_names": "Les noms de champs Shapefile font 10 caractères au maximum : certains ont été raccourcis",
   "notice.geo_shapefile_split": "Un Shapefile ne contient qu'un type de forme : les points, lignes et polygones ont été enregistrés dans des fichiers distincts",
+
   "engine.reason.not_installed": "Non installé",
   "engine.reason.error": "Erreur lors de la vérification",
   "engine.reason.unsupported_platform": "Non disponible sur cette plateforme",
@@ -179,6 +186,7 @@
   "engine.vision.description": "Reconnaît le texte des numérisations et des images avec la reconnaissance de texte intégrée à macOS (OCR) : PDF consultable, DOCX, TXT. Rien à télécharger.",
   "engine.calibre.description": "Formats de livres numériques rares (LIT, LRF, CHM, PDB, RB…) et sortie Kindle (MOBI, AZW3).\nPlacé au-dessus du rédacteur HWPX, il produit aussi les PDF des livres numériques (bien plus vite pour les longs livres).",
   "engine.libreoffice.description": "Lit les formats anciens et moins courants : DOC, PPT, Pages, Keynote, Numbers, WordPerfect, ClarisWorks, Publisher, Visio…\nEnregistre aussi en DOC, XLS, PPT, ODT, ODP, modèles OpenDocument et EMF.",
+
   "profile.images": "Images",
   "profile.pdf": "PDF",
   "profile.office": "Documents",
@@ -198,6 +206,7 @@
   "profile.models": "Modèles 3D",
   "profile.geo": "Géospatial",
   "profile.mixed": "Fichiers mixtes",
+
   "preset.crop": "Recadrer",
   "crop.save": "Recadrer et enregistrer",
   "crop.reset": "Réinitialiser",
@@ -219,6 +228,7 @@
   "crop.state_done": "Recadré",
   "crop.state_skipped": "Ignoré",
   "crop.state_failed": "Échec",
+
   "preset.half_size": "Taille 50 %",
   "preset.half_size.donut": "Taille 50 %",
   "preset.grayscale": "Niveaux de gris",
@@ -264,6 +274,7 @@
   "preset.compress_audio": "Compresser l'audio",
   "preset.merge_audio": "Fusionner l'audio",
   "preset.remove_metadata": "Supprimer les métadonnées",
+
   "format.folder": "Dossier",
   "format.category.Image": "Image",
   "format.category.Pdf": "PDF",
@@ -283,6 +294,7 @@
   "format.category.Data": "Données",
   "format.category.Model3D": "Modèle 3D",
   "format.category.Geo": "Géospatial",
+
   "general.title": "Général",
   "general.language": "Langue",
   "general.language_auto": "Langue du système",
@@ -362,6 +374,7 @@
   "general.reset_library": "Rétablir les valeurs par défaut",
   "general.reset_confirm": "Remplacer tous les préréglages et profils de menu circulaire par ceux par défaut ?",
   "general.imported": "{0} éléments importés",
+
   "triggers.title": "Raccourcis",
   "triggers.description": "Choisissez comment s'ouvre le menu circulaire. Vous pouvez ajouter autant de gestes que vous voulez.",
   "triggers.macos_permissions": "Autorisez Filee dans Réglages Système > Confidentialité et sécurité > Accessibilité.\nSi Filee est déjà activé mais que les gestes ne démarrent pas, supprimez-le avec − puis ajoutez-le à nouveau avec +.\nLe Finder demande aussi l'autorisation d'automatisation la première fois que vous utilisez un raccourci sur la sélection.",
@@ -414,6 +427,7 @@
   "triggers.excluded_none_running": "Aucune autre application n'a de fenêtre ouverte.",
   "triggers.excluded_note": "Les gestes et raccourcis sont sans effet quand le pointeur survole ces applications.",
   "triggers.paused": "Raccourcis en pause",
+
   "toolbar.title": "Menu circulaire",
   "toolbar.step_profile": "1. Choisir un profil",
   "toolbar.step_arrange": "2. Organiser les préréglages",
@@ -479,6 +493,7 @@
   "toolbar.mixed_others": "Les autres mélanges de fichiers ouvrent « {0} ».",
   "toolbar.mixed_others_self": "Il ne reste aucun profil mixte sans case cochée : celui-ci sert donc aussi pour tous les autres mélanges.",
   "tags.remove": "Retirer",
+
   "presets.title": "Préréglages",
   "presets.add": "Nouveau",
   "presets.duplicate": "Dupliquer",
@@ -661,6 +676,7 @@
   "presets.delete_confirm": "Supprimer « {0} » ? Il sera aussi retiré de tous les menus circulaires et groupes.",
   "presets.name_required": "Saisissez un nom",
   "presets.select": "Sélectionnez un préréglage pour le modifier",
+
   "theme.title": "Thème",
   "theme.style": "Style de thème",
   "theme.style.Soft": "Filee Soft",
@@ -690,6 +706,7 @@
   "theme.reduce_motion": "Réduire les animations",
   "theme.reduce_motion_hint": "Recommandé pour les PC anciens. Désactive les transitions et le rebond du menu circulaire.",
   "theme.preview": "Aperçu",
+
   "engines.title": "Moteurs de conversion",
   "engines.description": "Filee choisit le meilleur moteur disponible pour chaque conversion.\nQuand plusieurs peuvent faire le même travail, le plus haut l'emporte.",
   "engines.available": "Prêt",
@@ -764,6 +781,7 @@
   "engines.state.unpacking": "Installation…",
   "engines.state.installed": "Installé",
   "engines.state.failed": "Échec : {0}",
+
   "about.title": "À propos",
   "about.updates": "Mises à jour",
   "common.search": "Rechercher",
@@ -788,6 +806,7 @@
   "feedback.notice_text": "Une étoile sur GitHub aide d'autres personnes à découvrir Filee.\nLes problèmes et les idées sont aussi les bienvenus.",
   "feedback.star": "Étoile sur GitHub",
   "feedback.issue": "Signaler un problème ou une idée",
+
   "common.ok": "OK",
   "common.cancel": "Annuler",
   "common.save": "Enregistrer",
@@ -797,6 +816,7 @@
   "common.no": "Non",
   "common.on": "Activé",
   "common.off": "Désactivé",
+
   "setup.title": "Choisir les moteurs de conversion",
   "setup.description": "Images, PDF, documents Office, HWP, livres numériques, archives, polices, CAO et modèles 3D se convertissent déjà.\nNe téléchargez des moteurs que pour la vidéo, l'audio ou les formats rares.",
   "setup.note": "Vous pouvez installer ou supprimer des moteurs à tout moment dans Paramètres → Moteurs.",
@@ -957,6 +977,7 @@
   "watch.status_starting": "Démarrage…",
   "watch.status_error": "Impossible de surveiller ce dossier : {0}",
   "watch.cli_hint": "Aussi en ligne de commande : filee watch <folder> --to <format>",
+
   "whats_new.title": "Nouveautés de Filee {0}",
   "whats_new.previous": "Précédent",
   "whats_new.next": "Suivant",
