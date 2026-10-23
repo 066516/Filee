@@ -54,6 +54,8 @@ public partial class SetupTextsTests
     [InlineData("fr", "en-US", "fr")]
     [InlineData(null, "pl-PL", "pl")]
     [InlineData(null, "hi-IN", "hi")]
+    [InlineData(null, "ne-NP", "ne")]
+    [InlineData(null, "th-TH", "th")]
     [InlineData(null, "ja-JP", "ja")]
     [InlineData("xx", "de-DE", "en")]
     [InlineData("klingon", "pl-PL", "pl")]

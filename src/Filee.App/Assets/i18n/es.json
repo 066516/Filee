@@ -1,7 +1,6 @@
 {
   "app.name": "Filee",
   "app.tagline": "Arrastra, suelta y convierte.",
-
   "nav.home": "Inicio",
   "nav.general": "General",
   "nav.triggers": "Atajos",
@@ -11,7 +10,6 @@
   "nav.theme": "Tema",
   "nav.engines": "Motores",
   "nav.about": "Acerca de",
-
   "tray.open": "Abrir Filee",
   "tray.pause": "Pausar atajos",
   "tray.resume": "Reanudar atajos",
@@ -23,9 +21,9 @@
   "close.tray": "Mantener en la bandeja",
   "close.quit": "Salir",
   "close.dont_ask": "No volver a preguntar",
-
   "home.title": "Inicio",
   "home.drop_title": "Suelta archivos aquí",
+  "home.drop_select": "Doble clic para seleccionar archivos",
   "home.drop_hint": "O mantén {0} mientras arrastras archivos en el Explorador. El menú circular se abre donde esté el cursor.",
   "home.drop_hint_macos": "O mantén {0} mientras arrastras archivos en Finder. El menú circular se abre donde esté el cursor.",
   "home.drop_hint_linux": "O mantén {0} mientras arrastras archivos en tu gestor de archivos. El menú circular se abre donde esté el cursor.",
@@ -46,7 +44,6 @@
   "home.clear_history": "Borrar",
   "home.files": "{0} archivos",
   "home.failed_files": "{0} con error",
-
   "donut.center_drag": "Trae los archivos aquí",
   "donut.files_same": "{0} × {1}",
   "donut.files_mixed": "{0} archivos",
@@ -62,7 +59,6 @@
   "donut.group_caption": "Grupo de {0}",
   "donut.flip_to_back": "{0} ↻ reverso",
   "donut.flip_to_front": "{0} ↻ anverso",
-
   "toast.converting": "{0} → {1}",
   "toast.done": "Hecho",
   "toast.done_errors": "Fallaron {0} de {1}",
@@ -71,9 +67,10 @@
   "toast.skipped": "Omitido (el archivo ya existe)",
   "toast.open_folder": "Mostrar",
   "toast.cancel": "Cancelar",
+  "toast.missing_fonts": "Fuentes ausentes del documento: {0}",
+  "toast.get_fonts": "Obtener fuentes",
   "download.badge": "{0}/s · {1}",
   "download.badge_files": "{0} · {1} de {2} archivos",
-
   "error.unsupported_source": "Este tipo de archivo no es compatible",
   "error.empty_file": "El archivo está vacío (0 bytes). Un archivo creado con «Nuevo» en el menú contextual sigue vacío hasta que lo abres en su aplicación y lo guardas",
   "format_request.request": "Solicitar este formato",
@@ -81,7 +78,9 @@
   "format_request.notice_text": "Cuéntanos qué formato necesitas.\nLas solicitudes determinan qué formatos admitirá Filee a continuación.\nLos archivos cifrados o con protección de copia (DRM) no se pueden convertir, sea cual sea su formato.",
   "error.no_route": "Ningún motor puede hacer esta conversión",
   "error.cannot_turn": "Rotar y voltear solo funcionan con imágenes",
+  "error.no_transparency": "Este formato no tiene transparencia, así que no hay nada que recortar",
   "error.too_many_frames": "Demasiados fotogramas para guardar como imágenes; aumenta «Cada N fotogramas»",
+  "error.too_many_pictures": "Demasiadas imágenes para un vídeo; divídelas en varios",
   "error.not_enough_space": "Espacio libre en disco insuficiente para las imágenes",
   "error.no_motion_photo": "Esta foto no tiene un vídeo que Filee pueda leer (una Motion Photo de Android o una Live Photo de iPhone con su MOV al lado)",
   "error.live_photo_start": "El clip empieza después del final de este vídeo. Elige un «Inicio del clip» anterior",
@@ -105,6 +104,7 @@
   "error.geo_unsupported_shape": "Este tipo de forma no es compatible",
   "error.geo_too_large": "El Shapefile superaría el límite de 2 GB del formato",
   "notice.pdf_not_smaller": "No se pudo reducir su tamaño, por lo que se copió tal cual",
+  "notice.empty_spreadsheet_pages_removed": "Se eliminaron las páginas vacías de la hoja de cálculo",
   "notice.live_photo_pair": "Guardado como una foto y un MOV con el mismo nombre. Impórtalos juntos (Fotos de iCloud, AirDrop o Fotos en un Mac) para obtener una Live Photo",
   "notice.geo_datum_assumed": "El datum no es WGS 84; las posiciones se convirtieron como si lo fuera y pueden desviarse hasta cientos de metros",
   "notice.geo_gpx_lossy": "GPX solo guarda puntos, rutas y tracks con pocos campos: se omitieron los demás atributos y los polígonos pasaron a ser tracks",
@@ -113,7 +113,6 @@
   "notice.geo_rows_without_location": "Las filas sin ubicación utilizable se guardaron sin forma",
   "notice.geo_field_names": "Los nombres de campo de Shapefile tienen 10 caracteres como máximo: se acortaron algunos",
   "notice.geo_shapefile_split": "Un Shapefile guarda un solo tipo de forma, así que puntos, líneas y polígonos se guardaron en archivos separados",
-
   "engine.reason.not_installed": "No instalado",
   "engine.reason.error": "Error al comprobar",
   "engine.reason.unsupported_platform": "No disponible en esta plataforma",
@@ -132,7 +131,7 @@
   "engine.pdf-text.description": "Extrae el texto de los PDF en orden de lectura, también de páginas en dos columnas (sin OCR para escaneos).",
   "engine.pdf-slides.description": "Convierte PDF en diapositivas de PowerPoint: cada página pasa a ser una imagen en su propia diapositiva (con el aspecto del PDF, no editable), con el texto de la página en las notas del orador.",
   "engine.email.description": "Correos electrónicos (EML, Outlook MSG) a HTML y texto con remitente, destinatarios y fecha, imágenes incluidas; los adjuntos van a un ZIP.\nMSG a EML. Páginas web guardadas (MHTML) a un solo archivo HTML con sus imágenes.",
-  "engine.data.description": "JSON, JSON Lines, YAML, TOML, XML y CSV entre sí.\nContactos vCard a CSV y viceversa.\nLos comentarios se descartan. CSV solo admite tablas.",
+  "engine.data.description": "JSON, JSON Lines, YAML, TOML, XML y CSV entre sí.\nContactos vCard y eventos de iCalendar a CSV y viceversa.\nLos comentarios se descartan. CSV solo admite tablas.",
   "engine.vector.description": "SVG y SVGZ a PDF vectorial, imágenes y DXF; imágenes trazadas a SVG; archivos de Illustrator guardados con contenido PDF.",
   "engine.icns.description": "Iconos de apps de macOS (ICNS) desde y hacia imágenes.",
   "engine.font.description": "Tipografías: TTF, OTF, WOFF, WOFF2 y EOT entre sí.",
@@ -147,7 +146,6 @@
   "engine.ghostscript.description": "EPS, PostScript y archivos antiguos de Illustrator a PDF e imágenes; PDF a EPS y PS.",
   "engine.calibre.description": "Formatos raros de libros electrónicos (LIT, LRF, CHM, PDB, RB…) y salida Kindle (MOBI, AZW3).\nPor encima del escritor HWPX, también crea los PDF de libros electrónicos (mucho más rápido para libros largos).",
   "engine.libreoffice.description": "Lee formatos antiguos y poco habituales: DOC, PPT, Pages, Keynote, Numbers, WordPerfect, ClarisWorks, Publisher, Visio…\nTambién guarda como DOC, XLS, PPT, ODT, ODP, plantillas OpenDocument y EMF.",
-
   "profile.images": "Imágenes",
   "profile.pdf": "PDF",
   "profile.office": "Documentos",
@@ -167,7 +165,6 @@
   "profile.models": "Modelos 3D",
   "profile.geo": "Geoespacial",
   "profile.mixed": "Archivos mixtos",
-
   "preset.crop": "Recortar",
   "crop.save": "Recortar y guardar",
   "crop.reset": "Restablecer",
@@ -189,10 +186,10 @@
   "crop.state_done": "Recortado",
   "crop.state_skipped": "Omitido",
   "crop.state_failed": "Error",
-
   "preset.half_size": "Reducir 50 %",
   "preset.grayscale": "Grises",
   "preset.remove_background": "Quitar fondo",
+  "preset.trim_transparent": "Recortar bordes transparentes",
   "preset.group_rotate": "Rotar",
   "preset.rotate_left": "Girar izquierda",
   "preset.rotate_left.short": "Izquierda",
@@ -222,7 +219,14 @@
   "preset.extract_motion": "Extraer vídeo de Live Photo",
   "preset.live_photo_iphone": "Live Photo (iPhone)",
   "preset.motion_photo_android": "Motion Photo (Android)",
-
+  "preset.compress_image": "Comprimir imagen",
+  "preset.compress_video": "Comprimir vídeo",
+  "preset.video_from_images": "Vídeo de imágenes",
+  "preset.extract_audio": "Extraer audio",
+  "preset.merge_videos": "Unir vídeos",
+  "preset.compress_audio": "Comprimir audio",
+  "preset.merge_audio": "Unir audio",
+  "preset.remove_metadata": "Quitar metadatos",
   "format.folder": "Carpeta",
   "format.category.Image": "Imagen",
   "format.category.Pdf": "PDF",
@@ -242,7 +246,6 @@
   "format.category.Data": "Datos",
   "format.category.Model3D": "Modelo 3D",
   "format.category.Geo": "Geoespacial",
-
   "general.title": "General",
   "general.language": "Idioma",
   "general.language_auto": "Predeterminado del sistema",
@@ -321,7 +324,6 @@
   "general.reset_library": "Restablecer los valores predeterminados",
   "general.reset_confirm": "¿Reemplazar todos los ajustes preestablecidos y los perfiles de menú circular por los valores predeterminados?",
   "general.imported": "Se importaron {0} elementos",
-
   "triggers.title": "Atajos",
   "triggers.description": "Elige cómo se abre el menú circular. Puedes añadir tantos gestos como quieras.",
   "triggers.macos_permissions": "Permite Filee en Ajustes del Sistema > Privacidad y seguridad > Accesibilidad.\nFinder también pide permiso de Automatización la primera vez que uses un atajo de selección.",
@@ -374,7 +376,6 @@
   "triggers.excluded_none_running": "Ninguna otra app tiene una ventana abierta.",
   "triggers.excluded_note": "Los gestos y los atajos no hacen nada mientras el puntero esté sobre estas apps.",
   "triggers.paused": "Los atajos están en pausa",
-
   "toolbar.title": "Menú circular",
   "toolbar.step_profile": "1. Elige un perfil",
   "toolbar.step_arrange": "2. Coloca los ajustes preestablecidos",
@@ -436,7 +437,6 @@
   "toolbar.mixed_others": "Las demás combinaciones de archivos abren «{0}».",
   "toolbar.mixed_others_self": "Ningún perfil mixto quedó sin nada marcado, así que este también se usa para todas las demás combinaciones.",
   "tags.remove": "Quitar",
-
   "presets.title": "Ajustes preestablecidos",
   "presets.add": "Nuevo",
   "presets.duplicate": "Duplicar",
@@ -491,6 +491,9 @@
   "presets.frame_estimate": "Un minuto de vídeo a 30 fps genera {0} imágenes, como máximo {1} por vídeo.",
   "presets.extract_motion_photo": "Extraer vídeo de Live/Motion Photo",
   "presets.extract_motion_photo_hint": "La foto se convierte en el vídeo guardado con ella: el que lleva dentro una Motion Photo de Android o el MOV junto a una Live Photo de iPhone.\nLas demás imágenes se convierten en un vídeo de la imagen fija.",
+  "presets.slide_seconds": "Segundos por imagen",
+  "presets.crossfade": "Fundido entre imágenes",
+  "presets.crossfade_hint": "Cada imagen se funde con la siguiente durante un segundo en lugar de cortar.",
   "presets.group.live_photo": "Live Photo / Motion Photo",
   "presets.live_photo": "Un vídeo se convierte en",
   "presets.live_photo.None": "Un fotograma fijo",
@@ -609,7 +612,6 @@
   "presets.delete_confirm": "¿Eliminar «{0}»? También se quitará de todos los menús circulares y grupos.",
   "presets.name_required": "Escribe un nombre",
   "presets.select": "Elige un ajuste preestablecido para editarlo",
-
   "theme.title": "Tema",
   "theme.style": "Estilo de tema",
   "theme.style.Soft": "Filee Soft",
@@ -639,7 +641,6 @@
   "theme.reduce_motion": "Reducir las animaciones",
   "theme.reduce_motion_hint": "Recomendado para PC antiguos. Desactiva las transiciones y el rebote del menú circular.",
   "theme.preview": "Vista previa",
-
   "engines.title": "Motores de conversión",
   "engines.description": "Filee elige el mejor motor disponible para cada conversión.\nCuando varios pueden hacer el mismo trabajo, gana el que está más arriba.",
   "engines.available": "Disponible",
@@ -710,7 +711,6 @@
   "engines.state.unpacking": "Instalando…",
   "engines.state.installed": "Instalado",
   "engines.state.failed": "Error: {0}",
-
   "about.title": "Acerca de",
   "about.updates": "Actualizaciones",
   "common.search": "Buscar",
@@ -735,7 +735,6 @@
   "feedback.notice_text": "Una estrella en GitHub ayuda a que otras personas encuentren Filee.\nLos problemas y las ideas también son bienvenidos.",
   "feedback.star": "Dar una estrella en GitHub",
   "feedback.issue": "Informar de un problema o una idea",
-
   "common.ok": "Aceptar",
   "common.cancel": "Cancelar",
   "common.save": "Guardar",
@@ -745,7 +744,6 @@
   "common.no": "No",
   "common.on": "Activado",
   "common.off": "Desactivado",
-
   "setup.title": "Elige motores de conversión",
   "setup.description": "Imágenes, PDF, documentos de Office, HWP, libros electrónicos, archivos comprimidos, tipografías, CAD y modelos 3D ya se convierten.\nDescarga motores solo para vídeo y audio o formatos poco habituales.",
   "setup.note": "Puedes instalar o quitar motores en cualquier momento en Ajustes → Motores.",

@@ -1,7 +1,6 @@
 {
   "app.name": "Filee",
   "app.tagline": "खींचें, छोड़ें, कन्वर्ट हो गया।",
-
   "nav.home": "होम",
   "nav.general": "सामान्य",
   "nav.triggers": "शॉर्टकट",
@@ -11,7 +10,6 @@
   "nav.theme": "थीम",
   "nav.engines": "इंजन",
   "nav.about": "परिचय",
-
   "tray.open": "Filee खोलें",
   "tray.pause": "शॉर्टकट रोकें",
   "tray.resume": "शॉर्टकट फिर शुरू करें",
@@ -23,9 +21,9 @@
   "close.tray": "ट्रे में रखें",
   "close.quit": "बंद करें",
   "close.dont_ask": "दोबारा न पूछें",
-
   "home.title": "होम",
   "home.drop_title": "फ़ाइलें यहाँ छोड़ें",
+  "home.drop_select": "फ़ाइलें चुनने के लिए डबल-क्लिक करें",
   "home.drop_hint": "या Explorer में फ़ाइलें खींचते समय {0} दबाए रखें। डोनट टूलबार आपके कर्सर पर खुलेगा।",
   "home.drop_hint_macos": "या Finder में फ़ाइलें खींचते समय {0} दबाए रखें। डोनट टूलबार आपके कर्सर पर खुलेगा।",
   "home.drop_hint_linux": "या अपने फ़ाइल मैनेजर में फ़ाइलें खींचते समय {0} दबाए रखें। डोनट टूलबार आपके कर्सर पर खुलेगा।",
@@ -46,7 +44,6 @@
   "home.clear_history": "साफ़ करें",
   "home.files": "{0} फ़ाइलें",
   "home.failed_files": "{0} विफल",
-
   "donut.center_drag": "फ़ाइलें यहाँ लाएँ",
   "donut.files_same": "{0} × {1}",
   "donut.files_mixed": "{0} फ़ाइलें",
@@ -62,7 +59,6 @@
   "donut.group_caption": "{0} का समूह",
   "donut.flip_to_back": "{0} ↻ पीछे",
   "donut.flip_to_front": "{0} ↻ आगे",
-
   "toast.converting": "{0} → {1}",
   "toast.done": "हो गया",
   "toast.done_errors": "{1} में से {0} विफल",
@@ -71,9 +67,10 @@
   "toast.skipped": "छोड़ा गया (फ़ाइल पहले से मौजूद है)",
   "toast.open_folder": "दिखाएँ",
   "toast.cancel": "रद्द करें",
+  "toast.missing_fonts": "दस्तावेज़ के गायब फ़ॉन्ट: {0}",
+  "toast.get_fonts": "फ़ॉन्ट प्राप्त करें",
   "download.badge": "{0}/s · {1}",
   "download.badge_files": "{0} · {2} में से {1} फ़ाइल",
-
   "error.unsupported_source": "यह फ़ाइल प्रकार समर्थित नहीं है",
   "error.empty_file": "फ़ाइल खाली है (0 बाइट)। राइट-क्लिक मेनू के “नया” से बनाई गई फ़ाइल तब तक खाली रहती है, जब तक आप उसे उसके ऐप में खोलकर सेव न करें",
   "format_request.request": "इस फ़ॉर्मैट का अनुरोध करें",
@@ -81,7 +78,9 @@
   "format_request.notice_text": "हमें बताएँ कि आपको कौन-सा फ़ॉर्मैट चाहिए।\nअनुरोधों से तय होता है कि Filee आगे क्या समर्थन करेगा।\nएन्क्रिप्टेड या कॉपी-सुरक्षित (DRM) फ़ाइलें किसी भी फ़ॉर्मैट में कन्वर्ट नहीं की जा सकतीं।",
   "error.no_route": "कोई भी इंजन यह कन्वर्ज़न नहीं कर सकता",
   "error.cannot_turn": "घुमाना और पलटना केवल इमेज पर काम करता है",
+  "error.no_transparency": "इस फ़ॉर्मैट में पारदर्शिता नहीं है, इसलिए काटने को कुछ नहीं है",
   "error.too_many_frames": "तस्वीरों के रूप में सहेजने के लिए बहुत ज़्यादा फ़्रेम हैं, \"हर Nवाँ फ़्रेम\" बढ़ाएँ",
+  "error.too_many_pictures": "एक वीडियो के लिए तस्वीरें बहुत ज़्यादा हैं, इन्हें कई हिस्सों में बाँटें",
   "error.not_enough_space": "तस्वीरों के लिए डिस्क पर पर्याप्त खाली जगह नहीं है",
   "error.no_motion_photo": "इस फ़ोटो में ऐसा कोई वीडियो नहीं है जिसे Filee पढ़ सके (Android मोशन फ़ोटो, या पास में अपनी MOV फ़ाइल वाली iPhone लाइव फ़ोटो)",
   "error.live_photo_start": "क्लिप इस वीडियो के ख़त्म होने के बाद शुरू होती है। \"क्लिप की शुरुआत\" पहले चुनें",
@@ -105,6 +104,7 @@
   "error.geo_unsupported_shape": "इस तरह का आकार समर्थित नहीं है",
   "error.geo_too_large": "Shapefile फ़ॉर्मैट की 2 GB सीमा से बड़ी हो जाएगी",
   "notice.pdf_not_smaller": "इसे छोटा नहीं किया जा सका, इसलिए जैसा है वैसा ही कॉपी कर दिया गया",
+  "notice.empty_spreadsheet_pages_removed": "स्प्रेडशीट के खाली पृष्ठ हटा दिए गए",
   "notice.live_photo_pair": "एक ही नाम की फ़ोटो और MOV के रूप में सहेजा गया। लाइव फ़ोटो पाने के लिए दोनों को साथ में इम्पोर्ट करें (iCloud Photos, AirDrop या Mac पर Photos)",
   "notice.geo_datum_assumed": "डेटम WGS 84 नहीं है। स्थितियाँ ऐसे कन्वर्ट की गईं मानो वह WGS 84 हो, इसलिए वे कुछ सौ मीटर तक खिसक सकती हैं",
   "notice.geo_gpx_lossy": "GPX में केवल पॉइंट, रूट और ट्रैक कुछ फ़ील्ड के साथ रहते हैं: बाकी एट्रिब्यूट छोड़ दिए गए और पॉलीगॉन ट्रैक बन गए",
@@ -113,7 +113,6 @@
   "notice.geo_rows_without_location": "कुछ पंक्तियों में इस्तेमाल लायक स्थान नहीं है, उन्हें बिना आकार के रखा गया",
   "notice.geo_field_names": "Shapefile फ़ील्ड के नाम ज़्यादा से ज़्यादा 10 अक्षरों के होते हैं: कुछ नाम छोटे किए गए",
   "notice.geo_shapefile_split": "Shapefile में एक ही तरह का आकार रहता है, इसलिए पॉइंट, लाइन और पॉलीगॉन अलग-अलग फ़ाइलों में सहेजे गए",
-
   "engine.reason.not_installed": "इंस्टॉल नहीं है",
   "engine.reason.error": "जाँच के दौरान त्रुटि",
   "engine.reason.unsupported_platform": "इस प्लेटफ़ॉर्म पर उपलब्ध नहीं है",
@@ -132,7 +131,7 @@
   "engine.pdf-text.description": "PDF का टेक्स्ट पढ़ने के क्रम में निकालता है, दो-कॉलम वाले पेजों से भी (स्कैन के लिए OCR नहीं)।",
   "engine.pdf-slides.description": "PDF को PowerPoint स्लाइड में बदलता है: हर पेज अपनी स्लाइड पर एक तस्वीर बन जाता है (PDF जैसा दिखता है, संपादन योग्य नहीं), और पेज का टेक्स्ट स्पीकर नोट्स में रहता है।",
   "engine.email.description": "ई-मेल (EML, Outlook MSG) को भेजने वाले, प्राप्तकर्ताओं और तारीख के साथ HTML और टेक्स्ट में बदलता है, तस्वीरों सहित; अटैचमेंट ZIP में।\nMSG से EML। सहेजे गए वेब पेज (MHTML) उनकी तस्वीरों सहित एक HTML फ़ाइल में।",
-  "engine.data.description": "JSON, JSON Lines, YAML, TOML, XML और CSV एक-दूसरे में।\nvCard संपर्क CSV में और वापस।\nकमेंट हटा दिए जाते हैं। CSV में केवल टेबल रहती हैं।",
+  "engine.data.description": "JSON, JSON Lines, YAML, TOML, XML और CSV एक-दूसरे में।\nvCard संपर्क और iCalendar इवेंट CSV में और वापस।\nकमेंट हटा दिए जाते हैं। CSV में केवल टेबल रहती हैं।",
   "engine.vector.description": "SVG और SVGZ से वेक्टर PDF, इमेज और DXF; तस्वीरों को SVG में ट्रेस करना; Illustrator फ़ाइलें PDF सामग्री के साथ सहेजना।",
   "engine.icns.description": "इमेज से और इमेज में macOS ऐप आइकन (ICNS)।",
   "engine.font.description": "फ़ॉन्ट: TTF, OTF, WOFF, WOFF2 और EOT एक-दूसरे में।",
@@ -147,7 +146,6 @@
   "engine.ghostscript.description": "EPS, PostScript और पुरानी Illustrator फ़ाइलें PDF और इमेज में; PDF से EPS और PS।",
   "engine.calibre.description": "दुर्लभ ई-बुक फ़ॉर्मैट (LIT, LRF, CHM, PDB, RB…) और Kindle आउटपुट (MOBI, AZW3)।\nHWPX writer के ऊपर होने पर यह ई-बुक के PDF भी बनाता है (लंबी किताबों के लिए बहुत तेज़)।",
   "engine.libreoffice.description": "पुराने और कम प्रचलित फ़ॉर्मैट पढ़ता है: DOC, PPT, Pages, Keynote, Numbers, WordPerfect, ClarisWorks, Publisher, Visio…\nDOC, XLS, PPT, ODT, ODP, OpenDocument टेम्पलेट और EMF के रूप में सहेजता भी है।",
-
   "profile.images": "इमेज",
   "profile.pdf": "PDF",
   "profile.office": "दस्तावेज़",
@@ -167,7 +165,6 @@
   "profile.models": "3D मॉडल",
   "profile.geo": "भू-स्थानिक",
   "profile.mixed": "मिली-जुली फ़ाइलें",
-
   "preset.crop": "क्रॉप करें",
   "crop.save": "क्रॉप करके सहेजें",
   "crop.reset": "रीसेट करें",
@@ -189,10 +186,10 @@
   "crop.state_done": "क्रॉप हो गया",
   "crop.state_skipped": "छोड़ा गया",
   "crop.state_failed": "विफल",
-
   "preset.half_size": "आधा आकार",
   "preset.grayscale": "ग्रेस्केल",
   "preset.remove_background": "बैकग्राउंड हटाएँ",
+  "preset.trim_transparent": "पारदर्शी किनारे काटें",
   "preset.group_rotate": "घुमाएँ",
   "preset.rotate_left": "बाएँ घुमाएँ",
   "preset.rotate_left.short": "बाएँ",
@@ -222,7 +219,14 @@
   "preset.extract_motion": "लाइव फ़ोटो वीडियो निकालें",
   "preset.live_photo_iphone": "लाइव फ़ोटो (iPhone)",
   "preset.motion_photo_android": "मोशन फ़ोटो (Android)",
-
+  "preset.compress_image": "इमेज कंप्रेस करें",
+  "preset.compress_video": "वीडियो कंप्रेस करें",
+  "preset.video_from_images": "तस्वीरों से वीडियो",
+  "preset.extract_audio": "ऑडियो निकालें",
+  "preset.merge_videos": "वीडियो जोड़ें",
+  "preset.compress_audio": "ऑडियो कंप्रेस करें",
+  "preset.merge_audio": "ऑडियो जोड़ें",
+  "preset.remove_metadata": "मेटाडेटा हटाएँ",
   "format.folder": "फ़ोल्डर",
   "format.category.Image": "इमेज",
   "format.category.Pdf": "PDF",
@@ -242,7 +246,6 @@
   "format.category.Data": "डेटा",
   "format.category.Model3D": "3D मॉडल",
   "format.category.Geo": "भू-स्थानिक",
-
   "general.title": "सामान्य",
   "general.language": "भाषा",
   "general.language_auto": "सिस्टम डिफ़ॉल्ट",
@@ -321,7 +324,6 @@
   "general.reset_library": "डिफ़ॉल्ट पर रीसेट करें",
   "general.reset_confirm": "सभी प्रीसेट और टूलबार प्रोफ़ाइल को डिफ़ॉल्ट से बदल दें?",
   "general.imported": "{0} आइटम इम्पोर्ट किए गए",
-
   "triggers.title": "शॉर्टकट",
   "triggers.description": "चुनें कि डोनट टूलबार कैसे खुले। आप जितने चाहें उतने जेस्चर जोड़ सकते हैं।",
   "triggers.macos_permissions": "सिस्टम सेटिंग्स > Privacy & Security > Accessibility में Filee को अनुमति दें।\nचयन वाले शॉर्टकट पहली बार इस्तेमाल करने पर Finder Automation की अनुमति भी माँगता है।",
@@ -374,7 +376,6 @@
   "triggers.excluded_none_running": "किसी अन्य ऐप की विंडो खुली नहीं है।",
   "triggers.excluded_note": "पॉइंटर इन ऐप्स पर होने पर जेस्चर और शॉर्टकट कुछ नहीं करते।",
   "triggers.paused": "शॉर्टकट रुके हुए हैं",
-
   "toolbar.title": "डोनट टूलबार",
   "toolbar.step_profile": "1. प्रोफ़ाइल चुनें",
   "toolbar.step_arrange": "2. प्रीसेट व्यवस्थित करें",
@@ -436,7 +437,6 @@
   "toolbar.mixed_others": "फ़ाइलों के अन्य मिश्रण “{0}” खोलते हैं।",
   "toolbar.mixed_others_self": "कोई मिश्रित प्रोफ़ाइल बिना चयन के नहीं बची है, इसलिए यह प्रोफ़ाइल हर अन्य मिश्रण के लिए भी इस्तेमाल होती है।",
   "tags.remove": "हटाएँ",
-
   "presets.title": "प्रीसेट",
   "presets.add": "नया",
   "presets.duplicate": "डुप्लिकेट करें",
@@ -491,6 +491,9 @@
   "presets.frame_estimate": "30 fps के एक मिनट के वीडियो से {0} तस्वीरें बनती हैं, प्रति वीडियो अधिकतम {1}।",
   "presets.extract_motion_photo": "लाइव/मोशन फ़ोटो का वीडियो निकालें",
   "presets.extract_motion_photo_hint": "फ़ोटो उसके साथ सहेजा गया वीडियो बन जाती है: Android मोशन फ़ोटो के अंदर वाला वीडियो, या iPhone लाइव फ़ोटो के पास रखी उसी नाम की MOV फ़ाइल।\nबाकी तस्वीरें स्थिर तस्वीर का वीडियो बनती हैं।",
+  "presets.slide_seconds": "हर तस्वीर के सेकंड",
+  "presets.crossfade": "तस्वीरों के बीच क्रॉसफ़ेड",
+  "presets.crossfade_hint": "हर तस्वीर सीधे बदलने के बजाय एक सेकंड में अगली तस्वीर में घुल जाती है।",
   "presets.group.live_photo": "लाइव / मोशन फ़ोटो",
   "presets.live_photo": "वीडियो बनता है",
   "presets.live_photo.None": "एक स्थिर फ़्रेम",
@@ -609,7 +612,6 @@
   "presets.delete_confirm": "“{0}” हटाएँ? यह हर टूलबार और समूह से भी हट जाएगा।",
   "presets.name_required": "नाम दर्ज करें",
   "presets.select": "संपादित करने के लिए कोई प्रीसेट चुनें",
-
   "theme.title": "थीम",
   "theme.style": "थीम शैली",
   "theme.style.Soft": "Filee Soft",
@@ -639,7 +641,6 @@
   "theme.reduce_motion": "एनिमेशन कम करें",
   "theme.reduce_motion_hint": "पुराने PC के लिए अनुशंसित। ट्रांज़िशन और डोनट की उछाल बंद कर देता है।",
   "theme.preview": "प्रीव्यू",
-
   "engines.title": "कन्वर्ज़न इंजन",
   "engines.description": "Filee हर कन्वर्ज़न के लिए उपलब्ध सबसे अच्छा इंजन चुनता है।\nजब कई इंजन एक ही काम कर सकते हैं, तो ऊपर वाला चुना जाता है।",
   "engines.available": "तैयार",
@@ -710,7 +711,6 @@
   "engines.state.unpacking": "इंस्टॉल हो रहा है…",
   "engines.state.installed": "इंस्टॉल हो गया",
   "engines.state.failed": "विफल: {0}",
-
   "about.title": "परिचय",
   "about.updates": "अपडेट",
   "common.search": "खोजें",
@@ -735,7 +735,6 @@
   "feedback.notice_text": "GitHub पर एक स्टार दूसरों को Filee खोजने में मदद करता है।\nसमस्याओं और विचारों का भी स्वागत है।",
   "feedback.star": "GitHub पर स्टार दें",
   "feedback.issue": "समस्या या विचार बताएँ",
-
   "common.ok": "ठीक है",
   "common.cancel": "रद्द करें",
   "common.save": "सहेजें",
@@ -745,7 +744,6 @@
   "common.no": "नहीं",
   "common.on": "चालू",
   "common.off": "बंद",
-
   "setup.title": "कन्वर्ज़न इंजन चुनें",
   "setup.description": "इमेज, PDF, Office दस्तावेज़, HWP, ई-बुक, आर्काइव, फ़ॉन्ट, CAD और 3D मॉडल पहले से कन्वर्ट होते हैं।\nइंजन केवल वीडियो और ऑडियो या दुर्लभ फ़ॉर्मैट के लिए डाउनलोड करें।",
   "setup.note": "आप कभी भी सेटिंग्स → इंजन में इंजन इंस्टॉल या हटा सकते हैं।",

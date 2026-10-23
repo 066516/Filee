@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <b>Русский</b> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <b>Русский</b> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a> · <a href="README.th.md">ไทย</a></p>
 
 <table>
   <tr>
@@ -55,7 +55,7 @@
   Setup — собственный установщик Filee: он говорит на тех же языках, что и Filee, и ничего не требует от компьютера. Он может
   добавить пункт в меню Проводника, автозапуск при входе в систему, команду `filee` и дополнительные движки; для тихой установки
   подходят ключи Inno Setup (`/VERYSILENT /SUPPRESSMSGBOXES`).
-- **macOS 13+** (предварительная версия): распакуйте пакет `osx-arm64` или `osx-x64` и запустите `./install.sh`.
+- **macOS 13+** (предварительная версия): распакуйте пакет `osx-arm64` или `osx-x64` и запустите `./install.sh`. Или откройте `.dmg` и перетащите Filee в «Программы» (команду `filee` добавляет только `install.sh`).
   Сборка пока не нотаризована, поэтому при первом запуске разрешите её в Системных настройках → Конфиденциальность и безопасность → **Всё равно открыть**.
 - **Linux x64/ARM64** (Ubuntu 22.04+): распакуйте пакет и запустите `./install.sh` (права root не нужны, требуется Python 3).
   Жесты перетаскивания работают только в X11. В Wayland пользуйтесь зоной перетаскивания и контекстным меню файлового менеджера.
@@ -77,7 +77,7 @@ Filee сообщает о новых версиях в своём меню и о
 - **Папки наблюдения** конвертируют каждый файл, который в них попадает.
 - **Недавние конвертации** на главной, у каждой миниатюра: результат можно открыть («Открыть файл») или открыть в другой программе («Открыть с помощью»).
 - **Другие способы**: контекстное меню, горячая клавиша, зона перетаскивания и [команда `filee`](#командная-строка).
-- Светлая и тёмная темы со своим акцентным цветом и непрозрачностью кругового меню, интерфейс на языках English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (справа налево), Português (Brasil) и Français.
+- Светлая и тёмная темы со своим акцентным цветом и непрозрачностью кругового меню, интерфейс на языках English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (справа налево), Português (Brasil), Français, नेपाली и ไทย.
 
 ## Скриншоты
 
@@ -111,7 +111,7 @@ Filee сообщает о новых версиях в своём меню и о
 | **Архивы**: ZIP, ANSYS Workbench (WBPZ), 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG, … | распаковка, ZIP, 7Z, TAR, TAR.GZ; любые файлы → один ZIP |
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **Шрифты**: TTF, OTF, WOFF, WOFF2, EOT | друг в друга |
-| **Данные**: JSON, JSON Lines, YAML, TOML, XML · vCard | друг в друга, CSV и XLSX (таблицы); vCard ↔ CSV |
+| **Данные**: JSON, JSON Lines, YAML, TOML, XML · vCard, iCalendar | друг в друга, CSV и XLSX (таблицы); vCard, iCalendar ↔ CSV |
 | **3D-модели**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY; FBX только чтение | друг в друга, превью в PNG |
 | **Геоданные (векторные)**: Shapefile, GeoJSON, KML, KMZ, GPX · CSV с координатами | друг в друга и CSV / XLSX / JSON; данные в проекциях (UTM, Web Mercator, Ламберта, Альберса) переводятся в долготу / широту WGS 84 |
 
@@ -151,8 +151,8 @@ dotnet test
 ## Подпись кода
 
 Filee разрабатывает и публикует **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
-Выпуски для Windows будут подписаны сертификатом [Certum](https://www.certum.eu/) для подписи кода open source,
-выданным на имя Myeonggu Kim. Сертификат сейчас оформляется.
+Выпуски для Windows подписываются сертификатом [Certum](https://www.certum.eu/) для подписи кода open source,
+выданным на имя Myeonggu Kim. Выпуски до 2.0.0 включительно не подписаны.
 
 Полные правила и политику конфиденциальности смотрите в [английском README](README.md#code-signing-policy).
 Filee не отправляет ни ваши файлы, ни данные об использовании.

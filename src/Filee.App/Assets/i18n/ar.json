@@ -1,7 +1,6 @@
 {
   "app.name": "Filee",
   "app.tagline": "اسحب، أفلت، وحوّل.",
-
   "nav.home": "الرئيسية",
   "nav.general": "عام",
   "nav.triggers": "الاختصارات",
@@ -11,7 +10,6 @@
   "nav.theme": "المظهر",
   "nav.engines": "المحركات",
   "nav.about": "حول التطبيق",
-
   "tray.open": "فتح Filee",
   "tray.pause": "إيقاف الاختصارات مؤقتًا",
   "tray.resume": "استئناف الاختصارات",
@@ -23,9 +21,9 @@
   "close.tray": "إبقاء في منطقة الإعلام",
   "close.quit": "إنهاء",
   "close.dont_ask": "عدم السؤال مجددًا",
-
   "home.title": "الرئيسية",
   "home.drop_title": "أفلت الملفات هنا",
+  "home.drop_select": "انقر نقرًا مزدوجًا لتحديد الملفات",
   "home.drop_hint": "أو اضغط باستمرار على {0} أثناء سحب الملفات في مستكشف الملفات. يفتح شريط الأدوات الدائري عند المؤشر.",
   "home.drop_hint_macos": "أو اضغط باستمرار على {0} أثناء سحب الملفات في Finder. يفتح شريط الأدوات الدائري عند المؤشر.",
   "home.drop_hint_linux": "أو اضغط باستمرار على {0} أثناء سحب الملفات في مدير الملفات. يفتح شريط الأدوات الدائري عند المؤشر.",
@@ -46,7 +44,6 @@
   "home.clear_history": "مسح",
   "home.files": "عدد الملفات: {0}",
   "home.failed_files": "فشل: {0}",
-
   "donut.center_drag": "اسحب الملفات إلى هنا",
   "donut.files_same": "{0} × {1}",
   "donut.files_mixed": "عدد الملفات: {0}",
@@ -62,7 +59,6 @@
   "donut.group_caption": "مجموعة من {0}",
   "donut.flip_to_back": "{0} ↻ الخلف",
   "donut.flip_to_front": "{0} ↻ الأمام",
-
   "toast.converting": "تحويل {0} إلى {1}",
   "toast.done": "اكتمل",
   "toast.done_errors": "فشل {0} من أصل {1}",
@@ -71,9 +67,10 @@
   "toast.skipped": "تم التخطي (الملف موجود)",
   "toast.open_folder": "إظهار",
   "toast.cancel": "إلغاء",
+  "toast.missing_fonts": "خطوط المستند المفقودة: {0}",
+  "toast.get_fonts": "الحصول على الخطوط",
   "download.badge": "{0}/ث · {1}",
   "download.badge_files": "{0} · {1} من أصل {2} من الملفات",
-
   "error.unsupported_source": "نوع الملف هذا غير مدعوم",
   "error.empty_file": "الملف فارغ (0 بايت). يبقى الملف المُنشأ باستخدام «جديد» من قائمة النقر بالزر الأيمن فارغًا حتى تفتحه في تطبيقه وتحفظه",
   "format_request.request": "طلب دعم هذه الصيغة",
@@ -81,7 +78,9 @@
   "format_request.notice_text": "أخبرنا بالصيغة التي تحتاجها.\nتساعد الطلبات في تحديد الصيغ التي سيدعمها Filee لاحقًا.\nلا يمكن تحويل الملفات المشفّرة أو المحمية من النسخ (DRM)، مهما كانت صيغتها.",
   "error.no_route": "لا يوجد محرك يستطيع إجراء هذا التحويل",
   "error.cannot_turn": "التدوير والانعكاس متاحان للصور فقط",
+  "error.no_transparency": "هذا التنسيق لا يدعم الشفافية، لذا لا يوجد ما يُقص",
   "error.too_many_frames": "عدد الإطارات كبير جدًا لحفظها كصور. زِد قيمة «كل إطار رقم N»",
+  "error.too_many_pictures": "عدد الصور كبير جدًا لفيديو واحد، قسّمها على عدة فيديوهات",
   "error.not_enough_space": "لا توجد مساحة كافية على القرص لحفظ الصور",
   "error.no_motion_photo": "لا تحتوي هذه الصورة على فيديو يستطيع Filee قراءته (صورة Motion Photo من Android، أو Live Photo من iPhone مع ملف MOV بجانبها)",
   "error.live_photo_start": "يبدأ المقطع بعد نهاية هذا الفيديو. اختر «بداية المقطع» أبكر",
@@ -105,6 +104,7 @@
   "error.geo_unsupported_shape": "هذا النوع من الأشكال غير مدعوم",
   "error.geo_too_large": "سيتجاوز ملف Shapefile حد الصيغة البالغ 2 غيغابايت",
   "notice.pdf_not_smaller": "تعذّر تقليل الحجم، لذا نُسخ الملف كما هو",
+  "notice.empty_spreadsheet_pages_removed": "تمت إزالة صفحات جدول البيانات الفارغة",
   "notice.live_photo_pair": "حُفظ كصورة وملف MOV بالاسم نفسه. استوردهما معًا (صور iCloud أو AirDrop أو تطبيق الصور على Mac) لتحصل على Live Photo",
   "notice.geo_datum_assumed": "المرجع الجيوديسي ليس WGS 84؛ حُوّلت المواقع على افتراض أنه كذلك، وقد تنحرف بمقدار يصل إلى مئات الأمتار",
   "notice.geo_gpx_lossy": "تحتفظ GPX بالنقاط والمسارات والطرق مع حقول محدودة فقط: حُذفت السمات الأخرى وتحولت المضلعات إلى مسارات",
@@ -113,7 +113,6 @@
   "notice.geo_rows_without_location": "بعض الصفوف لا تحتوي على موقع صالح، فتم الاحتفاظ بها دون شكل هندسي",
   "notice.geo_field_names": "الحد الأقصى لأسماء حقول Shapefile هو 10 محارف: اختُصرت بعض الأسماء",
   "notice.geo_shapefile_split": "تحتفظ Shapefile بنوع واحد من الأشكال، لذا حُفظت النقاط والخطوط والمضلعات في ملفات منفصلة",
-
   "engine.reason.not_installed": "غير مثبّت",
   "engine.reason.error": "خطأ أثناء التحقق",
   "engine.reason.unsupported_platform": "غير متاح على هذا النظام",
@@ -132,7 +131,7 @@
   "engine.pdf-text.description": "استخراج نصوص PDF بترتيب القراءة، بما في ذلك الصفحات ذات العمودين (دون تعرّف ضوئي OCR للمستندات الممسوحة).",
   "engine.pdf-slides.description": "تحويل PDF إلى شرائح PowerPoint: تصبح كل صفحة صورة على شريحة مستقلة (بنفس مظهر PDF وغير قابلة للتحرير)، مع نص الصفحة في ملاحظات المتحدث.",
   "engine.email.description": "تحويل رسائل البريد (EML وOutlook MSG) إلى HTML ونص مع المرسل والمستلمين والتاريخ والصور، وتجميع المرفقات في ZIP.\nتحويل MSG إلى EML، وصفحات الويب المحفوظة (MHTML) إلى ملف HTML واحد مع صورها.",
-  "engine.data.description": "التحويل بين JSON وJSON Lines وYAML وTOML وXML وCSV.\nتحويل جهات اتصال vCard إلى CSV والعكس.\nتُحذف التعليقات. تدعم CSV البيانات الجدولية فقط.",
+  "engine.data.description": "التحويل بين JSON وJSON Lines وYAML وTOML وXML وCSV.\nتحويل جهات اتصال vCard وأحداث iCalendar إلى CSV والعكس.\nتُحذف التعليقات. تدعم CSV البيانات الجدولية فقط.",
   "engine.vector.description": "تحويل SVG وSVGZ إلى PDF متجهي وصور وDXF؛ وتتبع الصور إلى SVG؛ وقراءة ملفات Illustrator المحفوظة بمحتوى PDF.",
   "engine.icns.description": "تحويل أيقونات تطبيقات macOS ‏(ICNS) من الصور وإليها.",
   "engine.font.description": "التحويل بين الخطوط: TTF وOTF وWOFF وWOFF2 وEOT.",
@@ -147,7 +146,6 @@
   "engine.ghostscript.description": "تحويل EPS وPostScript وملفات Illustrator القديمة إلى PDF وصور؛ وتحويل PDF إلى EPS وPS.",
   "engine.calibre.description": "صيغ الكتب الإلكترونية النادرة (LIT وLRF وCHM وPDB وRB…) وإخراج Kindle ‏(MOBI وAZW3).\nعند وضعه فوق محرك كتابة HWPX، يُنشئ أيضًا PDF من الكتب الإلكترونية (بسرعة أكبر بكثير للكتب الطويلة).",
   "engine.libreoffice.description": "قراءة الصيغ القديمة والأقل شيوعًا: DOC وPPT وPages وKeynote وNumbers وWordPerfect وClarisWorks وPublisher وVisio…\nوالحفظ بصيغ DOC وXLS وPPT وODT وODP وقوالب OpenDocument وEMF.",
-
   "profile.images": "الصور",
   "profile.pdf": "PDF",
   "profile.office": "المستندات",
@@ -167,7 +165,6 @@
   "profile.models": "النماذج ثلاثية الأبعاد",
   "profile.geo": "البيانات الجغرافية",
   "profile.mixed": "ملفات متنوعة",
-
   "preset.crop": "اقتصاص",
   "crop.save": "اقتصاص وحفظ",
   "crop.reset": "إعادة تعيين",
@@ -189,10 +186,10 @@
   "crop.state_done": "تم الاقتصاص",
   "crop.state_skipped": "تم التخطي",
   "crop.state_failed": "فشل",
-
   "preset.half_size": "نصف الحجم",
   "preset.grayscale": "تدرّج رمادي",
   "preset.remove_background": "إزالة الخلفية",
+  "preset.trim_transparent": "قص الحواف الشفافة",
   "preset.group_rotate": "تدوير",
   "preset.rotate_left": "تدوير لليسار",
   "preset.rotate_left.short": "يسار",
@@ -222,7 +219,14 @@
   "preset.extract_motion": "استخراج فيديو Live Photo",
   "preset.live_photo_iphone": "Live Photo (iPhone)",
   "preset.motion_photo_android": "Motion Photo (Android)",
-
+  "preset.compress_image": "ضغط الصورة",
+  "preset.compress_video": "ضغط الفيديو",
+  "preset.video_from_images": "فيديو من الصور",
+  "preset.extract_audio": "استخراج الصوت",
+  "preset.merge_videos": "دمج الفيديوهات",
+  "preset.compress_audio": "ضغط الصوت",
+  "preset.merge_audio": "دمج الصوت",
+  "preset.remove_metadata": "إزالة البيانات الوصفية",
   "format.folder": "مجلد",
   "format.category.Image": "صورة",
   "format.category.Pdf": "PDF",
@@ -242,7 +246,6 @@
   "format.category.Data": "بيانات",
   "format.category.Model3D": "نموذج ثلاثي الأبعاد",
   "format.category.Geo": "بيانات جغرافية",
-
   "general.title": "عام",
   "general.language": "اللغة",
   "general.language_auto": "لغة النظام",
@@ -321,7 +324,6 @@
   "general.reset_library": "استعادة الافتراضيات",
   "general.reset_confirm": "هل تريد استبدال جميع الإعدادات المسبقة وملفات تعريف شريط الأدوات بالافتراضيات؟",
   "general.imported": "عدد العناصر المستوردة: {0}",
-
   "triggers.title": "الاختصارات",
   "triggers.description": "اختر طريقة فتح شريط الأدوات الدائري. يمكنك إضافة ما تشاء من الإيماءات.",
   "triggers.macos_permissions": "اسمح لـ Filee من إعدادات النظام > الخصوصية والأمن > تسهيلات الاستخدام.\nيطلب Finder أيضًا إذن الأتمتة عند استخدام اختصار الملفات المحددة للمرة الأولى.",
@@ -374,7 +376,6 @@
   "triggers.excluded_none_running": "لا توجد نافذة مفتوحة لأي تطبيق آخر.",
   "triggers.excluded_note": "لن تعمل الإيماءات والاختصارات عندما يكون المؤشر فوق هذه التطبيقات.",
   "triggers.paused": "الاختصارات متوقفة مؤقتًا",
-
   "toolbar.title": "شريط الأدوات الدائري",
   "toolbar.step_profile": "1. اختر ملف تعريف",
   "toolbar.step_arrange": "2. رتّب الإعدادات المسبقة",
@@ -436,7 +437,6 @@
   "toolbar.mixed_others": "تفتح التحديدات المختلطة الأخرى «{0}».",
   "toolbar.mixed_others_self": "لا يوجد ملف تعريف مختلط بلا امتدادات محددة، لذا يُستخدم هذا الملف أيضًا لكل مزيج آخر.",
   "tags.remove": "إزالة",
-
   "presets.title": "الإعدادات المسبقة",
   "presets.add": "جديد",
   "presets.duplicate": "إنشاء نسخة",
@@ -491,6 +491,9 @@
   "presets.frame_estimate": "تنتج دقيقة من فيديو بمعدل 30 إطارًا/ث {0} صورة، بحد أقصى {1} لكل فيديو.",
   "presets.extract_motion_photo": "استخراج فيديو Live/Motion Photo",
   "presets.extract_motion_photo_hint": "تتحول الصورة إلى الفيديو المحفوظ معها: المضمّن في Motion Photo من Android، أو ملف MOV بجانب Live Photo من iPhone.\nتتحول الصور الأخرى إلى فيديو للصورة الثابتة.",
+  "presets.slide_seconds": "ثوانٍ لكل صورة",
+  "presets.crossfade": "تلاشٍ متداخل بين الصور",
+  "presets.crossfade_hint": "تتلاشى كل صورة في التالية خلال ثانية بدلًا من الانتقال المفاجئ.",
   "presets.group.live_photo": "Live / Motion Photo",
   "presets.live_photo": "يصبح الفيديو",
   "presets.live_photo.None": "إطارًا ثابتًا واحدًا",
@@ -609,7 +612,6 @@
   "presets.delete_confirm": "هل تريد حذف «{0}»؟ سيُزال أيضًا من جميع أشرطة الأدوات والمجموعات.",
   "presets.name_required": "أدخل اسمًا",
   "presets.select": "اختر إعدادًا مسبقًا لتعديله",
-
   "theme.title": "المظهر",
   "theme.style": "نمط المظهر",
   "theme.style.Soft": "Filee Soft",
@@ -639,7 +641,6 @@
   "theme.reduce_motion": "تقليل الرسوم المتحركة",
   "theme.reduce_motion_hint": "موصى به للحواسيب القديمة. يعطّل الانتقالات وحركة ارتداد الشريط الدائري.",
   "theme.preview": "معاينة",
-
   "engines.title": "محركات التحويل",
   "engines.description": "يختار Filee أفضل محرك متاح لكل تحويل.\nإذا أمكن لعدة محركات تنفيذ المهمة نفسها، تكون الأولوية للأعلى في القائمة.",
   "engines.available": "جاهز",
@@ -710,7 +711,6 @@
   "engines.state.unpacking": "جارٍ التثبيت…",
   "engines.state.installed": "مثبّت",
   "engines.state.failed": "فشل: {0}",
-
   "about.title": "حول التطبيق",
   "about.updates": "التحديثات",
   "common.search": "بحث",
@@ -735,7 +735,6 @@
   "feedback.notice_text": "تساعد نجمة على GitHub الآخرين على اكتشاف Filee.\nنرحّب أيضًا بالمشكلات والأفكار.",
   "feedback.star": "إضافة نجمة على GitHub",
   "feedback.issue": "الإبلاغ عن مشكلة أو فكرة",
-
   "common.ok": "موافق",
   "common.cancel": "إلغاء",
   "common.save": "حفظ",
@@ -745,7 +744,6 @@
   "common.no": "لا",
   "common.on": "مفعّل",
   "common.off": "معطّل",
-
   "setup.title": "اختر محركات التحويل",
   "setup.description": "تحويل الصور وPDF ومستندات Office وHWP والكتب الإلكترونية والأرشيفات والخطوط ورسومات CAD والنماذج ثلاثية الأبعاد متاح بالفعل.\nنزّل المحركات للفيديو والصوت أو الصيغ النادرة فقط.",
   "setup.note": "يمكنك تثبيت المحركات أو إزالتها في أي وقت من الإعدادات ← المحركات.",
@@ -906,7 +904,6 @@
   "watch.status_starting": "جارٍ البدء…",
   "watch.status_error": "تعذّرت مراقبة هذا المجلد: {0}",
   "watch.cli_hint": "متاح أيضًا من سطر الأوامر: filee watch <folder> --to <format>",
-
   "whats_new.title": "الجديد في Filee {0}",
   "whats_new.previous": "السابق",
   "whats_new.next": "التالي",

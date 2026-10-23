@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <b>Português (Brasil)</b> · <a href="README.fr.md">Français</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <b>Português (Brasil)</b> · <a href="README.fr.md">Français</a> · <a href="README.th.md">ไทย</a></p>
 
 <table>
   <tr>
@@ -55,7 +55,7 @@ Baixe em [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
   A instalação é o instalador do próprio Filee, nos idiomas do Filee, e não precisa de mais nada no PC. Ela pode adicionar o menu do
   Explorador, iniciar com o Windows, o comando `filee` e motores opcionais; instalações silenciosas usam as opções do Inno Setup
   (`/VERYSILENT /SUPPRESSMSGBOXES`).
-- **macOS 13+** (prévia): descompacte o pacote `osx-arm64` ou `osx-x64` e execute `./install.sh`.
+- **macOS 13+** (prévia): descompacte o pacote `osx-arm64` ou `osx-x64` e execute `./install.sh`. Ou abra o `.dmg` e arraste o Filee para Aplicativos (o comando `filee` só vem com o `install.sh`).
   A build ainda não é notarizada, então permita a primeira abertura em Ajustes do Sistema → Privacidade e Segurança → **Abrir Mesmo Assim**.
 - **Linux x64/ARM64** (Ubuntu 22.04+): descompacte o pacote e execute `./install.sh` (sem root, precisa do Python 3).
   Gestos de arrastar precisam do X11. No Wayland, use a área de soltar e o menu do botão direito do gerenciador de arquivos.
@@ -77,7 +77,7 @@ slides mostram o que há de novo.
 - **Pastas monitoradas** convertem cada arquivo que chega nelas.
 - **Conversões recentes** no Início, cada uma com uma miniatura: abra o resultado, ou abra com outro aplicativo.
 - **Outras entradas**: o menu do botão direito, um atalho de teclado, a área de soltar e o [comando `filee`](#linha-de-comando).
-- Temas claro e escuro, com sua cor de destaque e a opacidade do menu circular, em English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (da direita para a esquerda), Português (Brasil) e Français.
+- Temas claro e escuro, com sua cor de destaque e a opacidade do menu circular, em English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (da direita para a esquerda), Português (Brasil), Français, नेपाली e ไทย.
 
 ## Capturas de tela
 
@@ -111,7 +111,7 @@ slides mostram o que há de novo.
 | **Arquivos compactados**: ZIP, ANSYS Workbench (WBPZ), 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG, … | extrair, ZIP, 7Z, TAR, TAR.GZ; quaisquer arquivos → um ZIP |
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **Fontes**: TTF, OTF, WOFF, WOFF2, EOT | entre si |
-| **Dados**: JSON, JSON Lines, YAML, TOML, XML · vCard | entre si, CSV e XLSX (tabelas); vCard ↔ CSV |
+| **Dados**: JSON, JSON Lines, YAML, TOML, XML · vCard, iCalendar | entre si, CSV e XLSX (tabelas); vCard, iCalendar ↔ CSV |
 | **Modelos 3D**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY; leitura de FBX | entre si, prévia em PNG |
 | **Vetores geoespaciais**: Shapefile, GeoJSON, KML, KMZ, GPX · CSV com coordenadas | entre si e CSV / XLSX / JSON; dados projetados (UTM, Web Mercator, Lambert, Albers) saem como longitude / latitude em WGS 84 |
 
@@ -152,12 +152,13 @@ Pull requests são bem-vindos. Se o Filee poupar alguns cliques, uma ⭐ ajuda o
 
 O Filee é desenvolvido e publicado por **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
 
-As versões para Windows serão assinadas com um certificado de assinatura de código de código aberto da [Certum](https://www.certum.eu/), emitido
-para Myeonggu Kim. O certificado está sendo emitido; até lá, as versões não são assinadas e o SmartScreen do Windows
-pode avisar ao executar o instalador (“Mais informações” → “Executar mesmo assim”). Os pacotes de macOS são assinados ad hoc e não são notarizados.
+As versões para Windows são assinadas com um certificado de assinatura de código de código aberto da [Certum](https://www.certum.eu/), emitido
+para Myeonggu Kim. As versões até a 2.0.0 não são assinadas. O SmartScreen do Windows ainda pode avisar sobre uma versão
+nova até ela ser baixada o bastante (“Mais informações” → “Executar mesmo assim”). Os pacotes de macOS são assinados ad hoc e não são notarizados.
 
-Só o instalador e os arquivos gerados pelo fluxo de release das GitHub Actions deste repositório são assinados, e cada release
-é aprovada manualmente. Programas de terceiros incluídos (rhwp, 7-Zip) mantêm os arquivos dos próprios editores.
+Só os arquivos gerados pelo fluxo de release das GitHub Actions deste repositório são assinados, e cada release
+é assinada e aprovada manualmente. Bibliotecas e programas já assinados pelos próprios editores mantêm a assinatura;
+os que vêm sem assinatura (rhwp, 7-Zip e a maioria das bibliotecas) são assinados com o certificado do Filee.
 
 ### Política de privacidade
 
