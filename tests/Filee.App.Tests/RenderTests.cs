@@ -1771,6 +1771,28 @@ public class RenderTests
     }
 
     [AvaloniaFact]
+    public void Preset_editor_offers_the_autocad_version_for_dwg_and_dxf_only()
+    {
+        TestServices.EnsureInitialized("en");
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "dwg", Name = "Old DWG" };
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.True(vm.ShowCad);
+        Assert.Equal(["AutoCAD 2018", "AutoCAD 2013", "AutoCAD 2010", "AutoCAD 2007", "AutoCAD 2004", "AutoCAD 2000", "Same as the source"],
+            vm.CadVersions.Select(v => v.Label));
+
+        vm.CadVersion = vm.CadVersions.Single(v => v.Value == Filee.Core.Presets.CadVersion.AutoCad2004);
+        Assert.True(vm.Apply());
+        Assert.Equal(Filee.Core.Presets.CadVersion.AutoCad2004, preset.Cad.Version);
+        Assert.Equal(Filee.Core.Presets.CadVersion.AutoCad2004, new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>()).CadVersion.Value);
+
+        // Not for other targets: the choice isn't kept behind them.
+        vm.Target = vm.Targets.Single(t => t.Value == "png");
+        Assert.False(vm.ShowCad);
+        Assert.True(vm.Apply());
+        Assert.Equal(Filee.Core.Presets.CadVersion.AutoCad2018, preset.Cad.Version);
+    }
+
+    [AvaloniaFact]
     public void Preset_editor_offers_save_as_zip_for_geospatial_targets_only()
     {
         TestServices.EnsureInitialized("en");

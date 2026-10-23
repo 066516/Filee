@@ -293,6 +293,20 @@
       </StackPanel>
     </Border>
 
+    <!-- DWG / DXF: the AutoCAD version to write (#489) -->
+    <Border x:Name="CadCard" Classes="card" IsVisible="{Binding ShowCad}" Padding="14">
+      <StackPanel Spacing="10">
+        <TextBlock Classes="h2" Text="{DynamicResource presets.group.cad}" />
+        <Grid ColumnDefinitions="*,12,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="{DynamicResource presets.cad_version}" />
+            <ComboBox ItemsSource="{Binding CadVersions}" SelectedItem="{Binding CadVersion}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+        </Grid>
+        <TextBlock Classes="caption" Text="{DynamicResource presets.cad_version_hint}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+
     <!-- Documents → Markdown: pictures in a folder next to the file, or text only -->
     <Border x:Name="DocumentCard" Classes="card" Padding="14" IsVisible="{Binding ShowLeaveOutPictures}">
       <StackPanel Spacing="10">
