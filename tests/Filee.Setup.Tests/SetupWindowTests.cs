@@ -107,6 +107,11 @@ public class SetupWindowTests
         Assert.Equal(62, model.Percent);
         var slides = window.GetVisualDescendants().OfType<SlideShow>().Single();
         Assert.True(slides.IsEffectivelyVisible);
+        // A busy runner can pass the six-second interval while pumping layout. Freeze the
+        // showcase and select the known slide before checking its language-specific media.
+        slides.AutoAdvance = null;
+        slides.GoTo(0);
+        Pump();
         Assert.Equal(model.Deck!.Slides.Count, slides.Slides.Count);
         Assert.Equal(model.Deck.Slides[0].MediaFor(language).Source, slides.Media.Source);
         Assert.True(slides.Media.HasPicture);
