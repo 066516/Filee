@@ -68,6 +68,7 @@ public static class EngineRegistry
         new EbookConverter(),
         new PandocConverter(),
         new GhostscriptConverter(),
+        new VisionConverter(), // before Tesseract: a Mac's OCR step (Tesseract reads the languages Vision doesn't)
         new TesseractConverter(),
         new CalibreConverter(),
         new LibreOfficeConverter(env, loggers?.CreateLogger<LibreOfficeConverter>()),

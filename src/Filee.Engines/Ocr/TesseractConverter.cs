@@ -100,7 +100,8 @@ public sealed class TesseractConverter : IConverter
             return [];
         if (step.From == "pdf")
         {
-            await RecognizePdfAsync(ocr, step, scratch, output, progress, cancellationToken);
+            await RecognizePdfAsync(step, scratch, output, Runs, (picture, page, token) => ocr.ToPdfAsync(picture, page, Dpi, token),
+                progress, cancellationToken);
         }
         else
         {
@@ -116,10 +117,15 @@ public sealed class TesseractConverter : IConverter
 
     /// <summary>
     /// The pages without text become recognized scans, the others are copied. A PDF whose pages all have text is
-    /// copied as it is, with a note.
+    /// copied as it is, with a note. Also Apple Vision's way (<see cref="VisionConverter"/>).
     /// </summary>
-    private static async Task RecognizePdfAsync(Run ocr, ConversionStep step, string scratch, string output,
-        IProgress<double>? progress, CancellationToken cancellationToken)
+    /// <param name="parallel">How many pages are recognized at the same time.</param>
+    /// <param name="recognize">
+    /// Reads the picture of a page (<c>p{n}.png</c> in <paramref name="scratch"/>, at <see cref="Dpi"/>) and writes it
+    /// as a searchable one-page PDF (<c>p{n}.pdf</c> there); it gets both names relative to <paramref name="scratch"/>.
+    /// </param>
+    internal static async Task RecognizePdfAsync(ConversionStep step, string scratch, string output, int parallel,
+        Func<string, string, CancellationToken, Task> recognize, IProgress<double>? progress, CancellationToken cancellationToken)
     {
         var bytes = await File.ReadAllBytesAsync(step.InputPath, cancellationToken);
         var hasText = PagesWithText(step.InputPath);
@@ -135,7 +141,7 @@ public sealed class TesseractConverter : IConverter
         // Page by page: PDFium draws a page only when one of the Tesseract runs is free, and a page's picture is deleted
         // as soon as its PDF exists, so a 300-page scan never has more than Runs pictures in the work folder.
         var options = new RenderOptions(Dpi: Dpi, WithAnnotations: true, WithFormFill: true, BackgroundColor: SKColors.White);
-        using var free = new SemaphoreSlim(Runs);
+        using var free = new SemaphoreSlim(parallel);
         var runs = new List<Task>();
         var done = 0;
         try
@@ -164,7 +170,7 @@ public sealed class TesseractConverter : IConverter
                 {
                     try
                     {
-                        await ocr.ToPdfAsync($"p{page}.png", $"p{page}", Dpi, cancellationToken);
+                        await recognize($"p{page}.png", $"p{page}", cancellationToken);
                         File.Delete(picture);
                         progress?.Report(0.05 + 0.9 * Interlocked.Increment(ref done) / scans.Count);
                     }
