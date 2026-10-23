@@ -794,6 +794,9 @@ internal static class SettingsMigrations
         // v38: Tajima embroidery designs (.dst) learn the vector donut; custom claims stay put.
         if (from < 38)
             changed |= LearnExtensions(profiles, out _, ["dst"]);
+        // v39: PNG/JPEG download aliases learn the images donut; custom claims stay put.
+        if (from < 39)
+            changed |= LearnExtensions(profiles, out _, ["png_large", "jpg_large"]);
         return changed;
     }
 
