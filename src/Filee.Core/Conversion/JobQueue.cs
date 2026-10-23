@@ -232,16 +232,19 @@ public sealed class JobQueue : IAsyncDisposable
         }
     }
 
-    /// <summary>Converts every file to PDF in the work directory, then merges them into one output.</summary>
     /// <summary>Applies the preset's PDF finishing (<see cref="PdfOptions.FinishesPdf"/>) to the PDFs among <paramref name="outputs"/>.</summary>
     private async Task FinishPdfsAsync(Preset preset, IReadOnlyList<string> outputs, CancellationToken ct)
     {
+        // A retry from history whose preset (and so its password) is gone: no PDF without the password it was meant to have.
+        if (preset.Pdf.PasswordLeftOut && preset.Pdf.Password.Length == 0)
+            throw new ConversionRefusedException("error.pdf_password_gone");
         if (!preset.Pdf.FinishesPdf || _catalog.All.OfType<IPdfFinisher>().FirstOrDefault() is not { } finisher)
             return;
         foreach (var pdf in outputs.Where(o => FormatRegistry.Detect(o)?.Id == "pdf"))
             await finisher.FinishAsync(pdf, preset.Pdf, ct);
     }
 
+    /// <summary>Converts every file to PDF in the work directory, then merges them into one output.</summary>
     private async Task RunMergedAsync(ConversionJob job, RoutePlanner planner, string workDir)
     {
         var parts = new string?[job.Files.Count];

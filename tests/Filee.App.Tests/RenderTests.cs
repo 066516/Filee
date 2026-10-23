@@ -1151,6 +1151,28 @@ public class RenderTests
     }
 
     [AvaloniaFact]
+    public void Preset_editor_password_fits_readers_and_is_off_with_pdfa()
+    {
+        TestServices.EnsureInitialized("en");
+        var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "pdf", Name = "Locked" };
+        var vm = new PresetEditorViewModel(preset, loc);
+
+        // 54 Korean letters are 162 UTF-8 bytes; readers use 127, so the box keeps the 42 letters that fit.
+        vm.PdfPassword = new string('비', 54);
+        Assert.Equal(new string('비', 42), vm.PdfPassword);
+        vm.PdfPassword = "pässwörd";
+        Assert.Equal("pässwörd", vm.PdfPassword);
+
+        vm.PdfA = true;
+        Assert.True(vm.Apply());
+        Assert.Equal("", preset.Pdf.Password); // PDF/A can't be encrypted
+        vm.PdfA = false;
+        Assert.True(vm.Apply());
+        Assert.Equal("pässwörd", preset.Pdf.Password);
+    }
+
+    [AvaloniaFact]
     public void Preset_editor_keeps_rotation_visible_for_pdf_and_drops_it_for_targets_that_cannot_turn()
     {
         TestServices.EnsureInitialized("en");

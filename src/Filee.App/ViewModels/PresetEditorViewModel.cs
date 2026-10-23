@@ -396,6 +396,18 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private bool _pageNumbers;
     [ObservableProperty] private string _pdfPassword;
 
+    /// <summary>AES-256 readers use at most 127 UTF-8 bytes of a password: the box takes no more.</summary>
+    internal const int MaxPasswordBytes = 127;
+
+    partial void OnPdfPasswordChanged(string value)
+    {
+        if (System.Text.Encoding.UTF8.GetByteCount(value) <= MaxPasswordBytes)
+            return;
+        var bytes = 0;
+        var fits = string.Concat(value.EnumerateRunes().TakeWhile(r => (bytes += r.Utf8SequenceLength) <= MaxPasswordBytes));
+        PdfPassword = fits;
+    }
+
     /// <summary>PDF → image: one tall image of all pages.</summary>
     [ObservableProperty] private bool _combinePages;
     [ObservableProperty] private bool _trimPageMargins;
@@ -616,7 +628,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         // Only for a PDF target, where they are shown: a password left behind by it must not lock nothing.
         pdf.Watermark = ShowPdfBuild ? Watermark.Trim() : "";
         pdf.PageNumbers = ShowPdfBuild && PageNumbers;
-        pdf.Password = ShowPdfBuild ? PdfPassword : "";
+        // PDF/A can't be encrypted, so the box is off while it is ticked.
+        pdf.Password = ShowPdfBuild && !PdfA ? PdfPassword : "";
+        pdf.PasswordLeftOut = false;
         _original.Document.PdfA = PdfA;
         // Only where the option is shown, as with SaveEveryFrame below.
         _original.Document.LeaveOutPictures = ShowLeaveOutPictures && LeaveOutPictures;

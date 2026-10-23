@@ -15,32 +15,91 @@ internal static class PdfFinishing
 {
     private const double PointsPerMm = 72 / 25.4;
 
+    /// <summary>The most UTF-8 bytes of a password readers use (AES-256, revision 6): longer ones can't be opened.</summary>
+    public const int MaxPasswordBytes = 127;
+
     /// <summary>Rewrites <paramref name="path"/> with the watermark, page numbers and password <paramref name="options"/> ask for.</summary>
     public static void Finish(string path, PdfOptions options, CancellationToken ct)
     {
-        using (var document = PdfSharpConverter.OpenForChanges(path))
-        using (var glyphs = new GlyphOutlines())
+        if (System.Text.Encoding.UTF8.GetByteCount(options.Password) > MaxPasswordBytes)
+            throw new ArgumentException($"The PDF password is longer than {MaxPasswordBytes} bytes, so PDF readers couldn't open the file with it.");
+        var finished = path + ".finished";
+        try
         {
-            var watermark = options.Watermark.Trim();
-            for (var i = 0; i < document.PageCount; i++)
+            using (var document = PdfSharpConverter.OpenForChanges(path))
+            using (var glyphs = new GlyphOutlines())
             {
-                ct.ThrowIfCancellationRequested();
-                var page = document.Pages[i];
-                using var graphics = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Append);
-                if (watermark.Length > 0)
-                    DrawWatermark(graphics, glyphs, watermark, page.Width.Point, page.Height.Point);
-                if (options.PageNumbers)
-                    DrawPageNumber(graphics, glyphs, $"{i + 1} / {document.PageCount}", page.Width.Point, page.Height.Point);
+                var watermark = options.Watermark.Trim();
+                for (var i = 0; i < document.PageCount; i++)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    Stamp(document.Pages[i], glyphs, watermark, options.PageNumbers ? $"{i + 1} / {document.PageCount}" : null);
+                }
+                if (options.Password.Length > 0)
+                {
+                    document.SecuritySettings.UserPassword = options.Password;
+                    document.SecuritySettings.OwnerPassword = options.Password;
+                    document.SecurityHandler.SetEncryptionToV5();
+                }
+                document.Save(finished);
             }
-            if (options.Password.Length > 0)
-            {
-                document.SecuritySettings.UserPassword = options.Password;
-                document.SecuritySettings.OwnerPassword = options.Password;
-                document.SecurityHandler.SetEncryptionToV5();
-            }
-            var finished = path + ".finished";
-            document.Save(finished);
             File.Move(finished, path, overwrite: true);
+        }
+        finally
+        {
+            // Nothing is left next to the user's file when saving fails.
+            File.Delete(finished);
+        }
+    }
+
+    /// <summary>
+    /// Draws the stamps on one page as it is shown: inside its crop box and the right way up for its /Rotate. The page
+    /// is drawn on unturned (PDFsharp's own handling of turned pages puts the stamps elsewhere) and turned back.
+    /// </summary>
+    private static void Stamp(PdfPage page, GlyphOutlines glyphs, string watermark, string? number)
+    {
+        if (watermark.Length == 0 && number is null)
+            return;
+        var media = page.MediaBox;
+        var crop = page.Elements.ContainsKey("/CropBox") ? page.CropBox : media;
+        // The visible part in drawing units: x from the media box's left edge, y down from its top edge.
+        var left = Math.Max(crop.X1, media.X1) - media.X1;
+        var top = media.Y2 - Math.Min(crop.Y2, media.Y2);
+        var width = Math.Min(crop.X2, media.X2) - Math.Max(crop.X1, media.X1);
+        var height = Math.Min(crop.Y2, media.Y2) - Math.Max(crop.Y1, media.Y1);
+        if (width <= 0 || height <= 0)
+            return;
+        var rotate = page.Rotate;
+        var orientation = page.Orientation;
+        page.Rotate = 0;
+        page.Orientation = PdfSharp.PageOrientation.Portrait;
+        try
+        {
+            using var graphics = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Append);
+            graphics.TranslateTransform(left, top);
+            // Shown turned clockwise by /Rotate: map the shown page (x right, y down) onto the unturned one.
+            var (shownWidth, shownHeight) = (((rotate % 360) + 360) % 360) switch
+            {
+                90 => Turn(graphics, new XMatrix(0, -1, 1, 0, 0, height), height, width),
+                180 => Turn(graphics, new XMatrix(-1, 0, 0, -1, width, height), width, height),
+                270 => Turn(graphics, new XMatrix(0, 1, -1, 0, width, 0), height, width),
+                _ => (width, height),
+            };
+            if (watermark.Length > 0)
+                DrawWatermark(graphics, glyphs, watermark, shownWidth, shownHeight);
+            if (number is not null)
+                DrawPageNumber(graphics, glyphs, number, shownWidth, shownHeight);
+        }
+        finally
+        {
+            page.Orientation = orientation;
+            page.Rotate = rotate;
+        }
+
+        static (double, double) Turn(XGraphics graphics, XMatrix matrix, double shownWidth, double shownHeight)
+        {
+            graphics.MultiplyTransform(matrix);
+            return (shownWidth, shownHeight);
         }
     }
 

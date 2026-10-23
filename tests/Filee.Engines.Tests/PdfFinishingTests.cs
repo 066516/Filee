@@ -5,6 +5,7 @@ using Filee.Core.Conversion;
 using Filee.Core.Presets;
 using Filee.Engines.Pdf;
 using Filee.Engines.Vector;
+using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
 using PDFtoImage;
@@ -70,6 +71,79 @@ public class PdfFinishingTests(EngineFixture fx) : IClassFixture<EngineFixture>
         using var opened = PdfReader.Open(output, "filee-1234", PdfDocumentOpenMode.Import);
         Assert.Equal(1, opened.PageCount);
         Assert.Contains("/AESV3", await File.ReadAllTextAsync(output, System.Text.Encoding.Latin1, TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>One blank A4 page, shown turned by <paramref name="rotate"/> and cut to <paramref name="inset"/> points in.</summary>
+    private static string TurnedPdf(string folder, int rotate, double inset = 0)
+    {
+        var path = Path.Combine(folder, $"turned-{rotate}-{inset}.pdf");
+        using var document = new PdfDocument();
+        var page = document.AddPage();
+        page.Rotate = rotate;
+        if (inset > 0)
+            page.CropBox = new PdfRectangle(new XPoint(inset, inset), new XPoint(page.MediaBox.X2 - inset, page.MediaBox.Y2 - inset));
+        document.Save(path);
+        return path;
+    }
+
+    [Theory]
+    [InlineData(90)]
+    [InlineData(180)]
+    [InlineData(270)]
+    public async Task Stamps_land_on_the_page_as_it_is_shown_when_it_is_turned(int rotate)
+    {
+        var pdf = TurnedPdf(fx.NewFolder(), rotate);
+
+        var job = await fx.ConvertAsync([pdf], new Preset { TargetFormat = "pdf", Pdf = { Watermark = "CONFIDENTIAL", PageNumbers = true } });
+
+        Assert.True(job.State == JobState.Completed, string.Join("; ", job.Files.Select(f => $"{f.ErrorKey} {f.ErrorDetail}")));
+        var output = job.Outputs.Single();
+        Assert.Equal(rotate, PdfReader.Open(output, PdfDocumentOpenMode.Import).Pages[0].Rotate); // still turned
+        Assert.True(Marked(output, 0, 0.4, 0.9, 0.6, 0.99) > 5, "the page number sits at the bottom of the shown page");
+        Assert.Equal(0, Marked(output, 0, 0, 0, 1, 0.1)); // nothing along the shown top edge
+        Assert.True(Marked(output, 0, 0.3, 0.4, 0.7, 0.6) > 50, "the watermark crosses the middle");
+    }
+
+    [Fact]
+    public async Task Stamps_stay_inside_a_smaller_crop_box()
+    {
+        var pdf = TurnedPdf(fx.NewFolder(), 0, inset: 100);
+
+        var job = await fx.ConvertAsync([pdf], new Preset { TargetFormat = "pdf", Pdf = { Watermark = "DRAFT", PageNumbers = true } });
+
+        Assert.Equal(JobState.Completed, job.State);
+        var output = job.Outputs.Single();
+        // PDFium shows only the crop box: the number is at its bottom, the watermark in its middle.
+        Assert.True(Marked(output, 0, 0.35, 0.88, 0.65, 0.99) > 5, "the page number is inside the crop box");
+        Assert.True(Marked(output, 0, 0.3, 0.4, 0.7, 0.6) > 50, "the watermark is centred in the crop box");
+    }
+
+    [Theory]
+    [InlineData("pässwörd")]
+    [InlineData("비밀번호입니다")]
+    public async Task A_non_ascii_password_opens_in_pdfium(string password)
+    {
+        var pdf = BlankPdf(fx.NewFolder(), 1);
+
+        var job = await fx.ConvertAsync([pdf], new Preset { TargetFormat = "pdf", Pdf = { Password = password, PageNumbers = true } });
+
+        Assert.Equal(JobState.Completed, job.State);
+        var output = job.Outputs.Single();
+        Assert.True(Marked(output, 0, 0.4, 0.9, 0.6, 0.99, password) > 5);
+        Assert.ThrowsAny<Exception>(() => Marked(output, 0, 0, 0, 1, 1, "wrong"));
+    }
+
+    [Fact]
+    public async Task A_password_too_long_for_readers_fails_and_leaves_nothing_behind()
+    {
+        var folder = fx.NewFolder();
+        var pdf = BlankPdf(folder, 1);
+        var password = new string('비', 43); // 129 UTF-8 bytes
+
+        var job = await fx.ConvertAsync([pdf], new Preset { TargetFormat = "pdf", Pdf = { Password = password } });
+
+        Assert.Equal(JobState.Failed, job.State);
+        Assert.Empty(Directory.GetFiles(folder, "*.finished", SearchOption.AllDirectories));
     }
 
     [Fact]

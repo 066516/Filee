@@ -375,7 +375,8 @@
             </StackPanel>
             <StackPanel Grid.Column="2">
               <TextBlock Classes="label" Text="{DynamicResource presets.pdf_password}" />
-              <TextBox Text="{Binding PdfPassword}" PasswordChar="•" Classes="revealPasswordButton" MaxLength="64" />
+              <TextBox Text="{Binding PdfPassword}" PasswordChar="•" Classes="revealPasswordButton" MaxLength="64"
+                     IsEnabled="{Binding !PdfA}" />
             </StackPanel>
           </Grid>
           <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource presets.pdf_password_hint}" />
