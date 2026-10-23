@@ -807,6 +807,10 @@ internal static class SettingsMigrations
         // v41: PNG/JPEG download aliases learn the images donut; custom claims stay put.
         if (from < 41)
             changed |= LearnExtensions(profiles, out _, ["png_large", "jpg_large"]);
+        // v42: FITS astronomy pictures (.fits, .fts) learn the images donut; custom claims stay put. (Schema 42 may be
+        //      renumbered if another change takes it first.)
+        if (from < 42)
+            changed |= LearnExtensions(profiles, out _, ["fits", "fts"]);
         return changed;
     }
 

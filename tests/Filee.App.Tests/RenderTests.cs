@@ -1198,6 +1198,45 @@ public class RenderTests
         Assert.False(preset.Pdf.Ocr);
     }
 
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("ko")]
+    public void Preset_editor_shows_and_saves_the_fits_options(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = "tiff", Name = "Astro TIFF" };
+        var vm = new PresetEditorViewModel(preset, loc);
+        // TIFF: linear (the default) or stretched; pictures: debayer (the default) or mono.
+        Assert.True(vm.ShowFitsTiff);
+        Assert.False(vm.ShowFitsDebayer);
+        Assert.Equal(Filee.Core.Presets.FitsTiffMode.Linear, vm.FitsTiffMode.Value);
+        Assert.Equal(loc["presets.fits_tiff.Stretched"], vm.FitsTiffModes[1].Label);
+
+        var window = new PresetEditorWindow { DataContext = vm, Height = 1400 };
+        window.Show();
+        Pump();
+        Save(window, $"preset-fits-tiff-{language}.png");
+        window.Close();
+
+        vm.FitsTiffMode = vm.FitsTiffModes.Single(m => m.Value == Filee.Core.Presets.FitsTiffMode.Stretched);
+        Assert.True(vm.Apply());
+        Assert.Equal(Filee.Core.Presets.FitsTiffMode.Stretched, preset.Image.FitsTiff);
+
+        vm = new PresetEditorViewModel(preset, loc);
+        vm.Target = vm.Targets.Single(t => t.Value == "png");
+        Assert.False(vm.ShowFitsTiff);
+        Assert.True(vm.ShowFitsDebayer);
+        Assert.True(vm.FitsDebayer);
+        vm.FitsDebayer = false;
+        Assert.True(vm.Apply());
+        Assert.False(preset.Image.FitsDebayer);
+
+        // Neither is offered where no picture is written.
+        vm.Target = vm.Targets.Single(t => t.Value == "pdf");
+        Assert.False(vm.ShowFitsTiff || vm.ShowFitsDebayer);
+    }
+
     [AvaloniaFact]
     public void Preset_editor_hides_and_clears_what_text_recognition_does_not_do()
     {
