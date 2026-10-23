@@ -768,13 +768,16 @@ public class UpdateServiceTests
     public void DeleteStaleWorkspaces_preserves_active_pid_and_deletes_stale_dead_pid()
     {
         var root = TempFolder();
-        var activeDir = Path.Combine(root, $".update-{Environment.ProcessId}-active123");
+        var token1 = "0123456789abcdef0123456789abcdef";
+        var token2 = "abcdef0123456789abcdef0123456789";
+        var token3 = "11223344556677889900aabbccddeeff";
+        var activeDir = Path.Combine(root, $".update-{Environment.ProcessId}-{token1}");
         var deadPid = 999999;
         while (UpdateService.IsProcessAlive(deadPid))
             deadPid++;
 
-        var deadStaleDir = Path.Combine(root, $".update-{deadPid}-stale456");
-        var deadFreshDir = Path.Combine(root, $".update-{deadPid}-fresh789");
+        var deadStaleDir = Path.Combine(root, $".update-{deadPid}-{token2}");
+        var deadFreshDir = Path.Combine(root, $".update-{deadPid}-{token3}");
 
         Directory.CreateDirectory(activeDir);
         Directory.CreateDirectory(deadStaleDir);
@@ -787,6 +790,69 @@ public class UpdateServiceTests
         Assert.True(Directory.Exists(activeDir), "Active PID workspace must not be deleted even if stale");
         Assert.False(Directory.Exists(deadStaleDir), "Stale dead PID workspace must be deleted");
         Assert.True(Directory.Exists(deadFreshDir), "Fresh dead PID workspace must be kept");
+    }
+
+    [Fact]
+    public void DeleteStaleWorkspaces_ignores_foreign_and_malformed_directories()
+    {
+        var root = TempFolder();
+        var token32 = "0123456789abcdef0123456789abcdef";
+
+        // Foreign directories and malformed names
+        var foreign1 = Path.Combine(root, ".update-something");
+        var foreign2 = Path.Combine(root, ".update-cache");
+        var malformedZeroPid = Path.Combine(root, $".update-0-{token32}");
+        var malformedNegativePid = Path.Combine(root, $".update--123-{token32}");
+        var malformedNonDecimalPid = Path.Combine(root, $".update-abc-{token32}");
+        var malformedShortToken = Path.Combine(root, ".update-12345-0123456789abcdef");
+        var malformedLongToken = Path.Combine(root, $".update-12345-{token32}extra");
+        var malformedNonHexToken = Path.Combine(root, ".update-12345-0123456789abcdef0123456789abcdeg");
+        var malformedExtraSegment = Path.Combine(root, $".update-12345-{token32}-extra");
+
+        var allFolders = new[]
+        {
+            foreign1, foreign2, malformedZeroPid, malformedNegativePid,
+            malformedNonDecimalPid, malformedShortToken, malformedLongToken,
+            malformedNonHexToken, malformedExtraSegment
+        };
+
+        foreach (var dir in allFolders)
+        {
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, "content.txt"), "preserve me");
+            Directory.SetLastWriteTimeUtc(dir, DateTime.UtcNow.AddDays(-2));
+        }
+
+        UpdateService.DeleteStaleWorkspaces(root, TimeSpan.FromDays(1));
+
+        foreach (var dir in allFolders)
+        {
+            Assert.True(Directory.Exists(dir), $"Directory {Path.GetFileName(dir)} must remain untouched");
+            Assert.True(File.Exists(Path.Combine(dir, "content.txt")), $"File inside {Path.GetFileName(dir)} must survive");
+        }
+    }
+
+    [Theory]
+    [InlineData(".update-123-0123456789abcdef0123456789abcdef", true, 123)]
+    [InlineData(".update-1-0123456789ABCDEF0123456789ABCDEF", true, 1)]
+    [InlineData(".update-999999-abcdef0123456789abcdef0123456789", true, 999999)]
+    [InlineData(".update-something", false, 0)]
+    [InlineData(".update-cache", false, 0)]
+    [InlineData(".update-", false, 0)]
+    [InlineData(".update-0-0123456789abcdef0123456789abcdef", false, 0)]
+    [InlineData(".update--123-0123456789abcdef0123456789abcdef", false, 0)]
+    [InlineData(".update-+123-0123456789abcdef0123456789abcdef", false, 0)]
+    [InlineData(".update-abc-0123456789abcdef0123456789abcdef", false, 0)]
+    [InlineData(".update-123-short", false, 0)]
+    [InlineData(".update-123-0123456789abcdef0123456789abcdefextra", false, 0)]
+    [InlineData(".update-123-0123456789abcdef0123456789abcdeg", false, 0)]
+    [InlineData(".update-123-0123456789abcdef-0123456789abcdef", false, 0)]
+    [InlineData("other-123-0123456789abcdef0123456789abcdef", false, 0)]
+    public void TryParseWorkspaceName_validates_pattern(string name, bool expectedResult, int expectedPid)
+    {
+        var result = UpdateService.TryParseWorkspaceName(name, out var pid);
+        Assert.Equal(expectedResult, result);
+        Assert.Equal(expectedPid, pid);
     }
 
     [Fact]

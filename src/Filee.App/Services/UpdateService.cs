@@ -1045,9 +1045,33 @@ public sealed partial class UpdateService : ObservableObject
     }
 
     /// <summary>
+    /// Checks whether <paramref name="name"/> matches the Filee-owned workspace pattern
+    /// <c>.update-&lt;pid&gt;-&lt;32-hex-characters&gt;</c> and extracts the valid positive process ID.
+    /// </summary>
+    internal static bool TryParseWorkspaceName(string name, out int pid)
+    {
+        pid = 0;
+        var parts = name.Split('-');
+        if (parts.Length != 3 || parts[0] != ".update")
+            return false;
+
+        // The final component must contain exactly 32 hexadecimal characters (0-9, a-f, or A-F)
+        if (parts[2].Length != 32 || !parts[2].All(char.IsAsciiHexDigit))
+            return false;
+
+        // <pid> must be a valid positive process ID in decimal (digits only, no signs)
+        if (parts[1].Length == 0 || !parts[1].All(char.IsAsciiDigit) || !int.TryParse(parts[1], out var parsedPid) || parsedPid <= 0)
+            return false;
+
+        pid = parsedPid;
+        return true;
+    }
+
+    /// <summary>
     /// Deletes stale update workspaces left behind by crashes, forced kills, or aborted updates.
     /// Protects active workspaces by checking both an age threshold (default 1 day) and process liveness
-    /// (never deleting a workspace belonging to a running PID).
+    /// (never deleting a workspace belonging to a running PID). Restricts cleanup strictly to Filee-owned
+    /// workspace directories matching <c>.update-&lt;pid&gt;-&lt;32-hex-characters&gt;</c>.
     /// </summary>
     public static void DeleteStaleWorkspaces(string? root = null, TimeSpan? age = null, ILogger? log = null)
     {
@@ -1064,14 +1088,15 @@ public sealed partial class UpdateService : ObservableObject
                 if (folder.LinkTarget is not null || folder.Attributes.HasFlag(FileAttributes.ReparsePoint))
                     continue;
 
+                // Restrict cleanup strictly to Filee-owned workspace names: .update-<pid>-<32-hex-chars>
+                // Foreign directories (e.g. .update-something or .update-cache) are rejected immediately.
+                if (!TryParseWorkspaceName(folder.Name, out var pid))
+                    continue;
+
                 try
                 {
-                    var parts = folder.Name.Split('-');
-                    if (parts.Length >= 2 && int.TryParse(parts[1], out var pid))
-                    {
-                        if (IsProcessAlive(pid))
-                            continue;
-                    }
+                    if (IsProcessAlive(pid))
+                        continue;
 
                     if (DateTime.UtcNow - folder.LastWriteTimeUtc > threshold)
                     {
