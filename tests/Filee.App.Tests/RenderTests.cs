@@ -27,6 +27,8 @@ public class RenderTests
     {
         { "home", "ar" }, { "general", "ar" }, { "triggers", "ar" }, { "toolbar", "ar" },
         { "presets", "ar" }, { "theme", "ar" }, { "engines", "ar" }, { "about", "ar" }, { "watch", "ar" },
+        { "home", "th" }, { "general", "th" }, { "triggers", "th" }, { "toolbar", "th" },
+        { "presets", "th" }, { "theme", "th" }, { "engines", "th" }, { "about", "th" }, { "watch", "th" },
         { "home", "en" }, { "general", "en" }, { "triggers", "en" }, { "toolbar", "en" },
         { "presets", "en" }, { "theme", "en" }, { "engines", "en" }, { "about", "en" },
         { "general", "ko" }, { "toolbar", "ko" }, { "home", "ko" },
@@ -938,6 +940,45 @@ public class RenderTests
         vm.Packages.First(p => p.Selected).Selected = false;
         Save(window, $"engine-setup-{language}.png");
         window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Engine_setup_on_a_short_screen_scrolls_the_list_and_keeps_its_buttons()
+    {
+        TestServices.EnsureInitialized("en");
+        var vm = new EngineSetupViewModel(AppHost.Get<EngineDownloadService>(), AppHost.Get<Filee.Core.Localization.ILocalizer>());
+        var window = new EngineSetupWindow { DataContext = vm };
+        var closed = false;
+        window.Closed += (_, _) => closed = true;
+        window.Show();
+        Pump();
+        var fullHeight = window.ClientSize.Height;
+
+        // A screen with room for the whole list leaves the window as it was.
+        window.FitTo(new Avalonia.PixelRect(0, 0, 1920, (int)fullHeight + 200), 1);
+        Pump();
+        Assert.Equal(fullHeight, window.ClientSize.Height);
+
+        // 1366 × 768 at 150 % less the taskbar (#370): 480 high in window units, shorter than the list.
+        window.FitTo(new Avalonia.PixelRect(0, 0, 1366, 720), 1.5);
+        Pump();
+        Assert.True(fullHeight > 480, $"The list is {fullHeight} high, too short to test this.");
+        Assert.InRange(window.ClientSize.Height, 200, 480);
+        Assert.InRange(window.Position.Y, 0, 720 - window.ClientSize.Height * 1.5);
+        var scroller = window.FindControl<ScrollViewer>("PackageScroller")!;
+        Assert.True(scroller.Extent.Height > scroller.Viewport.Height);
+        foreach (var name in new[] { "CloseButton", "InstallButton" })
+        {
+            var button = window.FindControl<Button>(name)!;
+            var bottom = Avalonia.VisualExtensions.TranslatePoint(button, new Avalonia.Point(0, button.Bounds.Height), window)!.Value.Y;
+            Assert.InRange(bottom, 0, window.ClientSize.Height);
+        }
+        Save(window, "engine-setup-short-screen.png");
+
+        // Esc closes it like Cancel / Close in the other dialogs.
+        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        Pump();
+        Assert.True(closed);
     }
 
     [AvaloniaFact]
