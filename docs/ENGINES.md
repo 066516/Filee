@@ -1537,7 +1537,9 @@ scans and pictures with Tesseract (`Ocr/TesseractConverter.cs`), in the language
   searchable PDF, then the cheapest ordinary route from that PDF. A picture Tesseract can't open (HEIC, PSD, …)
   becomes a PNG first. OCR edges are never part of an ordinary route.
 - A searchable PDF keeps the page as it looks and puts the recognized words on it as invisible text. PDF pages that
-  already have text (visible or an OCR layer) are copied as they are; only the others are rendered at 300 dpi
+  already have text (visible or an OCR layer) are copied as they are. A scan with a stamp still counts as a scan: a
+  picture over at least half the page whose only text is visible and covers under 1% of it (a page number or Bates
+  number the scanner software added). Only the others are rendered at 300 dpi
   (PDFium) and recognized page by page: a page is rendered when one of at most four Tesseract runs (fewer on PCs with
   fewer cores) is free, each with one thread (`OMP_THREAD_LIMIT=1`), and its picture is deleted once its PDF exists,
   so a long scan never has more than four pictures in the work folder. A PDF whose
