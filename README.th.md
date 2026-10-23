@@ -10,6 +10,7 @@
 <p align="center">
   <a href="https://filee.sh"><b>เว็บไซต์</b></a> ·
   <a href="https://github.com/KnifeLemon/Filee/releases/latest"><b>ดาวน์โหลด</b></a> ·
+  <a href="https://www.linkedin.com/company/filee-sh/"><b>LinkedIn</b></a> ·
   <a href="#การติดตั้ง">การติดตั้ง</a> ·
   <a href="#การใช้งานผ่านบรรทัดคำสั่ง-command-line">บรรทัดคำสั่ง</a> ·
   <a href="#การพัฒนา-development">การพัฒนา</a>
