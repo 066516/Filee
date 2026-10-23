@@ -1,7 +1,6 @@
 {
   "app.name": "Filee",
   "app.tagline": "ドラッグ。ドロップ。\n変換完了。",
-
   "nav.home": "ホーム",
   "nav.general": "一般",
   "nav.triggers": "ショートカット",
@@ -11,7 +10,6 @@
   "nav.theme": "テーマ",
   "nav.engines": "変換エンジン",
   "nav.about": "Fileeについて",
-
   "tray.open": "Fileeを開く",
   "tray.pause": "ショートカットを一時停止",
   "tray.resume": "ショートカットを再開",
@@ -23,7 +21,6 @@
   "close.tray": "タスクトレイに常駐",
   "close.quit": "終了",
   "close.dont_ask": "次回から確認しない",
-
   "home.title": "ホーム",
   "home.drop_title": "ここにファイルをドロップ",
   "home.drop_select": "ダブルクリックしてファイルを選択",
@@ -47,7 +44,6 @@
   "home.clear_history": "消去",
   "home.files": "{0}個のファイル",
   "home.failed_files": "{0}件失敗",
-
   "donut.center_drag": "ここにファイルをドラッグ",
   "donut.files_same": "{0} × {1}",
   "donut.files_mixed": "{0}ファイル",
@@ -63,7 +59,6 @@
   "donut.group_caption": "{0}個入り",
   "donut.flip_to_back": "{0} ↻ 裏面",
   "donut.flip_to_front": "{0} ↻ 表面",
-
   "toast.converting": "{0} → {1}",
   "toast.done": "完了",
   "toast.done_errors": "{1}件中{0}件失敗",
@@ -76,7 +71,6 @@
   "toast.get_fonts": "フォントを入手",
   "download.badge": "{0}/秒 · {1}",
   "download.badge_files": "{0} · {2}件中{1}件目",
-
   "error.unsupported_source": "このファイル形式には対応していません",
   "error.empty_file": "ファイルが空です（0バイト）。右クリックメニューの「新規作成」で作ったファイルは、対応アプリで開いて保存するまで空のままです",
   "format_request.request": "この形式への対応をリクエスト",
@@ -132,7 +126,6 @@
   "notice.geo_rows_without_location": "使える位置情報のない行は、図形なしで残しました",
   "notice.geo_field_names": "Shapefileのフィールド名は最大10文字です。一部の名前を短くしました",
   "notice.geo_shapefile_split": "Shapefileには1種類の図形しか入らないため、ポイント、ライン、ポリゴンを別々のファイルに保存しました",
-
   "engine.reason.not_installed": "未インストール",
   "engine.reason.error": "確認中にエラーが発生しました",
   "engine.reason.unsupported_platform": "このプラットフォームでは利用できません",
@@ -186,7 +179,6 @@
   "engine.vision.description": "macOS 標準の文字認識で、スキャンや画像の文字を認識します（OCR）：検索可能な PDF、DOCX、TXT。ダウンロードは不要です。",
   "engine.calibre.description": "一般的でない電子書籍形式（LIT、LRF、CHM、PDB、RBなど）を変換し、Kindle用のMOBI、AZW3形式で保存できます。\n「HWPX writer」より上に置くと、電子書籍のPDF作成もCalibreが担当します（長い本では大幅に速くなります）。",
   "engine.libreoffice.description": "古い形式や一般的でない形式（DOC、PPT、Pages、Keynote、Numbers、WordPerfect、ClarisWorks、Publisher、Visioなど）を読み込みます。\nDOC、XLS、PPT、ODT、ODP、OpenDocumentテンプレート、EMF形式での保存にも対応します。",
-
   "profile.images": "画像",
   "profile.pdf": "PDF",
   "profile.office": "文書",
@@ -206,7 +198,6 @@
   "profile.models": "3Dモデル",
   "profile.geo": "地理空間データ",
   "profile.mixed": "複数形式のファイル",
-
   "preset.crop": "トリミング",
   "crop.save": "トリミングして保存",
   "crop.reset": "リセット",
@@ -228,7 +219,6 @@
   "crop.state_done": "トリミング済み",
   "crop.state_skipped": "スキップ",
   "crop.state_failed": "失敗",
-
   "preset.half_size": "縮小 50%",
   "preset.half_size.donut": "縮小 50%",
   "preset.grayscale": "グレースケール",
@@ -274,7 +264,6 @@
   "preset.compress_audio": "音声を圧縮",
   "preset.merge_audio": "音声を結合",
   "preset.remove_metadata": "メタデータを削除",
-
   "format.folder": "フォルダー",
   "format.category.Image": "画像",
   "format.category.Pdf": "PDF",
@@ -294,7 +283,6 @@
   "format.category.Data": "データ",
   "format.category.Model3D": "3Dモデル",
   "format.category.Geo": "地理空間データ",
-
   "general.title": "一般",
   "general.language": "言語",
   "general.language_auto": "システム設定に合わせる",
@@ -374,7 +362,6 @@
   "general.reset_library": "既定の設定に戻す",
   "general.reset_confirm": "すべてのプリセットとドーナツメニューのプロファイルを既定の設定に置き換えますか？",
   "general.imported": "{0}件をインポートしました",
-
   "triggers.title": "ショートカット",
   "triggers.description": "ドーナツメニューを開く操作を選びます。ジェスチャーはいくつでも追加できます。",
   "triggers.macos_permissions": "「システム設定」→「プライバシーとセキュリティ」→「アクセシビリティ」でFileeを許可してください。\nすでにオンなのにジェスチャーが始まらない場合は、−でFileeを削除してから+でもう一度追加してください。\n選択したファイルに対してショートカットを初めて使うと、Finderのオートメーションの許可も求められます。",
@@ -427,7 +414,6 @@
   "triggers.excluded_none_running": "ほかにウィンドウを開いているアプリはありません。",
   "triggers.excluded_note": "ポインターがこれらのアプリ上にある間、ジェスチャーとショートカットは動作しません。",
   "triggers.paused": "ショートカットは一時停止中です",
-
   "toolbar.title": "ドーナツメニュー",
   "toolbar.step_profile": "1. プロファイルを選択",
   "toolbar.step_arrange": "2. プリセットを配置",
@@ -493,7 +479,6 @@
   "toolbar.mixed_others": "ほかの形式の組み合わせには「{0}」が使われます。",
   "toolbar.mixed_others_self": "何も選択されていない複数形式用プロファイルがほかにないため、このプロファイルが残りすべての組み合わせにも使われます。",
   "tags.remove": "削除",
-
   "presets.title": "プリセット",
   "presets.add": "新規",
   "presets.duplicate": "複製",
@@ -676,7 +661,6 @@
   "presets.delete_confirm": "「{0}」を削除しますか？すべてのドーナツメニューとグループからも削除されます。",
   "presets.name_required": "名前を入力してください",
   "presets.select": "編集するプリセットを選択してください",
-
   "theme.title": "テーマ",
   "theme.style": "テーマスタイル",
   "theme.style.Soft": "Filee Soft",
@@ -706,7 +690,6 @@
   "theme.reduce_motion": "アニメーションを減らす",
   "theme.reduce_motion_hint": "古いPCにおすすめです。画面切り替え時のアニメーションと、ドーナツメニューの弾む動きを無効にします。",
   "theme.preview": "プレビュー",
-
   "engines.title": "変換エンジン",
   "engines.description": "Fileeは変換ごとに、利用可能な最適なエンジンを選びます。\n同じ変換ができるエンジンが複数ある場合は、一覧で上にあるものが優先されます。",
   "engines.available": "利用可能",
@@ -781,7 +764,6 @@
   "engines.state.unpacking": "インストール中…",
   "engines.state.installed": "インストール済み",
   "engines.state.failed": "失敗：{0}",
-
   "about.title": "Fileeについて",
   "about.updates": "更新",
   "common.search": "検索",
@@ -806,7 +788,6 @@
   "feedback.notice_text": "GitHubでスターを付けると、ほかの人がFileeを見つけやすくなります。\n問題の報告やアイデアも歓迎します。",
   "feedback.star": "GitHubでスターを付ける",
   "feedback.issue": "問題やアイデアを報告",
-
   "common.ok": "OK",
   "common.cancel": "キャンセル",
   "common.save": "保存",
@@ -816,7 +797,6 @@
   "common.no": "いいえ",
   "common.on": "オン",
   "common.off": "オフ",
-
   "setup.title": "変換エンジンを選択",
   "setup.description": "画像、PDF、Office文書、HWP、電子書籍、アーカイブ、フォント、CAD、3Dモデルはすでに変換できます。\n動画・音声や一般的でない形式に必要なエンジンだけをダウンロードしてください。",
   "setup.note": "エンジンはいつでも「設定」→「変換エンジン」でインストールまたは削除できます。",

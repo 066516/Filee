@@ -1,7 +1,6 @@
 {
   "app.name": "Filee",
   "app.tagline": "ลาก วาง แปลงไฟล์ทันที",
-
   "nav.home": "หน้าแรก",
   "nav.general": "ทั่วไป",
   "nav.triggers": "ปุ่มลัด",
@@ -11,7 +10,6 @@
   "nav.theme": "ธีม",
   "nav.engines": "เครื่องมือแปลงไฟล์",
   "nav.about": "เกี่ยวกับ",
-
   "tray.open": "เปิด Filee",
   "tray.pause": "หยุดปุ่มลัดชั่วคราว",
   "tray.resume": "เปิดใช้งานปุ่มลัดต่อ",
@@ -23,7 +21,6 @@
   "close.tray": "ให้อยู่ในถาดระบบ",
   "close.quit": "ออก",
   "close.dont_ask": "ไม่ต้องถามอีก",
-
   "home.title": "หน้าแรก",
   "home.drop_title": "วางไฟล์ที่นี่",
   "home.drop_select": "ดับเบิลคลิกเพื่อเลือกไฟล์",
@@ -47,7 +44,6 @@
   "home.clear_history": "ล้างประวัติ",
   "home.files": "{0} ไฟล์",
   "home.failed_files": "ล้มเหลว {0} ไฟล์",
-
   "donut.center_drag": "ลากไฟล์มาที่นี่",
   "donut.files_same": "{0} × {1}",
   "donut.files_mixed": "{0} ไฟล์",
@@ -63,7 +59,6 @@
   "donut.group_caption": "กลุ่ม {0}",
   "donut.flip_to_back": "{0} ↻ ด้านหลัง",
   "donut.flip_to_front": "{0} ↻ ด้านหน้า",
-
   "toast.converting": "{0} → {1}",
   "toast.done": "เสร็จสิ้น",
   "toast.done_errors": "ล้มเหลว {0} จาก {1} ไฟล์",
@@ -76,7 +71,6 @@
   "toast.get_fonts": "หาฟอนต์",
   "download.badge": "{0}/วินาที · {1}",
   "download.badge_files": "{0} · {1} จาก {2} ไฟล์",
-
   "error.unsupported_source": "ไม่รองรับไฟล์ประเภทนี้",
   "error.empty_file": "ไฟล์ว่างเปล่า (0 ไบต์) ไฟล์ที่สร้างขึ้นจากเมนูคลิกขวา 'สร้างใหม่' จะว่างเปล่าจนกว่าคุณจะเปิดในแอปและบันทึก",
   "format_request.request": "ขอให้รองรับฟอร์แมตนี้",
@@ -84,9 +78,9 @@
   "format_request.notice_text": "แจ้งให้เราทราบว่าคุณต้องการฟอร์แมตใด\nคำขอของคุณจะช่วยกำหนดฟอร์แมตที่ Filee จะพัฒนาต่อไป\nไฟล์ที่เข้ารหัสหรือติดการคุ้มครองลิขสิทธิ์ (DRM) จะไม่สามารถแปลงได้ไม่ว่าจะฟอร์แมตใดก็ตาม",
   "error.no_route": "ไม่มีเครื่องมือที่แปลงฟอร์แมตนี้ได้",
   "error.cannot_turn": "การหมุนและพลิกภาพใช้ได้กับไฟล์รูปภาพเท่านั้น",
-  "error.no_transparency": "ฟอร์แมตนี้ไม่มีความโปร่งใส จึงไม่มีขอบให้ตัดออก",
   "error.ocr_language_download": "ดาวน์โหลดภาษาสำหรับ OCR ไม่ได้",
   "error.ocr_needs_tesseract": "Apple Vision อ่านภาษานี้ไม่ได้ ติดตั้ง Tesseract ได้ในการตั้งค่า → เครื่องมือแปลงไฟล์",
+  "error.no_transparency": "ฟอร์แมตนี้ไม่มีความโปร่งใส จึงไม่มีขอบให้ตัดออก",
   "error.too_many_frames": "มีจำนวนเฟรมมากเกินกว่าจะบันทึกเป็นรูปภาพได้ ลองเพิ่มค่า \"บันทึกทุกๆ N เฟรม\"",
   "error.too_many_pictures": "รูปภาพมากเกินไปสำหรับวิดีโอเดียว ลองแบ่งเป็นหลายวิดีโอ",
   "error.not_enough_space": "พื้นที่ว่างบนดิสก์ไม่เพียงพอสำหรับการบันทึกรูปภาพ",
@@ -122,8 +116,8 @@
   "trash.no_folder": "ไม่มีโฟลเดอร์ถังขยะ",
   "trash.failed": "ย้ายไปที่ถังรีไซเคิล / ถังขยะไม่ได้",
   "trash.cannot_place": "บันทึกผลลัพธ์ในโฟลเดอร์ของไฟล์ต้นฉบับไม่ได้",
-  "notice.empty_spreadsheet_pages_removed": "ลบหน้าว่างของสเปรดชีตออกแล้ว",
   "notice.ocr_has_text": "ทุกหน้ามีข้อความอยู่แล้ว จึงคัดลอกไฟล์ตามเดิม",
+  "notice.empty_spreadsheet_pages_removed": "ลบหน้าว่างของสเปรดชีตออกแล้ว",
   "notice.live_photo_pair": "บันทึกเป็นรูปภาพและไฟล์ MOV ที่มีชื่อเดียวกัน นำเข้าทั้งสองไฟล์พร้อมกัน (ผ่านรูปภาพ iCloud, AirDrop หรือ Photos บน Mac) เพื่อใช้งานเป็น Live Photo",
   "notice.geo_datum_assumed": "เดตัมไม่ใช่ WGS 84 ตำแหน่งถูกแปลงโดยถือว่าเป็น WGS 84 ซึ่งอาจคลาดเคลื่อนได้ถึงหลายร้อยเมตร",
   "notice.geo_gpx_lossy": "GPX เก็บได้เฉพาะจุด เส้นทาง และรอยทาง พร้อมฟิลด์ข้อมูลเพียงไม่กี่ฟิลด์ แอตทริบิวต์อื่นๆ จะถูกตัดออกและโพลีกอนจะกลายเป็นรอยทาง",
@@ -132,7 +126,6 @@
   "notice.geo_rows_without_location": "บางแถวไม่มีตำแหน่งที่ใช้งานได้และถูกเก็บไว้โดยไม่มีรูปทรงเรขาคณิต",
   "notice.geo_field_names": "ชื่อฟิลด์ของ Shapefile มีความยาวได้ไม่เกิน 10 ตัวอักษร บางชื่อจึงถูกย่อให้สั้นลง",
   "notice.geo_shapefile_split": "Shapefile เก็บรูปทรงเรขาคณิตได้ชนิดเดียวต่อไฟล์ จุด เส้น และโพลีกอนจึงถูกบันทึกแยกเป็นคนละไฟล์",
-
   "engine.reason.not_installed": "ยังไม่ได้ติดตั้ง",
   "engine.reason.error": "เกิดข้อผิดพลาดขณะตรวจสอบ",
   "engine.reason.unsupported_platform": "ไม่พร้อมใช้งานบนแพลตฟอร์มนี้",
@@ -186,7 +179,6 @@
   "engine.vision.description": "อ่านข้อความจากภาพสแกนและรูปภาพด้วยระบบรู้จำข้อความในตัวของ macOS (OCR): PDF ที่ค้นหาได้, DOCX, TXT ไม่ต้องดาวน์โหลดอะไรเพิ่ม",
   "engine.calibre.description": "ฟอร์แมตอีบุ๊กที่หาได้ยาก (LIT, LRF, CHM, PDB, RB…) และไฟล์สำหรับ Kindle (MOBI, AZW3)\nเมื่อวางไว้เหนือตัวเขียน HWPX จะทำหน้าที่สร้าง PDF ของอีบุ๊กด้วย (เร็วกว่ามากสำหรับหนังสือเล่มหนา)",
   "engine.libreoffice.description": "อ่านฟอร์แมตรุ่นเก่าและฟอร์แมตที่พบน้อย: DOC, PPT, Pages, Keynote, Numbers, WordPerfect, ClarisWorks, Publisher, Visio…\nและบันทึกเป็น DOC, XLS, PPT, ODT, ODP, แม่แบบ OpenDocument และ EMF",
-
   "profile.images": "รูปภาพ",
   "profile.pdf": "PDF",
   "profile.office": "เอกสาร",
@@ -206,7 +198,6 @@
   "profile.models": "โมเดล 3D",
   "profile.geo": "ข้อมูลเชิงพื้นที่",
   "profile.mixed": "ไฟล์รวมหลายประเภท",
-
   "preset.crop": "ครอบตัด",
   "crop.save": "ครอบตัดและบันทึก",
   "crop.reset": "รีเซ็ต",
@@ -228,7 +219,6 @@
   "crop.state_done": "ครอบตัดแล้ว",
   "crop.state_skipped": "ข้ามแล้ว",
   "crop.state_failed": "ล้มเหลว",
-
   "preset.half_size": "ขนาดครึ่งหนึ่ง",
   "preset.half_size.donut": "ขนาดครึ่งหนึ่ง",
   "preset.grayscale": "ขาวดำ (เกรย์สเกล)",
@@ -274,7 +264,6 @@
   "preset.compress_audio": "บีบอัดเสียง",
   "preset.merge_audio": "รวมไฟล์เสียง",
   "preset.remove_metadata": "ลบเมทาดาตา",
-
   "format.folder": "โฟลเดอร์",
   "format.category.Image": "รูปภาพ",
   "format.category.Pdf": "PDF",
@@ -294,7 +283,6 @@
   "format.category.Data": "ข้อมูล",
   "format.category.Model3D": "โมเดล 3D",
   "format.category.Geo": "ข้อมูลเชิงพื้นที่",
-
   "general.title": "ทั่วไป",
   "general.language": "ภาษา",
   "general.language_auto": "ตามระบบ",
@@ -374,7 +362,6 @@
   "general.reset_library": "รีเซ็ตเป็นค่าเริ่มต้น",
   "general.reset_confirm": "แทนที่พรีเซ็ตและโปรไฟล์แถบเครื่องมือทั้งหมดด้วยค่าเริ่มต้นหรือไม่?",
   "general.imported": "นำเข้าแล้ว {0} รายการ",
-
   "triggers.title": "ปุ่มลัด",
   "triggers.description": "เลือกวิธีเปิดแถบโดนัท คุณสามารถเพิ่มท่าทางและปุ่มลัดได้ตามต้องการ",
   "triggers.macos_permissions": "อนุญาต Filee ใน การตั้งค่าระบบ > ความเป็นส่วนตัวและความปลอดภัย > การช่วยการเข้าถึง\nหาก Filee เปิดอยู่แล้วแต่ท่าทางไม่เริ่มทำงาน ให้ลบออกด้วยปุ่ม − แล้วเพิ่มกลับเข้าไปใหม่ด้วยปุ่ม +\nFinder จะขอสิทธิ์การควบคุมอัตโนมัติ (Automation) ในครั้งแรกที่คุณใช้ปุ่มลัดกับไฟล์ที่เลือก",
@@ -427,7 +414,6 @@
   "triggers.excluded_none_running": "ไม่มีหน้าต่างแอปอื่นเปิดอยู่",
   "triggers.excluded_note": "ท่าทางและปุ่มลัดจะไม่ทำงานขณะเคอร์เซอร์อยู่เหนือแอปเหล่านี้",
   "triggers.paused": "หยุดปุ่มลัดชั่วคราวแล้ว",
-
   "toolbar.title": "แถบโดนัท",
   "toolbar.step_profile": "1. เลือกโปรไฟล์",
   "toolbar.step_arrange": "2. จัดเรียงพรีเซ็ต",
@@ -493,7 +479,6 @@
   "toolbar.mixed_others": "ไฟล์รวมประเภทแบบอื่นๆ จะเปิด “{0}”",
   "toolbar.mixed_others_self": "ไม่มีโปรไฟล์ไฟล์รวมอันอื่นที่ไม่ได้เลือกอะไรไว้ ดังนั้นโปรไฟล์นี้จะถูกใช้กับไฟล์รวมแบบอื่นๆ ทั้งหมดด้วย",
   "tags.remove": "ลบออก",
-
   "presets.title": "พรีเซ็ต",
   "presets.add": "สร้างใหม่",
   "presets.duplicate": "ทำซ้ำ",
@@ -676,7 +661,6 @@
   "presets.delete_confirm": "ลบ “{0}” หรือไม่? พรีเซ็ตนี้จะถูกลบออกจากทุกแถบเครื่องมือและกลุ่มด้วย",
   "presets.name_required": "โปรดระบุชื่อ",
   "presets.select": "เลือกพรีเซ็ตเพื่อแก้ไข",
-
   "theme.title": "ธีม",
   "theme.style": "รูปแบบธีม",
   "theme.style.Soft": "Filee Soft",
@@ -706,7 +690,6 @@
   "theme.reduce_motion": "ลดการเคลื่อนไหว (แอนิเมชัน)",
   "theme.reduce_motion_hint": "แนะนำสำหรับคอมพิวเตอร์รุ่นเก่า จะปิดเอฟเฟกต์การเปลี่ยนผ่านและการเด้งของโดนัท",
   "theme.preview": "ตัวอย่าง",
-
   "engines.title": "เครื่องมือแปลงไฟล์",
   "engines.description": "Filee จะเลือกเครื่องมือที่ดีที่สุดที่พร้อมใช้งานสำหรับการแปลงแต่ละครั้ง\nหากมีหลายเครื่องมือที่ทำหน้าที่เดียวกันได้ เครื่องมือที่อยู่อันดับสูงกว่าจะถูกนำมาใช้",
   "engines.available": "พร้อมใช้งาน",
@@ -781,7 +764,6 @@
   "engines.state.unpacking": "กำลังติดตั้ง…",
   "engines.state.installed": "ติดตั้งแล้ว",
   "engines.state.failed": "ล้มเหลว: {0}",
-
   "about.title": "เกี่ยวกับ",
   "about.updates": "การอัปเดต",
   "common.search": "ค้นหา",
@@ -806,7 +788,6 @@
   "feedback.notice_text": "การกดดาวบน GitHub ช่วยให้คนอื่นค้นพบ Filee ได้มากขึ้น\nรวมถึงยินดีรับฟังปัญหาและข้อเสนอแนะต่างๆ เสมอ",
   "feedback.star": "กดดาวบน GitHub",
   "feedback.issue": "รายงานปัญหาหรือเสนอไอเดีย",
-
   "common.ok": "ตกลง",
   "common.cancel": "ยกเลิก",
   "common.save": "บันทึก",
@@ -816,7 +797,6 @@
   "common.no": "ไม่",
   "common.on": "เปิด",
   "common.off": "ปิด",
-
   "setup.title": "เลือกเครื่องมือแปลงไฟล์",
   "setup.description": "รูปภาพ, PDF, เอกสาร Office, HWP, อีบุ๊ก, ไฟล์บีบอัด, ฟอนต์, แบบแปลน CAD และโมเดล 3D สามารถแปลงได้ทันทีอยู่แล้ว\nดาวน์โหลดเครื่องมือเพิ่มเติมเฉพาะสำหรับวิดีโอ เสียง หรือฟอร์แมตหายากเท่านั้น",
   "setup.note": "คุณสามารถติดตั้งหรือถอนการติดตั้งเครื่องมือได้ตลอดเวลาที่ การตั้งค่า → เครื่องมือแปลงไฟล์",
@@ -977,7 +957,6 @@
   "watch.status_starting": "กำลังเริ่มต้น…",
   "watch.status_error": "ไม่สามารถเฝ้าติดตามโฟลเดอร์นี้ได้: {0}",
   "watch.cli_hint": "ใช้งานผ่านบรรทัดคำสั่งได้เช่นกัน: filee watch <โฟลเดอร์> --to <ฟอร์แมต>",
-
   "whats_new.title": "มีอะไรใหม่ใน Filee {0}",
   "whats_new.previous": "ก่อนหน้า",
   "whats_new.next": "ถัดไป",
