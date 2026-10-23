@@ -107,9 +107,12 @@ public class PdfTablesTests(EngineFixture fx) : IClassFixture<EngineFixture>
     public void Only_a_pdf_reaches_a_spreadsheet_through_its_tables()
     {
         var planner = fx.Catalog.CreatePlanner();
-        // A picture made into a PDF has no ruled tables: no image → spreadsheet route through PDF.
-        Assert.Null(planner.Plan("jpg", "xlsx"));
-        Assert.Null(planner.Plan("png", "csv"));
+        // A picture made into a PDF has no ruled tables: no image → spreadsheet route through PDF, even with every
+        // optional engine installed.
+        var everything = fx.Catalog.CreatePlanner([.. fx.Catalog.All.Select(c => c.Id)]);
+        foreach (var image in new[] { "jpg", "png", "webp", "heic", "psd", "tiff" })
+            foreach (var target in new[] { "xlsx", "ods", "csv", "json" })
+                Assert.Null(everything.Plan(image, target));
         foreach (var target in new[] { "xlsx", "ods", "csv" })
             Assert.Equal("pdf-tables", Assert.Single(planner.Plan("pdf", target)!.Steps).Converter.Id);
     }
