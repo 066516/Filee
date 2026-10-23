@@ -127,7 +127,7 @@ public static class BuiltInData
     ];
 
     /// <summary>
-    /// Everyday tools (added in settings schema 33): smaller copies of images, videos and audio, a video of photos,
+    /// Everyday tools (added in settings schema 37): smaller copies of images, videos and audio, a video of photos,
     /// a video's sound as M4A, videos or audio files joined into one, and a copy without metadata. On the back faces
     /// of the images, PDF, video and audio donuts where they have room.
     /// </summary>

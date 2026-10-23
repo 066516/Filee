@@ -682,7 +682,7 @@ public class DonutFlipTests
             RenderTests.Save(window, $"toolbar-back-face-{language}{(dark ? "-dark" : "")}.png");
 
             var back = ImageBack;
-            // The built-in back face is full (settings schema 33): a slice goes before another comes in.
+            // The built-in back face is full (settings schema 37): a slice goes before another comes in.
             page.RemoveAt(page.SliceCount - 1);
             Assert.True(page.Insert("to-psd", 0));
             page.Move(0, 2);

@@ -785,11 +785,11 @@ internal static class SettingsMigrations
             changed |= LearnExtensions(profiles, out _, ["ics", "ical"]);
             changed |= AddCalendarPreset(presets, profiles);
         }
-        // v33: everyday tools (compress image / video / audio, video from images, extract audio, merge videos / audio,
+        // v37: everyday tools (compress image / video / audio, video from images, extract audio, merge videos / audio,
         //      remove metadata), after "Motion Photo (Android)" as in a new library, and on the back faces of the
         //      built-in donuts before "One ZIP" where they have room and the user hasn't put them there already.
         //      "Extract audio" replaces the plain M4A slice on the video donut's back.
-        if (from < 33)
+        if (from < 37)
             changed |= AddMediaTools(presets, profiles);
         return changed;
     }
@@ -816,8 +816,8 @@ internal static class SettingsMigrations
         return changed;
     }
 
-    /// <summary>Where schema 33 offers its tools: (donut, presets for its back face).</summary>
-    private static readonly (string Profile, string[] Presets)[] Version33Offers =
+    /// <summary>Where schema 37 offers its tools: (donut, presets for its back face).</summary>
+    private static readonly (string Profile, string[] Presets)[] Version37Offers =
     [
         ("images", ["compress-image", "remove-metadata"]),
         ("pdf", ["remove-metadata"]),
@@ -837,7 +837,7 @@ internal static class SettingsMigrations
             presets.Insert(Math.Min(at++, presets.Count), tool);
             changed = true;
         }
-        foreach (var (profileId, ids) in Version33Offers)
+        foreach (var (profileId, ids) in Version37Offers)
         {
             if (profiles.FirstOrDefault(p => p.Id == profileId) is not { BackPresetIds: { } back } profile)
                 continue;

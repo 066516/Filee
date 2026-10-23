@@ -1,4 +1,4 @@
-// The everyday media tools of settings schema 33: their presets, how existing libraries get them, and the queue
+// The everyday media tools of settings schema 37: their presets, how existing libraries get them, and the queue
 // joining videos, audio files and pictures into one file.
 
 using Filee.Core.Conversion;
@@ -74,13 +74,13 @@ public class MediaToolTests
     }
 
     [Fact]
-    public void Version_32_libraries_get_the_tools_and_back_faces_with_room_offer_them()
+    public void Version_36_libraries_get_the_tools_and_back_faces_with_room_offer_them()
     {
         var presets = BuiltInData.CreatePresets().Where(p => !ToolIds.Contains(p.Id)).ToList();
         var profiles = BuiltInData.CreateProfiles();
         foreach (var profile in profiles)
             profile.BackPresetIds!.RemoveAll(ToolIds.Contains);
-        // The video donut's back face of schema 32, with the plain M4A slice.
+        // The video donut's back face of schema 36, with the plain M4A slice.
         profiles.Single(p => p.Id == "video").BackPresetIds = ["mp4-av1", "to-webp", "extract-frames-png", "extract-frames-jpg",
             "live-photo-iphone", "motion-photo-android", "to-m4a", "to-wav", "to-flac", "zip-all"];
         // A back face the user filled up stays as it is.
@@ -89,7 +89,7 @@ public class MediaToolTests
             pdf.BackPresetIds.Insert(0, presets.First(p => !pdf.BackPresetIds.Contains(p.Id) && !pdf.PresetIds.Contains(p.Id)).Id);
         var full = pdf.BackPresetIds.ToList();
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(32, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(36, presets, profiles));
 
         Assert.All(ToolIds, id => Assert.Single(presets, p => p.Id == id));
         var audio = profiles.Single(p => p.Id == "audio").BackPresetIds!;
@@ -98,7 +98,7 @@ public class MediaToolTests
         var video = profiles.Single(p => p.Id == "video").BackPresetIds!;
         Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "video").BackPresetIds, video);
         Assert.Equal(full, pdf.BackPresetIds);
-        Assert.False(SettingsMigrations.ApplyToLibrary(32, presets, profiles)); // once only
+        Assert.False(SettingsMigrations.ApplyToLibrary(36, presets, profiles)); // once only
         Assert.False(SettingsMigrations.ApplyToLibrary(AppSettings.CurrentSchemaVersion, presets, profiles));
     }
 
@@ -110,7 +110,7 @@ public class MediaToolTests
         var video = profiles.Single(p => p.Id == "video");
         video.BackPresetIds = ["mp4-av1", "to-wav", "zip-all"];
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(32, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(36, presets, profiles));
 
         Assert.Equal(["mp4-av1", "to-wav", "compress-video", "merge-videos", "extract-audio", "zip-all"], video.BackPresetIds);
     }
