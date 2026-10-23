@@ -10,6 +10,7 @@
 <p align="center">
   <a href="https://filee.sh/zh-cn/"><b>官网</b></a> ·
   <a href="https://github.com/KnifeLemon/Filee/releases/latest"><b>下载</b></a> ·
+  <a href="https://www.linkedin.com/company/filee-sh/"><b>LinkedIn</b></a> ·
   <a href="#安装">安装</a> ·
   <a href="#命令行">命令行</a> ·
   <a href="#开发">开发</a>
