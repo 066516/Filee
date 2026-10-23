@@ -30,30 +30,30 @@ public class ImageExtensionAliasTests
     }
 
     [Fact]
-    public void Version_38_libraries_learn_both_aliases_once()
+    public void Version_39_libraries_learn_both_aliases_once()
     {
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
         var images = profiles.Single(p => p.Id == "images");
         images.Extensions.RemoveAll(e => e is "png_large" or "jpg_large" or "png");
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(38, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(39, presets, profiles));
 
         Assert.Contains("png_large", images.Extensions);
         Assert.Contains("jpg_large", images.Extensions);
         Assert.DoesNotContain("png", images.Extensions);
-        Assert.False(SettingsMigrations.ApplyToLibrary(38, presets, profiles));
+        Assert.False(SettingsMigrations.ApplyToLibrary(39, presets, profiles));
     }
 
     [Theory]
     [InlineData("PNG_LARGE", "jpg_large")]
     [InlineData("JPG_LARGE", "png_large")]
-    public void Version_38_libraries_preserve_custom_alias_claims(string claimed, string learned)
+    public void Version_39_libraries_preserve_custom_alias_claims(string claimed, string learned)
     {
         using var dir = new TempDir();
         var store = new UserDataStore(dir.Path);
         store.Load();
-        store.Settings.SchemaVersion = 38;
+        store.Settings.SchemaVersion = 39;
         foreach (var profile in store.Profiles)
             profile.Extensions.RemoveAll(e => e is "png_large" or "jpg_large");
         store.Profiles.Add(new ToolbarProfile { Id = "my-photos", Extensions = [claimed] });
