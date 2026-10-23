@@ -1,5 +1,6 @@
 // Update check against GitHub Releases. When a newer version is out the app says so (sidebar, notice, tray). In an
-// installed copy "Update" downloads the new installer, checks it against the release's SHA256SUMS file and runs it;
+// installed copy "Update" downloads the new installer, checks it against the release's SHA256SUMS file and that the
+// publisher who signed this copy signed it too (Authenticode), and runs it;
 // Setup closes Filee, updates it in place (settings are kept) and starts it again. A portable copy, a copy run from
 // source, or a failed download opens a download page instead. The check works in every build.
 
@@ -15,6 +16,7 @@ using System.Text.Json;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Filee.Core.Settings;
+using Filee.Platform.Windows;
 using Microsoft.Extensions.Logging;
 
 namespace Filee.App.Services;
@@ -162,6 +164,15 @@ public sealed partial class UpdateService : ObservableObject
 
     /// <summary>Whether <see cref="UpdateAsync"/> installs by itself (<see cref="IsInstalled"/>; tests set it).</summary>
     internal bool InstallsItself { get; init; } = IsInstalled;
+
+    /// <summary>
+    /// Who signed a program, if Windows trusts the signature (<see cref="Authenticode.TrustedSigner"/>; the flag also
+    /// checks revocation). Tests replace it.
+    /// </summary>
+    internal Func<string, bool, string?> SignerOf { get; init; } = Authenticode.TrustedSigner;
+
+    /// <summary>This copy of Filee, whose publisher must have signed the installer too (tests set it).</summary>
+    internal string? OwnProgram { get; init; } = Environment.ProcessPath;
 
     /// <summary>The newer version found by the last check (e.g. "1.0.2"), or null when up to date / unknown.</summary>
     [ObservableProperty]
@@ -340,6 +351,8 @@ public sealed partial class UpdateService : ObservableObject
             {
                 var progress = new Progress<int>(percent => DownloadPercent = percent);
                 installer = await DownloadInstallerAsync(folder, progress);
+                // WinVerifyTrust hashes the whole installer and may ask the certificate authority about revocation.
+                await Task.Run(() => CheckPublisher(installer));
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException
                                            or InvalidDataException or UnauthorizedAccessException)
@@ -504,6 +517,33 @@ public sealed partial class UpdateService : ObservableObject
         }
         File.Move(partial, target, overwrite: true);
         return target;
+    }
+
+    /// <summary>
+    /// Throws <see cref="InvalidDataException"/> (and deletes the installer) unless the publisher that signed this copy
+    /// of Filee signed <paramref name="installer"/> as well. The checksum file sits on the same release as the
+    /// installer, so it can't tell a replaced installer from the real one; the signature can. A copy that is not
+    /// signed itself (built from source) has no publisher to compare with and keeps to the checksum.
+    /// </summary>
+    internal void CheckPublisher(string installer)
+    {
+        var publisher = OwnProgram is null ? null : SignerOf(OwnProgram, false);
+        if (publisher is null)
+        {
+            _log.LogInformation("This copy of Filee is not signed: the installer is checked by its SHA-256 only");
+            return;
+        }
+        var signer = SignerOf(installer, true);
+        if (signer == publisher)
+            return;
+        // A signature that holds without the revocation check failed only that check: the certificate authority
+        // could not be reached (offline, a proxy or a firewall) or the certificate was revoked.
+        var reason = signer is null && SignerOf(installer, false) == publisher
+            ? $"is signed by {publisher}, but the revocation check failed (the certificate authority could not be " +
+              "reached, or the certificate was revoked)"
+            : $"is signed by {signer ?? "no publisher Windows trusts"}, not by {publisher}";
+        TryDelete(installer);
+        throw new InvalidDataException($"{Path.GetFileName(installer)} {reason}");
     }
 
     private async Task DownloadAsync(ReleaseFile file, string path, IProgress<int>? progress, CancellationToken cancellationToken)

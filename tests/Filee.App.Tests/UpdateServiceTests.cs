@@ -10,6 +10,7 @@ using System.Text;
 using System.Text.Json;
 using Avalonia.Headless.XUnit;
 using Filee.App.Services;
+using Filee.Platform.Windows;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Filee.App.Tests;
@@ -86,6 +87,26 @@ public class UpdateServiceTests
         var (installer, checksums) = UpdateService.FindFiles(release.RootElement);
 
         Assert.Equal(new UpdateService.ReleaseFile("Filee-9.9.9-win-Setup.exe", Base + "Filee-9.9.9-win-Setup.exe", 1234), installer);
+        Assert.Equal("Filee-9.9.9-SHA256SUMS.txt", checksums?.Name);
+    }
+
+    [Fact]
+    public void Release_files_picks_windows_installer_and_exact_checksums_even_when_linux_and_mac_are_present()
+    {
+        using var release = JsonDocument.Parse($$"""
+            {"tag_name": "v9.9.9", "assets": [
+              {"name": "Filee-9.9.9-linux-arm64-SHA256SUMS.txt", "size": 189, "browser_download_url": "{{Base}}Filee-9.9.9-linux-arm64-SHA256SUMS.txt"},
+              {"name": "Filee-9.9.9-linux-x64-SHA256SUMS.txt", "size": 189, "browser_download_url": "{{Base}}Filee-9.9.9-linux-x64-SHA256SUMS.txt"},
+              {"name": "Filee-9.9.9-osx-arm64-SHA256SUMS.txt", "size": 189, "browser_download_url": "{{Base}}Filee-9.9.9-osx-arm64-SHA256SUMS.txt"},
+              {"name": "Filee-9.9.9-osx-x64-SHA256SUMS.txt", "size": 189, "browser_download_url": "{{Base}}Filee-9.9.9-osx-x64-SHA256SUMS.txt"},
+              {"name": "Filee-9.9.9-SHA256SUMS.txt", "size": 189, "browser_download_url": "{{Base}}Filee-9.9.9-SHA256SUMS.txt"},
+              {"name": "Filee-9.9.9-win-Portable.zip", "size": 5000, "browser_download_url": "{{Base}}Filee-9.9.9-win-Portable.zip"},
+              {"name": "Filee-9.9.9-win-Setup.exe", "size": 6000, "browser_download_url": "{{Base}}Filee-9.9.9-win-Setup.exe"}
+            ]}
+            """);
+
+        var (installer, checksums) = UpdateService.FindFiles(release.RootElement);
+        Assert.Equal("Filee-9.9.9-win-Setup.exe", installer?.Name);
         Assert.Equal("Filee-9.9.9-SHA256SUMS.txt", checksums?.Name);
     }
 
@@ -177,6 +198,110 @@ public class UpdateServiceTests
 
         await Assert.ThrowsAsync<HttpRequestException>(() =>
             updates.DownloadInstallerAsync(TempFolder(), null, TestContext.Current.CancellationToken));
+    }
+
+    private const string Publisher = "CN=Open Source Developer, Filee";
+
+    /// <summary>An update service whose own program is signed by <paramref name="own"/> and the installer by <paramref name="installer"/>.</summary>
+    private static UpdateService Signed(string? own, string? installer) =>
+        new(NullLogger<UpdateService>.Instance, new FakeNetwork("no network"))
+        {
+            OwnProgram = "Filee.exe",
+            SignerOf = (path, _) => path == "Filee.exe" ? own : installer,
+        };
+
+    [Fact]
+    public void Installer_signed_by_the_same_publisher_is_kept()
+    {
+        var path = Path.Combine(TempFolder(), "Filee-9.9.9-win-Setup.exe");
+        File.WriteAllText(path, "setup");
+
+        Signed(Publisher, Publisher).CheckPublisher(path);
+
+        Assert.True(File.Exists(path));
+    }
+
+    [Theory]
+    [InlineData("CN=Someone Else")]
+    [InlineData(null)] // not signed, or signed with a certificate Windows does not trust
+    public void Installer_signed_by_anyone_else_is_thrown_away(string? signer)
+    {
+        var path = Path.Combine(TempFolder(), "Filee-9.9.9-win-Setup.exe");
+        File.WriteAllText(path, "setup");
+
+        Assert.Throws<InvalidDataException>(() => Signed(Publisher, signer).CheckPublisher(path));
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
+    public void Failed_revocation_check_is_named_in_the_error()
+    {
+        // Offline or behind a proxy, the signature is fine but the certificate authority can't be asked: the
+        // installer is still thrown away, and the log says why instead of blaming the publisher.
+        var path = Path.Combine(TempFolder(), "Filee-9.9.9-win-Setup.exe");
+        File.WriteAllText(path, "setup");
+        var updates = new UpdateService(NullLogger<UpdateService>.Instance, new FakeNetwork("no network"))
+        {
+            OwnProgram = "Filee.exe",
+            SignerOf = (file, revocation) => file == "Filee.exe" || !revocation ? Publisher : null,
+        };
+
+        var error = Assert.Throws<InvalidDataException>(() => updates.CheckPublisher(path));
+
+        Assert.Contains("revocation check failed", error.Message);
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
+    public void Installer_is_checked_for_revocation_but_this_copy_is_not()
+    {
+        var checks = new List<(string Path, bool Revocation)>();
+        var updates = new UpdateService(NullLogger<UpdateService>.Instance, new FakeNetwork("no network"))
+        {
+            OwnProgram = "Filee.exe",
+            SignerOf = (path, revocation) =>
+            {
+                checks.Add((path, revocation));
+                return Publisher;
+            },
+        };
+
+        updates.CheckPublisher("Setup.exe");
+
+        Assert.Equal([("Filee.exe", false), ("Setup.exe", true)], checks);
+    }
+
+    [Fact]
+    public void Unsigned_copy_keeps_to_the_checksum()
+    {
+        // Built from source: there is no publisher to compare with, so the installer is not refused for its signature.
+        var path = Path.Combine(TempFolder(), "Filee-9.9.9-win-Setup.exe");
+        File.WriteAllText(path, "setup");
+
+        Signed(null, null).CheckPublisher(path);
+
+        Assert.True(File.Exists(path));
+    }
+
+    [Fact]
+    public void Unsigned_file_has_no_trusted_signer()
+    {
+        var path = Path.Combine(TempFolder(), "unsigned.exe");
+        File.WriteAllBytes(path, RandomNumberGenerator.GetBytes(4_096));
+
+        Assert.Null(Authenticode.TrustedSigner(path, checkRevocation: false));
+    }
+
+    [Fact]
+    public void Signed_program_has_its_publisher_as_signer()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Authenticode is Windows only");
+        // dotnet.exe carries Microsoft's embedded signature; it sits three folders above the shared runtime
+        // (dotnet\shared\Microsoft.NETCore.App\<version>).
+        var dotnet = Path.GetFullPath(Path.Combine(RuntimeEnvironment.GetRuntimeDirectory(), "..", "..", "..", "dotnet.exe"));
+        Assert.SkipUnless(File.Exists(dotnet), $"no {dotnet}");
+
+        Assert.Contains("Microsoft", Authenticode.TrustedSigner(dotnet, checkRevocation: false));
     }
 
     [Fact]
@@ -1030,5 +1155,33 @@ public class UpdateServiceTests
             }
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
         }
+    }
+
+    [AvaloniaFact]
+    public void UpdateProgressWindow_tracks_download_percentage_and_status()
+    {
+        TestServices.EnsureInitialized();
+        var updates = new UpdateService(NullLogger<UpdateService>.Instance, new FakeNetwork("no network"));
+        updates.LatestVersion = "2.1.0";
+        updates.Step = UpdateStep.Downloading;
+        updates.DownloadPercent = 45;
+
+        var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
+        var window = new Views.UpdateProgressWindow(updates, loc);
+
+        Assert.Equal(45, window.ProgressBar.Value);
+        Assert.Equal("45%", window.PercentText.Text);
+        Assert.DoesNotContain("45%", window.StatusText.Text);
+        Assert.StartsWith(loc["update.downloading"].Split('…')[0], window.StatusText.Text);
+
+        updates.DownloadPercent = 90;
+        Assert.Equal(90, window.ProgressBar.Value);
+        Assert.Equal("90%", window.PercentText.Text);
+
+        updates.Step = UpdateStep.Installing;
+        Assert.True(window.ProgressBar.IsIndeterminate);
+
+        updates.Step = UpdateStep.Cancelled;
+        Assert.False(window.ProgressBar.IsVisible);
     }
 }

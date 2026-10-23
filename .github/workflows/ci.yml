@@ -10,10 +10,11 @@ on:
 permissions:
   contents: read
 
-# One run per branch or pull request: a newer push cancels the run it replaces.
+# A newer push to a pull request cancels the run it replaces. Every push to main runs to the end (its own group), so
+# a docs-only merge can't cancel the run that checks the code merged before it, macOS included.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # Decides what the change needs. The workflow always runs, so the required build check always reports: a job

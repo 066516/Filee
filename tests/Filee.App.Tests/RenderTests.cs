@@ -1798,6 +1798,196 @@ public class RenderTests
         });
     }
 
+    /// <summary>
+    /// The palette tabs of the mixed donut (no extensions, so every kind and no judging) wrap inside the 230 px column:
+    /// every tab whole, in rows, reachable with the arrow keys, the last one too.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData("en", false)]
+    [InlineData("en", true)]
+    [InlineData("ko", false)]
+    [InlineData("ko", true)]
+    [InlineData("es", false)]
+    [InlineData("es", true)]
+    [InlineData("ru", false)]
+    [InlineData("ru", true)]
+    public void Palette_tabs_fit_narrow_column(string language, bool dark)
+    {
+        WithProfiles(language, dark, 820, _ => { }, (window, vm) =>
+        {
+            vm.SelectedProfile = vm.Profiles.Single(p => p.Profile.Id == "mixed");
+            Pump();
+            Assert.Empty(vm.SelectedProfile.Profile.Extensions);
+            var column = window.GetVisualDescendants().OfType<StackPanel>().Single(s => s.Name == "PaletteColumn");
+            var tabs = window.GetVisualDescendants().OfType<ListBox>().Single(l => l.Name == "PaletteTabs");
+            Assert.True(tabs.IsEffectivelyVisible);
+            Assert.Equal(Enum.GetValues<PaletteTab>(), tabs.Items.Cast<PaletteTabItem>().Select(t => t.Id));
+
+            Avalonia.Rect InWindow(Avalonia.Visual v) =>
+                new Avalonia.Rect(v.Bounds.Size).TransformToAABB(Avalonia.VisualExtensions.TransformToVisual(v, window)!.Value);
+            var columnBox = InWindow(column);
+            var rowBox = InWindow(tabs);
+            Assert.Equal(230, columnBox.Width, 0.5);
+            var items = Enumerable.Range(0, tabs.ItemCount).Select(i => (ListBoxItem)tabs.ContainerFromIndex(i)!).ToList();
+            var boxes = items.Select(InWindow).ToList();
+            for (var i = 0; i < items.Count; i++)
+            {
+                var box = boxes[i];
+                Assert.True(box.Left >= columnBox.Left - 0.5 && box.Right <= columnBox.Right + 0.5, $"tab {i} {box} outside {columnBox}");
+                Assert.True(box.Top >= rowBox.Top - 0.5 && box.Bottom <= rowBox.Bottom + 0.5, $"tab {i} {box} outside {rowBox}");
+                var text = items[i].GetVisualDescendants().OfType<TextBlock>().Single();
+                Assert.Single(text.TextLayout.TextLines);
+                Assert.True(text.TextLayout.WidthIncludingTrailingWhitespace <= text.Bounds.Width + 0.5, text.Text);
+                if (i == 0)
+                    continue;
+                // Reading order: right of the previous tab on its row, or on a row below it.
+                var previous = boxes[i - 1];
+                Assert.True(Math.Abs(box.Top - previous.Top) < 0.5 ? box.Left >= previous.Right - 0.5 : box.Top >= previous.Bottom - 0.5,
+                    $"tab {i} {box} overlaps or precedes {previous}");
+            }
+            Assert.True(boxes.Select(b => Math.Round(b.Top)).Distinct().Count() >= 2);
+            var suffix = dark ? "dark" : "light";
+            Save(window, $"toolbar-tabs-{language}-{suffix}.png");
+
+            // Right along a row, Down at its end to the tab on the next row nearest below, up to the last tab.
+            void Press(Key key, PhysicalKey physical)
+            {
+                window.KeyPress(key, RawInputModifiers.None, physical, null);
+                window.KeyRelease(key, RawInputModifiers.None, physical, null);
+                Pump();
+            }
+            bool SameRow(int a, int b) => Math.Abs(boxes[a].Top - boxes[b].Top) < 0.5;
+            int Nearest(int from, bool below)
+            {
+                var beyond = Enumerable.Range(0, boxes.Count)
+                    .Where(i => below ? boxes[i].Top >= boxes[from].Bottom - 0.5 : boxes[i].Bottom <= boxes[from].Top + 0.5).ToList();
+                var row = below ? beyond.Min(i => boxes[i].Top) : beyond.Max(i => boxes[i].Top);
+                return beyond.Where(i => Math.Abs(boxes[i].Top - row) < 0.5).MinBy(i => Math.Abs(boxes[i].Center.X - boxes[from].Center.X));
+            }
+            var visited = new HashSet<int>();
+            void Expect(int index)
+            {
+                Assert.Same(tabs.Items[index], tabs.SelectedItem);
+                Assert.Same(vm.Tabs[index], vm.SelectedTab);
+                Assert.True(items[index].IsFocused, $"tab {index} not focused");
+                visited.Add(index);
+            }
+            Assert.True(items[0].Focus());
+            // The first row has nothing above it: Up stays.
+            Press(Key.Up, PhysicalKey.ArrowUp);
+            Expect(0);
+            var current = 0;
+            var downs = 0;
+            while (current < items.Count - 1)
+            {
+                if (SameRow(current, current + 1))
+                {
+                    Press(Key.Right, PhysicalKey.ArrowRight);
+                    current++;
+                }
+                else
+                {
+                    Press(Key.Down, PhysicalKey.ArrowDown);
+                    current = Nearest(current, below: true);
+                    downs++;
+                }
+                Expect(current);
+            }
+            Assert.True(downs >= 1);
+            // The last row has nothing below it: Down stays.
+            Press(Key.Down, PhysicalKey.ArrowDown);
+            Expect(items.Count - 1);
+            var last = items[^1];
+            last.BringIntoView();
+            Pump();
+            var scroller = window.FindControl<ScrollViewer>("PageScroller")!;
+            Assert.True(last.IsEffectivelyVisible);
+            Assert.True(InWindow(scroller).Intersects(InWindow(last)));
+            Assert.True(InWindow(last).Right <= InWindow(column).Right + 0.5);
+            var chips = window.GetVisualDescendants().OfType<Border>().Where(b => b.DataContext is PaletteChip && b.Classes.Contains("chip"))
+                .Select(b => ((PaletteChip)b.DataContext!).PresetId).ToList();
+            // The last tab is Font: font presets, no image or archive ones.
+            Assert.Equal(PaletteTab.Font, vm.SelectedTab!.Id);
+            Assert.Contains("to-ttf", chips);
+            Assert.DoesNotContain("to-zip", chips);
+            Assert.DoesNotContain("to-png", chips);
+            Save(window, $"toolbar-tabs-{language}-{suffix}-font.png");
+
+            // Up goes back to the row above, to the tab nearest above.
+            var above = Nearest(items.Count - 1, below: false);
+            Press(Key.Up, PhysicalKey.ArrowUp);
+            Expect(above);
+            Assert.False(SameRow(above, items.Count - 1));
+
+            // From there Right reaches the tabs a Down skipped, then Left walks back over every tab, across the row ends,
+            // to the first.
+            for (current = above; current < items.Count - 1; current++)
+            {
+                Press(Key.Right, PhysicalKey.ArrowRight);
+                Expect(current + 1);
+            }
+            for (current = items.Count - 1; current > 0; current--)
+            {
+                Press(Key.Left, PhysicalKey.ArrowLeft);
+                Expect(current - 1);
+            }
+            Assert.Equal(Enumerable.Range(0, items.Count), visited.Order());
+        });
+    }
+
+    /// <summary>A search shows a preset this donut can't run: dimmed, with its reason, under its own tab.</summary>
+    [AvaloniaTheory]
+    [InlineData("en", false)]
+    [InlineData("ko", true)]
+    public void Palette_search_reveals_unusable(string language, bool dark)
+    {
+        using var f = new PresetAvailabilityTests.Fixture();
+        TestServices.EnsureInitialized(language);
+        var theme = AppHost.Get<ThemeService>();
+        f.Preset("test-wav").Name = "Hidden WAV sample";
+        f.Preset("test-jpg").Name = "Hidden JPG sample";
+        if (dark)
+            theme.Apply(new ThemeSettings { Mode = ThemeMode.Dark }, language);
+        using var vm = f.PageWithPalette("png");
+        Dispatcher.UIThread.RunJobs();
+        var page = new ToolbarPage { DataContext = vm };
+        var window = new Window { Width = 1080, Height = 820, Content = page };
+        window.Bind(Window.BackgroundProperty, window.GetResourceObservable("PageBrush"));
+        try
+        {
+            window.Show();
+            Pump();
+            var search = page.FindControl<TextBox>("PaletteSearchBox")!;
+            Assert.True(search.Focus());
+            window.KeyTextInput("Hidden");
+            Pump();
+            var tabs = page.FindControl<ListBox>("PaletteTabs")!;
+            Assert.True(tabs.IsEffectivelyVisible);
+            Assert.Equal([PaletteTab.All, PaletteTab.Image, PaletteTab.Media], tabs.Items.Cast<PaletteTabItem>().Select(t => t.Id));
+            var media = (ListBoxItem)tabs.ContainerFromIndex(2)!;
+            var point = Avalonia.VisualExtensions.TranslatePoint(media, new Avalonia.Point(media.Bounds.Width / 2, media.Bounds.Height / 2), window)!.Value;
+            window.MouseDown(point, MouseButton.Left);
+            window.MouseUp(point, MouseButton.Left);
+            Pump();
+            Assert.Same(vm.Tabs[2], tabs.SelectedItem);
+            var chip = page.GetVisualDescendants().OfType<Border>().Single(b => b.DataContext is PaletteChip { PresetId: "test-wav" });
+            Assert.Contains("dimmed", chip.Classes);
+            Assert.Equal(f.Loc["error.no_route"], ToolTip.GetTip(chip));
+            var suffix = dark ? "dark" : "light";
+            Save(window, $"toolbar-search-unusable-{language}-{suffix}.png");
+            ToolTip.SetIsOpen(chip, true);
+            Pump();
+            Save(window, $"toolbar-search-unusable-{language}-{suffix}-tooltip.png");
+            ToolTip.SetIsOpen(chip, false);
+        }
+        finally
+        {
+            window.Close();
+            if (dark)
+                theme.Apply(new ThemeSettings(), language);
+        }
+    }
+
     /// <summary>Shows the toolbar page (tall, so the profile card is visible) with temporarily changed profiles.</summary>
     private static void WithProfiles(string language, bool dark, double height, Action<List<ToolbarProfile>> change, Action<Window, ToolbarPageViewModel> act)
     {
