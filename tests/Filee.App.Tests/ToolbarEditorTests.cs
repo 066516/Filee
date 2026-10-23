@@ -241,6 +241,65 @@ public class ToolbarPageTests
     }
 
     [AvaloniaFact]
+    public void A_profile_counts_both_faces_and_switching_profiles_clears_the_preset_search()
+    {
+        TestServices.EnsureInitialized("en");
+        var store = AppHost.Get<UserDataStore>();
+        var profiles = store.Profiles.Select(p => p.Clone()).ToList();
+        try
+        {
+            using var vm = new ToolbarPageViewModel(store, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<WindowService>(),
+                AppHost.Get<PresetAvailability>(), AppHost.Get<ConverterCatalog>(), NullLogger<ToolbarPageViewModel>.Instance);
+
+            // #425: the badge counted only the front face.
+            var images = vm.Profiles.Single(p => p.Profile.Id == "images");
+            images.Profile.PresetIds = ["to-png", "to-jpg", "to-webp"];
+            images.Profile.BackPresetIds = ["to-pdf"];
+            images.Refresh(AppHost.Get<Filee.Core.Localization.ILocalizer>());
+            Assert.Equal("3 · 1", images.Count);
+            Assert.Equal("Front 3 · Back 1", images.CountTip);
+            images.Profile.BackPresetIds = [];
+            images.Refresh(AppHost.Get<Filee.Core.Localization.ILocalizer>());
+            Assert.Equal("3", images.Count); // no back face: the one number, as before
+
+            // #427: a search typed for one donut's presets doesn't hide the next donut's.
+            vm.SelectedProfile = images;
+            vm.PaletteSearch = "png";
+            vm.SelectedProfile = vm.Profiles.Single(p => p.Profile.Id == "pdf");
+            Assert.Equal("", vm.PaletteSearch);
+            Assert.Equal(vm.Palette.Count, vm.VisiblePalette.Count);
+        }
+        finally
+        {
+            store.Profiles.Clear();
+            store.Profiles.AddRange(profiles);
+            store.SaveLibrary();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Search_boxes_have_a_clear_button()
+    {
+        TestServices.EnsureInitialized("en");
+        using var vm = new ToolbarPageViewModel(AppHost.Get<UserDataStore>(), AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<WindowService>(),
+            AppHost.Get<PresetAvailability>(), AppHost.Get<ConverterCatalog>(), NullLogger<ToolbarPageViewModel>.Instance);
+        var page = new ToolbarPage { DataContext = vm };
+        var window = new Window { Content = page, Width = 1100, Height = 800 };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var boxes = page.GetVisualDescendants().OfType<TextBox>().Where(t => t.Classes.Contains("search")).ToList();
+        Assert.Equal(2, boxes.Count);
+        Assert.All(boxes, box => Assert.Contains("clearButton", box.Classes));
+        vm.PaletteSearch = "pdf";
+        boxes[1].Focus(); // Fluent shows the button in a focused box with text
+        Dispatcher.UIThread.RunJobs();
+        Assert.Contains(boxes[1].GetVisualDescendants().OfType<Button>(), b => b.IsEffectivelyVisible);
+        RenderTests.Save(window, "toolbar-search-clear-en.png");
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void A_new_group_heads_the_available_presets_and_every_profile_count_stays_right()
     {
         TestServices.EnsureInitialized("en");
@@ -270,7 +329,7 @@ public class ToolbarPageTests
             var chips = vm.VisiblePalette.Select(c => store.FindPreset(c.PresetId)!).ToList();
             var at = chips.FindIndex(p => p.Id == "test-new-group");
             Assert.True(at >= 0 && chips.Take(at).All(p => p.IsGroup), $"at {at}");
-            Assert.Equal($"{pdf.Profile.PresetIds.Count}", pdf.Count);
+            Assert.Equal($"{pdf.Profile.PresetIds.Count} · {pdf.Profile.BackPresetIds!.Count}", pdf.Count);
             Assert.DoesNotContain("test-new-group", vm.SelectedProfile!.Profile.PresetIds); // on no donut until dragged there
         }
         finally
@@ -312,7 +371,7 @@ public class ToolbarPageTests
             Assert.False(vm.IsMixed);
             Assert.NotNull(vm.ExtensionTags);
             Assert.Equal(builtIn.PresetIds, vm.DonutItems.Select(d => d.Id));
-            Assert.Equal($"{builtIn.PresetIds.Count}", item.Count);
+            Assert.Equal($"{builtIn.PresetIds.Count} · {builtIn.BackPresetIds!.Count}", item.Count);
             Assert.Equal(store.Profiles.Select(p => p.Id), vm.Profiles.Select(p => p.Profile.Id));
             Assert.Equal(store.Profiles.FindIndex(p => p.IsFallback) - 1, store.Profiles.IndexOf(item.Profile));
 

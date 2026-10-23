@@ -110,8 +110,20 @@ Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) first. In short:
 Bump `<Version>` in `Directory.Build.props`, merge, then push a tag `vX.Y.Z`. `.github/workflows/release.yml` runs the
 tests and `build/build-installer.ps1 -Portable`: it publishes the app (`-p:FileeRelease=true`, which lets it register
 Explorer and startup entries), adds the Explorer menu extension and the bundled rhwp and 7-Zip, compiles
-`src/Filee.Setup` (Filee's own installer) and appends the app to it, and uploads `Filee-X.Y.Z-win-Setup.exe`, the portable zip and
-their SHA-256 sums with release notes generated from the merged pull requests.
+`src/Filee.Setup` (Filee's own installer) and appends the app to it. It drafts the release with the Linux and macOS
+packages and release notes generated from the merged pull requests, and keeps the tested Windows build unsigned (the
+artifact `windows-unsigned`).
+
+Then, on a PC signed in to SimplySign Desktop (Certum's cloud certificate; its key needs the phone app's token), sign
+the Windows files and add them to the draft:
+
+```
+pwsh build/sign-release.ps1 -Version X.Y.Z -CertificateThumbprint <sha1>
+```
+
+It signs every unsigned program in the build and the Setup program, packs and signs `Filee-X.Y.Z-win-Setup.exe`, zips
+the portable copy, checks the signed Setup in a sandbox install and uploads the files with their SHA-256 sums. Look
+over the draft and publish it (or pass `-Publish`). `build/sign-windows.ps1` signs any folder or file on its own.
 
 ### "What's new" slides for a release
 

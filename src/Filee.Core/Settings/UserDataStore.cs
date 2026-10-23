@@ -750,9 +750,121 @@ internal static class SettingsMigrations
         // v32: logs and script source, Video CD DAT and Workbench archives learn their donuts; custom claims stay put.
         if (from < 32)
             changed |= LearnExtensions(profiles, out _, ["log", "py", "pac", "bat", "command", "dat", "wbpz"]);
-        // v33: Tajima embroidery designs (.dst) learn the vector donut; custom claims stay put.
+        // v33: HAR network logs and raw H.265 / H.264 camera streams learn their donuts (custom claims stay put), and
+        //      "Trim transparent borders" comes in after "Remove background".
         if (from < 33)
+        {
+            changed |= LearnExtensions(profiles, out _, ["har", "h265", "265", "hevc", "h264", "264"]);
+            // "Trim transparent borders" after "Remove background", in the library and on the images donut's back face
+            // when it has room and the user hasn't put it there.
+            if (BuiltInData.TrimPresets().Single() is var trim && presets.All(p => p.Id != trim.Id))
+            {
+                var at = presets.FindIndex(p => p.Id == "remove-background");
+                presets.Insert(at < 0 ? presets.Count : at + 1, trim);
+                changed = true;
+            }
+            if (profiles.FirstOrDefault(p => p.Id == "images") is { BackPresetIds: { } back } images
+                && !back.Contains("trim-transparent") && !images.PresetIds.Contains("trim-transparent")
+                && back.Count < ToolbarProfile.MaxSlices)
+            {
+                var after = back.IndexOf("remove-background");
+                back.Insert(after < 0 ? back.Count(id => id != "zip-all") : after + 1, "trim-transparent");
+                changed = true;
+            }
+        }
+        // v34: Lua scripts and CSS style sheets learn the text donut; custom claims stay put.
+        if (from < 34)
+            changed |= LearnExtensions(profiles, out _, ["lua", "css"]);
+        // v35: HP-GL plot files learn their donut; custom claims stay put.
+        if (from < 35)
+            changed |= LearnExtensions(profiles, out _, ["plt", "hpgl", "hpg", "hgl"]);
+        // v36: iCalendar (.ics, .ical) on the data donut, and "iCalendar" (CSV → ICS) after "vCard" on the back of the
+        //      spreadsheets donut when it has room; custom claims stay put.
+        if (from < 36)
+        {
+            changed |= LearnExtensions(profiles, out _, ["ics", "ical"]);
+            changed |= AddCalendarPreset(presets, profiles);
+        }
+        // v37: everyday tools (compress image / video / audio, video from images, extract audio, merge videos / audio,
+        //      remove metadata), after "Motion Photo (Android)" as in a new library, and on the back faces of the
+        //      built-in donuts before "One ZIP" where they have room and the user hasn't put them there already.
+        //      "Extract audio" replaces the plain M4A slice on the video donut's back.
+        if (from < 37)
+            changed |= AddMediaTools(presets, profiles);
+        // v38: Tajima embroidery designs (.dst) learn the vector donut; custom claims stay put.
+        if (from < 38)
             changed |= LearnExtensions(profiles, out _, ["dst"]);
+        return changed;
+    }
+
+    private static bool AddCalendarPreset(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        if (presets.All(p => p.Id != "to-ics"))
+        {
+            var preset = BuiltInData.DataPresets().Single(p => p.Id == "to-ics");
+            var after = presets.FindIndex(p => p.Id == "to-vcf");
+            presets.Insert(after < 0 ? presets.Count : after + 1, preset);
+            changed = true;
+        }
+
+        if (profiles.FirstOrDefault(p => p.Id == "spreadsheets") is { BackPresetIds: { } back }
+            && !back.Contains("to-ics") && back.Count < ToolbarProfile.MaxSlices)
+        {
+            var after = back.IndexOf("to-vcf");
+            var beforeZip = back.IndexOf("zip-all");
+            back.Insert(after >= 0 ? after + 1 : beforeZip >= 0 ? beforeZip : back.Count, "to-ics");
+            changed = true;
+        }
+        return changed;
+    }
+
+    /// <summary>Where schema 37 offers its tools: (donut, presets for its back face).</summary>
+    private static readonly (string Profile, string[] Presets)[] Version37Offers =
+    [
+        ("images", ["compress-image", "remove-metadata"]),
+        ("pdf", ["remove-metadata"]),
+        ("video", ["compress-video", "merge-videos", "extract-audio"]),
+        ("audio", ["compress-audio", "merge-audio", "remove-metadata"]),
+    ];
+
+    private static bool AddMediaTools(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        var at = presets.FindLastIndex(p => p.Id is "motion-photo-android" or "live-photo-iphone" or "extract-motion");
+        at = at < 0 ? presets.Count : at + 1;
+        foreach (var tool in BuiltInData.MediaToolPresets())
+        {
+            if (presets.Any(p => p.Id == tool.Id))
+                continue;
+            presets.Insert(Math.Min(at++, presets.Count), tool);
+            changed = true;
+        }
+        foreach (var (profileId, ids) in Version37Offers)
+        {
+            if (profiles.FirstOrDefault(p => p.Id == profileId) is not { BackPresetIds: { } back } profile)
+                continue;
+            // "Extract audio" writes the same M4A as the plain M4A slice, copying the sound where it can: it takes that
+            // slice's place on the video donut's back, or comes in with the other tools when there is room.
+            if (profileId == "video" && !back.Contains("extract-audio") && !profile.PresetIds.Contains("extract-audio")
+                && presets.Any(p => p.Id == "extract-audio"))
+            {
+                var m4a = back.IndexOf("to-m4a");
+                if (m4a >= 0)
+                {
+                    back[m4a] = "extract-audio";
+                    changed = true;
+                }
+            }
+            foreach (var id in ids)
+            {
+                if (back.Contains(id) || profile.PresetIds.Contains(id) || back.Count >= ToolbarProfile.MaxSlices
+                    || presets.All(p => p.Id != id))
+                    continue;
+                InsertBefore(back, id, "zip-all");
+                changed = true;
+            }
+        }
         return changed;
     }
 

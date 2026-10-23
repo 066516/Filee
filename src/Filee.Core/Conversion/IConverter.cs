@@ -36,7 +36,9 @@ namespace Filee.Core.Conversion;
 /// The engine draws text one character after the other, left to right, without complex-script shaping (no joined
 /// Arabic letters, no right-to-left order, no reordered vowel signs, conjuncts or placed marks). A source whose text
 /// needs shaping is never routed through the edge: <see cref="JobQueue"/> asks the engine
-/// (<see cref="ITextShapingCheck"/>) and plans again without it.
+/// (<see cref="ITextShapingCheck"/>) and plans again without it. Text the engine draws but has no widths for
+/// (letters outside ASCII and Latin-1 other than full-width CJK — Polish, Turkish, Vietnamese, Greek, Cyrillic —
+/// rhwp#8143) takes a route without the edge only when one exists.
 /// </param>
 /// <param name="MotionPhoto">
 /// The edge takes the video out of a Live / Motion Photo (<see cref="Presets.MediaOptions.ExtractMotionPhoto"/>). It is
@@ -107,6 +109,11 @@ public interface IOutputAllocator
 /// Records a note on a step that worked, as a localization key (e.g. <c>notice.pdf_not_smaller</c>): shown with the
 /// file's result. Null when nobody listens.
 /// </param>
+/// <param name="MissingFonts">
+/// Reports document font families that aren't installed (and have no known metric-compatible installed substitute).
+/// Rendering continues: graphical clients can offer trusted sources without blocking CLI or watched jobs.
+/// </param>
+/// <param name="OriginalSourcePath">The user's original input, before any intermediate conversion steps.</param>
 /// <param name="MotionPhoto">
 /// The step takes a <see cref="ConversionEdge.MotionPhoto"/> edge: the video of the Live / Motion Photo becomes the
 /// output, not its still picture.
@@ -125,7 +132,9 @@ public sealed record ConversionStep(
     bool FrameSequence = false,
     Action<string>? Notice = null,
     bool MotionPhoto = false,
-    bool LivePhoto = false);
+    bool LivePhoto = false,
+    Action<IReadOnlyList<string>>? MissingFonts = null,
+    string? OriginalSourcePath = null);
 
 /// <summary>
 /// A conversion engine (ImageMagick, LibreOffice, rhwp, ...).
@@ -168,17 +177,34 @@ public interface IImageTransformer
 }
 
 /// <summary>
+/// The scripts of a file's text an engine would draw wrong, from one scan.
+/// </summary>
+/// <param name="NeedsShaping">
+/// The name of the first script that needs complex-script shaping (e.g. "Gujarati"), or null. Takes precedence:
+/// <see cref="JobQueue"/> refuses a file with it (or routes it around the engine), never merely reroutes it for
+/// <paramref name="WithoutWidths"/>.
+/// </param>
+/// <param name="WithoutWidths">
+/// The name of the first script the engine draws but has no widths for (e.g. "Latin Extended" or "Cyrillic"), or
+/// null. Weaker than <paramref name="NeedsShaping"/>: such a file is not refused for it, <see cref="JobQueue"/>
+/// only takes a route without the unshaped edge when one exists.
+/// </param>
+public sealed record TextScripts(string? NeedsShaping, string? WithoutWidths);
+
+/// <summary>
 /// An engine with <see cref="ConversionEdge.Unshaped"/> edges: tells whether a source file has text that needs
-/// complex-script shaping (Arabic, Hebrew, the Indic scripts, Thai, ...), which those edges would draw broken.
+/// complex-script shaping (Arabic, Hebrew, the Indic scripts, Thai, ...), which those edges would draw broken,
+/// or text the engine has no widths for (letters outside ASCII and Latin-1 other than full-width CJK — Polish,
+/// Turkish, Vietnamese, Greek, Cyrillic, ...), which they lay out wrong.
 /// </summary>
 public interface ITextShapingCheck
 {
     /// <summary>
-    /// The name of the first script in the text of <paramref name="sourcePath"/> that needs shaping (e.g. "Gujarati"),
-    /// or null. Quick: it scans the file's text, it doesn't convert it.
+    /// Scans the text of <paramref name="sourcePath"/> once and answers both questions. Quick: it scans the file's
+    /// text, it doesn't convert it — and it is asked again when the file is converted again, never cached.
     /// </summary>
     /// <param name="sourceFormat">Format id of the file.</param>
-    string? ScriptNeedingShaping(string sourcePath, string sourceFormat);
+    TextScripts ScanScripts(string sourcePath, string sourceFormat);
 }
 
 /// <summary>Merges several PDF files into one. Implemented by the PDF engine.</summary>
@@ -194,6 +220,26 @@ public interface IPdfMerger
 public interface ITiffMerger
 {
     Task MergeAsync(IReadOnlyList<string> inputPaths, string outputPath, Presets.ImageOptions options, CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// Joins several videos or audio files into one, one after the other, or turns pictures into one video ("Merge
+/// videos", "Merge audio", "Video from images"). Implemented by the FFmpeg engine; <see cref="JobQueue"/> uses it when
+/// a preset joins files (<see cref="Preset.JoinsIntoOneMedia"/>).
+/// </summary>
+public interface IMediaJoiner
+{
+    /// <summary>
+    /// Writes every file of <paramref name="inputPaths"/>, in order, into <paramref name="outputPath"/>: video or audio
+    /// clips back to back, or pictures shown one after the other (<see cref="MediaOptions.Slideshow"/>).
+    /// </summary>
+    /// <param name="inputPaths">Videos, audio files, or pictures (PNG, as the image engines wrote them).</param>
+    /// <param name="outputPath">File to create; removed again when the join fails.</param>
+    /// <param name="format">Target format id, <c>"mp4"</c> or <c>"m4a"</c>.</param>
+    /// <param name="preset">Options, e.g. <see cref="MediaOptions.SlideSeconds"/>.</param>
+    /// <param name="workDirectory">Scratch directory for intermediate files; deleted after the job.</param>
+    Task JoinAsync(IReadOnlyList<string> inputPaths, string outputPath, string format, Preset preset,
+        string workDirectory, IProgress<double>? progress, CancellationToken cancellationToken);
 }
 
 /// <summary>

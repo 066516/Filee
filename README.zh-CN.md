@@ -55,7 +55,7 @@
   安装程序是 Filee 自己的，使用与 Filee 相同的语言，电脑上无需另外安装任何组件。
   安装时可以添加资源管理器菜单、登录时启动、`filee` 命令和可选引擎。静默安装沿用 Inno Setup 的参数
   （`/VERYSILENT /SUPPRESSMSGBOXES`）。
-- **macOS 13 及以上**（预览）解压 `osx-arm64` 或 `osx-x64` 包并运行 `./install.sh`。
+- **macOS 13 及以上**（预览）解压 `osx-arm64` 或 `osx-x64` 包并运行 `./install.sh`。也可以打开 `.dmg`，把 Filee 拖到“应用程序”文件夹（`filee` 命令只由 `install.sh` 添加）。
   目前尚未公证，首次启动时请在系统设置 → 隐私与安全性中点 **仍要打开**。
 - **Linux x64、ARM64**（Ubuntu 22.04 及以上）解压后运行 `./install.sh`（无需 root，需要 Python 3）。
   拖动手势需要 X11，Wayland 下请使用拖放区域和文件管理器的右键菜单。
@@ -73,7 +73,7 @@
 - **监视文件夹**，放入的文件自动转换。
 - **最近的转换**显示在主页上，每项都有缩略图，可以直接“打开文件”，也可以用“打开方式”换个应用打开。
 - **其他方式** 右键菜单、键盘快捷键、拖放区域和 [`filee` 命令](#命令行)。
-- 浅色和深色主题，可自选强调色和环形工具栏不透明度，支持 English、Español、日本語、한국어、简体中文、繁體中文、Polski、हिन्दी、Русский、العربية（从右到左）、Português (Brasil)、Français。
+- 浅色和深色主题，可自选强调色和环形工具栏不透明度，支持 English、Español、日本語、한국어、简体中文、繁體中文、Polski、हिन्दी、Русский、العربية（从右到左）、Português (Brasil)、Français、नेपाली。
 
 ## 截图
 
@@ -147,7 +147,7 @@ dotnet test
 ## 代码签名政策
 
 Filee 由 **Myeonggu Kim**（[KnifeLemon](https://github.com/KnifeLemon)）开发和发布。
-Windows 版本将使用颁发给 Myeonggu Kim 的 [Certum](https://www.certum.eu/) 开源代码签名证书签名，证书正在办理中。
+Windows 版本使用颁发给 Myeonggu Kim 的 [Certum](https://www.certum.eu/) 开源代码签名证书签名。2.0.0 及更早的版本没有签名。
 
 详细政策和隐私政策见[英文 README](README.md#code-signing-policy)。
 Filee 不会上传文件，也不会发送任何使用数据。
