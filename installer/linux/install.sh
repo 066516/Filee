@@ -30,12 +30,69 @@ install_dir="$data_dir/filee/application"
 bin_dir="$HOME/.local/bin"
 desktop_file="$data_dir/applications/com.filee.app.desktop"
 gnome_extension_id="filee-donut@filee.sh"
-gnome_extension_source="$source_dir/gnome/$gnome_extension_id"
 gnome_extension_dir="$data_dir/gnome-shell/extensions/$gnome_extension_id"
 is_gnome=false
 if printf '%s' "${XDG_CURRENT_DESKTOP:-}" | tr ':' '\n' | grep -qi '^GNOME$'; then
     is_gnome=true
 fi
+
+# The GNOME Shell extension folder is ours when it is a real folder whose .filee-package marker says com.filee.app.
+gnome_extension_is_ours() {
+    [ -d "$gnome_extension_dir" ] && [ ! -L "$gnome_extension_dir" ] \
+        && [ -f "$gnome_extension_dir/.filee-package" ] && [ ! -L "$gnome_extension_dir/.filee-package" ] \
+        && [ "$(tr -d '\r\n' < "$gnome_extension_dir/.filee-package" 2>/dev/null || true)" = 'com.filee.app' ]
+}
+
+# Puts the extension bundled with the installed app in place, replacing only a folder that carries our marker. The
+# new copy is staged first, so a failed copy leaves the previous extension as it was.
+copy_gnome_extension() {
+    work=$(mktemp -d "$data_dir/filee/.gnome-extension.XXXXXX") || return 1
+    if ! cp -R "$install_dir/gnome/$gnome_extension_id" "$work/new" \
+        || ! printf '%s\n' 'com.filee.app' > "$work/new/.filee-package" \
+        || ! mkdir -p "$(dirname -- "$gnome_extension_dir")"; then
+        rm -rf "$work"
+        return 1
+    fi
+    if [ -e "$gnome_extension_dir" ] || [ -L "$gnome_extension_dir" ]; then
+        if ! gnome_extension_is_ours || ! mv "$gnome_extension_dir" "$work/old"; then
+            rm -rf "$work"
+            return 1
+        fi
+    fi
+    if ! mv "$work/new" "$gnome_extension_dir"; then
+        if [ -d "$work/old" ]; then
+            mv "$work/old" "$gnome_extension_dir" || true
+        fi
+        rm -rf "$work"
+        return 1
+    fi
+    rm -rf "$work"
+}
+
+# Asks GNOME Shell to enable the extension. Only a first install does this; an upgrade leaves the user's choice alone.
+enable_gnome_extension() {
+    command -v gsettings >/dev/null 2>&1 || return 0
+    enabled=$(gsettings get org.gnome.shell enabled-extensions 2>/dev/null || true)
+    [ -n "$enabled" ] || return 0
+    updated=$(python3 - "$enabled" "$gnome_extension_id" <<'PY'
+import ast
+import sys
+
+try:
+    extensions = ast.literal_eval(sys.argv[1].removeprefix("@as "))
+except (SyntaxError, ValueError):
+    raise SystemExit(0)
+if not isinstance(extensions, list) or not all(isinstance(item, str) for item in extensions):
+    raise SystemExit(0)
+if sys.argv[2] not in extensions:
+    extensions.append(sys.argv[2])
+print("[" + ", ".join("'" + item.replace("'", "\\'") + "'" for item in extensions) + "]")
+PY
+    ) || return 0
+    if [ -n "$updated" ]; then
+        gsettings set org.gnome.shell enabled-extensions "$updated" >/dev/null 2>&1 || true
+    fi
+}
 
 # Validate required tools and incoming payload files before doing anything.
 command -v python3 >/dev/null 2>&1 || {
@@ -54,6 +111,13 @@ if [ ! -f "$source_dir/filee-cli" ] || [ ! -x "$source_dir/filee-cli" ]; then
     exit 1
 fi
 
+# A first install on GNOME replaces an extension folder only when it carries our marker.
+if [ "$upgrade" -eq 0 ] && [ "$is_gnome" = true ] && [ -d "$source_dir/gnome/$gnome_extension_id" ] \
+    && { [ -e "$gnome_extension_dir" ] || [ -L "$gnome_extension_dir" ]; } && ! gnome_extension_is_ours; then
+    printf '%s\n' "A GNOME extension that Filee didn't install exists at $gnome_extension_dir. Remove or rename it before installing Filee."
+    exit 1
+fi
+
 if [ "$upgrade" -eq 0 ]; then
     # First-time installation: refuse to overwrite an existing installation or files.
     if [ -e "$install_dir" ] || [ -L "$install_dir" ]; then
@@ -68,44 +132,12 @@ if [ "$upgrade" -eq 0 ]; then
         printf '%s\n' "$desktop_file already exists. Remove or rename it before installing Filee."
         exit 1
     fi
-    if [ "$is_gnome" = true ] && [ -d "$gnome_extension_source" ] && { [ -e "$gnome_extension_dir" ] || [ -L "$gnome_extension_dir" ]; }; then
-        printf '%s\n' "A GNOME extension already exists at $gnome_extension_dir. Remove or rename it before installing Filee."
-        exit 1
-    fi
 
     mkdir -p "$data_dir/filee" "$bin_dir" "$data_dir/applications"
     cp -R "$source_dir" "$install_dir"
     printf '%s\n' 'com.filee.app' > "$install_dir/.filee-package"
     rm -f "$install_dir/.filee-upgrade-token"
     ln -s "$install_dir/filee-cli" "$bin_dir/filee"
-    if [ "$is_gnome" = true ] && [ -d "$gnome_extension_source" ]; then
-        mkdir -p "$(dirname "$gnome_extension_dir")"
-        cp -R "$install_dir/gnome/$gnome_extension_id" "$gnome_extension_dir"
-        printf '%s\n' 'com.filee.app' > "$gnome_extension_dir/.filee-package"
-        if command -v gsettings >/dev/null 2>&1; then
-            enabled=$(gsettings get org.gnome.shell enabled-extensions 2>/dev/null || true)
-            if [ -n "$enabled" ]; then
-                updated=$(python3 - "$enabled" "$gnome_extension_id" <<'PY'
-import ast
-import sys
-
-try:
-    extensions = ast.literal_eval(sys.argv[1].removeprefix("@as "))
-except (SyntaxError, ValueError):
-    raise SystemExit(0)
-if not isinstance(extensions, list) or not all(isinstance(item, str) for item in extensions):
-    raise SystemExit(0)
-if sys.argv[2] not in extensions:
-    extensions.append(sys.argv[2])
-print("[" + ", ".join("'" + item.replace("'", "\\'") + "'" for item in extensions) + "]")
-PY
-                )
-                if [ -n "$updated" ]; then
-                    gsettings set org.gnome.shell enabled-extensions "$updated" >/dev/null 2>&1 || true
-                fi
-            fi
-        fi
-    fi
 else
     # Upgrade existing installation: verify it is genuine and safely swap in place.
     if [ ! -d "$install_dir" ] || [ -L "$install_dir" ]; then
@@ -259,6 +291,29 @@ else
     ln -sf "$install_dir/filee-cli" "$bin_dir/filee"
 fi
 
+# GNOME Shell extension. A first install puts it in place on GNOME and asks GNOME to enable it. An upgrade refreshes
+# a copy that Filee installed, and on GNOME adds a missing one without enabling it (the Triggers page says how).
+gnome_extension_note=''
+if [ -d "$install_dir/gnome/$gnome_extension_id" ]; then
+    if gnome_extension_is_ours; then
+        gnome_extension_note=updated
+    elif [ "$is_gnome" = true ] && [ ! -e "$gnome_extension_dir" ] && [ ! -L "$gnome_extension_dir" ]; then
+        gnome_extension_note=added
+    elif [ "$is_gnome" = true ]; then
+        printf '%s\n' "Left $gnome_extension_dir as it is: Filee didn't install it." >&2
+    fi
+    if [ -n "$gnome_extension_note" ]; then
+        if copy_gnome_extension; then
+            if [ "$upgrade" -eq 0 ] && [ "$is_gnome" = true ]; then
+                enable_gnome_extension
+            fi
+        else
+            gnome_extension_note=''
+            printf '%s\n' "Could not install the GNOME extension at $gnome_extension_dir." >&2
+        fi
+    fi
+fi
+
 # Update desktop launcher.
 python3 - "$install_dir" "$desktop_file" <<'PY'
 import pathlib
@@ -292,6 +347,12 @@ else
     printf '%s\n' "Installed Filee at $install_dir" "CLI: $bin_dir/filee (add $bin_dir to PATH if needed)."
 fi
 
-if [ "$upgrade" -eq 0 ] && [ "$is_gnome" = true ] && [ -d "$gnome_extension_source" ]; then
-    printf '%s\n' 'GNOME Wayland: enable "Filee donut at the cursor" in Extensions.' 'Sign out and sign in if the extension is not listed yet. Then hold Ctrl and drag a file in Files.' 'No administrator access or input group is required. See GNOME-WAYLAND.md.'
+if [ -n "$gnome_extension_note" ] && [ "$upgrade" -eq 0 ] && [ "$is_gnome" = true ]; then
+    printf '%s\n' 'GNOME Wayland: enable "Filee donut at the cursor" in Extensions.' \
+        'Sign out and sign in if the extension is not listed yet. Then hold Ctrl and drag a file in Files.' \
+        'No administrator access or input group is required. See GNOME-WAYLAND.md.'
+elif [ "$gnome_extension_note" = added ]; then
+    printf '%s\n' 'GNOME Wayland: added the "Filee donut at the cursor" extension. Sign out and sign in, then enable it in Extensions.'
+elif [ "$gnome_extension_note" = updated ]; then
+    printf '%s\n' 'GNOME: updated the "Filee donut at the cursor" extension. Sign out and sign in so GNOME Shell loads it.'
 fi

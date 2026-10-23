@@ -54,6 +54,10 @@ per opening; Filee respects its configured gestures, Pause and excluded apps.
 It does not collect typed keys. Global selection/hold gestures and Tab/wheel
 flipping during a drag are not supplied by this integration. Disabling the
 extension stops detection; FILEE_WAYLAND_GESTURES=0 opts out on GNOME too.
+Updating Filee (in the app or with --upgrade) also updates the extension if
+Filee installed it; sign out and sign in afterwards so GNOME Shell loads it.
+The Triggers page says when the running extension doesn't match Filee.
+install.sh only replaces an extension folder that Filee installed.
 Read GNOME-WAYLAND.md in the package (docs/GNOME-WAYLAND.md in the source) for
 setup, limits and troubleshooting.
 

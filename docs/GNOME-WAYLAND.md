@@ -14,11 +14,11 @@ Install Filee normally:
 ./install.sh
 ```
 
-Then:
+On a GNOME session, `install.sh` puts the extension in `~/.local/share/gnome-shell/extensions/filee-donut@filee.sh` and asks GNOME to enable it. Then:
 
 1. Open the **Extensions** application.
 2. Enable **Filee donut at the cursor**.
-3. Log out and back in if the extension does not appear or was recently updated.
+3. Log out and back in if the extension does not appear.
 4. Start Filee and make sure gesture detection is enabled under **Triggers**.
 
 Do not run Filee with `sudo`.
@@ -38,15 +38,22 @@ Pausing Filee, disabling the gesture or extension, excluding the application, or
 
 Custom modifiers and excluded applications continue to work through Filee's existing gesture settings.
 
+## Updates
+
+Updating Filee, in the app or with `./install.sh --upgrade`, also updates the extension when Filee installed it. GNOME Shell keeps running the version it loaded at login, so log out and back in after an update. If the running extension and Filee don't match, the **Triggers** page says so.
+
+`install.sh` replaces only an extension folder that Filee installed. If the folder came from somewhere else, a first install stops and an upgrade leaves it as it is. `uninstall.sh` removes the extension when Filee installed it.
+
 ## Limitations
 
 - GNOME integration is currently experimental.
 - GNOME Shell 45–50 are declared as supported, but not every version has been tested.
-- The integration provides pointer and modifier state, not a native Wayland backend for Avalonia.
 - Global Tab and mouse-wheel state are not available for switching wheel faces during a drag.
-- Multi-monitor setups, fractional scaling and different Wayland/XWayland combinations may require additional testing.
+- Global selection shortcuts and hold gestures are not available.
+- Filee runs through XWayland by default. With the experimental native Wayland backend (`FILEE_USE_WAYLAND=1`), the extension recognizes the donut by Filee's process; this combination has had less testing.
+- Multi-monitor setups and fractional scaling may require additional testing.
 
-The KDE Wayland integration remains separate.
+KDE Plasma and Hyprland use a different setup; see `INSTALL.txt`.
 
 ## Troubleshooting
 
@@ -68,13 +75,13 @@ gnome-extensions info filee-donut@filee.sh
 To check the communication socket:
 
 ```sh
-ls -l "$XDG_RUNTIME_DIR/filee-gnome/pointer-v1.sock"
+ls -l "$XDG_RUNTIME_DIR/filee-gnome/pointer.sock"
 ```
 
-When connected successfully, the Filee log contains:
+When connected successfully, Filee's log (`~/.config/Filee/logs/`) contains:
 
 ```text
 GNOME pointer extension connected
 ```
 
-If the extension is active but an older version is still loaded, log out and back in to reload GNOME Shell.
+If the **Triggers** page says the extension belongs to another version of Filee, log out and back in so GNOME Shell loads the installed extension. If the message stays, reinstall Filee.
