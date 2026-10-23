@@ -276,6 +276,7 @@
   "general.integration_macos": "Finder 的右键菜单中会出现此项（菜单较长时在“快速操作”或“服务”中）。\n请将 Filee 保留在“应用程序”文件夹中。",
   "general.integration_linux": "为 Thunar、Nautilus、Nemo 和 Dolphin 添加文件操作。\n修改 Thunar 快捷键前请先关闭 Thunar，之后再重新打开。",
   "general.integration_failed": "无法应用系统集成：{0}",
+  "general.startup_entry_missing": "登录启动项在保存后立即被删除或更改。可能是安全软件阻止了它。",
   "general.modern_menu_hint": "在 Windows 11 中，此项位于“显示更多选项”里。\n也可以添加到主菜单（Windows 会请求一次管理员权限）。",
   "general.modern_menu_on": "“用 Filee 转换”已在 Windows 11 主菜单中。",
   "general.modern_menu_outdated": "主菜单中的此项属于旧版本或其他位置的 Filee。\n重新添加即可更新。",

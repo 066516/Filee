@@ -264,6 +264,7 @@
   "general.integration_macos": "Finder इसे राइट-क्लिक मेनू में दिखाता है (मेनू लंबा होने पर Quick Actions या Services के अंदर)।\nFilee को Applications में रखें।",
   "general.integration_linux": "Thunar, Nautilus, Nemo और Dolphin में फ़ाइल एक्शन जोड़ता है।\nThunar का शॉर्टकट बदलने के लिए पहले Thunar बंद करें और बाद में दोबारा खोलें।",
   "general.integration_failed": "सिस्टम इंटीग्रेशन लागू नहीं हो सका: {0}",
+  "general.startup_entry_missing": "साइन-इन पर शुरू होने वाली एंट्री सहेजते ही हटा दी गई या बदल दी गई। हो सकता है कोई सुरक्षा सॉफ़्टवेयर इसे रोक रहा हो।",
   "general.modern_menu_hint": "Windows 11 में यह एंट्री “और विकल्प दिखाएँ” के अंदर होती है।\nइसे मुख्य मेनू में भी रखा जा सकता है (Windows एक बार एडमिनिस्ट्रेटर अनुमति माँगता है)।",
   "general.modern_menu_on": "“Filee से कन्वर्ट करें” Windows 11 के मुख्य मेनू में है।",
   "general.modern_menu_outdated": "मुख्य मेनू की एंट्री Filee की किसी पुरानी या हटाई गई कॉपी की है।\nइसे अपडेट करने के लिए दोबारा जोड़ें।",

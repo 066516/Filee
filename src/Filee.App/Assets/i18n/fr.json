@@ -276,6 +276,7 @@
   "general.integration_macos": "Le Finder l'affiche dans le menu contextuel (sous Actions rapides ou Services si le menu est long).\nGardez Filee dans le dossier Applications.",
   "general.integration_linux": "Ajoute des actions sur les fichiers à Thunar, Nautilus, Nemo et Dolphin.\nPour changer le raccourci de Thunar, fermez d'abord Thunar, puis rouvrez-le ensuite.",
   "general.integration_failed": "Impossible d'appliquer l'intégration au système : {0}",
+  "general.startup_entry_missing": "L'entrée de démarrage a été supprimée ou modifiée juste après son enregistrement. Un logiciel de sécurité la bloque peut-être.",
   "general.modern_menu_hint": "Sous Windows 11, cette entrée se trouve dans « Afficher d'autres options ».\nElle peut aussi aller dans le menu principal (Windows demande une seule fois l'autorisation administrateur).",
   "general.modern_menu_on": "« Convertir avec Filee » est dans le menu principal de Windows 11.",
   "general.modern_menu_outdated": "L'entrée du menu principal appartient à une copie de Filee plus ancienne ou déplacée.\nAjoutez-la à nouveau pour la mettre à jour.",
