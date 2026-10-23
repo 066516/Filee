@@ -136,6 +136,16 @@ public sealed class TriggerService : IDisposable
 
     private Timer? _permissionWatch;
 
+    /// <summary>
+    /// macOS: whether to show the system's Accessibility alert: gestures wait for the permission, a drag gesture is
+    /// on, and Filee hasn't asked before. Once, not at every start (#316): after an update of the ad-hoc signed app,
+    /// the list can show Filee switched on while macOS still denies it, and the alert came back at every start. The
+    /// Home reminder stays until the permission is given and says to remove Filee from the list and add it again.
+    /// </summary>
+    internal static bool ShouldAskForPermission(AppSettings settings, bool needsPermission) =>
+        needsPermission && !settings.AccessibilityPromptShown
+        && settings.Triggers.Any(t => t.Enabled && t.Kind == TriggerKind.Drag);
+
     public void Start()
     {
         if (_hook is not null)
@@ -255,12 +265,15 @@ public sealed class TriggerService : IDisposable
 
     internal bool InScope(TriggerGesture gesture, int x, int y)
     {
-        var process = _platform.ProcessNameAt(x, y);
+        // A keyboard shortcut goes to the window in front, wherever the pointer is (over the taskbar, say: #450).
+        // Mouse gestures go by the window under the pointer.
+        var front = gesture.Kind == TriggerKind.KeyChord ? _platform.GetForegroundWindow() : null;
+        var process = front is null ? _platform.ProcessNameAt(x, y) : front.ProcessName;
         if (Trace)
-            _log.LogInformation("Trace: {Gesture} at {X},{Y} over {Process}", gesture.Kind, x, y, process ?? "(none)");
+            _log.LogInformation("Trace: {Gesture} at {X},{Y} {Where} {Process}", gesture.Kind, x, y, front is null ? "over" : "in front:", process ?? "(none)");
         if (process is not null && (string.Equals(process, _ownProcess, StringComparison.OrdinalIgnoreCase) || _excluded.Contains(process)))
             return false;
-        return gesture.Scope == TriggerScope.Anywhere || _platform.IsFileManagerAt(x, y)
+        return gesture.Scope == TriggerScope.Anywhere || (front?.IsFileManager ?? _platform.IsFileManagerAt(x, y))
                // A picture or link dragged out of a web page opens the donut like a file.
                || gesture.Kind == TriggerKind.Drag && WebBrowsers.IsBrowser(process);
     }
@@ -329,6 +342,28 @@ public sealed class TriggerService : IDisposable
     {
         _permissionWatch?.Dispose();
         _permissionWatch = null;
+        try
+        {
+            // Stop the native hook and let its Run thread end before disposing (#358): SharpHook's Dispose closes the
+            // event queue first and stops the hook after, so a mouse move in between throws on the hook thread, and
+            // Windows then waits for that stuck low-level hook on every mouse move until the Join below gives up.
+            if (_hook is { IsDisposed: false, IsRunning: true })
+                _hook.Stop();
+        }
+        catch (HookException ex)
+        {
+            _log.LogWarning(ex, "Could not stop the global input hook");
+            Error = ex.Message;
+            NotifyStatus();
+            return; // Keep ownership: starting a second native hook would corrupt the first one.
+        }
+        if (_hookThread is { IsAlive: true } stopping && !stopping.Join(TimeSpan.FromSeconds(5)))
+        {
+            Error = "The previous global input hook did not finish stopping. Retry after it exits.";
+            _log.LogWarning("Global input hook shutdown timed out; keeping the previous hook to prevent overlap");
+            NotifyStatus();
+            return;
+        }
         try
         {
             _hook?.Dispose();
