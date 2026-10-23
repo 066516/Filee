@@ -214,7 +214,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowImage), nameof(ShowTurnForPdf), nameof(ShowQuality), nameof(ShowTiff), nameof(ShowMultiPageTiff), nameof(ShowWebp), nameof(ShowIco),
         nameof(ShowZipResult), nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowLeaveOutPictures), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
-        nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions), nameof(ShowOcr),
+        nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions), nameof(ShowOcr), nameof(ShowPageSize),
         nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec), nameof(ShowHardwareEncoding),
         nameof(AudioCodecs), nameof(AudioCodecChoice), nameof(ShowAudioCodec),
@@ -400,7 +400,15 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private bool _compressWithGhostscript;
 
     /// <summary>Recognize the text of scans and pictures (PdfOptions.Ocr), in <see cref="OcrLanguage"/>.</summary>
-    [ObservableProperty] private bool _ocr;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowPdfSplit), nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions), nameof(ShowPageSize))]
+    private bool _ocr;
+
+    /// <summary>
+    /// Text recognition makes the PDF itself (Tesseract): one file with each page the size of its scan or picture, so one
+    /// file per page, compression (and with it removing metadata), page size and margin don't apply and are hidden.
+    /// </summary>
+    private bool Recognizes => ShowOcr && Ocr;
     [ObservableProperty] private Choice<string> _ocrLanguage;
 
     /// <summary>PDF → image: one tall image of all pages.</summary>
@@ -508,10 +516,13 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     /// <summary>"Save as ZIP" is offered for geospatial targets, whose results are several files (a Shapefile) or travel zipped.</summary>
     public bool ShowZipResult => TargetCategory == FormatCategory.Geo;
     public bool ShowPdfBuild => TargetId == "pdf";
-    public bool ShowPdfSplit => TargetId == "pdf";
+
+    /// <summary>Page size and margin of a PDF built from pictures; not with text recognition (<see cref="Recognizes"/>).</summary>
+    public bool ShowPageSize => ShowPdfBuild && !Recognizes;
+    public bool ShowPdfSplit => TargetId == "pdf" && !Recognizes;
 
     /// <summary>Compression is for PDF → PDF; Ghostscript and metadata only matter while it is on.</summary>
-    public bool ShowPdfCompression => TargetId == "pdf";
+    public bool ShowPdfCompression => TargetId == "pdf" && !Recognizes;
     public bool ShowPdfCompressionOptions => ShowPdfCompression && CompressionLevel.Value != PdfCompression.None;
 
     /// <summary>Text from scans goes into the formats Filee writes from a PDF's text itself (PdfOptions.OcrTargets).</summary>
@@ -624,8 +635,17 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         pdf.Compression = CompressionLevel.Value;
         pdf.CompressWithGhostscript = CompressWithGhostscript;
         // Only where the option is shown, as with SaveEveryFrame below.
-        pdf.Ocr = ShowOcr && Ocr;
+        pdf.Ocr = Recognizes;
         pdf.OcrLanguage = OcrLanguage.Value;
+        if (pdf.Ocr)
+        {
+            // Hidden while text is recognized, so nothing is kept behind it that the PDF wouldn't do (Recognizes).
+            pdf.SplitPages = false;
+            pdf.Compression = PdfCompression.None;
+            pdf.CompressWithGhostscript = false;
+            pdf.PageSize = PdfPageSize.FitImage;
+            pdf.MarginMm = 0;
+        }
         _original.Document.PdfA = PdfA;
         // Only where the option is shown, as with SaveEveryFrame below.
         _original.Document.LeaveOutPictures = ShowLeaveOutPictures && LeaveOutPictures;

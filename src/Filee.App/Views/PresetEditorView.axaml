@@ -355,7 +355,7 @@
             <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0" Text="{DynamicResource presets.split_tall_image_hint}" />
           </StackPanel>
         </StackPanel>
-        <Grid ColumnDefinitions="*,12,*" IsVisible="{Binding ShowPdfBuild}">
+        <Grid ColumnDefinitions="*,12,*" IsVisible="{Binding ShowPageSize}">
           <StackPanel>
             <TextBlock Classes="label" Text="{DynamicResource presets.page_size}" />
             <ComboBox ItemsSource="{Binding PageSizes}" SelectedItem="{Binding PageSize}" HorizontalAlignment="Stretch" />

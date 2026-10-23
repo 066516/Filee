@@ -197,7 +197,7 @@ public static class BuiltInData
     ];
 
     /// <summary>
-    /// "Searchable PDF": scans and pictures with their text recognized by Tesseract (added in settings schema 33). On no
+    /// "Searchable PDF": scans and pictures with their text recognized by Tesseract (added in settings schema 40). On no
     /// donut, like "Compress PDF".
     /// </summary>
     public static List<Preset> OcrPresets() =>

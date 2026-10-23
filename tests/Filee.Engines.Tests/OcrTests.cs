@@ -150,6 +150,51 @@ public class OcrTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public async Task Pictures_and_scans_with_korean_and_cyrillic_names_are_recognized()
+    {
+        Assert.SkipUnless(Installed, Skip);
+        var folder = Path.Combine(fx.NewFolder(), "김민수 Документы");
+        Directory.CreateDirectory(folder);
+        var picture = Scan(folder, "스캔.png", "Filee reads scanned pages");
+        var scanPdf = (await fx.ConvertAsync([Scan(folder, "Скан.png", "The quarterly report is ready")], new Preset { TargetFormat = "pdf" })).Outputs.Single();
+
+        var job = await fx.ConvertAsync([picture, scanPdf], Ocr("pdf"));
+
+        AssertDone(job);
+        Assert.Contains("scanned", PageText(job.Outputs.Single(o => Path.GetFileName(o).StartsWith("스캔", StringComparison.Ordinal)), 1));
+        Assert.Contains("quarterly", PageText(job.Outputs.Single(o => Path.GetFileName(o).StartsWith("Скан", StringComparison.Ordinal)), 1));
+    }
+
+    [Fact]
+    public async Task Removing_metadata_leaves_the_document_information_behind()
+    {
+        Assert.SkipUnless(Installed, Skip);
+        var folder = fx.NewFolder();
+        var scanPdf = (await fx.ConvertAsync([Scan(folder, "scan.png", "Private letter")], new Preset { TargetFormat = "pdf" })).Outputs.Single();
+        using (var document = PdfReader.Open(scanPdf, PdfDocumentOpenMode.Modify))
+        {
+            document.Info.Title = "Secret title";
+            document.Info.Author = "Someone";
+            document.Save(scanPdf);
+        }
+        var keep = Ocr("pdf");
+        var remove = Ocr("pdf");
+        remove.Pdf.RemoveMetadata = true;
+
+        var kept = (await fx.ConvertAsync([scanPdf], keep)).Outputs.Single();
+        var removed = (await fx.ConvertAsync([scanPdf], remove)).Outputs.Single();
+
+        using (var document = PdfReader.Open(kept, PdfDocumentOpenMode.Import))
+            Assert.Equal("Secret title", document.Info.Title);
+        using (var document = PdfReader.Open(removed, PdfDocumentOpenMode.Import))
+        {
+            Assert.Equal("", document.Info.Title);
+            Assert.Equal("", document.Info.Author);
+        }
+        Assert.Contains("Private", PageText(removed, 1));
+    }
+
+    [Fact]
     public async Task A_scanned_pdf_becomes_a_docx_with_its_text_and_without_the_scan()
     {
         Assert.SkipUnless(Installed, Skip);

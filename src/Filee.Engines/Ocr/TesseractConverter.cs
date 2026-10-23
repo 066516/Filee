@@ -92,7 +92,7 @@ public sealed class TesseractConverter : IConverter
         var tessdata = Path.Combine(scratch, "tessdata");
         Directory.CreateDirectory(tessdata);
         File.Copy(data, Path.Combine(tessdata, Path.GetFileName(data)));
-        var ocr = new Run(tesseract, tessdata, language.Code);
+        var ocr = new Run(tesseract, scratch, language.Code);
         progress?.Report(0.05);
 
         var output = step.Output.Allocate("pdf");
@@ -104,9 +104,11 @@ public sealed class TesseractConverter : IConverter
         }
         else
         {
-            var target = Path.Combine(scratch, "page");
-            await ocr.ToPdfAsync(step.InputPath, target, HasResolution(step.InputPath) ? null : Dpi, cancellationToken);
-            File.Move(target + ".pdf", output, overwrite: true);
+            // A copy with a plain name: the picture's own folder and name may not be readable for Tesseract (Run).
+            var picture = "picture" + Path.GetExtension(step.InputPath).ToLowerInvariant();
+            File.Copy(step.InputPath, Path.Combine(scratch, picture));
+            await ocr.ToPdfAsync(picture, "page", HasResolution(step.InputPath) ? null : Dpi, cancellationToken);
+            File.Move(Path.Combine(scratch, "page.pdf"), output, overwrite: true);
         }
         progress?.Report(1);
         return [output];
@@ -136,6 +138,8 @@ public sealed class TesseractConverter : IConverter
         using var free = new SemaphoreSlim(Runs);
         var runs = new List<Task>();
         var done = 0;
+        try
+        {
         foreach (var page in scans)
         {
             await free.WaitAsync(cancellationToken);
@@ -154,14 +158,13 @@ public sealed class TesseractConverter : IConverter
             catch
             {
                 free.Release();
-                await Task.WhenAll(runs).ContinueWith(_ => { }, TaskScheduler.Default); // let the running pages end first
                 throw;
             }
             runs.Add(Task.Run(async () =>
             {
                 try
                 {
-                    await ocr.ToPdfAsync(picture, Path.Combine(scratch, $"p{page}"), Dpi, cancellationToken);
+                    await ocr.ToPdfAsync($"p{page}.png", $"p{page}", Dpi, cancellationToken);
                     File.Delete(picture);
                     progress?.Report(0.05 + 0.9 * Interlocked.Increment(ref done) / scans.Count);
                 }
@@ -171,15 +174,25 @@ public sealed class TesseractConverter : IConverter
                 }
             }, cancellationToken));
         }
+        }
+        finally
+        {
+            // Rendering stopped (a failed page, a cancel): the running pages end before the work folder can go.
+            await Task.WhenAll(runs).ContinueWith(_ => { }, TaskScheduler.Default);
+        }
         await Task.WhenAll(runs);
 
-        // A new document: the pages and the document information come along, bookmarks and form fields don't.
+        // A new document: the pages and the document information come along (not when the preset removes metadata),
+        // bookmarks and form fields don't.
         using var source = PdfSharpConverter.Open(step.InputPath, PdfDocumentOpenMode.Import);
         using var result = new PdfDocument();
-        result.Info.Title = source.Info.Title;
-        result.Info.Author = source.Info.Author;
-        result.Info.Subject = source.Info.Subject;
-        result.Info.Keywords = source.Info.Keywords;
+        if (!step.Preset.Pdf.RemoveMetadata)
+        {
+            result.Info.Title = source.Info.Title;
+            result.Info.Author = source.Info.Author;
+            result.Info.Subject = source.Info.Subject;
+            result.Info.Keywords = source.Info.Keywords;
+        }
         var recognized = new List<PdfDocument>();
         try
         {
@@ -254,18 +267,22 @@ public sealed class TesseractConverter : IConverter
         }
     }
 
-    /// <summary>One language, one Tesseract.</summary>
-    private sealed record Run(string Executable, string Tessdata, string Language)
+    /// <summary>
+    /// One language, one Tesseract, working in <paramref name="Folder"/> (the job's scratch folder, with the language in
+    /// its <c>tessdata</c>). Tesseract only ever sees plain relative names there: some Windows builds of Tesseract and
+    /// Leptonica open files through the ANSI code page and fail on a user name or folder in Korean or Cyrillic.
+    /// </summary>
+    private sealed record Run(string Executable, string Folder, string Language)
     {
-        /// <summary>Writes <c>{outputBase}.pdf</c>.</summary>
+        /// <summary>Reads <paramref name="input"/> and writes <c>{outputBase}.pdf</c>, both names in <see cref="Folder"/>.</summary>
         public async Task ToPdfAsync(string input, string outputBase, int? dpi, CancellationToken cancellationToken)
         {
             // tessedit_create_pdf instead of the "pdf" config file, which lives in Tesseract's own tessdata folder.
-            List<string> args = [input, outputBase, "--tessdata-dir", Tessdata, "-l", Language, "-c", "tessedit_create_pdf=1"];
+            List<string> args = [input, outputBase, "--tessdata-dir", "tessdata", "-l", Language, "-c", "tessedit_create_pdf=1"];
             if (dpi is { } value)
                 args.AddRange(["--dpi", value.ToString(System.Globalization.CultureInfo.InvariantCulture)]);
-            var result = await ProcessRunner.RunAsync(Executable, args, Timeout, cancellationToken, environment: Environment);
-            if (result.ExitCode != 0 || !File.Exists(outputBase + ".pdf"))
+            var result = await ProcessRunner.RunAsync(Executable, args, Timeout, cancellationToken, workingDirectory: Folder, environment: Environment);
+            if (result.ExitCode != 0 || !File.Exists(Path.Combine(Folder, outputBase + ".pdf")))
                 throw new InvalidOperationException($"Tesseract failed (exit {result.ExitCode}). {result.StandardError.Trim()}");
         }
     }
