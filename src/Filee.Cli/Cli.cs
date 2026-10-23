@@ -156,7 +156,7 @@ internal static class Cli
         return file.State switch
         {
             FileState.Done => $"ok    {source} -> {string.Join(", ", file.Outputs.Select(Shorten))}"
-                + (file.NoticeKey is null ? "" : $" ({texts[file.NoticeKey]})")
+                + (file.NoticeKey is null ? "" : $" ({Notice(file, texts)})")
                 + (file.MissingFonts.Count == 0 ? "" : $" (missing fonts: {string.Join(", ", file.MissingFonts)})"),
             FileState.Skipped => $"skip  {source} (the output file already exists)",
             FileState.Cancelled => $"stop  {source} (cancelled)",
@@ -169,6 +169,8 @@ internal static class Cli
         var message = file.ErrorKey is null ? "conversion failed" : texts[file.ErrorKey];
         return string.IsNullOrWhiteSpace(file.ErrorDetail) ? message : $"{message} ({file.ErrorDetail})";
     }
+
+    private static string Notice(FileResult file, ILocalizer texts) => texts.Notice(file);
 
     /// <summary>Relative to the current folder when the file is inside it, else the full path.</summary>
     private static string Shorten(string path)
@@ -201,7 +203,7 @@ internal static class Cli
                 if (file.State is FileState.Failed or FileState.Cancelled)
                     json.WriteString("error", Error(file, texts));
                 else if (file.NoticeKey is not null)
-                    json.WriteString("notice", texts[file.NoticeKey]);
+                    json.WriteString("notice", Notice(file, texts));
                 if (file.MissingFonts.Count > 0)
                 {
                     json.WriteStartArray("missingFonts");
