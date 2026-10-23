@@ -55,7 +55,7 @@
       ฟอร์แมตที่เหมาะสมจะแสดงขึ้นตรงจุดที่คุณทำงานอยู่ โดยแสดงเฉพาะฟอร์แมตที่ใช้ได้กับไฟล์ที่คุณลากเท่านั้น
     </td>
     <td width="33%" valign="top">
-      <b>255 ฟอร์แมต โดยไม่ต้องลงโปรแกรมอื่นเพิ่ม</b><br>
+      <b>256 ฟอร์แมต โดยไม่ต้องลงโปรแกรมอื่นเพิ่ม</b><br>
       รูปภาพ, PDF, Word, Excel, PowerPoint, HWP, อีบุ๊ก, ไฟล์บีบอัด, ฟอนต์, CAD, โมเดล 3D และข้อมูลเชิงพื้นที่ ทำงานได้โดยไม่ต้องมี Microsoft Office, Hancom Office หรือ LibreOffice
     </td>
     <td width="33%" valign="top">
@@ -146,7 +146,7 @@ Set-ProcessMitigation -Name filee-cli.exe -Disable UserShadowStack
 
 | จาก | เป็น |
 |---|---|
-| **รูปภาพ**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …;<br>อ่าน GIMP XCF, RAW จากกล้อง (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, JPEG XR (Windows), iPhone Live Photo (LIVP) | แปลงเป็นฟอร์แมตใดก็ได้ข้างต้น (HEIC⁵), PDF, SVG (แปลงลายเส้น), ปรับขนาด, เกรย์สเกล;<br>Live/Motion Photos (iPhone, Android) → วิดีโอ (MP4, MOV⁵), และวิดีโอ → Live Photo (iPhone) หรือ Motion Photo (Android)⁵ (ทดลอง) |
+| **รูปภาพ**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …;<br>อ่าน GIMP XCF, RAW จากกล้อง (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, FITS, JPEG XR (Windows), iPhone Live Photo (LIVP) | แปลงเป็นฟอร์แมตใดก็ได้ข้างต้น (HEIC⁵), PDF, SVG (แปลงลายเส้น), ปรับขนาด, เกรย์สเกล;<br>Live/Motion Photos (iPhone, Android) → วิดีโอ (MP4, MOV⁵), และวิดีโอ → Live Photo (iPhone) หรือ Motion Photo (Android)⁵ (ทดลอง) |
 | **เวกเตอร์**: SVG, SVGZ, EMF, WMF, AI<br>EPS, PS¹<br>CDR, VSD, CGM, ODG, FODG² | PDF (เวกเตอร์), PNG และภาพอื่นๆ,<br>SVG ↔ SVGZ, SVG → DXF/DWG, PDF → EPS/PS¹, SVG → EMF, WMF, ODG² |
 | **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, PPTX (ภาพของแต่ละหน้า), SVG²;<br>รวมไฟล์ (เลือกลำดับได้), แยกหน้า, เลือกช่วงหน้า, บีบอัดลดขนาด |
 | **เอกสาร**: DOCX, DOCM, DOTX, EML, Outlook MSG;<br>อ่าน OFD (ใบกำกับภาษีอิเล็กทรอนิกส์)<br>DOC, ODT, FODT, OTT, RTF, WPS, WPD, Pages, ClarisWorks, MacWrite, T602, …² | PDF, DOCX, HWPX, EPUB, TXT, HTML;<br>MSG → EML<br>ODT, FODT, OTT² |

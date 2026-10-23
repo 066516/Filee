@@ -55,7 +55,7 @@
       いま作業している場所に、ドラッグ中のファイルに合う形式だけが表示されます。
     </td>
     <td width="33%" valign="top">
-      <b>255形式、ほかのソフトは不要</b><br>
+      <b>256形式、ほかのソフトは不要</b><br>
       画像、PDF、Word、Excel、PowerPoint、HWP、電子書籍、アーカイブ、フォント、CAD、3Dモデル、地理空間データを、Office、Hancom Office、LibreOfficeなしで変換できます。
     </td>
     <td width="33%" valign="top">
@@ -149,7 +149,7 @@ Set-ProcessMitigation -Name filee-cli.exe -Disable UserShadowStack
 
 | 変換元 | 変換先 |
 |---|---|
-| **画像**：JPG、PNG、WEBP、AVIF、TIFF、BMP、GIF、APNG、ICO、ICNS、JPEG XL、JPEG 2000、PSD/PSB、TGA、PPM、HEIC、QOI、DDS、PCX、MNG、CUR など。<br>GIMP XCF、カメラRAW（CR2、CR3、NEF、ARW、DNG など）、DICOM、OpenEXR、HDR、JPEG XR（Windows）、iPhoneのLive Photo（LIVP）は読み込みのみ | 上記の形式どうし（HEIC⁵）、PDF、SVG（トレース）、リサイズ、グレースケール。<br>Live Photo/モーションフォト（iPhone、Android）→ その動画（MP4、MOV⁵）、動画 → Live Photo（iPhone）またはモーションフォト（Android）⁵（試験的） |
+| **画像**：JPG、PNG、WEBP、AVIF、TIFF、BMP、GIF、APNG、ICO、ICNS、JPEG XL、JPEG 2000、PSD/PSB、TGA、PPM、HEIC、QOI、DDS、PCX、MNG、CUR など。<br>GIMP XCF、カメラRAW（CR2、CR3、NEF、ARW、DNG など）、DICOM、OpenEXR、HDR、FITS、JPEG XR（Windows）、iPhoneのLive Photo（LIVP）は読み込みのみ | 上記の形式どうし（HEIC⁵）、PDF、SVG（トレース）、リサイズ、グレースケール。<br>Live Photo/モーションフォト（iPhone、Android）→ その動画（MP4、MOV⁵）、動画 → Live Photo（iPhone）またはモーションフォト（Android）⁵（試験的） |
 | **ベクター画像**：SVG、SVGZ、EMF、WMF、AI<br>EPS、PS¹<br>CDR、VSD、CGM、ODG、FODG² | PDF（ベクター）、PNGなどの画像、<br>SVG ↔ SVGZ、SVG → DXF/DWG、PDF → EPS/PS¹、SVG → EMF、WMF、ODG² |
 | **PDF** | DOCX、HWPX、TXT、PNG、JPG、TIFF、CBZ、PPTX（各ページを1枚の画像として）、SVG²。<br>結合（先に順番を選べます）、分割、ページ範囲、圧縮（PDFを軽量化） |
 | **文書**：DOCX、DOCM、DOTX、EML、Outlook MSG。<br>OFD（中国の電子インボイス、公文書）は読み込みのみ<br>DOC、ODT、FODT、OTT、RTF、WPS、WPD、Pages、ClarisWorks、MacWrite、T602 など² | PDF、DOCX、HWPX、EPUB、TXT、HTML。<br>MSG → EML<br>ODT、FODT、OTT² |

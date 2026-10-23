@@ -55,7 +55,7 @@
       Форматы появляются там, где вы уже работаете, и только те, что подходят перетаскиваемым файлам.
     </td>
     <td width="33%" valign="top">
-      <b>255 форматов без лишних программ</b><br>
+      <b>256 форматов без лишних программ</b><br>
       Изображения, PDF, Word, Excel, PowerPoint, HWP, электронные книги, архивы, шрифты, чертежи CAD, 3D-модели и геоданные работают без Office, Hancom Office и LibreOffice.
     </td>
     <td width="33%" valign="top">
@@ -146,7 +146,7 @@ Set-ProcessMitigation -Name filee-cli.exe -Disable UserShadowStack
 
 | Из | В |
 |---|---|
-| **Изображения**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …;<br>GIMP XCF, RAW с камер (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, JPEG XR (Windows), Live Photo iPhone (LIVP) только чтение | любой из них (HEIC⁵), PDF, SVG (трассировка), изменение размера, оттенки серого;<br>Live/Motion Photo (iPhone, Android) → их видео (MP4, MOV⁵), а видео → Live Photo (iPhone) или Motion Photo (Android)⁵, экспериментально |
+| **Изображения**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …;<br>GIMP XCF, RAW с камер (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, FITS, JPEG XR (Windows), Live Photo iPhone (LIVP) только чтение | любой из них (HEIC⁵), PDF, SVG (трассировка), изменение размера, оттенки серого;<br>Live/Motion Photo (iPhone, Android) → их видео (MP4, MOV⁵), а видео → Live Photo (iPhone) или Motion Photo (Android)⁵, экспериментально |
 | **Векторная графика**: SVG, SVGZ, EMF, WMF, AI<br>EPS, PS¹<br>CDR, VSD, CGM, ODG, FODG² | PDF (векторный), PNG и другие изображения,<br>SVG ↔ SVGZ, SVG → DXF/DWG, PDF → EPS/PS¹, SVG → EMF, WMF, ODG² |
 | **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, PPTX (каждая страница картинкой), SVG²;<br>объединение (в выбранном заранее порядке), разделение, диапазоны страниц, сжатие (PDF меньше по размеру) |
 | **Документы**: DOCX, DOCM, DOTX, EML, Outlook MSG;<br>OFD (китайские электронные счета, официальные документы) только чтение<br>DOC, ODT, FODT, OTT, RTF, WPS, WPD, Pages, ClarisWorks, MacWrite, T602, …² | PDF, DOCX, HWPX, EPUB, TXT, HTML;<br>MSG → EML<br>ODT, FODT, OTT² |

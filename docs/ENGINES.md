@@ -5,7 +5,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 
 | Engine | How it gets there | Handles |
 |---|---|---|
-| ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, MNG, QOI, DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster, MIFF ↔ each other, and **APNG** (Filee's own reader and writer); HEIC (written with FFmpeg), XCF, camera RAW (LibRaw), DICOM (uncompressed ones by Filee's own reader), Photo CD, OpenEXR, Radiance HDR, EMF/WMF (Windows) and the photo of an iPhone LIVP read |
+| ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, MNG, QOI, DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster, MIFF ↔ each other, and **APNG** (Filee's own reader and writer); HEIC (written with FFmpeg), XCF, camera RAW (LibRaw), DICOM (uncompressed ones by Filee's own reader), **FITS** (Filee's own reader; TIFF at the file's own depth by Filee's own writer), Photo CD, OpenEXR, Radiance HDR, EMF/WMF (Windows) and the photo of an iPhone LIVP read |
 | Windows Imaging Component | part of Windows (Windows only) | **JPEG XR** (JXR, WDP, HDP; HDR screenshots of Windows) → the images ImageMagick writes, and PDF, ICNS, HEIC and SVG through PNG; HDR tone-mapped to SDR |
 | Vector graphics | built in (Svg.Skia, SkiaSharp, ACadSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, **SVG → DXF** (→ DWG with the CAD engine), **raster images → SVG (tracing)**, PDF-compatible AI → PDF, **HP-GL / HP-GL/2 plot files (PLT) → SVG**, PDF and images (pen moves, packed PE polylines, arcs and filled polygons; text labels are not drawn), **Tajima DST embroidery → SVG** (stitches as lines, a palette colour per thread; → PNG, JPG, PDF from there) |
 | ICNS | built in | images → ICNS (16–1024 px), ICNS → images |
@@ -227,6 +227,27 @@ pinned source in `build/build-linux-native.py` like rhwp (PR #113 did this for S
   slope / intercept and the file's first window (centre / width) like a viewer's default view, or are stretched over
   the file's range when there is no window, to 8 bits. Compressed pixel data (JPEG, JPEG-LS, JPEG 2000, RLE) is left to
   ImageMagick, which manages only 8-bit images; others fail with a message asking for an uncompressed export.
+- **FITS** (`.fits`, `.fts`, read only; `.fit` is left to Garmin's FIT). Astronomy pictures from telescope cameras,
+  capture and stacking programs. `Magick/Fits.cs` (written from the FITS 4.0 standard) reads the first HDU with a
+  picture, the primary one or the first IMAGE extension: 2880-byte blocks of 80-character cards, big-endian data,
+  BITPIX 8, 16, 32, 64, -32 and -64, physical values BZERO + BSCALE × stored (BLANK integers become undefined), a
+  cube of three planes as red, green and blue (other cubes give their first plane). The Bayer pattern comes from
+  `BAYERPAT` or `COLORTYP` (RGGB, BGGR, GRBG, GBRG) at the first stored pixel, shifted by `XBAYROFF` / `YBAYROFF`.
+  `ROWORDER = 'BOTTOM-UP'` turns the picture upright; without it rows are taken top-down, as capture programs write
+  them. Tile-compressed files (fpack, a BINTABLE with `ZIMAGE = T`) fail with a message asking to `funpack` them.
+  - **PNG, JPG and every other target** (`FitsRendering`): stretched automatically like a capture program's preview.
+    The values are scaled to 0–1 over their range; per channel, the shadows are clipped 2.8 normalized MADs
+    (1.4826 × the median absolute deviation) below the median and a midtones transfer function takes the median to
+    0.2. A colour camera's mosaic is debayered first (bilinear: each missing colour is the average of the neighbours of
+    that colour) unless the preset's *Debayer FITS from a colour camera* is off (`ImageOptions.FitsDebayer`); its
+    channels are stretched one by one, so the sky comes out neutral. 8 bits per channel, then ImageMagick as usual.
+  - **TIFF** (`TiffWriter`, as the Q8 build stores 8 bits): *Linear* (the data as it is, the default) or *Stretched*
+    (`ImageOptions.FitsTiff`), at the file's own depth: 8-bit and 16-bit data stay so when they are whole numbers in
+    range (unsigned 16-bit through BZERO 32768 included); 32-bit integers, floating point and signed or scaled values
+    that don't fit become 32-bit floating point. Never debayered, so another program can still debayer the mosaic.
+    Uncompressed, LZW or Deflate as the preset's TIFF compression says (integers with the horizontal predictor);
+    turning and mirroring apply, resizing and the other picture options don't. FITS → TIFF costs a little more than
+    other edges, so other formats are reached through a stretched picture, never through the linear TIFF.
 - **Fujifilm HEIF** (`.hif`) is read as HEIC.
 - **Rotate and flip** happen after the EXIF orientation is applied, in the one step of a route that turns images
   (`IImageTransformer`). There is no lossless JPEG rotation: a turned JPEG is re-encoded, at its own estimated quality
