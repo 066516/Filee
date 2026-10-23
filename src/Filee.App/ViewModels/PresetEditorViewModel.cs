@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Filee.Core.Formats;
 using Filee.Core.Localization;
 using Filee.Core.Presets;
+using Filee.Engines.Ocr;
 
 namespace Filee.App.ViewModels;
 
@@ -81,6 +82,11 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         Flips = Enum.GetValues<ImageFlip>().Select(v => new Choice<ImageFlip>(v, loc[$"presets.flip.{v}"])).ToList();
         PageSizes = Enum.GetValues<PdfPageSize>().Select(v => new Choice<PdfPageSize>(v, loc[$"presets.page_size.{v}"])).ToList();
         CompressionLevels = Enum.GetValues<PdfCompression>().Select(v => new Choice<PdfCompression>(v, loc[$"presets.pdf_compression.{v}"])).ToList();
+        // Each language under its own name; one not downloaded yet shows its size (it downloads with the first file).
+        OcrLanguageChoices = [.. OcrLanguages.All
+            .OrderBy(l => l.Code != OcrLanguages.Default).ThenBy(l => l.NativeName, StringComparer.CurrentCulture)
+            .Select(l => new Choice<string>(l.Code, l.NativeName,
+                OcrLanguages.IsInstalled(l.Code) ? null : loc.Format("presets.ocr_language_size", $"{l.Size / 1_000_000.0:0.#} MB")))];
         Locations = Enum.GetValues<OutputLocation>().Select(v => new Choice<OutputLocation>(v, loc[$"presets.location.{v}"])).ToList();
         Conflicts = Enum.GetValues<ConflictPolicy>().Select(v => new Choice<ConflictPolicy>(v, loc[$"presets.conflict.{v}"])).ToList();
         TiffCompressions = Enum.GetValues<TiffCompression>().Select(v => new Choice<TiffCompression>(v, v.ToString().ToUpperInvariant())).ToList();
@@ -105,6 +111,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _pageSize = PageSizes.First(p => p.Value == _edit.Pdf.PageSize);
         _compressionLevel = CompressionLevels.FirstOrDefault(c => c.Value == _edit.Pdf.Compression) ?? CompressionLevels[0];
         _compressWithGhostscript = _edit.Pdf.CompressWithGhostscript;
+        _ocr = _edit.Pdf.Ocr;
+        _ocrLanguage = OcrLanguageChoices.FirstOrDefault(l => l.Value == _edit.Pdf.OcrLanguage) ?? OcrLanguageChoices[0];
         _location = Locations.First(l => l.Value == _edit.Output.Location);
         _conflict = Conflicts.First(c => c.Value == _edit.Output.Conflict);
         _tiffCompression = TiffCompressions.First(t => t.Value == _edit.Image.TiffCompression);
@@ -180,6 +188,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public IReadOnlyList<Choice<ImageFlip>> Flips { get; }
     public IReadOnlyList<Choice<PdfPageSize>> PageSizes { get; }
 
+    /// <summary>Languages Tesseract reads (PdfOptions.OcrLanguage), English first.</summary>
+    public IReadOnlyList<Choice<string>> OcrLanguageChoices { get; }
+
     /// <summary>PDF → PDF: don't compress, or the level (pictures at 72, 150 or 300 dpi).</summary>
     public IReadOnlyList<Choice<PdfCompression>> CompressionLevels { get; }
     public IReadOnlyList<Choice<OutputLocation>> Locations { get; }
@@ -203,7 +214,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowImage), nameof(ShowTurnForPdf), nameof(ShowQuality), nameof(ShowTiff), nameof(ShowMultiPageTiff), nameof(ShowWebp), nameof(ShowIco),
         nameof(ShowZipResult), nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowLeaveOutPictures), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
-        nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions), nameof(ShowPdfTablesNote),
+        nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions), nameof(ShowOcr), nameof(ShowPageSize), nameof(ShowPdfTablesNote),
         nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec), nameof(ShowHardwareEncoding),
         nameof(AudioCodecs), nameof(AudioCodecChoice), nameof(ShowAudioCodec),
@@ -388,6 +399,18 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty] private bool _compressWithGhostscript;
 
+    /// <summary>Recognize the text of scans and pictures (PdfOptions.Ocr), in <see cref="OcrLanguage"/>.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowPdfSplit), nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions), nameof(ShowPageSize))]
+    private bool _ocr;
+
+    /// <summary>
+    /// Text recognition makes the PDF itself (Tesseract): one file with each page the size of its scan or picture, so one
+    /// file per page, compression (and with it removing metadata), page size and margin don't apply and are hidden.
+    /// </summary>
+    private bool Recognizes => ShowOcr && Ocr;
+    [ObservableProperty] private Choice<string> _ocrLanguage;
+
     /// <summary>PDF → image: one tall image of all pages.</summary>
     [ObservableProperty] private bool _combinePages;
     [ObservableProperty] private bool _trimPageMargins;
@@ -493,14 +516,20 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     /// <summary>"Save as ZIP" is offered for geospatial targets, whose results are several files (a Shapefile) or travel zipped.</summary>
     public bool ShowZipResult => TargetCategory == FormatCategory.Geo;
     public bool ShowPdfBuild => TargetId == "pdf";
-    public bool ShowPdfSplit => TargetId == "pdf";
+
+    /// <summary>Page size and margin of a PDF built from pictures; not with text recognition (<see cref="Recognizes"/>).</summary>
+    public bool ShowPageSize => ShowPdfBuild && !Recognizes;
+    public bool ShowPdfSplit => TargetId == "pdf" && !Recognizes;
 
     /// <summary>Compression is for PDF → PDF; Ghostscript and metadata only matter while it is on.</summary>
-    public bool ShowPdfCompression => TargetId == "pdf";
+    public bool ShowPdfCompression => TargetId == "pdf" && !Recognizes;
 
     /// <summary>XLSX: what a PDF becomes (its ruled tables, PdfTablesConverter).</summary>
     public bool ShowPdfTablesNote => TargetId == "xlsx";
     public bool ShowPdfCompressionOptions => ShowPdfCompression && CompressionLevel.Value != PdfCompression.None;
+
+    /// <summary>Text from scans goes into the formats Filee writes from a PDF's text itself (PdfOptions.OcrTargets).</summary>
+    public bool ShowOcr => !IsTool && PdfOptions.OcrTargets.Contains(TargetId);
 
     /// <summary>PDF → a single-image format: the pages can be stacked into one tall image (TIFF, GIF, APNG and MNG keep pages).</summary>
     public bool ShowPdfCombine => TargetCategory == FormatCategory.Image
@@ -608,6 +637,18 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         pdf.SplitTallImage = SplitTallImage;
         pdf.Compression = CompressionLevel.Value;
         pdf.CompressWithGhostscript = CompressWithGhostscript;
+        // Only where the option is shown, as with SaveEveryFrame below.
+        pdf.Ocr = Recognizes;
+        pdf.OcrLanguage = OcrLanguage.Value;
+        if (pdf.Ocr)
+        {
+            // Hidden while text is recognized, so nothing is kept behind it that the PDF wouldn't do (Recognizes).
+            pdf.SplitPages = false;
+            pdf.Compression = PdfCompression.None;
+            pdf.CompressWithGhostscript = false;
+            pdf.PageSize = PdfPageSize.FitImage;
+            pdf.MarginMm = 0;
+        }
         _original.Document.PdfA = PdfA;
         // Only where the option is shown, as with SaveEveryFrame below.
         _original.Document.LeaveOutPictures = ShowLeaveOutPictures && LeaveOutPictures;
