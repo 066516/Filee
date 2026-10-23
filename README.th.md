@@ -30,13 +30,38 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: คลัง C# อันดับ 1 ประจำวันบน Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a> · <b>ไทย</b></p>
+<p align="center">
+  <a href="README.md">English</a> ·
+  <a href="README.es.md">Español</a> ·
+  <a href="README.ja.md">日本語</a> ·
+  <a href="README.ko.md">한국어</a> ·
+  <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="README.zh-TW.md">繁體中文</a> ·
+  <a href="README.pl.md">Polski</a> ·
+  <a href="README.hi.md">हिन्दी</a> ·
+  <a href="README.ru.md">Русский</a> ·
+  <a href="README.ar.md">العربية</a> ·
+  <a href="README.pt-BR.md">Português (Brasil)</a> ·
+  <a href="README.fr.md">Français</a> ·
+  <b>ไทย</b>
+</p>
 
 <table>
   <tr>
-    <td width="33%" valign="top"><b>ปรากฏตรงตำแหน่งเคอร์เซอร์</b><br>ไม่ต้องเปิดหน้าต่างแอป ฟอร์แมตที่เหมาะสมจะแสดงขึ้นตรงจุดที่คุณทำงานอยู่ โดยแสดงเฉพาะฟอร์แมตที่ใช้ได้กับไฟล์ที่คุณลากเท่านั้น</td>
-    <td width="33%" valign="top"><b>255 ฟอร์แมต โดยไม่ต้องลงโปรแกรมอื่นเพิ่ม</b><br>รูปภาพ, PDF, Word, Excel, PowerPoint, HWP, อีบุ๊ก, ไฟล์บีบอัด, ฟอนต์, CAD, โมเดล 3D และข้อมูลเชิงพื้นที่ ทำงานได้โดยไม่ต้องมี Microsoft Office, Hancom Office หรือ LibreOffice</td>
-    <td width="33%" valign="top"><b>ประมวลผลในเครื่องของคุณอย่างปลอดภัย</b><br>ไม่มีการอัปโหลดไฟล์ขึ้นเซิร์ฟเวอร์ Filee ทำงานแบบออฟไลน์ และบันทึกผลลัพธ์ไว้ข้างไฟล์ต้นฉบับในเครื่องของคุณ</td>
+    <td width="33%" valign="top">
+      <b>ปรากฏตรงตำแหน่งเคอร์เซอร์</b><br>
+      ไม่ต้องเปิดหน้าต่างแอป
+      ฟอร์แมตที่เหมาะสมจะแสดงขึ้นตรงจุดที่คุณทำงานอยู่ โดยแสดงเฉพาะฟอร์แมตที่ใช้ได้กับไฟล์ที่คุณลากเท่านั้น
+    </td>
+    <td width="33%" valign="top">
+      <b>255 ฟอร์แมต โดยไม่ต้องลงโปรแกรมอื่นเพิ่ม</b><br>
+      รูปภาพ, PDF, Word, Excel, PowerPoint, HWP, อีบุ๊ก, ไฟล์บีบอัด, ฟอนต์, CAD, โมเดล 3D และข้อมูลเชิงพื้นที่ ทำงานได้โดยไม่ต้องมี Microsoft Office, Hancom Office หรือ LibreOffice
+    </td>
+    <td width="33%" valign="top">
+      <b>ประมวลผลในเครื่องของคุณอย่างปลอดภัย</b><br>
+      ไม่มีการอัปโหลดไฟล์ขึ้นเซิร์ฟเวอร์
+      Filee ทำงานแบบออฟไลน์ และบันทึกผลลัพธ์ไว้ข้างไฟล์ต้นฉบับในเครื่องของคุณ
+    </td>
   </tr>
 </table>
 
@@ -51,27 +76,41 @@
 
 ดาวน์โหลดจากหน้า [Releases](https://github.com/KnifeLemon/Filee/releases/latest)
 
-- **Windows 10/11**: รัน `Filee-<version>-win-Setup.exe` หรือแตกไฟล์ `win-Portable.zip` แล้วเปิด `Filee.exe`<br>
-  ตัวติดตั้ง Setup เป็นของ Filee เอง มีเมนูภาษาไทย และไม่ต้องติดตั้งโปรแกรมเสริมใดๆ สามารถเพิ่มลงในเมนูคลิกขวาของ Explorer, ตั้งให้เปิดพร้อมระบบ, เพิ่มคำสั่ง `filee` และดาวน์โหลดเครื่องมือแปลงไฟล์เพิ่มเติมได้ รองรับการติดตั้งแบบเงียบด้วยพารามิเตอร์ของ Inno Setup (`/VERYSILENT /SUPPRESSMSGBOXES`)
-- **macOS 13+** (รุ่นพรีวิว): แตกแพ็กเกจ `osx-arm64` หรือ `osx-x64` แล้วรัน `./install.sh` หรือเปิดไฟล์ `.dmg` แล้วลาก Filee ไปไว้ใน Applications (คำสั่ง `filee` มาพร้อมกับ `install.sh`)<br>
-  เนื่องจากบิลด์ยังไม่ได้รับการรับรอง (notarized) ให้เปิดครั้งแรกผ่าน การตั้งค่าระบบ → ความเป็นส่วนตัวและความปลอดภัย → **Open Anyway**
-- **Linux x64/ARM64** (Ubuntu 22.04+): แตกแพ็กเกจแล้วรัน `./install.sh` (ไม่ต้องใช้ root, ต้องการเพียง Python 3)<br>
-  ท่าทางการลากต้องใช้ X11 ส่วนบน Wayland สามารถใช้งานผ่านพื้นที่วางไฟล์และเมนูคลิกขวาของโปรแกรมจัดการไฟล์
+- **Windows 10/11**: รัน `Filee-<version>-win-Setup.exe` หรือแตกไฟล์ `win-Portable.zip` แล้วเปิด `Filee.exe`
+  - ตัวติดตั้ง Setup เป็นของ Filee เอง มีเมนูภาษาไทย และไม่ต้องติดตั้งโปรแกรมเสริมใดๆ
+  - สามารถเพิ่มลงในเมนูคลิกขวาของ Explorer, ตั้งให้เปิดพร้อมระบบ, เพิ่มคำสั่ง `filee` และดาวน์โหลดเครื่องมือแปลงไฟล์เพิ่มเติมได้
+  - รองรับการติดตั้งแบบเงียบด้วยพารามิเตอร์ของ Inno Setup (`/VERYSILENT /SUPPRESSMSGBOXES`)
+- **macOS 13+** (รุ่นพรีวิว): แตกแพ็กเกจ `osx-arm64` หรือ `osx-x64` แล้วรัน `./install.sh`
+  - หรือเปิดไฟล์ `.dmg` แล้วลาก Filee ไปไว้ใน Applications (คำสั่ง `filee` มาพร้อมกับ `install.sh`)
+  - เนื่องจากบิลด์ยังไม่ได้รับการรับรอง (notarized) ให้เปิดครั้งแรกผ่าน การตั้งค่าระบบ → ความเป็นส่วนตัวและความปลอดภัย → **Open Anyway**
+- **Linux x64/ARM64** (Ubuntu 22.04+): แตกแพ็กเกจแล้วรัน `./install.sh` (ไม่ต้องใช้ root, ต้องการเพียง Python 3)
+  - ท่าทางการลากต้องใช้ X11
+    ส่วนบน Wayland สามารถใช้งานผ่านพื้นที่วางไฟล์และเมนูคลิกขวาของโปรแกรมจัดการไฟล์
 
-Filee จะแจ้งเตือนเมื่อมีเวอร์ชันใหม่และสามารถอัปเดตตัวเองได้ โดยยังคงการตั้งค่าและเครื่องมือแปลงไฟล์ทั้งหมดไว้ หลังการอัปเดตจะมีสไลด์สรุปฟีเจอร์ใหม่สั้นๆ ให้ดู
+Filee จะแจ้งเตือนเมื่อมีเวอร์ชันใหม่และสามารถอัปเดตตัวเองได้ โดยยังคงการตั้งค่าและเครื่องมือแปลงไฟล์ทั้งหมดไว้
+หลังการอัปเดตจะมีสไลด์สรุปฟีเจอร์ใหม่สั้นๆ ให้ดู
 
 ## ฟีเจอร์เด่น
 
-- **แถบโดนัทตรงเคอร์เซอร์**: กดปุ่มค้างไว้ ลากไฟล์ และปล่อยลงบนฟอร์แมตที่ต้องการ โดยจะแสดงเฉพาะฟอร์แมตที่เข้ากับไฟล์ของคุณ
-- **ลากไฟล์จากเบราว์เซอร์ได้ทันที**: ลากรูปภาพ ลิงก์ไฟล์ หรือรายการดาวน์โหลดออกจาก Chrome, Edge, Firefox หรือ Safari ในรูปแบบเดียวกัน Filee จะบันทึกไฟล์ไว้ในโฟลเดอร์ดาวน์โหลด (หรือเก็บไว้เฉพาะไฟล์ที่แปลงแล้ว) และแปลงให้ทันที ลิงก์จะถูกดาวน์โหลดโดยไม่ใช้การลงชื่อเข้าใช้ของเบราว์เซอร์
-- **แยกแถบเครื่องมือตามประเภทไฟล์**: จัดเรียงได้อิสระด้วยการลากวาง พร้อมพรีเซ็ตสำหรับคุณภาพ, ขนาด, DPI, การแยกหน้าและบีบอัด PDF, วิดีโอและเสียง, โฟลเดอร์ปลายทาง และการตั้งชื่อไฟล์
+- **แถบโดนัทตรงเคอร์เซอร์**: กดปุ่มค้างไว้ ลากไฟล์ และปล่อยลงบนฟอร์แมตที่ต้องการ
+  โดยจะแสดงเฉพาะฟอร์แมตที่เข้ากับไฟล์ของคุณ
+- **ลากไฟล์จากเบราว์เซอร์ได้ทันที**: ลากรูปภาพ ลิงก์ไฟล์ หรือรายการดาวน์โหลดออกจาก Chrome, Edge, Firefox หรือ Safari ในรูปแบบเดียวกัน
+  - Filee จะบันทึกไฟล์ไว้ในโฟลเดอร์ดาวน์โหลด (หรือเก็บไว้เฉพาะไฟล์ที่แปลงแล้ว) และแปลงให้ทันที
+  - ลิงก์จะถูกดาวน์โหลดโดยไม่ใช้การลงชื่อเข้าใช้ของเบราว์เซอร์
+- **แยกแถบเครื่องมือตามประเภทไฟล์**: จัดเรียงได้อิสระด้วยการลากวาง พร้อมพรีเซ็ตสำหรับ:
+  - คุณภาพ, ขนาด, DPI
+  - การแยกหน้าและบีบอัด PDF
+  - วิดีโอและเสียง
+  - โฟลเดอร์ปลายทาง และการตั้งชื่อไฟล์
 - **โดนัทมีสองด้าน**: กด <kbd>Tab</kbd> หรือหมุนล้อเมาส์ขณะโดนัทเปิดอยู่ เพื่อพลิกไปใช้ฟอร์แมตและเครื่องมืออื่นๆ ที่ด้านหลัง
-- **ครอบตัดก่อนแปลง**: ชิ้นส่วน 'ครอบตัด' จะเปิดรูปภาพขึ้นมาทีละรูป ให้คุณลากกรอบ ปรับสัดส่วน แล้วบันทึกเฉพาะส่วนที่ต้องการ
+- **ครอบตัดก่อนแปลง**: ชิ้นส่วน 'ครอบตัด' จะเปิดรูปภาพขึ้นมาทีละรูป
+  ให้คุณลากกรอบ ปรับสัดส่วน แล้วบันทึกเฉพาะส่วนที่ต้องการ
 - **แปลงหลายไฟล์พร้อมกันแบบขนาน**: เส้นทางการแปลงที่ต้องผ่านหลายขั้นตอน (เช่น HWP → HWPX → DOCX) จะทำงานโดยอัตโนมัติ
 - **โฟลเดอร์เฝ้าติดตาม (Watch folders)**: แปลงไฟล์ทุกไฟล์ที่ถูกเพิ่มเข้ามาในโฟลเดอร์โดยอัตโนมัติ
 - **ประวัติการแปลงล่าสุด**: แสดงในหน้าแรกพร้อมรูปตัวอย่าง เปิดดูผลลัพธ์หรือเปิดด้วยแอปอื่นได้ทันที
 - **ช่องทางอื่นในการแปลง**: เมนูคลิกขวา, ปุ่มลัดแป้นพิมพ์, พื้นที่วางไฟล์ในหน้าแรก และคำสั่ง [`filee`](#การใช้งานผ่านบรรทัดคำสั่ง-command-line)
-- รองรับธีมสว่างและมืด ปรับสีเน้น (accent colour) และความโปร่งใสของโดนัทได้ตามใจ รองรับภาษา English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (จากขวาไปซ้าย), Português (Brasil), Français, नेपाली และไทย
+- รองรับธีมสว่างและมืด ปรับสีเน้น (accent colour) และความโปร่งใสของโดนัทได้ตามใจ
+  รองรับภาษา English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (จากขวาไปซ้าย), Português (Brasil), Français, नेपाली และไทย
 
 ## ภาพหน้าจอ
 
@@ -90,24 +129,24 @@ Filee จะแจ้งเตือนเมื่อมีเวอร์ช�
 
 | จาก | เป็น |
 |---|---|
-| **รูปภาพ**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …; อ่าน GIMP XCF, RAW จากกล้อง (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, JPEG XR (Windows), iPhone Live Photo (LIVP) | แปลงเป็นฟอร์แมตใดก็ได้ข้างต้น (HEIC⁵), PDF, SVG (แปลงลายเส้น), ปรับขนาด, เกรย์สเกล; Live/Motion Photos (iPhone, Android) → วิดีโอ (MP4, MOV⁵), และวิดีโอ → Live Photo (iPhone) หรือ Motion Photo (Android)⁵ (ทดลอง) |
-| **เวกเตอร์**: SVG, SVGZ, EMF, WMF, AI · EPS, PS¹ · CDR, VSD, CGM, ODG, FODG² | PDF (เวกเตอร์), PNG และภาพอื่นๆ, SVG ↔ SVGZ, SVG → DXF/DWG, PDF → EPS/PS¹, SVG → EMF, WMF, ODG² |
-| **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, PPTX (ภาพของแต่ละหน้า), SVG²; รวมไฟล์ (เลือกลำดับได้), แยกหน้า, เลือกช่วงหน้า, บีบอัดลดขนาด |
-| **เอกสาร**: DOCX, DOCM, DOTX, EML, Outlook MSG; อ่าน OFD (ใบกำกับภาษีอิเล็กทรอนิกส์) · DOC, ODT, FODT, OTT, RTF, WPS, WPD, Pages, ClarisWorks, MacWrite, T602, …² | PDF, DOCX, HWPX, EPUB, TXT, HTML; MSG → EML · ODT, FODT, OTT² |
-| **สเปรดชีต**: XLSX, XLSM, XLS, XLT, ODS, CSV, TSV · OTS, FODS, Numbers, ET² | PDF, XLSX, ODS, CSV, TSV, JSON, HWPX, HTML · XLT, OTS² |
-| **งานนำเสนอ**: PPTX, PPTM, POTX, POTM, PPSX · PPT, ODP, OTP, FODP, Keynote² | PDF, PNG, JPG, DOCX, HWPX · OTP² |
+| **รูปภาพ**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …;<br>อ่าน GIMP XCF, RAW จากกล้อง (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, JPEG XR (Windows), iPhone Live Photo (LIVP) | แปลงเป็นฟอร์แมตใดก็ได้ข้างต้น (HEIC⁵), PDF, SVG (แปลงลายเส้น), ปรับขนาด, เกรย์สเกล;<br>Live/Motion Photos (iPhone, Android) → วิดีโอ (MP4, MOV⁵), และวิดีโอ → Live Photo (iPhone) หรือ Motion Photo (Android)⁵ (ทดลอง) |
+| **เวกเตอร์**: SVG, SVGZ, EMF, WMF, AI<br>EPS, PS¹<br>CDR, VSD, CGM, ODG, FODG² | PDF (เวกเตอร์), PNG และภาพอื่นๆ,<br>SVG ↔ SVGZ, SVG → DXF/DWG, PDF → EPS/PS¹, SVG → EMF, WMF, ODG² |
+| **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, PPTX (ภาพของแต่ละหน้า), SVG²;<br>รวมไฟล์ (เลือกลำดับได้), แยกหน้า, เลือกช่วงหน้า, บีบอัดลดขนาด |
+| **เอกสาร**: DOCX, DOCM, DOTX, EML, Outlook MSG;<br>อ่าน OFD (ใบกำกับภาษีอิเล็กทรอนิกส์)<br>DOC, ODT, FODT, OTT, RTF, WPS, WPD, Pages, ClarisWorks, MacWrite, T602, …² | PDF, DOCX, HWPX, EPUB, TXT, HTML;<br>MSG → EML<br>ODT, FODT, OTT² |
+| **สเปรดชีต**: XLSX, XLSM, XLS, XLT, ODS, CSV, TSV<br>OTS, FODS, Numbers, ET² | PDF, XLSX, ODS, CSV, TSV, JSON, HWPX, HTML<br>XLT, OTS² |
+| **งานนำเสนอ**: PPTX, PPTM, POTX, POTM, PPSX<br>PPT, ODP, OTP, FODP, Keynote² | PDF, PNG, JPG, DOCX, HWPX<br>OTP² |
 | **HWP**: HWP, HWPX | PDF, PNG, DOCX, HWPX ↔ HWP, TXT, Markdown, HTML |
-| **ข้อความ**: TXT, LOG, โค้ดสคริปต์ (PY, PAC, BAT, COMMAND; อ่านอย่างเดียว ไม่มีการรันสคริปต์), Markdown, HTML; อ่าน MHTML · reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML³ | UTF-8 TXT, PDF, DOCX, HWPX, EPUB · แปลงสลับกันได้, สไลด์ PPTX³ |
-| **อีบุ๊ก**: EPUB, KEPUB, MOBI, AZW3, AZW, AZW4, FB2, CBZ, CBR, CB7, HTMLZ, TXTZ · LIT, LRF, CHM, PDB, …⁴ | PDF, EPUB, KEPUB (Kobo), DOCX, TXT, HTML, HWPX · MOBI, AZW3⁴ |
-| **วิดีโอ**⁵: MP4, MOV, MKV, WEBM, AVI, WMV, FLV, MPEG, Video CD (DAT), TS, M2TS, 3GP, OGV, VOB, … | MP4 (H.264, HEVC, AV1), WEBM, MOV, MKV, AVI, GIF, APNG, MP3, M4A, 720p, คำบรรยาย (SRT, ASS, WebVTT) |
+| **ข้อความ**: TXT, LOG, โค้ดสคริปต์ (PY, PAC, BAT, COMMAND; อ่านอย่างเดียว ไม่มีการรันสคริปต์), Markdown, HTML;<br>อ่าน MHTML<br>reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML³ | UTF-8 TXT, PDF, DOCX, HWPX, EPUB<br>แปลงสลับกันได้, สไลด์ PPTX³ |
+| **อีบุ๊ก**: EPUB, KEPUB, MOBI, AZW3, AZW, AZW4, FB2, CBZ, CBR, CB7, HTMLZ, TXTZ<br>LIT, LRF, CHM, PDB, …⁴ | PDF, EPUB, KEPUB (Kobo), DOCX, TXT, HTML, HWPX<br>MOBI, AZW3⁴ |
+| **วิดีโอ**⁵: MP4, MOV, MKV, WEBM, AVI, WMV, FLV, MPEG, Video CD (DAT), TS, M2TS, 3GP, OGV, VOB, … | MP4 (H.264, HEVC, AV1), WEBM, MOV, MKV, AVI, GIF, APNG, MP3, M4A, 720p,<br>คำบรรยาย (SRT, ASS, WebVTT) |
 | **เสียง**⁵: MP3, M4A, AAC, WAV, FLAC, OGG, OPUS, WMA, AIFF, AMR, APE, WavPack, TTA, DSD (DSF, DFF), DTS, AC3, E-AC3, … | MP3, M4A (AAC, ALAC), WAV, FLAC, OGG, OPUS, AAC, WavPack, TTA, W64, AC3, E-AC3 |
 | **คำบรรยาย**: SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD, SCC | แปลงสลับกันเป็น UTF-8 (อ่านไฟล์ SMI/SRT เกาหลีรหัส CP949 ได้ถูกต้อง) |
-| **ไฟล์บีบอัด**: ZIP, ANSYS Workbench (WBPZ), 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG, … | แตกไฟล์, บีบอัดเป็น ZIP, 7Z, TAR, TAR.GZ; รวมทุกไฟล์เป็นหนึ่ง ZIP |
+| **ไฟล์บีบอัด**: ZIP, ANSYS Workbench (WBPZ), 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG, … | แตกไฟล์, บีบอัดเป็น ZIP, 7Z, TAR, TAR.GZ;<br>รวมทุกไฟล์เป็นหนึ่ง ZIP |
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **ฟอนต์**: TTF, OTF, WOFF, WOFF2, EOT | แปลงสลับกันได้ |
-| **ข้อมูล**: JSON, JSON Lines, YAML, TOML, XML · vCard, iCalendar | แปลงสลับกันได้, CSV และ XLSX (ตาราง); vCard, iCalendar ↔ CSV |
-| **โมเดล 3D**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY; อ่าน FBX | แปลงสลับกันได้, แสดงภาพตัวอย่าง PNG |
-| **ข้อมูลเวกเตอร์เชิงพื้นที่**: Shapefile, GeoJSON, KML, KMZ, GPX · CSV พร้อมพิกัด | แปลงสลับกันได้ และเป็น CSV / XLSX / JSON โดยพิกัดโปรเจกชัน (UTM, Web Mercator, Lambert, Albers) จะถูกแปลงเป็น WGS 84 ลองจิจูด/ละติจูด |
+| **ข้อมูล**: JSON, JSON Lines, YAML, TOML, XML<br>vCard, iCalendar | แปลงสลับกันได้, CSV และ XLSX (ตาราง);<br>vCard, iCalendar ↔ CSV |
+| **โมเดล 3D**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY;<br>อ่าน FBX | แปลงสลับกันได้, แสดงภาพตัวอย่าง PNG |
+| **ข้อมูลเวกเตอร์เชิงพื้นที่**: Shapefile, GeoJSON, KML, KMZ, GPX<br>CSV พร้อมพิกัด | แปลงสลับกันได้ และเป็น CSV / XLSX / JSON<br>โดยพิกัดโปรเจกชัน (UTM, Web Mercator, Lambert, Albers) จะถูกแปลงเป็น WGS 84 ลองจิจูด/ละติจูด |
 
 ฟอร์แมตที่ไม่มีเครื่องหมายสามารถใช้งานได้ทันทีโดยไม่ต้องติดตั้งซอฟต์แวร์เสริม<br>
 ฟอร์แมตที่มีเครื่องหมายกำกับต้องการเครื่องมือเสริม ซึ่งจะดาวน์โหลดเมื่อจำเป็นเท่านั้น: ¹ Ghostscript, ² LibreOffice, ³ Pandoc, ⁴ calibre, ⁵ FFmpeg (ดู [รายละเอียด](docs/ENGINES.md))
@@ -138,19 +177,24 @@ dotnet test
 
 ดูเพิ่มเติม: [สถาปัตยกรรม (Architecture)](docs/ARCHITECTURE.md) · [เครื่องมือแปลงไฟล์ (Engines)](docs/ENGINES.md) · [การเพิ่มตัวแปลงไฟล์ (Adding a converter)](docs/ADDING-A-CONVERTER.md) · [การเพิ่มภาษา (Adding a language)](docs/ADDING-A-LANGUAGE.md) · [การมีส่วนร่วม (Contributing)](CONTRIBUTING.md)
 
-ยินดีรับ Pull Request เสมอ! หาก Filee ช่วยประหยัดเวลาของคุณ การกด ⭐ ให้กับโครงการจะช่วยให้ผู้อื่นค้นพบได้ง่ายขึ้น
+ยินดีรับ Pull Request เสมอ!
+หาก Filee ช่วยประหยัดเวลาของคุณ การกด ⭐ ให้กับโครงการจะช่วยให้ผู้อื่นค้นพบได้ง่ายขึ้น
 
 ## นโยบายการลงนามรหัส (Code signing)
 
 Filee พัฒนาและเผยแพร่โดย **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon))
 
-เวอร์ชัน Windows ได้รับการลงนามด้วยใบรับรอง Open Source Code Signing จาก [Certum](https://www.certum.eu/) ที่ออกให้แก่ Myeonggu Kim ("Open Source Developer MYEONGGU KIM") สำหรับเวอร์ชันก่อนหน้านั้น (จนถึง 2.0.0) จะไม่มีการลงนาม SmartScreen อาจแจ้งเตือนในเวอร์ชันใหม่จนกว่าจะมียอดดาวน์โหลดเพียงพอ (เลือก "More info" → "Run anyway") ส่วนแพ็กเกจบน macOS จะเป็นการลงนามแบบ ad-hoc และยังไม่ได้รับการรับรอง (notarized)
-
-เฉพาะไฟล์ที่บิลด์ด้วยเวิร์กโฟลว์รีลีสของ GitHub Actions ในคลังนี้เท่านั้นที่ได้รับการลงนาม และทุกรีลีสจะถูกลงนามและอนุมัติด้วยตนเอง ไลบรารีและโปรแกรมที่ผู้พัฒนาลงนามไว้แล้ว (.NET, SkiaSharp, ImageMagick, Microsoft C++ runtime …) จะคงลายเซ็นเดิมไว้ ส่วนองค์ประกอบที่รวมมาโดยไม่มีลายเซ็น (rhwp, 7-Zip และไลบรารีส่วนใหญ่) จะถูกลงนามด้วยใบรับรองของ Filee ในฐานะส่วนหนึ่งของ Filee
+- เวอร์ชัน Windows ได้รับการลงนามด้วยใบรับรอง Open Source Code Signing จาก [Certum](https://www.certum.eu/) ที่ออกให้แก่ Myeonggu Kim ("Open Source Developer MYEONGGU KIM")
+  - สำหรับเวอร์ชันก่อนหน้านั้น (จนถึง 2.0.0) จะไม่มีการลงนาม
+  - SmartScreen อาจแจ้งเตือนในเวอร์ชันใหม่จนกว่าจะมียอดดาวน์โหลดเพียงพอ (เลือก "More info" → "Run anyway")
+- ส่วนแพ็กเกจบน macOS จะเป็นการลงนามแบบ ad-hoc และยังไม่ได้รับการรับรอง (notarized)
+- เฉพาะไฟล์ที่บิลด์ด้วยเวิร์กโฟลว์รีลีสของ GitHub Actions ในคลังนี้เท่านั้นที่ได้รับการลงนาม และทุกรีลีสจะถูกลงนามและอนุมัติด้วยตนเอง
+  - ไลบรารีและโปรแกรมที่ผู้พัฒนาลงนามไว้แล้ว (.NET, SkiaSharp, ImageMagick, Microsoft C++ runtime …) จะคงลายเซ็นเดิมไว้ ส่วนองค์ประกอบที่รวมมาโดยไม่มีลายเซ็น (rhwp, 7-Zip และไลบรารีส่วนใหญ่) จะถูกลงนามด้วยใบรับรองของ Filee ในฐานะส่วนหนึ่งของ Filee
 
 ### นโยบายความเป็นส่วนตัว
 
-Filee ทำการแปลงไฟล์ภายในเครื่องของคุณเท่านั้น และไม่เคยอัปโหลดไฟล์ขึ้นอินเทอร์เน็ต ไม่มีการเก็บข้อมูลการใช้งานและไม่มี telemetry ใดๆ<br>
+Filee ทำการแปลงไฟล์ภายในเครื่องของคุณเท่านั้น และไม่เคยอัปโหลดไฟล์ขึ้นอินเทอร์เน็ต
+ไม่มีการเก็บข้อมูลการใช้งานและไม่มี telemetry ใดๆ<br>
 การเชื่อมต่ออินเทอร์เน็ตจะเกิดขึ้นเฉพาะในกรณีต่อไปนี้:
 
 - ตรวจสอบเวอร์ชันใหม่กับ GitHub (`api.github.com`) หลังเปิดโปรแกรมและทุกๆ สองสามชั่วโมง (ปิดได้ที่ การตั้งค่า → เกี่ยวกับ "ตรวจสอบการอัปเดตอัตโนมัติ")
@@ -159,10 +203,12 @@ Filee ทำการแปลงไฟล์ภายในเครื่อ�
 
 ## ผู้สนับสนุน (Sponsor)
 
-Filee ใช้งานได้ฟรีและจะฟรีตลอดไป หากคุณต้องการสนับสนุนการพัฒนา สามารถเลือกช่องทางที่สะดวกได้เลย
-([Fairy](https://fairy.hada.io/@filee) รองรับบัตรเกาหลีและระบบชำระเงินแบบง่ายของเกาหลี)
+Filee ใช้งานได้ฟรีและจะฟรีตลอดไป
+หากคุณต้องการสนับสนุนการพัฒนา สามารถเลือกช่องทางที่สะดวกได้เลย ([Fairy](https://fairy.hada.io/@filee) รองรับบัตรเกาหลีและระบบชำระเงินแบบง่ายของเกาหลี)
 
-**ชื่อหรือโลโก้ของคุณอยู่ตรงนี้ได้** ผู้สนับสนุนรายเดือนจะได้รับการแสดงชื่อไว้ที่นี่ และผู้สนับสนุนระดับโลโก้จะได้แสดงโลโก้ทั้งที่นี่และในหน้าเกี่ยวกับของ Filee ผู้ที่สนับสนุนครั้งเดียวก็ขอให้แสดงชื่อได้เช่นกัน
+**ชื่อหรือโลโก้ของคุณอยู่ตรงนี้ได้**
+ผู้สนับสนุนรายเดือนจะได้รับการแสดงชื่อไว้ที่นี่ และผู้สนับสนุนระดับโลโก้จะได้แสดงโลโก้ทั้งที่นี่และในหน้าเกี่ยวกับของ Filee
+ผู้ที่สนับสนุนครั้งเดียวก็ขอให้แสดงชื่อได้เช่นกัน
 
 <!-- sponsors: src/Filee.App/Assets/Sponsors/sponsors.json -->
 
@@ -176,7 +222,8 @@ Filee ใช้งานได้ฟรีและจะฟรีตลอด�
 
 ## สัญญาอนุญาต (License)
 
-MIT, © 2026 Myeonggu Kim (KnifeLemon) และผู้มีส่วนร่วมใน Filee ส่วนประกอบบุคคลที่สามจะคงสัญญาอนุญาตเดิมตามที่ระบุไว้ใน [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)
+MIT, © 2026 Myeonggu Kim (KnifeLemon) และผู้มีส่วนร่วมใน Filee
+ส่วนประกอบบุคคลที่สามจะคงสัญญาอนุญาตเดิมตามที่ระบุไว้ใน [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)
 
 <p align="center">
   <a href="https://star-history.com/#KnifeLemon/Filee&Date"><img src="https://api.star-history.com/svg?repos=KnifeLemon/Filee&type=Date" alt="ประวัติจำนวนดาว" width="600"></a>
