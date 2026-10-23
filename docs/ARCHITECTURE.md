@@ -48,9 +48,25 @@
    Each name stays reserved while a conversion holds it. A conversion that fails or is cancelled deletes what it began
    writing, but only at a path that was its alone: nothing was there before and no other conversion was handed the
    same name ("Overwrite"). It frees its names and removes an output folder it made if that is left empty.
+   *Replace the original* (`OutputRule.ReplaceOriginal`, off by default) comes after that, for a finished result of
+   the source's own format and extension, or another spelling of it (`.jpeg` / `.jpg`; TXT also covers scripts and
+   logs, PPT also `.pps` and `.pot`, so those need the same extension). The result is first
+   moved next to the source under a temporary name, then the source goes to the Recycle Bin / Trash
+   (`IPlatformServices.MoveToTrash`, in the app and the command line), then the result takes its name. Windows only
+   ever recycles (IFileOperation with a sink that refuses a delete it can't recycle). When the source can't go there
+   (no Recycle Bin on the drive, a file open elsewhere, a read-only file), both stay and the file's notice says why,
+   with a translated reason (`trash.*`). A result "Only if smaller" copied from the source leaves the source alone.
+   Watch folders and files from a browser never replace.
    "Merge into one PDF" converts each file to PDF and merges with PDFsharp.
    "Compress into one archive" packs the dropped files, unconverted, with the archive engine (`IFileCombiner`).
+   "Merge videos", "Merge audio" and "Video from images" join the files, in the order picked in the merge order
+   window, into one file with FFmpeg (`IMediaJoiner`); pictures become PNG through the image engines first. Like the
+   other one-file jobs, the output follows "subfolder only for several files", and a join that fails or is cancelled
+   is undone by the job's allocator, which deletes only paths that were the job's own.
 6. **Report** – progress and results appear in the toast window and in Home → Recent conversions.
+   Renderers check only the original source for referenced fonts. `ConversionStep.MissingFonts` reports any missing
+   families to `FileResult.MissingFonts`; the toast card can offer one trusted source, while the CLI and watch jobs
+   report the names without pausing conversion or installing anything.
 
 ## Files dragged from a web browser
 
@@ -133,7 +149,9 @@ multi-frame pictures refused, the EXIF thumbnail dropped), one history entry for
   skipped. Every file starts free and whole, its portrait/landscape choice following the picture.
 - `Controls/CropCanvas` is the stage: the picture inside `ImagePadding`, the part outside the frame frosted (a copy at
   most 40 px across, drawn large) under a veil of the page colour, the frame in the accent colour with round handles,
-  a rule-of-thirds grid while dragging and a size chip that follows the frame. The preview is downscaled once by
+  a rule-of-thirds grid while dragging and a size chip that follows the frame. A frame being moved snaps onto the
+  picture's vertical or horizontal centre line within `CropMath.SnapDistance` (8 px) and shows that line as a dashed
+  guide until the drag ends. The preview is downscaled once by
   `CropService.LoadPreviewAsync`; nothing is decoded again while dragging. Programmatic changes (reset, a ratio, a
   new picture) ease in with tweens read against the clock, so a lost frame never leaves one half done; dragging and
   arrow-key nudges follow at once, and `PlayAnimations` (from `Motion.Enabled`) turns all of it off.

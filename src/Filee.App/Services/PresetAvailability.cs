@@ -120,6 +120,27 @@ public sealed class PresetAvailability
         if (formats.Count == 0)
             return new(PresetUse.Unusable, _loc["error.unsupported_source"]);
 
+        // "Trim transparent borders" on JPG and other formats without transparency would only re-encode them.
+        if (preset.Image.TrimTransparent
+            && formats.All(f => !Filee.Engines.Magick.ImageEncoder.HoldsAlpha(preset.TargetFormat == BuiltInData.SameAsSource ? f.Id : preset.TargetFormat)))
+            return new(PresetUse.Unusable, _loc["error.no_transparency"]);
+        // "Merge videos" / "Merge audio" / "Video from images": FFmpeg joins the files, so a route into the target (or,
+        // for pictures, into PNG and from PNG into a video) says whether it is installed.
+        if (preset.JoinsIntoOneMedia)
+        {
+            var target = preset.TargetFormat;
+            bool Joinable(RoutePlanner planner) => formats.Any(f => preset.Media.Slideshow
+                ? f.Category is FormatCategory.Image or FormatCategory.Vector
+                  && (f.Id == "png" || planner.CanConvert(f.Id, "png")) && planner.CanConvert("png", target)
+                : (f.Category == FormatCategory.Video || f.Category == FormatCategory.Audio && target == "m4a")
+                  && planner.CanConvert(f.Id, target));
+            if (Joinable(installedPlanner()))
+                return new(PresetUse.Usable, null);
+            return packageEnabling(Joinable) is { } joiner
+                ? new(PresetUse.NeedsPackage, _loc.Format("engine.reason.needs_package", joiner.Name))
+                : new(PresetUse.Unusable, _loc["error.no_route"]);
+        }
+
         var merge = preset.Pdf.MergeIntoSingle && preset.TargetFormat == "pdf";
         var turns = preset.Image.TurnsOrMirrors;
         string TargetFor(FileFormat f) => preset.TargetFormat == BuiltInData.SameAsSource ? f.Id : preset.TargetFormat;
@@ -127,15 +148,16 @@ public sealed class PresetAvailability
         bool Possible(RoutePlanner planner) => formats.Any(f =>
         {
             var target = TargetFor(f);
-            if (merge && f.Id == "pdf" && !turns)
+            if (merge && f.Id == "pdf" && !turns && !preset.RecognizesTextOf(f.Id))
                 return true; // merged as it is
             var frames = preset.SavesFramesOf(f.Id);
             var motion = preset.ExtractsMotionOf(f.Id);
             var live = preset.MakesLivePhotoOf(f.Id);
+            var ocr = preset.RecognizesTextOf(f.Id);
             if (!turns)
-                return planner.CanConvert(f.Id, target, frames, motionPhoto: motion, livePhoto: live);
+                return planner.CanConvert(f.Id, target, frames, motionPhoto: motion, livePhoto: live, ocr: ocr);
             // Rotate / flip: a route only counts when an engine on it turns images (not a PDF or a video copied).
-            if (planner.Plan(f.Id, target, frames, motionPhoto: motion, livePhoto: live) is not { } route)
+            if (planner.Plan(f.Id, target, frames, motionPhoto: motion, livePhoto: live, ocr: ocr) is not { } route)
                 return false;
             if (route.FirstTransformStep() >= 0)
                 return true;
