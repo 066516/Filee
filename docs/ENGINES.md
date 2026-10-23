@@ -857,9 +857,11 @@ and writes the files; Filee's own renderer draws them with SkiaSharp (one drawin
   - PDF of a drawing with paper-space layouts (#172): **one page per layout** with something on it, in tab order,
     each fitted like the one-page PDF to the layout's drawing and viewport frames. Inside each viewport model space
     is drawn at the viewport's scale (height ÷ view height) around its view centre, clipped to the frame, under the
-    layout's own drawing (title block, notes). Not followed: twisted views (drawn untwisted), layers frozen per
-    viewport, non-rectangular viewports and the layout's plot settings (paper size, plot scale). Images and SVG stay
-    one picture of model space.
+    layout's own drawing (title block, notes). Viewports that are off are skipped. When no layout has anything of its
+    own besides viewports (a drawing made in model space, whose Layout1 only holds the viewport AutoCAD added), the
+    PDF stays one page of model space. Not followed: twisted views (drawn untwisted), views from another direction
+    than the top (drawn from the top), layers frozen per viewport, non-rectangular viewports and the layout's plot
+    settings (paper size, plot scale). Images and SVG stay one picture of model space.
   - SVG: the drawing's aspect ratio with a 420 mm (A3) long edge at 96 px/inch, white background, text as `<text>`.
   - Images: the same page rendered at the preset's render resolution (150 dpi → 2480 px on the long edge, at most
     12 000 px / 80 MP), then the preset's image options (resize, grayscale, quality, DPI) as for other images.
