@@ -808,6 +808,24 @@ internal static class SettingsMigrations
         // v41: PNG/JPEG download aliases learn the images donut; custom claims stay put.
         if (from < 41)
             changed |= LearnExtensions(profiles, out _, ["png_large", "jpg_large"]);
+        // v42: the print studio for XLSX → PDF (a tool), after "Crop" as in a new library, and first on the back of the
+        //      spreadsheets donut when it has room and the user hasn't put it on either face.
+        if (from < 42)
+        {
+            const string id = "tool-sheet-studio";
+            if (presets.All(p => p.Id != id))
+            {
+                var at = presets.FindIndex(p => p.Id == "tool-crop");
+                presets.Insert(at < 0 ? presets.Count : at + 1, BuiltInData.CreatePresets().Single(p => p.Id == id));
+                changed = true;
+            }
+            if (profiles.FirstOrDefault(p => p.Id == "spreadsheets") is { BackPresetIds: { } back } spreadsheets
+                && !back.Contains(id) && !spreadsheets.PresetIds.Contains(id) && back.Count < ToolbarProfile.MaxSlices)
+            {
+                back.Insert(0, id);
+                changed = true;
+            }
+        }
         return changed;
     }
 

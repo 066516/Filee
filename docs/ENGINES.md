@@ -9,7 +9,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | Windows Imaging Component | part of Windows (Windows only) | **JPEG XR** (JXR, WDP, HDP; HDR screenshots of Windows) → the images ImageMagick writes, and PDF, ICNS, HEIC and SVG through PNG; HDR tone-mapped to SDR |
 | Vector graphics | built in (Svg.Skia, SkiaSharp, ACadSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, **SVG → DXF** (→ DWG with the CAD engine), **raster images → SVG (tracing)**, PDF-compatible AI → PDF, **HP-GL / HP-GL/2 plot files (PLT) → SVG**, PDF and images (pen moves, packed PE polylines, arcs and filled polygons; text labels are not drawn), **Tajima DST embroidery → SVG** (stitches as lines, a palette colour per thread; → PNG, JPG, PDF from there) |
 | ICNS | built in | images → ICNS (16–1024 px), ICNS → images |
-| PDFsharp | built in (library) | images → PDF, merge, split, page ranges, **compression** (smaller PDFs, see below), PDFs without their metadata |
+| PDFsharp | built in (library) | images → PDF, merge, split, page ranges, spreadsheet print-studio assembly, **compression** (smaller PDFs, see below), PDFs without their metadata |
 | PDFium | built in (library) | PDF → images (multi-page TIFF/GIF supported) |
 | Unhwp | built in (library) | HWP/HWPX → TXT, Markdown, HTML (pictures in a `<name>_files` folder next to the Markdown, embedded in the HTML) |
 | Text & Markdown (Markdig) | built in (library) | **Markdown → HTML, TXT**; **TXT, LOG, PY, PAC, BAT, COMMAND, LUA, CSS, PS1 → UTF-8 TXT**, preserving source text without running scripts (and → PDF / DOCX through the HWPX writer, rhwp or LibreOffice) |
@@ -426,6 +426,13 @@ the text the spreadsheet shows, the value behind it and its Excel number format.
   needs LibreOffice. Password-protected XLS and ODS files stop with a clear message.
 - Not converted: formulas (their cached results are kept), charts, pictures, comments, conditional formatting,
   data validation, print areas and page breaks.
+
+The XLSX donut also offers **PDF + Edit** (`tool-sheet-studio`). Unlike an ordinary routed XLSX → PDF conversion,
+this interactive tool always requires LibreOffice regardless of engine priority: it preserves the original workbook,
+makes one disposable copy per selected sheet region, applies that region's print settings, and asks LibreOffice to
+render it. PDFsharp combines the resulting PDFs. The live preview follows this exact studio export path and uses
+PDFium/PDFtoImage for lazy thumbnails and the selected large page; the ordinary donut's PDF can differ because its
+built-in XLSX route reads the workbook into Filee's document model.
 
 ## Fonts
 
