@@ -72,7 +72,9 @@ internal static class PdfFinishing
         var rotate = page.Rotate;
         var orientation = page.Orientation;
         page.Rotate = 0;
-        page.Orientation = PdfSharp.PageOrientation.Portrait;
+        // PDFsharp swaps width and height of a page whose orientation doesn't match its media box: drawn on unturned, it
+        // must match, or a landscape page is drawn on as if it were portrait.
+        page.Orientation = media.Width > media.Height ? PdfSharp.PageOrientation.Landscape : PdfSharp.PageOrientation.Portrait;
         try
         {
             using var graphics = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Append);

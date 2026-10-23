@@ -119,8 +119,32 @@ public class PdfFinishingTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(90)]
+    public async Task Stamps_land_at_the_bottom_of_a_landscape_page(int rotate)
+    {
+        var path = Path.Combine(fx.NewFolder(), "landscape.pdf");
+        using (var document = new PdfDocument())
+        {
+            var page = document.AddPage();
+            page.MediaBox = new PdfRectangle(new XPoint(0, 0), new XPoint(842, 595));
+            page.Rotate = rotate;
+            document.Save(path);
+        }
+
+        var job = await fx.ConvertAsync([path], new Preset { TargetFormat = "pdf", Pdf = { Watermark = "DRAFT", PageNumbers = true } });
+
+        Assert.True(job.State == JobState.Completed, string.Join("; ", job.Files.Select(f => $"{f.ErrorKey} {f.ErrorDetail}")));
+        var output = job.Outputs.Single();
+        Assert.True(Marked(output, 0, 0.4, 0.9, 0.6, 0.99) > 5, "the page number sits at the bottom of the shown page");
+        Assert.Equal(0, Marked(output, 0, 0.4, 0, 0.6, 0.1)); // not at the top
+        Assert.True(Marked(output, 0, 0.3, 0.4, 0.7, 0.6) > 50, "the watermark crosses the middle");
+    }
+
+    [Theory]
     [InlineData("pässwörd")]
     [InlineData("비밀번호입니다")]
+    [InlineData("비비비비비비비비비비비비비비비비비비비비비비비비비비비비비비비비비비비비비비비비비비a")] // 127 UTF-8 bytes, all a reader uses
     public async Task A_non_ascii_password_opens_in_pdfium(string password)
     {
         var pdf = BlankPdf(fx.NewFolder(), 1);
