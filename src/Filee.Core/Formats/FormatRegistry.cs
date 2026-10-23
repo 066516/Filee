@@ -167,6 +167,7 @@ public static class FormatRegistry
         new("vcf", "vCard", FormatCategory.Data, ["vcf", "vcard"]),
         // A browser's recorded network requests (HTTP Archive): JSON, read as one table row per request (issue #328).
         new("har", "HAR", FormatCategory.Data, ["har"], Writable: false),
+        new("ics", "iCalendar", FormatCategory.Data, ["ics", "ical"]),
 
         // E-books
         new("epub", "EPUB", FormatCategory.Ebook, ["epub"]),

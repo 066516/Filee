@@ -353,7 +353,7 @@ public static class BuiltInData
 
     /// <summary>
     /// Structured data and contacts targets (added in settings schema 14, see SettingsMigrations). EML is for Outlook
-    /// MSG files, vCard for contact lists in CSV; neither is on a donut.
+    /// MSG files; vCard and iCalendar are on the back of the spreadsheets donut.
     /// </summary>
     public static List<Preset> DataPresets() =>
     [
@@ -363,6 +363,7 @@ public static class BuiltInData
         new() { Id = "to-xml", Name = "XML", TargetFormat = "xml" },
         new() { Id = "to-eml", Name = "EML", TargetFormat = "eml" },
         new() { Id = "to-vcf", Name = "vCard", TargetFormat = "vcf" },
+        new() { Id = "to-ics", Name = "iCalendar", TargetFormat = "ics" },
     ];
 
     /// <summary>
@@ -434,7 +435,7 @@ public static class BuiltInData
         NameKey = "profile.spreadsheets",
         Extensions = ExtensionsOf(FormatCategory.Spreadsheet),
         PresetIds = ["to-pdf", "to-xlsx", "to-csv", "to-json", "to-ods", "to-hwpx", "to-hwp", "to-html", "merge-pdf"],
-        BackPresetIds = ["to-docx", "to-md", "to-txt", "to-yaml", "to-xml", "to-vcf", "to-png", "zip-all"],
+        BackPresetIds = ["to-docx", "to-md", "to-txt", "to-yaml", "to-xml", "to-vcf", "to-ics", "to-png", "zip-all"],
     };
 
     /// <summary>PowerPoint and OpenDocument slides (split from "office" in settings schema 5).</summary>
@@ -516,7 +517,7 @@ public static class BuiltInData
         },
     ];
 
-    /// <summary>JSON, YAML, TOML, XML and vCard files (added in settings schema 14, after "fonts").</summary>
+    /// <summary>JSON, YAML, TOML, XML, vCard and iCalendar files (added in settings schema 14, after "fonts").</summary>
     public static ToolbarProfile DataProfile() => new()
     {
         Id = "data",
