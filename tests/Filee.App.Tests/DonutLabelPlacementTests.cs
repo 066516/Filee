@@ -103,6 +103,19 @@ public class DonutLabelPlacementTests
         Assert.Equal("Merge PDF", DonutMenu.KeepKoreanWords("Merge PDF"));
     }
 
+    /// <summary>A caption wider than its slice wraps where the slice is deep enough, rather than ending in "Same for…".</summary>
+    [AvaloniaFact]
+    public void A_caption_wider_than_its_slice_takes_a_second_line_where_there_is_room()
+    {
+        TestServices.EnsureInitialized("en");
+        var typeface = new Typeface(FontFamily.Default);
+        var oneLine = DonutMenu.MakeCaption("PNG", typeface, null, 45, labelHeight: 17, maxHeight: 80).Height;
+
+        Assert.InRange(DonutMenu.MakeCaption("Same format", typeface, null, 45, labelHeight: 17, maxHeight: 80).Height, oneLine * 1.8, oneLine * 2.2);
+        Assert.Equal(oneLine, DonutMenu.MakeCaption("Same format", typeface, null, 45, labelHeight: 17, maxHeight: 40).Height);
+        Assert.Equal(oneLine, DonutMenu.MakeCaption("Same format", typeface, null, 120, labelHeight: 17, maxHeight: 80).Height);
+    }
+
     private static (byte[] Pixels, int Width, int Height) Read(Avalonia.Media.Imaging.WriteableBitmap bitmap)
     {
         using var buffer = bitmap.Lock();

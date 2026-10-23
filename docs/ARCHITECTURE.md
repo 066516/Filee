@@ -50,7 +50,14 @@
    same name ("Overwrite"). It frees its names and removes an output folder it made if that is left empty.
    "Merge into one PDF" converts each file to PDF and merges with PDFsharp.
    "Compress into one archive" packs the dropped files, unconverted, with the archive engine (`IFileCombiner`).
+   "Merge videos", "Merge audio" and "Video from images" join the files, in the order picked in the merge order
+   window, into one file with FFmpeg (`IMediaJoiner`); pictures become PNG through the image engines first. Like the
+   other one-file jobs, the output follows "subfolder only for several files", and a join that fails or is cancelled
+   is undone by the job's allocator, which deletes only paths that were the job's own.
 6. **Report** – progress and results appear in the toast window and in Home → Recent conversions.
+   Renderers check only the original source for referenced fonts. `ConversionStep.MissingFonts` reports any missing
+   families to `FileResult.MissingFonts`; the toast card can offer one trusted source, while the CLI and watch jobs
+   report the names without pausing conversion or installing anything.
 
 ## Files dragged from a web browser
 
@@ -133,7 +140,9 @@ multi-frame pictures refused, the EXIF thumbnail dropped), one history entry for
   skipped. Every file starts free and whole, its portrait/landscape choice following the picture.
 - `Controls/CropCanvas` is the stage: the picture inside `ImagePadding`, the part outside the frame frosted (a copy at
   most 40 px across, drawn large) under a veil of the page colour, the frame in the accent colour with round handles,
-  a rule-of-thirds grid while dragging and a size chip that follows the frame. The preview is downscaled once by
+  a rule-of-thirds grid while dragging and a size chip that follows the frame. A frame being moved snaps onto the
+  picture's vertical or horizontal centre line within `CropMath.SnapDistance` (8 px) and shows that line as a dashed
+  guide until the drag ends. The preview is downscaled once by
   `CropService.LoadPreviewAsync`; nothing is decoded again while dragging. Programmatic changes (reset, a ratio, a
   new picture) ease in with tweens read against the clock, so a lost frame never leaves one half done; dragging and
   arrow-key nudges follow at once, and `PlayAnimations` (from `Motion.Enabled`) turns all of it off.
@@ -225,7 +234,7 @@ so a file is handed to its app and never started itself; only formats Filee know
 `SupportsOpenWith` (Windows), the shell's "Open with" dialog (`SHOpenWithDialog`, on a thread of its own because it
 blocks until closed). The cards' pictures come from `HistoryThumbnails`: Skia decodes them off the UI thread, scaled
 down while decoding where the format allows, from a copy read in one go so the file isn't held open, and a small cache
-keeps them while the files are unchanged.
+keeps them while the files are unchanged. For video files, FFmpeg extracts and scales a representative frame off the UI thread without locking the file.
 
 On macOS, files reach Filee from file managers other than Finder too (issue #160). The "Convert with Filee" service
 (`MacOSServicesProvider`) and the donut's drags (`DraggedFiles`) read file URLs first, then the older
@@ -320,8 +329,11 @@ have no semibold) instead of the app's embedded Noto fonts.
   (`SetupPayload`): ~48 MB segments compressed in parallel with SharpCompress's LZMA (48 MB dictionary), programs
   first through the x86 branch filter (`X86Filter`, from the LZMA SDK) as 7-Zip and Inno Setup do. The manifest lists
   every file with its size, SHA-256 and filter, the SHA-256 of the compressed data, the version and the engines to
-  offer (from `EngineDownloads`). A future signature goes after the trailer (Setup looks
-  for the trailer in front of the certificate table), so sign after packing. The code is trim- and AOT-safe
+  offer (from `EngineDownloads`). Setup.exe's signature goes after the trailer (Setup looks
+  for the trailer in front of the certificate table; the manifest is padded so the file ends on the 8-byte boundary
+  signtool needs), so Setup.exe is signed after packing. The Setup program is signed before: its signature stays at
+  the end of the program, Setup.exe's header stops pointing to it, and the manifest's `programSignature` lets the
+  uninstaller copied out of Setup.exe (`CopyProgramTo`) point to it again, so `uninstall.exe` is signed too. The code is trim- and AOT-safe
   (compiled bindings, source-generated P/Invoke and COM); Native AOT would need the MSVC linker on the build machine
   and still couldn't link SkiaSharp's native libraries in.
 - **Rights**: Setup starts unelevated (asInvoker) and, for an install for all users, starts itself again with

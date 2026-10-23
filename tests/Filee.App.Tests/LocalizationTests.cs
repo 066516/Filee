@@ -92,6 +92,23 @@ public partial class LocalizationTests
     [InlineData("ar-EG", "ar")]
     [InlineData("pt-BR", "pt-BR")]
     [InlineData("pt-PT", "pt-BR")]
+    [InlineData("zh-CN", "zh-CN")]
+    [InlineData("zh-Hans-CN", "zh-CN")]
+    [InlineData("zh-SG", "zh-CN")]
+    [InlineData("zh", "zh-CN")]
+    [InlineData("zh-Hans-TW", "zh-CN")] // macOS: Simplified script in the Taiwan region
+    [InlineData("zh-TW", "zh-TW")]
+    [InlineData("zh-Hant-TW", "zh-TW")]
+    [InlineData("zh-HK", "zh-TW")]
+    [InlineData("zh-Hant-HK", "zh-TW")]
+    [InlineData("zh-MO", "zh-TW")]
+    [InlineData("fr-FR", "fr")]
+    [InlineData("fr-CA", "fr")]
+    [InlineData("frr-DE", "en")]
+    [InlineData("ne-NP", "ne")]
+    [InlineData("new-NP", "en")]
+    [InlineData("th-TH", "th")]
+    [InlineData("thl-NP", "en")]
     [InlineData("de-DE", "en")]
     [InlineData("", "en")] // Linux without LANG: the invariant culture
     public void Auto_follows_the_language_the_user_reads_the_os_in(string os, string expected) =>
@@ -100,6 +117,7 @@ public partial class LocalizationTests
     [Theory]
     [InlineData("ko")]
     [InlineData("ar")]
+    [InlineData("ne")]
     [InlineData("en")]
     public void A_chosen_language_is_kept_whatever_the_os_is_in(string chosen) =>
         // The OS isn't even asked: the user picked the language in Settings.
@@ -124,6 +142,13 @@ public partial class LocalizationTests
     }
 
     [Fact]
+    public void Nepali_is_offered_under_its_own_name()
+    {
+        Assert.Contains(("ne", "नेपाली"), LocalizationService.Languages);
+        Assert.Equal("ne", LocalizationService.Resolve("NE"));
+    }
+
+    [Fact]
     public void Japanese_is_offered_under_its_own_name()
     {
         Assert.Contains(("ja", "日本語"), LocalizationService.Languages);
@@ -136,6 +161,21 @@ public partial class LocalizationTests
         Assert.Contains(("pt-BR", "Português (Brasil)"), LocalizationService.Languages);
         Assert.Equal("pt-BR", LocalizationService.Resolve("pt-BR"));
         Assert.Equal("pt-BR", LocalizationService.Resolve("PT-br"));
+    }
+
+    [Fact]
+    public void French_is_offered_under_its_own_name()
+    {
+        Assert.Contains(("fr", "Français"), LocalizationService.Languages);
+        Assert.Equal("fr", LocalizationService.Resolve("FR"));
+    }
+
+    [Fact]
+    public void Thai_is_offered_under_its_own_name()
+    {
+        Assert.Contains(("th", "ไทย"), LocalizationService.Languages);
+        Assert.Equal("th", LocalizationService.Resolve("TH"));
+        Assert.Contains("fonts:Filee#Noto Sans Thai", ThemeService.FontFamilies("th"));
     }
 
     /// <summary>Han characters look different in Japanese, Korean and Chinese fonts: the UI language's come first.</summary>
@@ -153,6 +193,25 @@ public partial class LocalizationTests
         Assert.Equal(embedded, families.First(embeddedCjk.Contains));
         Assert.Equal(system, families.First(systemCjk.Contains));
         Assert.True(embeddedCjk.Max(families.IndexOf) < systemCjk.Min(families.IndexOf), "embedded fonts before system ones");
+    }
+
+    [Fact]
+    public void Traditional_chinese_is_offered_under_its_own_name()
+    {
+        Assert.Contains(("zh-TW", "繁體中文"), LocalizationService.Languages);
+        Assert.Equal("zh-TW", LocalizationService.Resolve("zh-TW"));
+        Assert.Equal("zh-CN", LocalizationService.Resolve("zh-CN"));
+    }
+
+    /// <summary>The embedded Noto Sans SC has Simplified Han shapes: zh-TW lists the system Traditional fonts before it.</summary>
+    [Fact]
+    public void Traditional_chinese_takes_the_system_traditional_fonts_before_the_embedded_simplified_one()
+    {
+        var families = ThemeService.FontFamilies("zh-TW").Split(", ").Select(f => f.Replace("fonts:Filee#", "")).ToList();
+
+        Assert.True(families.IndexOf("Microsoft JhengHei UI") is >= 0 and var windows && windows < families.IndexOf("Noto Sans SC"));
+        Assert.True(families.IndexOf("PingFang TC") is >= 0 and var mac && mac < families.IndexOf("Noto Sans SC"));
+        Assert.DoesNotContain("PingFang TC", ThemeService.FontFamilies("zh-CN"));
     }
 
     private static HashSet<string> Placeholders(string text) =>

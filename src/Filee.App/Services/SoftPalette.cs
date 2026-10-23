@@ -21,6 +21,7 @@ internal static class SoftPalette
     private const string Latin = "fonts:Filee#Noto Sans";
     private const string Arabic = "fonts:Filee#Noto Sans Arabic";
     private const string Devanagari = "fonts:Filee#Noto Sans Devanagari";
+    private const string Thai = "fonts:Filee#Noto Sans Thai";
 
     /// <summary>Each CJK region's embedded font and its system fonts (Windows, then macOS).</summary>
     private static readonly (string Embedded, string System) Japanese =
@@ -29,6 +30,12 @@ internal static class SoftPalette
         ("fonts:Filee#Noto Sans KR", "Malgun Gothic, Apple SD Gothic Neo");
     private static readonly (string Embedded, string System) Chinese =
         ("fonts:Filee#Noto Sans SC", "Microsoft YaHei, PingFang SC");
+
+    /// <summary>
+    /// Traditional Chinese has no embedded font (two more Noto CJK files would add 11 MB): Windows and macOS always carry
+    /// these. Listed before the embedded Noto Sans SC, whose Han shapes differ, so zh-TW text takes Traditional shapes.
+    /// </summary>
+    private const string TraditionalChineseSystem = "Microsoft JhengHei UI, Microsoft JhengHei, PingFang TC";
 
     /// <summary>Accent colour + derived shades. Fluent controls read the System* keys.</summary>
     public static void ApplyAccent(IResourceDictionary res, Color accent)
@@ -69,9 +76,10 @@ internal static class SoftPalette
             language.StartsWith("ja", StringComparison.OrdinalIgnoreCase) ? [Japanese, Korean, Chinese]
             : language.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? [Chinese, Korean, Japanese]
             : [Korean, Chinese, Japanese];
+        var traditional = AppLanguages.IsTraditionalChinese(language) ? $"{TraditionalChineseSystem}, " : "";
         // Noto Sans comes first: the first face also draws the trimming ellipsis, which Noto Sans Arabic lacks.
-        return $"{Latin}, {Arabic}, {Devanagari}, {string.Join(", ", cjk.Select(f => f.Embedded))}, Segoe UI, Nirmala UI, "
-            + $"{string.Join(", ", cjk.Select(f => f.System))}, Kohinoor Devanagari, Geeza Pro, sans-serif";
+        return $"{Latin}, {Arabic}, {Devanagari}, {Thai}, {traditional}{string.Join(", ", cjk.Select(f => f.Embedded))}, Segoe UI, Nirmala UI, Leelawadee UI, "
+            + $"{string.Join(", ", cjk.Select(f => f.System))}, Kohinoor Devanagari, Geeza Pro, Thonburi, sans-serif";
     }
 
     /// <summary>
@@ -84,7 +92,8 @@ internal static class SoftPalette
             language.StartsWith("ja", StringComparison.OrdinalIgnoreCase) ? [Japanese, Korean, Chinese]
             : language.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? [Chinese, Korean, Japanese]
             : [Korean, Chinese, Japanese];
-        return $"Segoe UI, Nirmala UI, {string.Join(", ", cjk.Select(f => f.System))}, sans-serif";
+        var traditional = AppLanguages.IsTraditionalChinese(language) ? $"{TraditionalChineseSystem}, " : "";
+        return $"Segoe UI, Nirmala UI, Leelawadee UI, {traditional}{string.Join(", ", cjk.Select(f => f.System))}, sans-serif";
     }
 
     /// <summary>The resource Soft.axaml's Window style takes <see cref="Visual.FlowDirection"/> from.</summary>
