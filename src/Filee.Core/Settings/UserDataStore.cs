@@ -804,6 +804,9 @@ internal static class SettingsMigrations
             presets.Insert(at < 0 ? presets.Count : at + 1, BuiltInData.OcrPresets().Single());
             changed = true;
         }
+        // v41: PNG/JPEG download aliases learn the images donut; custom claims stay put.
+        if (from < 41)
+            changed |= LearnExtensions(profiles, out _, ["png_large", "jpg_large"]);
         return changed;
     }
 

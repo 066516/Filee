@@ -36,11 +36,14 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
     internal MergeOrderWindow? MergeOrder => _mergeOrder;
 
+    private void PrepareWindow(Window window) => services.GetService<ThemeService>()?.ApplyWindowClass(window);
+
     /// <summary>Reviews the order of a PDF merge. Closing or cancelling starts no conversion.</summary>
     public async Task<IReadOnlyList<string>?> ChooseMergeOrderAsync(IReadOnlyList<string> files)
     {
         _mergeOrder?.Close();
         var dialog = new MergeOrderWindow { DataContext = new MergeOrderViewModel(files) };
+        PrepareWindow(dialog);
         var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         dialog.Closed += (_, _) =>
         {
@@ -66,6 +69,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         var log = services.GetService<ILogger<CropOverlayViewModel>>();
         var vm = new CropOverlayViewModel(files, preset, loc, store, log);
         var win = new CropOverlayWindow { DataContext = vm };
+        PrepareWindow(win);
         win.PositionOnScreen(near);
         win.Closed += (_, _) =>
         {
@@ -127,6 +131,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     {
         var model = ActivatorUtilities.CreateInstance<MainWindowViewModel>(services);
         var main = new MainWindow { DataContext = model };
+        PrepareWindow(main);
         if (_mainPlacement is { } placement)
         {
             placement.ApplyTo(main);
@@ -168,6 +173,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         _whatsNew?.Close();
         Motion.Refresh();
         var window = new WhatsNewWindow(deck, loc);
+        PrepareWindow(window);
         window.Closed += (_, _) =>
         {
             if (_whatsNew == window)
@@ -205,6 +211,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         if (install is not null && !vm.InstallNow(install))
             return;
         _engineSetup = new EngineSetupWindow { DataContext = vm };
+        PrepareWindow(_engineSetup);
         _engineSetup.Closed += (_, _) => _engineSetup = null;
         _engineSetup.Show();
     }
@@ -212,7 +219,11 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     /// <summary>Creates the toast window once; it shows and hides itself with the job list.</summary>
     public void EnsureToast()
     {
-        _toast ??= new ToastWindow { DataContext = services.GetRequiredService<ConversionService>() };
+        if (_toast is null)
+        {
+            _toast = new ToastWindow { DataContext = services.GetRequiredService<ConversionService>() };
+            PrepareWindow(_toast);
+        }
     }
 
     /// <summary>Shows the "new version available" card in the bottom-right corner (above a visible toast).</summary>
@@ -225,6 +236,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
                 ? (int)Math.Ceiling(toast.Bounds.Height * (toast.Screens.Primary?.Scaling ?? 1))
                 : 0,
         };
+        PrepareWindow(notice);
         notice.Closed += (_, _) =>
         {
             if (_updateNotice == notice)
@@ -306,6 +318,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
                 ? (int)Math.Ceiling(update.Bounds.Height * (update.Screens.Primary?.Scaling ?? 1))
                 : 0,
         };
+        PrepareWindow(notice);
         notice.Closed += (_, _) =>
         {
             if (_engineNotice == notice)
@@ -321,6 +334,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         if (_feedbackNotice is not null)
             return;
         _feedbackNotice = new FeedbackNoticeWindow();
+        PrepareWindow(_feedbackNotice);
         _feedbackNotice.Closed += (_, _) => _feedbackNotice = null;
         _feedbackNotice.Show();
     }
@@ -331,7 +345,9 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         if (_elevationNoticeShown)
             return;
         _elevationNoticeShown = true;
-        new ElevationNoticeWindow(services.GetRequiredService<ElevationService>()).Show();
+        var elevation = new ElevationNoticeWindow(services.GetRequiredService<ElevationService>());
+        PrepareWindow(elevation);
+        elevation.Show();
     }
 
     private bool _elevationNoticeShown;
@@ -343,6 +359,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     {
         _formatRequestNotice?.Close();
         var notice = new FormatRequestNoticeWindow(extensions, loc.Format("format_request.notice_title", FormatRequest.Label(extensions)));
+        PrepareWindow(notice);
         notice.Closed += (_, _) =>
         {
             if (_formatRequestNotice == notice)
@@ -363,6 +380,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
             DataContext = new PresetEditorViewModel(preset, loc),
             Topmost = owner?.Topmost ?? false,
         };
+        PrepareWindow(dialog);
         owner ??= _main ?? MainWindowOrNull();
         if (owner is null || !owner.IsVisible)
         {
@@ -391,6 +409,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
             Topmost = owner?.Topmost ?? false,
             Confirm = (editor, message) => ConfirmAsync(editor, message, destructive: true),
         };
+        PrepareWindow(dialog);
         if (visibleOwner is null)
         {
             var closed = new TaskCompletionSource();
@@ -430,6 +449,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             ShowInTaskbar = false,
         };
+        PrepareWindow(dialog);
         Motion.Track(dialog);
         var yes = new Button { Content = destructive ? loc["common.delete"] : loc["common.ok"], IsDefault = true };
         yes.Classes.Add("accent");
