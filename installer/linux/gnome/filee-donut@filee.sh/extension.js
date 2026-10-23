@@ -6,6 +6,10 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 const DONUT_TITLE = 'Filee Donut';
+// Filee reads the protocol version from each line and says on its Triggers page when it doesn't match, so the socket
+// name stays the same across versions.
+const PROTOCOL_VERSION = 1;
+const SOCKET_NAME = 'pointer.sock';
 const encoder = new TextEncoder();
 
 // This bridge reads only pointer coordinates, buttons, modifier state and the app under the pointer.
@@ -16,11 +20,14 @@ export default class FileeDonutExtension extends Extension {
         this._processes = new WeakMap();
         this._pendingActor = null;
         this._connection = null;
+        this._peerPid = 0;
         this._writing = false;
         this._lastState = '';
+        this._pointerSource = 0;
+        this._placeSource = 0;
         const directory = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'filee-gnome']);
         GLib.mkdir_with_parents(directory, 0o700);
-        this._socketFile = Gio.File.new_for_path(`${directory}/pointer-v1.sock`);
+        this._socketFile = Gio.File.new_for_path(`${directory}/${SOCKET_NAME}`);
         if (this._socketFile.query_exists(null))
             this._socketFile.delete(null); // a stale socket from a previous Shell session
         this._service = new Gio.SocketService();
@@ -29,39 +36,48 @@ export default class FileeDonutExtension extends Extension {
         this._socketFile.set_attribute_uint32('unix::mode', 0o600, Gio.FileQueryInfoFlags.NONE, null);
         this._service.connect('incoming', (_service, connection) => {
             // Filesystem permissions and peer credentials restrict the bridge to the signed-in user.
-            if (connection.get_socket().get_credentials().get_unix_user() !== new Gio.Credentials().get_unix_user()) {
+            const credentials = connection.get_socket().get_credentials();
+            if (credentials.get_unix_user() !== new Gio.Credentials().get_unix_user()) {
                 connection.close(null);
                 return true;
             }
             this._closeConnection();
             this._connection = connection;
+            // The donut is Filee's window: with native Wayland it has no WM class or app id, so match it by process.
+            try { this._peerPid = credentials.get_unix_pid(); } catch (_error) { this._peerPid = 0; }
             this._lastState = '';
             this._lastSent = 0;
+            // Poll the pointer only while Filee is connected; _closeConnection stops it.
+            this._pointerSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, () => {
+                this._sendPointer();
+                return GLib.SOURCE_CONTINUE;
+            });
             return true;
         });
         this._service.start();
         this._mapSignal = global.window_manager.connect('map', (_wm, actor) => {
-            if (this._isDonut(actor.meta_window)) {
-                this._pendingActor = actor;
-                this._placeAttempts = 0;
-            }
-        });
-        this._tickSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, () => {
-            if (this._pendingActor) {
-                if (this._placeDonut(this._pendingActor) || ++this._placeAttempts >= 20)
+            if (!this._isDonut(actor.meta_window))
+                return;
+            this._pendingActor = actor;
+            this._placeAttempts = 0;
+            if (!this._placeSource) {
+                // Retry for a few frames until the window has a size, then stop.
+                this._placeSource = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, () => {
+                    if (this._pendingActor && !this._placeDonut(this._pendingActor) && ++this._placeAttempts < 20)
+                        return GLib.SOURCE_CONTINUE;
                     this._pendingActor = null;
+                    this._placeSource = 0;
+                    return GLib.SOURCE_REMOVE;
+                });
             }
-            if (this._connection)
-                this._sendPointer();
-            return GLib.SOURCE_CONTINUE;
         });
     }
 
     disable() {
         this._enabled = false;
-        if (this._tickSource)
-            GLib.Source.remove(this._tickSource);
-        this._tickSource = 0;
+        if (this._placeSource)
+            GLib.Source.remove(this._placeSource);
+        this._placeSource = 0;
         if (this._mapSignal)
             global.window_manager.disconnect(this._mapSignal);
         this._mapSignal = 0;
@@ -79,16 +95,25 @@ export default class FileeDonutExtension extends Extension {
     _closeConnection() {
         const connection = this._connection;
         this._connection = null;
+        this._peerPid = 0;
         this._writing = false;
+        if (this._pointerSource)
+            GLib.Source.remove(this._pointerSource);
+        this._pointerSource = 0;
         if (connection) {
             try { connection.close(null); } catch (_error) { /* already disconnected */ }
         }
     }
 
     _isDonut(window) {
-        return window?.get_title() === DONUT_TITLE &&
-            [window.get_wm_class(), window.get_wm_class_instance(), window.get_gtk_application_id()]
-                .some(value => /^(filee|com\.filee\.app)$/i.test(value ?? ''));
+        if (window?.get_title() !== DONUT_TITLE)
+            return false;
+        // X11/XWayland: WM class. Native Wayland (FILEE_USE_WAYLAND=1): the app id, which Mutter reports as the WM
+        // class, or, when Filee sets none, the connected Filee process or the process name.
+        return [window.get_wm_class(), window.get_wm_class_instance(), window.get_gtk_application_id()]
+            .some(value => /^(filee|com\.filee\.app)$/i.test(value ?? '')) ||
+            (this._peerPid > 0 && window.get_pid() === this._peerPid) ||
+            /^filee$/i.test(this._processName(window) ?? '');
     }
 
     _pointerWindow(x, y) {
@@ -117,7 +142,7 @@ export default class FileeDonutExtension extends Extension {
 
     _sendPointer() {
         // One async write at a time: a slow/dead Filee must never block the desktop or build an unbounded queue.
-        if (this._writing)
+        if (this._writing || !this._connection)
             return;
         const [x, y, mask] = global.get_pointer();
         const blocked = Main.sessionMode.isLocked || !Main.sessionMode.hasWindows || Main.overview.visible || Main.modalCount > 0;
@@ -137,7 +162,7 @@ export default class FileeDonutExtension extends Extension {
             (mask & Clutter.ModifierType.BUTTON2_MASK ? 4 : 0) |
             (mask & Clutter.ModifierType.BUTTON4_MASK ? 8 : 0) |
             (mask & Clutter.ModifierType.BUTTON5_MASK ? 16 : 0);
-        const state = JSON.stringify({Version: 1, X: x, Y: y, Modifiers: blocked ? 0 : modifiers,
+        const state = JSON.stringify({Version: PROTOCOL_VERSION, X: x, Y: y, Modifiers: blocked ? 0 : modifiers,
             Buttons: blocked ? 0 : buttons, Process: this._processName(window),
             Desktop: window?.get_window_type() === Meta.WindowType.DESKTOP, Blocked: blocked});
         if (state === this._lastState && now - this._lastSent < 250000)

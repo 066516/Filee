@@ -27,8 +27,11 @@ const ExtensionClass = new Function('Clutter', 'Gio', 'GLib', 'Meta', 'Extension
     `${source}\nreturn FileeDonutExtension;`)(Clutter, Gio, GLib, Meta, class {}, Main, shell);
 const loop = new GLib.MainLoop(null, false);
 const extension = new ExtensionClass();
-const socketPath = `${GLib.get_user_runtime_dir()}/filee-gnome/pointer-v1.sock`;
+const socketPath = `${GLib.get_user_runtime_dir()}/filee-gnome/pointer.sock`;
 let connection;
+function settle(ms) {
+    return new Promise(resolve => GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => { resolve(); return GLib.SOURCE_REMOVE; }));
+}
 function read(stream) {
     return new Promise((resolve, reject) => stream.read_line_async(GLib.PRIORITY_DEFAULT, null, (input, result) => {
         try { const [line] = input.read_line_finish_utf8(result); resolve(JSON.parse(line)); } catch (error) { reject(error); }
@@ -36,6 +39,7 @@ function read(stream) {
 }
 async function run() {
     extension.enable();
+    assert(!extension._pointerSource, 'no pointer polling before Filee connects');
     const info = Gio.File.new_for_path(socketPath).query_info('unix::mode', Gio.FileQueryInfoFlags.NONE, null);
     assert((info.get_attribute_uint32('unix::mode') & 0o777) === 0o600, 'socket is private');
     const client = new Gio.SocketClient();
@@ -54,16 +58,30 @@ async function run() {
     assert(locked.Blocked && locked.Modifiers === 0 && locked.Buttons === 0 && locked.Process === null, 'lock screen suppresses state');
     Main.sessionMode.isLocked = false;
     map(null, actor);
-    await read(input);
+    await settle(100);
     assert(moves.length === 1, 'position exactly once when mapped');
     pointer = [800, 600, 0];
-    await read(input);
+    await settle(100);
     assert(moves.length === 1, 'moving to a format does not recenter the ring');
     pointer = [1910, 1070, 0];
     map(null, actor);
-    await read(input);
+    await settle(100);
     assert(moves.length === 2 && moves[1][0] === 1520 && moves[1][1] === 680, 'clamp at monitor edge on next opening');
-    print('PASS: real Gio socket, private permissions, modifiers/buttons, lock screen, fixed placement, screen edges');
+    // Native Wayland (FILEE_USE_WAYLAND=1): no WM class or app id, matched by the connected Filee process.
+    const nativeWindow = {...window, get_wm_class: () => null, get_wm_class_instance: () => null};
+    map(null, {meta_window: nativeWindow, is_visible: () => true});
+    await settle(100);
+    assert(moves.length === 3, 'native Wayland donut is placed');
+    map(null, {meta_window: {...nativeWindow, get_pid: () => 1}, is_visible: () => true});
+    await settle(100);
+    assert(moves.length === 3, 'another process titled like the donut is left alone');
+    connection.close(null);
+    connection = null;
+    for (let i = 0; i < 20 && extension._pointerSource; i++)
+        await settle(100);
+    assert(!extension._pointerSource, 'pointer polling stops when Filee disconnects');
+    print('PASS: real Gio socket, private permissions, modifiers/buttons, lock screen, fixed placement, screen edges, ' +
+        'native Wayland match, polling only while connected');
 }
 const timeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 8000, () => { printerr('FAIL: timed out'); imports.system.exit(1); return GLib.SOURCE_REMOVE; });
 run().then(() => {
