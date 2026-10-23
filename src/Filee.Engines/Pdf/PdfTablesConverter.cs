@@ -16,6 +16,7 @@ using System.Text.RegularExpressions;
 using Filee.Core.Conversion;
 using Filee.Engines.Hwp.Hwpx;
 using Filee.Engines.Infrastructure;
+using Filee.Engines.Office;
 using Filee.Engines.Office.Sheets;
 
 namespace Filee.Engines.Pdf;
@@ -30,9 +31,14 @@ public sealed partial class PdfTablesConverter : IConverter
     public string DisplayName => "PDF tables (built-in)";
     public int MaxParallelism => 0;
 
-    public IReadOnlyList<ConversionEdge> Edges { get; } = [new("pdf", "xlsx")];
+    /// <summary>
+    /// Only from a PDF, and never a step on a longer route: an image turned into a PDF has no ruled tables, so
+    /// jpg → pdf → xlsx would always fail (and show spreadsheet presets on pictures).
+    /// </summary>
+    public IReadOnlyList<ConversionEdge> Edges { get; } =
+        [new("pdf", "xlsx", DirectOnly: true), new("pdf", "ods", DirectOnly: true), new("pdf", "csv", DirectOnly: true)];
 
-    public EngineStatus GetStatus() => EngineStatus.Available("PDF → XLSX", EngineVersions.BuiltIn);
+    public EngineStatus GetStatus() => EngineStatus.Available("PDF → XLSX, ODS, CSV", EngineVersions.BuiltIn);
 
     public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken) =>
         Task.Run<IReadOnlyList<string>>(() =>
@@ -43,42 +49,55 @@ public sealed partial class PdfTablesConverter : IConverter
             var book = Build(document);
             if (book.Sheets.Count == 0)
                 throw new ConversionRefusedException("error.pdf_no_tables");
-            var output = step.Output.Allocate("xlsx");
-            if (output is null)
-                return [];
-            XlsxWriter.Write(book, output);
+            // As the spreadsheet engine writes: CSV gets one file per sheet.
+            var outputs = SpreadsheetConverter.Write(book, step);
             progress?.Report(1);
-            return [output];
+            return outputs;
         }, cancellationToken);
 
     /// <summary>A table and the page it is on (0-based).</summary>
     private sealed record Placed(HTable Table, int Page)
     {
+        /// <summary>Nothing (no table, no text) comes before it on its page.</summary>
         public bool FirstOnPage { get; set; }
+
+        /// <summary>Nothing (no table, no text) comes after it on its page.</summary>
         public bool LastOnPage { get; set; }
     }
 
     /// <summary>The document's tables as sheets: one per table, a table going on over the next page joined.</summary>
     internal static Workbook Build(HDocument document)
     {
-        var tables = new List<Placed>();
+        // Everything on the pages in order: tables, and null for text (empty paragraphs, such as the one carrying a page
+        // break, don't count), so a table only "goes on" when nothing at all sits between it and the next page's table.
+        var items = new List<(Placed? Table, int Page)>();
         var page = -1;
         foreach (var section in document.Sections)
         {
             page++;
             foreach (var block in section.Blocks)
             {
-                if (block is HParagraph { PageBreakBefore: true })
-                    page++;
+                if (block is HParagraph paragraph)
+                {
+                    if (paragraph.PageBreakBefore)
+                        page++;
+                    if (paragraph.Inlines.OfType<HText>().Any(t => t.Text.Trim().Length > 0))
+                        items.Add((null, page));
+                }
                 else if (block is HTable table && table.Rows.Count > 0)
-                    tables.Add(new Placed(table, page));
+                {
+                    items.Add((new Placed(table, page), page));
+                }
             }
         }
-        for (var i = 0; i < tables.Count; i++)
+        for (var i = 0; i < items.Count; i++)
         {
-            tables[i].FirstOnPage = i == 0 || tables[i - 1].Page != tables[i].Page;
-            tables[i].LastOnPage = i == tables.Count - 1 || tables[i + 1].Page != tables[i].Page;
+            if (items[i].Table is not { } placed)
+                continue;
+            placed.FirstOnPage = i == 0 || items[i - 1].Page != placed.Page;
+            placed.LastOnPage = i == items.Count - 1 || items[i + 1].Page != placed.Page;
         }
+        var tables = items.Where(i => i.Table is not null).Select(i => i.Table!).ToList();
 
         var book = new Workbook();
         Worksheet? sheet = null;

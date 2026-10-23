@@ -89,6 +89,48 @@ public class PdfTablesTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public async Task Text_between_two_tables_keeps_them_on_their_own_sheets()
+    {
+        double[] xs = [50, 250, 545];
+        var pdf = new PdfBuilder().NewPage();
+        Table(pdf, 60, xs, [["Name", "Size"], ["a.pdf", "10"]]);
+        pdf.Paragraph("These are this week's files. The next table lists the files kept from last week.", 11, pdf.Font(), 50, 200, 495, 14);
+        pdf.NewPage();
+        Table(pdf, 60, xs, [["Kept", "Days"], ["b.pdf", "7"]]);
+        var book = await ConvertAsync(pdf.Save(Path.Combine(fx.NewFolder(), "two.pdf")));
+
+        Assert.Equal(2, book.Sheets.Count);
+        Assert.Equal("Kept", book.Sheets[1].Get(0, 0)!.Text);
+    }
+
+    [Fact]
+    public void Only_a_pdf_reaches_a_spreadsheet_through_its_tables()
+    {
+        var planner = fx.Catalog.CreatePlanner();
+        // A picture made into a PDF has no ruled tables: no image → spreadsheet route through PDF.
+        Assert.Null(planner.Plan("jpg", "xlsx"));
+        Assert.Null(planner.Plan("png", "csv"));
+        foreach (var target in new[] { "xlsx", "ods", "csv" })
+            Assert.Equal("pdf-tables", Assert.Single(planner.Plan("pdf", target)!.Steps).Converter.Id);
+    }
+
+    [Fact]
+    public async Task Csv_and_ods_are_written_from_the_same_tables()
+    {
+        var pdf = new PdfBuilder().NewPage();
+        Table(pdf, 60, [50, 250, 545], [["Name", "Size"], ["a.pdf", "1,234"]]);
+        var path = pdf.Save(Path.Combine(fx.NewFolder(), "one.pdf"));
+
+        var csv = await fx.ConvertAsync([path], new Preset { TargetFormat = "csv" });
+        var ods = await fx.ConvertAsync([path], new Preset { TargetFormat = "ods" });
+
+        Assert.Equal(JobState.Completed, csv.State);
+        Assert.Contains("a.pdf", await File.ReadAllTextAsync(csv.Outputs.Single(), TestContext.Current.CancellationToken));
+        Assert.Equal(JobState.Completed, ods.State);
+        Assert.EndsWith(".ods", ods.Outputs.Single());
+    }
+
+    [Fact]
     public async Task A_pdf_without_tables_fails_with_a_message()
     {
         var pdf = new PdfBuilder().NewPage();
