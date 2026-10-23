@@ -26,6 +26,7 @@
 
   "home.title": "홈",
   "home.drop_title": "여기에 파일을 놓으세요",
+  "home.drop_select": "더블클릭하여 파일 선택",
   "home.drop_hint": "또는 탐색기에서 {0} 키를 누른 채 파일을 드래그하면 커서 위치에 원형 툴바가 열려요.",
   "home.drop_hint_macos": "또는 Finder에서 {0} 키를 누른 채 파일을 드래그하면 커서 위치에 원형 툴바가 열려요.",
   "home.drop_hint_linux": "또는 파일 관리자에서 {0} 키를 누른 채 파일을 드래그하면 커서 위치에 원형 툴바가 열려요.",
@@ -71,6 +72,8 @@
   "toast.skipped": "건너뜀 (파일이 이미 있음)",
   "toast.open_folder": "보기",
   "toast.cancel": "취소",
+  "toast.missing_fonts": "이 PC에 없는 문서 글꼴: {0}",
+  "toast.get_fonts": "글꼴 받기",
   "download.badge": "{0}/s · {1}",
   "download.badge_files": "{0} · {2}개 중 {1}번째",
 
@@ -81,6 +84,7 @@
   "format_request.notice_text": "필요한 형식을 알려주세요.\n요청을 보고 다음에 지원할 형식을 정해요.\n암호화되거나 DRM이 걸린 파일은 변환할 수 없어요.",
   "error.no_route": "이 변환을 할 수 있는 엔진이 없어요",
   "error.cannot_turn": "회전·반전은 이미지에만 할 수 있어요",
+  "error.no_transparency": "이 형식에는 투명한 부분이 없어서 잘라낼 것이 없어요",
   "error.too_many_frames": "프레임이 너무 많아요. 'N번째 프레임마다' 값을 늘려 주세요",
   "error.not_enough_space": "이미지를 저장할 디스크 공간이 부족해요",
   "error.no_motion_photo": "이 사진에서 읽을 수 있는 동영상을 찾지 못했어요 (안드로이드 모션 포토, 또는 옆에 MOV가 있는 아이폰 라이브 포토)",
@@ -194,6 +198,7 @@
   "preset.half_size": "50% 축소",
   "preset.grayscale": "흑백",
   "preset.remove_background": "배경 제거",
+  "preset.trim_transparent": "투명 여백 자르기",
   "preset.group_rotate": "회전",
   "preset.rotate_left": "왼쪽으로 회전",
   "preset.rotate_left.short": "왼쪽",

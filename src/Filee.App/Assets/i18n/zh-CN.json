@@ -26,6 +26,7 @@
 
   "home.title": "首页",
   "home.drop_title": "将文件拖放到这里",
+  "home.drop_select": "双击选择文件",
   "home.drop_hint": "或在资源管理器中按住 {0} 拖动文件，环形工具栏会在光标处打开。",
   "home.drop_hint_macos": "或在访达中按住 {0} 拖动文件，环形工具栏会在光标处打开。",
   "home.drop_hint_linux": "或在文件管理器中按住 {0} 拖动文件，环形工具栏会在光标处打开。",
@@ -71,6 +72,8 @@
   "toast.skipped": "已跳过（文件已存在）",
   "toast.open_folder": "查看",
   "toast.cancel": "取消",
+  "toast.missing_fonts": "文档缺少字体：{0}",
+  "toast.get_fonts": "获取字体",
   "download.badge": "{0}/s · {1}",
   "download.badge_files": "{0} · 第 {1}/{2} 个文件",
 
@@ -81,6 +84,7 @@
   "format_request.notice_text": "告诉我们你需要的格式。\n我们会根据请求决定接下来支持哪些格式。\n加密或有复制保护 (DRM) 的文件，无论什么格式都无法转换。",
   "error.no_route": "没有引擎可以完成此转换",
   "error.cannot_turn": "只能旋转和翻转图片",
+  "error.no_transparency": "此格式没有透明部分，无需裁剪",
   "error.too_many_frames": "帧数太多，请调大“每 N 帧”",
   "error.not_enough_space": "磁盘空间不足，无法保存这些图片",
   "error.no_motion_photo": "这张照片中没有可读取的视频（安卓动态照片，或旁边有 MOV 的 iPhone 实况照片）",
@@ -194,6 +198,7 @@
   "preset.half_size": "缩小 50%",
   "preset.grayscale": "灰度",
   "preset.remove_background": "去除背景",
+  "preset.trim_transparent": "裁掉透明边框",
   "preset.group_rotate": "旋转",
   "preset.rotate_left": "向左旋转",
   "preset.rotate_left.short": "向左",

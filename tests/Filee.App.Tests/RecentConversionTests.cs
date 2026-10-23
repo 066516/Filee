@@ -94,9 +94,105 @@ public class RecentConversionTests
             File.WriteAllBytes(broken, [0x89, 0x50, 0x4E, 0x47, 1, 2, 3]);
             Assert.Null(HistoryThumbnails.Load(broken));
 
+            var brokenVideo = Path.Combine(folder, "broken.mp4");
+            File.WriteAllBytes(brokenVideo, [0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70]);
+            Assert.Null(HistoryThumbnails.Load(brokenVideo));
+
             Assert.True(HistoryThumbnails.CanShow(@"C:\a\photo.JPG"));
+            Assert.True(HistoryThumbnails.CanShow(@"C:\a\clip.mp4"));
+            Assert.True(HistoryThumbnails.CanShow(@"C:\a\movie.MKV"));
+            Assert.True(HistoryThumbnails.CanShow(@"C:\a\sample.webm"));
+            Assert.True(HistoryThumbnails.CanShow(@"C:\a\phone.MOV"));
             Assert.False(HistoryThumbnails.CanShow(@"C:\a\report.pdf"));
             Assert.False(HistoryThumbnails.CanShow(@"C:\a\folder"));
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [AvaloniaFact]
+    public void A_video_generates_a_thumbnail_when_ffmpeg_is_available()
+    {
+        var tools = Filee.Engines.Media.FfmpegConverter.Locate();
+        Assert.SkipUnless(tools is not null, "FFmpeg is not installed (pwsh build/fetch-engines.ps1 -Only ffmpeg)");
+
+        var folder = Directory.CreateTempSubdirectory("filee-videothumbs-").FullName;
+        try
+        {
+            var video = Path.Combine(folder, "sample.mp4");
+            var psi = new System.Diagnostics.ProcessStartInfo(tools.Value.Ffmpeg)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            psi.ArgumentList.Add("-hide_banner");
+            psi.ArgumentList.Add("-nostdin");
+            psi.ArgumentList.Add("-v");
+            psi.ArgumentList.Add("error");
+            psi.ArgumentList.Add("-y");
+            psi.ArgumentList.Add("-f");
+            psi.ArgumentList.Add("lavfi");
+            psi.ArgumentList.Add("-i");
+            psi.ArgumentList.Add("testsrc=duration=2:size=320x240:rate=10");
+            psi.ArgumentList.Add("-pix_fmt");
+            psi.ArgumentList.Add("yuv420p");
+            psi.ArgumentList.Add(video);
+
+            using var process = System.Diagnostics.Process.Start(psi);
+            Assert.NotNull(process);
+            Assert.True(process.WaitForExit(20_000));
+            Assert.True(process.ExitCode == 0 && File.Exists(video), "Sample video could not be created by FFmpeg.");
+
+            var thumbnail = HistoryThumbnails.Load(video);
+            Assert.NotNull(thumbnail);
+            Assert.Equal(new PixelSize(HistoryThumbnails.Size, HistoryThumbnails.Size), thumbnail.PixelSize);
+            Assert.Same(thumbnail, HistoryThumbnails.Cached(video));
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [AvaloniaFact]
+    public void A_video_shorter_than_one_second_generates_a_thumbnail()
+    {
+        var tools = Filee.Engines.Media.FfmpegConverter.Locate();
+        Assert.SkipUnless(tools is not null, "FFmpeg is not installed (pwsh build/fetch-engines.ps1 -Only ffmpeg)");
+
+        var folder = Directory.CreateTempSubdirectory("filee-videoshort-").FullName;
+        try
+        {
+            var video = Path.Combine(folder, "short.mp4");
+            var psi = new System.Diagnostics.ProcessStartInfo(tools.Value.Ffmpeg)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            psi.ArgumentList.Add("-hide_banner");
+            psi.ArgumentList.Add("-nostdin");
+            psi.ArgumentList.Add("-v");
+            psi.ArgumentList.Add("error");
+            psi.ArgumentList.Add("-y");
+            psi.ArgumentList.Add("-f");
+            psi.ArgumentList.Add("lavfi");
+            psi.ArgumentList.Add("-i");
+            psi.ArgumentList.Add("testsrc=duration=0.5:size=320x240:rate=10");
+            psi.ArgumentList.Add("-pix_fmt");
+            psi.ArgumentList.Add("yuv420p");
+            psi.ArgumentList.Add(video);
+
+            using var process = System.Diagnostics.Process.Start(psi);
+            Assert.NotNull(process);
+            Assert.True(process.WaitForExit(20_000));
+            Assert.True(process.ExitCode == 0 && File.Exists(video), "Short sample video could not be created by FFmpeg.");
+
+            var thumbnail = HistoryThumbnails.Load(video);
+            Assert.NotNull(thumbnail);
+            Assert.Equal(new PixelSize(HistoryThumbnails.Size, HistoryThumbnails.Size), thumbnail.PixelSize);
+            Assert.Same(thumbnail, HistoryThumbnails.Cached(video));
         }
         finally
         {

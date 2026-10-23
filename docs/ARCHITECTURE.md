@@ -51,6 +51,9 @@
    "Merge into one PDF" converts each file to PDF and merges with PDFsharp.
    "Compress into one archive" packs the dropped files, unconverted, with the archive engine (`IFileCombiner`).
 6. **Report** – progress and results appear in the toast window and in Home → Recent conversions.
+   Renderers check only the original source for referenced fonts. `ConversionStep.MissingFonts` reports any missing
+   families to `FileResult.MissingFonts`; the toast card can offer one trusted source, while the CLI and watch jobs
+   report the names without pausing conversion or installing anything.
 
 ## Files dragged from a web browser
 
@@ -225,7 +228,7 @@ so a file is handed to its app and never started itself; only formats Filee know
 `SupportsOpenWith` (Windows), the shell's "Open with" dialog (`SHOpenWithDialog`, on a thread of its own because it
 blocks until closed). The cards' pictures come from `HistoryThumbnails`: Skia decodes them off the UI thread, scaled
 down while decoding where the format allows, from a copy read in one go so the file isn't held open, and a small cache
-keeps them while the files are unchanged.
+keeps them while the files are unchanged. For video files, FFmpeg extracts and scales a representative frame off the UI thread without locking the file.
 
 On macOS, files reach Filee from file managers other than Finder too (issue #160). The "Convert with Filee" service
 (`MacOSServicesProvider`) and the donut's drags (`DraggedFiles`) read file URLs first, then the older
@@ -320,8 +323,11 @@ have no semibold) instead of the app's embedded Noto fonts.
   (`SetupPayload`): ~48 MB segments compressed in parallel with SharpCompress's LZMA (48 MB dictionary), programs
   first through the x86 branch filter (`X86Filter`, from the LZMA SDK) as 7-Zip and Inno Setup do. The manifest lists
   every file with its size, SHA-256 and filter, the SHA-256 of the compressed data, the version and the engines to
-  offer (from `EngineDownloads`). A future signature goes after the trailer (Setup looks
-  for the trailer in front of the certificate table), so sign after packing. The code is trim- and AOT-safe
+  offer (from `EngineDownloads`). Setup.exe's signature goes after the trailer (Setup looks
+  for the trailer in front of the certificate table; the manifest is padded so the file ends on the 8-byte boundary
+  signtool needs), so Setup.exe is signed after packing. The Setup program is signed before: its signature stays at
+  the end of the program, Setup.exe's header stops pointing to it, and the manifest's `programSignature` lets the
+  uninstaller copied out of Setup.exe (`CopyProgramTo`) point to it again, so `uninstall.exe` is signed too. The code is trim- and AOT-safe
   (compiled bindings, source-generated P/Invoke and COM); Native AOT would need the MSVC linker on the build machine
   and still couldn't link SkiaSharp's native libraries in.
 - **Rights**: Setup starts unelevated (asInvoker) and, for an install for all users, starts itself again with

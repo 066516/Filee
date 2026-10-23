@@ -26,6 +26,7 @@
 
   "home.title": "Início",
   "home.drop_title": "Solte os arquivos aqui",
+  "home.drop_select": "Clique duas vezes para selecionar arquivos",
   "home.drop_hint": "Ou segure {0} ao arrastar arquivos no Explorador. O menu circular abre no cursor.",
   "home.drop_hint_macos": "Ou segure {0} ao arrastar arquivos no Finder. O menu circular abre no cursor.",
   "home.drop_hint_linux": "Ou segure {0} ao arrastar arquivos no gerenciador de arquivos. O menu circular abre no cursor.",
@@ -71,6 +72,8 @@
   "toast.skipped": "Ignorado (o arquivo já existe)",
   "toast.open_folder": "Mostrar",
   "toast.cancel": "Cancelar",
+  "toast.missing_fonts": "Fontes ausentes no documento: {0}",
+  "toast.get_fonts": "Obter fontes",
   "download.badge": "{0}/s · {1}",
   "download.badge_files": "{0} · {1} de {2} arquivos",
 
@@ -81,6 +84,7 @@
   "format_request.notice_text": "Diga qual formato você precisa.\nOs pedidos decidem o que o Filee passa a aceitar.\nArquivos criptografados ou protegidos contra cópia (DRM) não podem ser convertidos, seja qual for o formato.",
   "error.no_route": "Nenhum motor faz esta conversão",
   "error.cannot_turn": "Girar e espelhar só funcionam em imagens",
+  "error.no_transparency": "Este formato não tem transparência, então não há nada para cortar",
   "error.too_many_frames": "Quadros demais para salvar como imagens. Aumente “A cada N quadros”",
   "error.not_enough_space": "Não há espaço livre suficiente em disco para as imagens",
   "error.no_motion_photo": "Esta foto não tem um vídeo que o Filee consiga ler (uma Motion Photo do Android, ou uma Live Photo do iPhone com o MOV ao lado)",
@@ -194,6 +198,7 @@
   "preset.half_size": "Reduzir 50%",
   "preset.grayscale": "Tons de cinza",
   "preset.remove_background": "Remover fundo",
+  "preset.trim_transparent": "Cortar bordas transparentes",
   "preset.group_rotate": "Girar",
   "preset.rotate_left": "Girar à esquerda",
   "preset.rotate_left.short": "Esquerda",
