@@ -57,6 +57,12 @@ public sealed class FileResult
     /// </summary>
     public string? NoticeKey { get; set; }
 
+    /// <summary>Why, after the notice in brackets: a localization key (why the original was kept), or null.</summary>
+    public string? NoticeReasonKey { get; set; }
+
+    /// <summary>The system's own words after <see cref="NoticeReasonKey"/> (not localized), or null.</summary>
+    public string? NoticeDetail { get; set; }
+
     /// <summary>
     /// Referenced document font families that weren't installed before rendering. Conversion still completes with the
     /// renderer's substitutions; the UI can offer trusted sources afterwards.
