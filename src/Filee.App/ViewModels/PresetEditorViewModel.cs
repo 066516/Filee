@@ -83,10 +83,14 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         PageSizes = Enum.GetValues<PdfPageSize>().Select(v => new Choice<PdfPageSize>(v, loc[$"presets.page_size.{v}"])).ToList();
         CompressionLevels = Enum.GetValues<PdfCompression>().Select(v => new Choice<PdfCompression>(v, loc[$"presets.pdf_compression.{v}"])).ToList();
         // Each language under its own name; one not downloaded yet shows its size (it downloads with the first file).
+        // On a Mac, Apple Vision reads the common languages without a download.
+        var vision = new VisionConverter();
+        OcrHint = loc[vision.GetStatus().IsAvailable ? "presets.ocr_hint_macos" : "presets.ocr_hint"];
         OcrLanguageChoices = [.. OcrLanguages.All
             .OrderBy(l => l.Code != OcrLanguages.Default).ThenBy(l => l.NativeName, StringComparer.CurrentCulture)
             .Select(l => new Choice<string>(l.Code, l.NativeName,
-                OcrLanguages.IsInstalled(l.Code) ? null : loc.Format("presets.ocr_language_size", $"{l.Size / 1_000_000.0:0.#} MB")))];
+                OcrLanguages.IsInstalled(l.Code) || vision.Reads(l.Code) ? null
+                    : loc.Format("presets.ocr_language_size", $"{l.Size / 1_000_000.0:0.#} MB")))];
         Locations = Enum.GetValues<OutputLocation>().Select(v => new Choice<OutputLocation>(v, loc[$"presets.location.{v}"])).ToList();
         Conflicts = Enum.GetValues<ConflictPolicy>().Select(v => new Choice<ConflictPolicy>(v, loc[$"presets.conflict.{v}"])).ToList();
         TiffCompressions = Enum.GetValues<TiffCompression>().Select(v => new Choice<TiffCompression>(v, v.ToString().ToUpperInvariant())).ToList();
@@ -190,6 +194,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     /// <summary>Languages Tesseract reads (PdfOptions.OcrLanguage), English first.</summary>
     public IReadOnlyList<Choice<string>> OcrLanguageChoices { get; }
+
+    /// <summary>What "Recognize text" needs: Tesseract, or on a Mac Apple Vision (Tesseract only for other languages).</summary>
+    public string OcrHint { get; }
 
     /// <summary>PDF → PDF: don't compress, or the level (pictures at 72, 150 or 300 dpi).</summary>
     public IReadOnlyList<Choice<PdfCompression>> CompressionLevels { get; }

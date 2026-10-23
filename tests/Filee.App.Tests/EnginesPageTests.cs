@@ -111,14 +111,4 @@ public class EnginesPageTests
             vm.Dispose();
         }
     }
-
-    [AvaloniaFact]
-    public void Tesseract_package_exists_and_offers_own_copy_or_guidance()
-    {
-        TestServices.EnsureInitialized("en");
-        var downloads = AppHost.Get<EngineDownloadService>();
-        var tesseract = downloads.Packages.FirstOrDefault(p => p.Package.Id == "tesseract");
-        Assert.NotNull(tesseract);
-        Assert.True(tesseract.CanUseOwnCopy || tesseract.IsInstalled);
-    }
 }

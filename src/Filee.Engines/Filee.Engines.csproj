@@ -39,7 +39,6 @@
     <InternalsVisibleTo Include="Filee" />
     <InternalsVisibleTo Include="Filee.Engines.Tests" />
     <InternalsVisibleTo Include="Filee.App.Tests" />
-    <InternalsVisibleTo Include="Filee.Platform.Tests" />
   </ItemGroup>
 
   <ItemGroup>

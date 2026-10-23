@@ -122,7 +122,8 @@ public sealed partial class EnginePackageState : ObservableObject
                                  || (Status == EnginePackageStatus.OwnCopy && FromSystem);
     public bool IsBusy => Status is EnginePackageStatus.Queued or EnginePackageStatus.Downloading or EnginePackageStatus.Unpacking;
     /// <summary>Also when a copy on the PC is used: Filee's download is the tested version and wins once installed.</summary>
-    public bool CanInstall => EngineDownloads.CanDownload(Package) && (Status is EnginePackageStatus.NotInstalled or EnginePackageStatus.Failed || (Status == EnginePackageStatus.OwnCopy && FromSystem));
+    public bool CanInstall => EngineDownloads.CanDownload(Package) && (Status is EnginePackageStatus.NotInstalled or EnginePackageStatus.Failed
+                              || (Status == EnginePackageStatus.OwnCopy && FromSystem));
 
     public string StatusText => Status switch
     {
@@ -282,8 +283,7 @@ public sealed class EngineDownloadService
             {
                 _oneAtATime.Release();
             }
-            EngineEnvironment.ForgetSystemCopies();
-            state.Status = StatusOf(state);
+            state.Status = EnginePackageStatus.Installed;
             _catalog.Refresh();
             if (state.Package.ConverterIds.Contains("libreoffice"))
                 WarmUpInBackground(TimeSpan.Zero);
@@ -347,7 +347,7 @@ public sealed class EngineDownloadService
         try
         {
             _installer.Uninstall(state.Package);
-            state.Status = StatusOf(state);
+            state.Status = EnginePackageStatus.NotInstalled;
             _catalog.Refresh();
             return true;
         }

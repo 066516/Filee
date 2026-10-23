@@ -403,10 +403,6 @@ internal static class SettingsMigrations
         if (settings.SchemaVersion < 21)
             InsertBefore(settings.EnginePriority, "wic", settings.EnginePriority.Contains("ffmpeg") ? "ffmpeg" : "pandoc");
 
-        // v33: built-in "image-ocr" engine (image to text/docx/md via Vision/Tesseract) before external converters.
-        if (settings.SchemaVersion < 33 && !settings.EnginePriority.Contains("image-ocr"))
-            InsertBefore(settings.EnginePriority, "image-ocr", settings.EnginePriority.Contains("ffmpeg") ? "ffmpeg" : "pandoc");
-
         if (settings.Triggers.Count == 0)
             settings.Triggers = TriggerGesture.Defaults();
 

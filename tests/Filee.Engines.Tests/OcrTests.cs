@@ -102,9 +102,10 @@ public class OcrPagesWithTextTests(EngineFixture fx) : IClassFixture<EngineFixtu
 
 public class OcrTests(EngineFixture fx) : IClassFixture<EngineFixture>
 {
-    private static readonly bool Installed = TesseractConverter.Locate() is not null;
+    /// <summary>On a Mac Apple Vision takes the OCR step (VisionConverter, AppleVisionTests), so these are Tesseract's elsewhere.</summary>
+    private static readonly bool Installed = TesseractConverter.Locate() is not null && !new VisionConverter().GetStatus().IsAvailable;
 
-    private const string Skip = "Tesseract is not installed (pwsh build/fetch-engines.ps1 -Only 7zip,tesseract)";
+    private const string Skip = "Tesseract is not installed (pwsh build/fetch-engines.ps1 -Only 7zip,tesseract), or Apple Vision reads instead";
 
     private static readonly string? Arial = EngineEnvironment.FirstExisting(@"C:\Windows\Fonts\arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/System/Library/Fonts/Supplemental/Arial.ttf");
