@@ -107,7 +107,7 @@
 | **压缩包** ZIP、ANSYS Workbench（WBPZ）、7Z、RAR、TAR、TAR.GZ、TAR.BZ2、TAR.XZ、GZ、ISO、CAB、DMG、ALZ、EGG 等 | 解压、ZIP、7Z、TAR、TAR.GZ，多个文件 → 一个 ZIP |
 | **CAD** DWG、DXF | PDF、SVG、PNG、DWG ↔ DXF |
 | **字体** TTF、OTF、WOFF、WOFF2、EOT | 互相转换 |
-| **数据** JSON、JSON Lines、YAML、TOML、XML · vCard, iCalendar | 互相转换、CSV 和 XLSX（表格数据）、vCard, iCalendar ↔ CSV |
+| **数据** JSON、JSON Lines、YAML、TOML、XML · vCard、iCalendar | 互相转换、CSV 和 XLSX（表格数据）、vCard、iCalendar ↔ CSV |
 | **3D 模型** GLB、glTF、STL、OBJ（+ MTL）、3MF、PLY，FBX 仅读取 | 互相转换、PNG 预览 |
 | **地理信息（矢量）** Shapefile、GeoJSON、KML、KMZ、GPX · 带坐标的 CSV | 互相转换、CSV / XLSX / JSON，投影坐标系（UTM、Web 墨卡托、兰伯特、阿尔伯斯）会转换为 WGS 84 经纬度 |
 

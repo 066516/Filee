@@ -112,7 +112,7 @@
 | **アーカイブ**：ZIP、ANSYS Workbench（WBPZ）、7Z、RAR、TAR、TAR.GZ、TAR.BZ2、TAR.XZ、GZ、ISO、CAB、DMG、ALZ、EGG など | 展開、ZIP、7Z、TAR、TAR.GZ。複数のファイル → 1つのZIP |
 | **CAD**：DWG、DXF | PDF、SVG、PNG、DWG ↔ DXF |
 | **フォント**：TTF、OTF、WOFF、WOFF2、EOT | 相互変換 |
-| **データ**：JSON、JSON Lines、YAML、TOML、XML · vCard, iCalendar | 相互変換、CSVとXLSX（表形式のデータ）。vCard, iCalendar ↔ CSV |
+| **データ**：JSON、JSON Lines、YAML、TOML、XML · vCard、iCalendar | 相互変換、CSVとXLSX（表形式のデータ）。vCard、iCalendar ↔ CSV |
 | **3Dモデル**：GLB、glTF、STL、OBJ（+ MTL）、3MF、PLY。FBXは読み込みのみ | 相互変換、PNGプレビュー |
 | **地理空間ベクターデータ**：Shapefile、GeoJSON、KML、KMZ、GPX · 座標付きのCSV | 相互変換、CSV/XLSX/JSON。投影座標系（UTM、Webメルカトル、ランベルト、アルベルス）のデータはWGS 84の経度/緯度で出力 |
 
