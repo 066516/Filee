@@ -652,6 +652,11 @@
   "theme.donut_opacity": "環形工具列不透明度",
   "theme.reduce_motion": "減少動畫",
   "theme.reduce_motion_hint": "適合效能較低的電腦。關閉轉場效果和圓環的彈跳效果。",
+  "theme.window_size": "視窗大小",
+  "theme.window_size_smaller": "縮小",
+  "theme.window_size_larger": "放大",
+  "theme.window_size_reset": "重設",
+  "theme.window_size_hint": "放大或縮小 Filee 視窗中的所有內容。在任何視窗中，{0} + 滑鼠滾輪和 {0} + 加號 / 減號也能調整，{0} + 0 會恢復為 100%。",
   "theme.preview": "預覽",
 
   "engines.title": "轉換引擎",

@@ -15,7 +15,8 @@ public partial class EngineSetupWindow : Window
     {
         InitializeComponent();
         Motion.Track(this);
-        UiZoom.Track(this);
+        // Keeps itself inside the screen (FitTo), its engine list scrolls.
+        UiZoom.Track(this, fitsItself: true);
         DataContextChanged += (_, _) =>
         {
             if (DataContext is EngineSetupViewModel vm)

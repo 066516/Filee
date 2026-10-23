@@ -68,6 +68,19 @@ public partial class App : Application
         var loc = AppHost.Get<LocalizationService>();
         loc.Attach(this);
         ApplySettings(store.Settings);
+        // Window zoom: set once here, not with the other settings, since the zoom saves itself (UiZoom) without
+        // raising SettingsChanged.
+        UiZoom.Configure(store.Settings.UiScale, scale =>
+        {
+            try
+            {
+                store.SaveUiScale(scale);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                log.LogWarning(ex, "Could not remember the window zoom");
+            }
+        });
         // Every engine's availability, checked once off the UI thread: the first donut or drop otherwise starts
         // every engine's check (FFmpeg -version, folder searches) on the UI thread and freezes it meanwhile.
         _ = AppHost.Get<ConverterCatalog>().CheckInBackgroundAsync();
@@ -150,6 +163,7 @@ public partial class App : Application
 
         desktop.Exit += (_, _) =>
         {
+            UiZoom.Flush();
             watchdog.Dispose();
             AppHost.Get<MemoryTrimmer>().Dispose();
             AppHost.Get<TriggerService>().Dispose();
@@ -260,20 +274,6 @@ public partial class App : Application
 
         var custom = CustomTheme.Load(AppHost.Get<UserDataStore>().Directory, AppHost.Get<ILogger<App>>());
         AppHost.Get<ThemeService>().Apply(settings.Theme, loc.Language, custom);
-        // Ctrl + wheel / Ctrl +/- / Ctrl+0: everything larger or smaller, remembered.
-        UiZoom.Configure(settings.UiScale, scale =>
-        {
-            var store = AppHost.Get<UserDataStore>();
-            store.Settings.UiScale = scale;
-            try
-            {
-                store.SaveSettings();
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                AppHost.Get<ILogger<App>>().LogWarning(ex, "Could not remember the window zoom");
-            }
-        });
         AppHost.Get<TriggerService>().Apply(settings);
         AppHost.Get<ConverterCatalog>().Priority = settings.EnginePriority;
         if (ownCopiesChanged || routesChanged)

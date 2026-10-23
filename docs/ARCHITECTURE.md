@@ -171,6 +171,20 @@ Bump `AppSettings.CurrentSchemaVersion` and add a step to `SettingsMigrations` w
   stay left to right. Light/dark surface colours are theme dictionaries in `Styles/Soft.axaml`; a user's
   `theme.json` (`CustomTheme`, see [CUSTOM-THEMES.md](CUSTOM-THEMES.md)) overrides them with theme dictionaries in
   application resources, which are searched first.
+- Window zoom (`Services/UiZoom`): Theme → *Window size* (− / + and *Reset*), and in any tracked window the
+  platform's command key (`HotkeyConfiguration.CommandModifiers`: Ctrl, Cmd on macOS) with the mouse wheel, plus /
+  minus (Shift allowed, Alt not: AltGr is Ctrl + Alt) or 0 for 100 %. 70–180 % in 10 % steps, every window at once.
+  `UiZoom.Track(window)` wraps the window's content in a `LayoutTransformControl`, so layouts see the room they really
+  have. Small wheel deltas (touchpads, smooth wheels, pinching on a Windows touchpad) add up to one step per whole notch.
+  Windows that can't be resized grow with the zoom (their designed width × the zoom) up to their screen, cap their
+  height to it and scroll; the engine setup keeps itself on screen and scrolls its own list (`fitsItself`).
+  Tracked: the main window, the preset, group, rename and merge-order editors, the engine setup, LibreOffice options,
+  close, sponsor, what's new and update-progress windows and `WindowService`'s message dialog. Not tracked, so at
+  100 %: the donut (it has its own size), the toast and the corner notices (update, engine update, feedback, format
+  request, elevation), which are placed in a screen corner like system notifications, and the crop overlay, whose
+  wheel zooms the crop. Drop-down lists, context menus and tooltips open in their own popup windows outside the
+  transform and stay at 100 % too. The size is `UiScale` in settings.json (1 when missing, so no schema step); it is
+  written by `UserDataStore.SaveUiScale` 0.6 s after the last change (and on exit), without raising `SettingsChanged`.
 
 ## "What's new" slides
 
