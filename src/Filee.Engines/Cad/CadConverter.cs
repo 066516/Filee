@@ -40,6 +40,9 @@ public sealed class CadConverter(ILogger? logger = null) : IConverter, IImageTra
     [
         new("dwg", "dxf"),
         new("dxf", "dwg"),
+        // Into another version of the same format (#489).
+        new("dwg", "dwg"),
+        new("dxf", "dxf"),
         .. from source in Sources
            from target in (string[])["pdf", "svg", .. ImageEncoder.Writable]
            select ImageEncoder.Edge(source, target),
@@ -59,7 +62,8 @@ public sealed class CadConverter(ILogger? logger = null) : IConverter, IImageTra
             {
                 if (step.Output.Allocate(step.To) is not { } path)
                     return [];
-                CadFile.Write(document, path, step.To, message => _logger.LogDebug("{File}: {Message}", path, message));
+                if (CadFile.Write(document, path, step.To, step.Preset.Cad.Version, message => _logger.LogDebug("{File}: {Message}", path, message)) > 0)
+                    step.Notice?.Invoke("notice.cad_newer_left_out");
                 progress?.Report(1);
                 return [path];
             }

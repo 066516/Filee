@@ -291,7 +291,7 @@ route they have no SVG target (PDF → SVG, for example, needs LibreOffice). The
 
 ## SVG → DXF / DWG
 
-`Vector/SvgDxfWriter.cs` writes the drawing's outlines with ACadSharp (DXF, AutoCAD 2018 like the CAD engine; DWG is
+`Vector/SvgDxfWriter.cs` writes the drawing's outlines with ACadSharp (DXF in the preset's version like the CAD engine; DWG is
 DXF → DWG by the CAD engine). The SVG is loaded with Svg.Skia as for PDF output, so groups, transforms, `<use>`,
 nested `<svg>`, CSS and text are resolved the same way.
 
@@ -848,8 +848,17 @@ and writes the files; Filee's own renderer draws them with SkiaSharp (one drawin
   2018, ASCII and binary. DWG R13 and older fail with "version not supported". Korean AutoCAD writes pre-2007 DXF with
   the code page name `ANSI_949`, which ACadSharp 3.8 does not map; Filee rewrites that header in memory so the text
   is decoded as CP949 (`CadFile.OpenDxf`, covered by a test that fails once ACadSharp handles it).
-- **Writing** (DWG ↔ DXF): always **AutoCAD 2018 (AC1032)** — the current DWG format (AutoCAD 2018 and later, DWG
-  TrueView, BricsCAD, ODA tools); 2018 DXF stores text as UTF-8. ACadSharp's DWG writer is younger than its reader
+- **Writing** (DWG ↔ DXF, and DWG → DWG / DXF → DXF in another version): **AutoCAD 2018 (AC1032)** by default — the
+  current DWG format (AutoCAD 2018 and later, DWG TrueView, BricsCAD, ODA tools); 2018 DXF stores text as UTF-8.
+  A preset can choose an older version (#489, `CadOptions.Version`): 2013, 2010, 2007, 2004, 2000, or the source's
+  own version (older than 2000 becomes 2000). ACadSharp 3.8 can't write a 2007 DWG: chosen, it is written as 2004,
+  which AutoCAD 2007 opens; kept from a 2007 source, as 2010. Before 2007, text is stored in the drawing's code page
+  (`$DWGCODEPAGE`), so `CadCodePages` picks the one that holds the most of the drawing's text (its own on a tie;
+  Korean for Hangul, Japanese for Kana, Big5 before GBK for Chinese, East Asian pages only for East Asian text) and
+  writes any character it can't hold as `\U+XXXX`. Korean is written as `ANSI_949`, as AutoCAD names it (ACadSharp
+  needs `KCS5601` to encode it, so the DXF header is renamed after writing). Objects the chosen version doesn't
+  have are left out with a note: tables and arc dimensions before 2004, multileaders and PDF underlays before 2007,
+  meshes before 2010. ACadSharp's DWG writer is younger than its reader
   and its DXF writer, so DXF is the safer format to hand on. Objects ACadSharp does not model (proxy and AEC objects,
   some 3D and underlay data) are not written; degenerate dimensions it cannot measure are left out of DWG output
   instead of failing the file.

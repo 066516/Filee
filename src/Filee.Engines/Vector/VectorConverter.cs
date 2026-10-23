@@ -107,7 +107,7 @@ public sealed class VectorConverter : IConverter, IImageTransformer
         var output = step.Output.Allocate("dxf");
         if (output is null)
             return [];
-        SvgDxfWriter.Write(drawing, output, ct);
+        SvgDxfWriter.Write(drawing, output, ct, step.Preset.Cad.Version);
         return [output];
     }
 
