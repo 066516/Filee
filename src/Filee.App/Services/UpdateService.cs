@@ -1075,6 +1075,10 @@ public sealed partial class UpdateService : ObservableObject
     /// </summary>
     public static void DeleteStaleWorkspaces(string? root = null, TimeSpan? age = null, ILogger? log = null)
     {
+        // Workspaces are only made on Linux, under Filee's own data folder. Elsewhere the default root is the shared
+        // temp folder, where other programs' folders live.
+        if (root is null && !OperatingSystem.IsLinux())
+            return;
         var threshold = age ?? TimeSpan.FromDays(1);
         try
         {

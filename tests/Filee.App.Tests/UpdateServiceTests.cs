@@ -486,7 +486,8 @@ public class UpdateServiceTests
         updates.StartProcess = psi =>
         {
             processes.Add(psi);
-            return Process.Start(new ProcessStartInfo("true") { UseShellExecute = false });
+            // No real process: `true` is missing on Windows without Git's tools on PATH.
+            return null;
         };
 
         await updates.UpdateAsync();
