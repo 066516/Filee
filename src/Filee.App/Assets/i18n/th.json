@@ -260,6 +260,7 @@
   "general.integration_macos": "Finder จะแสดงในเมนูคลิกขวา (ใต้ Quick Actions หรือ Services เมื่อเมนูยาว)\nควรเก็บ Filee ไว้ในโฟลเดอร์ Applications",
   "general.integration_linux": "เพิ่มการดำเนินการไฟล์ใน Thunar, Nautilus, Nemo และ Dolphin\nหากต้องการเปลี่ยนปุ่มลัดของ Thunar ให้ปิด Thunar ก่อนแล้วเปิดใหม่หลังจากนั้น",
   "general.integration_failed": "ไม่สามารถตั้งค่าการเชื่อมต่อกับระบบได้: {0}",
+  "general.startup_entry_missing": "รายการเปิดอัตโนมัติเมื่อเข้าสู่ระบบถูกลบหรือเปลี่ยนทันทีหลังบันทึก ซอฟต์แวร์ความปลอดภัยอาจบล็อกอยู่",
   "general.modern_menu_hint": "บน Windows 11 รายการนี้จะอยู่ใต้ “แสดงตัวเลือกเพิ่มเติม” (Show more options)\nและสามารถนำไปไว้ในเมนูหลักได้เช่นกัน (Windows จะขอสิทธิ์ผู้ดูแลระบบหนึ่งครั้ง)",
   "general.modern_menu_on": "“แปลงไฟล์ด้วย Filee” อยู่ในเมนูหลักของ Windows 11 แล้ว",
   "general.modern_menu_outdated": "รายการในเมนูหลักเป็นของ Filee รุ่นเก่าหรือถูกย้ายตำแหน่ง\nโปรดเพิ่มใหม่อีกครั้งเพื่ออัปเดต",
