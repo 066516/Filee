@@ -52,6 +52,37 @@ public partial class LocalizationTests
         Assert.Empty(other.Except(english));
     }
 
+    [Fact]
+    public void Toolbar_tabs_and_reused_categories_exist_in_every_language()
+    {
+        string[] required =
+        [
+            "toolbar.tab.all",
+            "toolbar.tab.media",
+            "toolbar.tab.edit",
+            "toolbar.tab.model3d_cad",
+            "format.category.Image",
+            "format.category.Document",
+            "format.category.Geo",
+            "format.category.Archive",
+            "format.category.Font"
+        ];
+        string[] removed = ["toolbar.tab.document", "toolbar.tab.other"];
+
+        foreach (var language in LocalizationService.Languages)
+        {
+            var translations = Load(language.Code);
+            foreach (var key in required)
+            {
+                Assert.True(translations.TryGetValue(key, out var value), $"{language.Code}:{key} is missing");
+                Assert.False(string.IsNullOrWhiteSpace(value), $"{language.Code}:{key} is empty");
+            }
+
+            foreach (var key in removed)
+                Assert.False(translations.ContainsKey(key), $"{language.Code}:{key} should be removed");
+        }
+    }
+
     [Theory]
     [MemberData(nameof(Languages))]
     public void Format_placeholders_match_english(string code)
