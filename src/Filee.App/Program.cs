@@ -276,19 +276,10 @@ internal static class Program
     {
         var builder = AppBuilder.Configure<App>();
 #if FILEE_NATIVE_WAYLAND
-        if (Filee.Platform.Linux.LinuxPlatformServices.IsNativeWaylandRequested(
-            OperatingSystem.IsLinux(),
-            Environment.GetEnvironmentVariable("FILEE_USE_WAYLAND"),
-            Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")))
-        {
-            builder.UseWayland();
-        }
-        else
-        {
-            builder.UsePlatformDetect();
-        }
+        // The native backend is only compiled into Linux builds and only used when asked for (FILEE_USE_WAYLAND=1).
+        builder = Filee.Platform.Linux.WaylandSupport.NativeWaylandRequested ? builder.UseWayland() : builder.UsePlatformDetect();
 #else
-        builder.UsePlatformDetect();
+        builder = builder.UsePlatformDetect();
 #endif
 
         if (OperatingSystem.IsMacOS())

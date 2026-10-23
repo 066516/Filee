@@ -1,9 +1,10 @@
-using System.Runtime.Versioning;
+// The Wayland decisions that only depend on environment values (#367): which compositors can place the donut, and
+// when the native backend is used.
+
 using Filee.Platform.Linux;
 
 namespace Filee.Platform.Tests;
 
-[SupportedOSPlatform("linux")]
 public sealed class WaylandDecisionTests
 {
     [Theory]
@@ -19,10 +20,10 @@ public sealed class WaylandDecisionTests
     [InlineData("XFCE", null, false)]
     [InlineData(null, null, false)]
     [InlineData("", "", false)]
-    public void IsSupportedWaylandCompositor_Recognizes_Supported_Desktops(
+    public void KDE_and_Hyprland_can_place_the_donut(
         string? xdgCurrentDesktop, string? hyprlandSignature, bool expected)
     {
-        var result = LinuxPlatformServices.IsSupportedWaylandCompositor(xdgCurrentDesktop, hyprlandSignature);
+        var result = WaylandSupport.IsSupportedCompositor(xdgCurrentDesktop, hyprlandSignature);
         Assert.Equal(expected, result);
     }
 
@@ -36,10 +37,10 @@ public sealed class WaylandDecisionTests
     [InlineData(true, "true", "wayland-0", false)]     // Switch not "1"
     [InlineData(true, "1", null, false)]               // No WAYLAND_DISPLAY
     [InlineData(true, "1", "", false)]                 // Empty WAYLAND_DISPLAY
-    public void IsNativeWaylandRequested_Requires_Linux_And_Switch_And_Display(
+    public void The_native_backend_needs_Linux_the_switch_and_a_display(
         bool isLinux, string? fileeUseWayland, string? waylandDisplay, bool expected)
     {
-        var result = LinuxPlatformServices.IsNativeWaylandRequested(isLinux, fileeUseWayland, waylandDisplay);
+        var result = WaylandSupport.IsNativeWaylandRequested(isLinux, fileeUseWayland, waylandDisplay);
         Assert.Equal(expected, result);
     }
 }

@@ -27,28 +27,10 @@ public sealed class LinuxPlatformServices : IPlatformServices
     // relatively there; a KWin script or Hyprland window rule places the donut at the cursor.
     private static readonly bool WaylandGestures = IsWaylandSession
         && Environment.GetEnvironmentVariable("FILEE_WAYLAND_GESTURES") == "1"
-        && IsSupportedWaylandCompositor(
+        && WaylandSupport.IsSupportedCompositor(
             Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"),
             Environment.GetEnvironmentVariable("HYPRLAND_INSTANCE_SIGNATURE"))
         && CanReadInputDevices();
-
-    /// <summary>Decides whether the Wayland compositor supports positioning the donut at the cursor.</summary>
-    public static bool IsSupportedWaylandCompositor(string? xdgCurrentDesktop, string? hyprlandSignature)
-    {
-        var desktop = xdgCurrentDesktop ?? "";
-        if (desktop.Split(':').Contains("KDE", StringComparer.OrdinalIgnoreCase))
-            return true;
-        if (desktop.Split(':').Contains("Hyprland", StringComparer.OrdinalIgnoreCase)
-            || !string.IsNullOrEmpty(hyprlandSignature))
-            return true;
-        return false;
-    }
-
-    /// <summary>Decides whether the native Wayland backend (Avalonia.Wayland) is opted into.</summary>
-    public static bool IsNativeWaylandRequested(bool isLinux, string? fileeUseWayland, string? waylandDisplay) =>
-        isLinux
-        && string.Equals(fileeUseWayland, "1", StringComparison.Ordinal)
-        && !string.IsNullOrEmpty(waylandDisplay);
 
     private static bool CanReadInputDevices()
     {
