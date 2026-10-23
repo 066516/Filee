@@ -752,6 +752,11 @@
   "theme.donut_opacity": "Opacidade do menu circular",
   "theme.reduce_motion": "Reduzir animações",
   "theme.reduce_motion_hint": "Recomendado para PCs mais antigos. Desliga as transições e o salto do menu.",
+  "theme.window_size": "Tamanho das janelas",
+  "theme.window_size_smaller": "Menor",
+  "theme.window_size_larger": "Maior",
+  "theme.window_size_reset": "Redefinir",
+  "theme.window_size_hint": "Deixa tudo nas janelas do Filee maior ou menor. Em qualquer janela, {0} + roda do mouse e {0} + mais / menos fazem o mesmo, e {0} + 0 volta para 100%.",
   "theme.preview": "Prévia",
 
   "engines.title": "Motores de conversão",

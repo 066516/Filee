@@ -290,7 +290,6 @@ public class ToolbarPaletteViewTests
         using var f = new PresetAvailabilityTests.Fixture();
         f.Store.Presets.AddRange(
         [
-            new() { Id = "tool-clip", Kind = PresetKind.Tool, TargetFormat = "mp4" },
             new() { Id = "tool-join", Kind = PresetKind.Tool, TargetFormat = "mp4" },
             new() { Id = "test-same", TargetFormat = BuiltInData.SameAsSource },
             // A target no format is registered for: in All only, under no kind.
