@@ -339,10 +339,10 @@
             <CheckBox Content="{DynamicResource presets.pdf_keep_metadata}" IsChecked="{Binding KeepMetadata}" />
           </StackPanel>
         </StackPanel>
-        <!-- Scans and pictures → searchable PDF, DOCX, TXT, … with Tesseract -->
+        <!-- Scans and pictures → searchable PDF, DOCX, TXT, … with Tesseract (Apple Vision on a Mac) -->
         <StackPanel Spacing="2" IsVisible="{Binding ShowOcr}">
           <CheckBox Content="{DynamicResource presets.ocr}" IsChecked="{Binding Ocr}" />
-          <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0" Text="{DynamicResource presets.ocr_hint}" />
+          <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0" Text="{Binding OcrHint}" />
           <Grid ColumnDefinitions="*,12,*" Margin="28,6,0,0" IsVisible="{Binding Ocr}">
             <StackPanel>
               <TextBlock Classes="label" Text="{DynamicResource presets.ocr_language}" />
@@ -440,6 +440,11 @@
                   ToolTip.Tip="{DynamicResource presets.keep_dates_hint}" />
         <CheckBox Content="{DynamicResource presets.zip_result}" IsChecked="{Binding ZipResult}" IsVisible="{Binding ShowZipResult}"
                   ToolTip.Tip="{DynamicResource presets.zip_result_hint}" />
+        <StackPanel>
+          <CheckBox Content="{DynamicResource presets.replace_original}" IsChecked="{Binding ReplaceOriginal}" />
+          <TextBlock Classes="caption" Text="{DynamicResource presets.replace_original_hint}" TextWrapping="Wrap"
+                     IsVisible="{Binding ReplaceOriginal}" Margin="28,2,0,0" />
+        </StackPanel>
       </StackPanel>
     </Border>
   </StackPanel>

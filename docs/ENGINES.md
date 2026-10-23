@@ -33,6 +33,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, markup languages (reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML) ↔ Markdown/HTML/DOCX/ODT and each other (and → RTF, EPUB, TXT), Markdown and markup → PPTX slides |
 | Ghostscript | **optional download** (~20 MB, 31 MB on disk) | EPS/PS → PDF, PDF → EPS/PS, PostScript-based AI → PDF (images through PDF and PDFium); smaller PDFs when a preset asks for it |
 | Tesseract | **optional download** (~50 MB, 160 MB on disk; each language 0.4–10 MB when first used) | **text recognition (OCR)**: scans and pictures → searchable PDF, and their text into DOCX, TXT, Markdown and HWPX ("Recognize text" in the preset, see below) |
+| Apple Vision | part of macOS (Mac only) | **text recognition (OCR) on a Mac**, the same step as Tesseract without a download; Tesseract reads the languages Vision doesn't (see "Apple Vision on macOS") |
 | FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG, a still frame or every frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, Live / Motion Photos → their video, a clip of a video → an iPhone Live Photo or Android Motion Photo (experimental), images → HEIC, clips or audio files joined into one, pictures → a slideshow MP4, copies without metadata (see "Media tools") |
 | Calibre | **optional download** (~216 MB, 660 MB on disk) | rare e-book formats: LIT, LRF, CHM, PDB, PML, RB, SNB, TCR, OEB → EPUB; EPUB → MOBI, AZW3, LIT, LRF, PDB, PML, RB, SNB, TCR; e-books → PDF (ranked above the HWPX writer, see below) |
 
@@ -873,10 +874,18 @@ and writes the files; Filee's own renderer draws them with SkiaSharp (one drawin
   some 3D and underlay data) are not written; degenerate dimensions it cannot measure are left out of DWG output
   instead of failing the file.
 - **What is drawn**: model space seen from the top (Z is dropped). If model space has nothing visible, the active
-  layout (paper space) is drawn instead; viewports inside it are not followed. The page is fitted to the extents of
+  layout (paper space) is drawn instead (for a PDF, every layout, see below). The page is fitted to the extents of
   what is actually drawn — the header's EXTMIN/EXTMAX are ignored, so drawings far from the origin still fill it.
   - PDF: an ISO A3 sheet (A4 or Letter when the preset asks for it), landscape when the drawing is wider than tall,
     10 mm margins (or the preset's margin). Vector paths, text as text with embedded fonts.
+  - PDF of a drawing with paper-space layouts (#172): **one page per layout** with something on it, in tab order,
+    each fitted like the one-page PDF to the layout's drawing and viewport frames. Inside each viewport model space
+    is drawn at the viewport's scale (height ÷ view height) around its view centre, clipped to the frame, under the
+    layout's own drawing (title block, notes). Viewports that are off are skipped. When no layout has anything of its
+    own besides viewports (a drawing made in model space, whose Layout1 only holds the viewport AutoCAD added), the
+    PDF stays one page of model space. Not followed: twisted views (drawn untwisted), views from another direction
+    than the top (drawn from the top), layers frozen per viewport, non-rectangular viewports and the layout's plot
+    settings (paper size, plot scale). Images and SVG stay one picture of model space.
   - SVG: the drawing's aspect ratio with a 420 mm (A3) long edge at 96 px/inch, white background, text as `<text>`.
   - Images: the same page rendered at the preset's render resolution (150 dpi → 2480 px on the long edge, at most
     12 000 px / 80 MP), then the preset's image options (resize, grayscale, quality, DPI) as for other images.
@@ -1569,3 +1578,32 @@ scans and pictures with Tesseract (`Ocr/TesseractConverter.cs`), in the language
 - The language data is copied into the job's folder and passed with `--tessdata-dir`, so a system Tesseract reads
   only Filee's pinned files; `-c tessedit_create_pdf=1` replaces the `pdf` config file that lives in Tesseract's own
   tessdata folder.
+
+### Apple Vision on macOS
+
+On a Mac the same step runs with Apple Vision (`Ocr/VisionConverter.cs`, `VNRecognizeTextRequest` at the accurate
+level and the newest revision the Mac has), part of macOS, so nothing is downloaded. It has the same OCR edges as
+Tesseract and is registered before it, so the route planner takes it; on Windows and Linux it is unavailable
+("Not available on this platform").
+
+- The preset's language (a Tesseract code) is mapped to Vision's identifiers (`VisionLanguages`) and asked for with
+  English next to it; if Vision refuses the pair it reads with the language alone. Which languages Vision reads comes
+  from the Mac itself (`supportedRecognitionLanguagesAndReturnError:`, more with newer macOS versions); a language it
+  doesn't read (Hindi, Nepali, Greek, …) goes to Tesseract when that is installed, and is refused otherwise with
+  "Apple Vision can't read this language. Install Tesseract …". The preset editor shows no download size for the
+  languages Vision reads, and its hint names Apple Vision.
+- PDFs go page by page exactly like Tesseract's (`TesseractConverter.RecognizePdfAsync`, at most two pages at a time).
+  A JPEG picture goes into the PDF as it is, other pictures (and a JPEG that EXIF turns) as an upright PNG; every page
+  of a TIFF becomes a page. The page size comes from the picture's resolution, 300 dpi when it has none.
+- Each page is the picture with the recognized words as invisible text (`OcrPdfWriter`, render mode 3): one font
+  size per line (its height), the baseline at the line's bottom, each word stretched (`Tz`) to where the next one
+  starts with its space, so search, selection and copying follow the picture. Vision gives a box per word
+  (`boundingBoxForRange:error:`); without one the words are spread over the line by their length.
+- The text is set in a TrueType font with only empty glyphs, built in code (`GlyphlessFont`): every UTF-16 unit is
+  one character code (`Identity-H`), shown as glyph 1, and the `ToUnicode` map gives it back unchanged, so any
+  script works without a font in the file. `PdfDocumentReader` and `PagesWithText` read the layer like Tesseract's.
+- Vision is called through the Objective-C runtime (`Ocr/AppleVision.cs`), without a bridging library. A `CGRect`
+  result needs `objc_msgSend_stret` on Intel Macs; objects made with `alloc`/`init` are released, the rest go with an
+  autorelease pool per page. A cancelled job cancels the running request.
+- Tests: `VisionLanguageTests`, `OcrTextLayerTests` and `VisionConverterTests` (a stand-in recognizer) run everywhere;
+  `AppleVisionTests` read real pictures on macOS (CI's Apple silicon and Intel jobs).
