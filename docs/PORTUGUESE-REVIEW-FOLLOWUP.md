@@ -8,7 +8,7 @@ a121a3c9e3254918f8b171bb7f675b0bdc532244, verified on 22 October 2026. Only Blac
 | Finding | Evidence checked and response |
 | --- | --- |
 | P1-1: upstream conflicts and outdated coordination | Reproduced the original ten conflicts, merged French/Traditional Chinese and later current upstream/Nepali, retaining both Portuguese variants and both sets of tests. Preserve published history with merges. Add missing new resource keys and update coordination notes. |
-| P1-2: CI duration | Run 39695610117 had 8/9 successes; Intel macOS hit the 60-minute job limit while individual tests were still passing. This does not prove a single hung test. Three render fixtures failed to dispose directly constructed MainWindowViewModels, leaving service subscriptions alive; they now use using. Reduce 72 minimum-width cases to 54: both themes at 1x and every language/page at 2x light. PNG encoding is opt-in; assertions always run. No timeout is increased and no failed cases are skipped. Full native CI still needs to measure the effect. |
+| P1-2: CI duration | Run 39695610117 had 8/9 successes; Intel macOS hit the 60-minute job limit while individual tests were still passing. This does not prove a single hung test. Three render fixtures failed to dispose directly constructed MainWindowViewModels, leaving service subscriptions alive; they now use using. Reduce 72 minimum-width cases to 54: both themes at 1x and every language/page at 2x light. PNG encoding is opt-in; assertions always run. No timeout is increased and no failed cases are skipped. Native CI 39800321618 later passed all nine jobs; Intel macOS's App suite completed in 27.1291 minutes. See the native validation report. |
 | P1-3: broad Brazilian rewrite | Preserve #322's community wording; reduce the diff to seven existing entries for count agreement and the pointer reference. Restore no Dock, distinct Redefinir/Restaurar, Gravar, Relatar, E-books, curly quotes and the one-time contribution. Identical wording across variants is not itself evidence of an error. |
 | P2-1: Apple names | Apple's explicit navigation instructions use Definições do Sistema, Privacidade e Segurança and Automatização. Correct the Portuguese permission path. Native display remains to be checked. |
 | P2-2: license glossary | Software livre accurately describes the original English; this is glossary consistency, not a mistranslation. Use software de código aberto consistently in pt-PT. |
@@ -30,7 +30,10 @@ a121a3c9e3254918f8b171bb7f675b0bdc532244, verified on 22 October 2026. Only Blac
 | preset.extract_motion.donut | Extract video | Extrair vídeo |
 | profile.mixed | Mixed files | Ficheiros mistos |
 
-## Current validation
+## Local validation before native CI
+
+The later [native validation](PORTUGUESE-NATIVE-VALIDATION.md) closes the CI/full-formatter checks on code commit
+9d357e7. The local results below remain the record of the Linux baseline comparison.
 
 Validation uses .NET SDK 10.0.402 on Linux x64 and all fifteen SHA-256-verified pinned Noto files.
 The Release solution build succeeds with zero errors and eleven existing obsolete-API/nullability warnings.
@@ -57,7 +60,7 @@ completed for the refreshed more clips; explicit generation runs are excluded fr
 shared/Portuguese WebP files have valid poster indices and fit the existing per-file/pack budgets (~3.87 MiB total).
 
 Full solution formatting cannot connect to this environment's build host pipe (SocketException 13; host exit 137).
-Changed-file whitespace verification and git diff --check pass; native CI must run the full formatter.
+Changed-file whitespace verification and git diff --check pass. The later Windows CI job passed the full formatter.
 
 Representative commands, after restoring packages and running build/fetch-fonts.ps1:
 
@@ -75,7 +78,9 @@ dotnet test tests/Filee.Setup.Tests -m:1 -c Release --filter "FullyQualifiedName
 Inspected fresh Skia captures include pt-PT and French default toolbars, Portuguese theme/history recordings, and
 the corrected complete action buttons and compact preview labels. The automated suite additionally captures the
 Portuguese pages/dialogs and installer states. Real installation/UAC, Finder and permission-prompt display,
-keyboard/NVDA/VoiceOver checks, and complete native CI remain required. The PR stays a draft.
+and keyboard/NVDA/VoiceOver checks remain required. Complete native CI has since passed all nine jobs; the
+[native validation report](PORTUGUESE-NATIVE-VALIDATION.md) records the evidence and interactive checklist.
+The PR stays a draft pending those interactive checks.
 
 ## References
 

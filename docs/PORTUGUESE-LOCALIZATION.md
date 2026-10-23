@@ -106,7 +106,9 @@ of each finding. Earlier test counts describe previous snapshots and must not be
 Set FILEE_LOCALIZATION_SCREENSHOTS=1 for PNG captures in PortugueseRenderTests; geometry assertions always run.
 All fifteen pinned Noto font files are used for the visual checks.
 
-The PR remains a draft until complete native CI and the following desktop checks are closed:
+[Native CI validation](PORTUGUESE-NATIVE-VALIDATION.md) records run 39800321618: all nine jobs passed on the
+validated code commit 9d357e7, including full formatting, the Windows installer suite, portable packages and
+native startup checks. The following interactive checks remain open; the PR stays a draft until they are recorded:
 
 - Windows pt-PT/pt-BR display language with automatic selection, explicit opposite choice and restart; repeat with
   a different number/date region.
