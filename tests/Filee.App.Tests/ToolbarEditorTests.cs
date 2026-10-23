@@ -417,6 +417,7 @@ public class ToolbarPageTests
     }
 }
 
+[Collection("MainWindow")]
 public class PresetAvailabilityTests
 {
     internal class FakeConverter(string id, IReadOnlyList<ConversionEdge> edges) : IConverter
