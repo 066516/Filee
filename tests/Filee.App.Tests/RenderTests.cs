@@ -1789,6 +1789,21 @@ public class RenderTests
     }
 
     [AvaloniaFact]
+    public void Preset_editor_saves_replace_the_original_off_by_default()
+    {
+        TestServices.EnsureInitialized("en");
+        var preset = new Filee.Core.Presets.Preset { TargetFormat = Filee.Core.Presets.BuiltInData.SameAsSource, Name = "Trim" };
+        var vm = new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>());
+        Assert.False(vm.ReplaceOriginal);
+
+        vm.ReplaceOriginal = true;
+        Assert.True(vm.Apply());
+        Assert.True(preset.Output.ReplaceOriginal);
+        Assert.True(new PresetEditorViewModel(preset, AppHost.Get<ILocalizer>()).ReplaceOriginal);
+        Assert.Contains("Recycle Bin / Trash", AppHost.Get<ILocalizer>()["presets.replace_original_hint"]);
+    }
+
+    [AvaloniaFact]
     public void Preset_editor_saves_media_and_archive_options()
     {
         TestServices.EnsureInitialized("en");

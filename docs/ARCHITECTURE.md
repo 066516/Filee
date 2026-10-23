@@ -50,6 +50,15 @@
    same name ("Overwrite"). It frees its names and removes an output folder it made if that is left empty.
    A PDF target's finishing (watermark, page numbers, password; `IPdfFinisher`) runs after the last step, on every
    PDF a file became, and once on a merged PDF.
+   *Replace the original* (`OutputRule.ReplaceOriginal`, off by default) comes after that, for a finished result of
+   the source's own format and extension, or another spelling of it (`.jpeg` / `.jpg`; TXT also covers scripts and
+   logs, PPT also `.pps` and `.pot`, so those need the same extension). The result is first
+   moved next to the source under a temporary name, then the source goes to the Recycle Bin / Trash
+   (`IPlatformServices.MoveToTrash`, in the app and the command line), then the result takes its name. Windows only
+   ever recycles (IFileOperation with a sink that refuses a delete it can't recycle). When the source can't go there
+   (no Recycle Bin on the drive, a file open elsewhere, a read-only file), both stay and the file's notice says why,
+   with a translated reason (`trash.*`). A result "Only if smaller" copied from the source leaves the source alone.
+   Watch folders and files from a browser never replace.
    "Merge into one PDF" converts each file to PDF and merges with PDFsharp.
    "Compress into one archive" packs the dropped files, unconverted, with the archive engine (`IFileCombiner`).
    "Merge videos", "Merge audio" and "Video from images" join the files, in the order picked in the merge order

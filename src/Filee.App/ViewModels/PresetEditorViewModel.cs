@@ -177,6 +177,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _pattern = _edit.Output.FileNamePattern;
         _keepDates = _edit.Output.KeepDates;
         _zipResult = _edit.Output.ZipResult;
+        _replaceOriginal = _edit.Output.ReplaceOriginal;
     }
 
     public string PresetId => _original.Id;
@@ -447,6 +448,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private bool _keepDates;
     /// <summary>Geospatial targets: the result is saved as one ZIP (OutputRule.ZipResult).</summary>
     [ObservableProperty] private bool _zipResult;
+    /// <summary>The result takes the original's place, which goes to the Recycle Bin / Trash (OutputRule.ReplaceOriginal).</summary>
+    [ObservableProperty] private bool _replaceOriginal;
     [ObservableProperty] private Choice<MediaQuality> _mediaQuality;
     [ObservableProperty] private Choice<int> _maxHeight;
     [ObservableProperty] private Choice<int> _audioBitrate;
@@ -722,6 +725,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         output.KeepDates = KeepDates;
         // Only for geospatial targets, where it is offered: a box ticked for Shapefile must not zip a later PNG.
         output.ZipResult = ShowZipResult && ZipResult;
+        output.ReplaceOriginal = ReplaceOriginal;
         return true;
     }
 
