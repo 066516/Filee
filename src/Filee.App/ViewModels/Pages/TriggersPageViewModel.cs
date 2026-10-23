@@ -275,9 +275,15 @@ public sealed partial class TriggersPageViewModel : ObservableObject, IDisposabl
         _ => null,
     };
     public string? HookStatus => _triggers?.Error is { } error ? HookFailure(_loc, error, _triggers.LinuxBackendMissing)
-        : OperatingSystem.IsLinux() && _platform is LinuxPlatformServices && LinuxPlatformServices.UsesGnomePointerBridge
-          && _triggers is { IsRunning: false } ? _loc["triggers.gnome_waiting"]
+        : _triggers?.GnomeExtensionStatus is { } gnome ? _loc[GnomeStatusKey(gnome)]
         : _triggers is null ? null : _loc[_triggers.IsRunning ? "triggers.hook_running" : "triggers.hook_stopped"];
+
+    internal static string GnomeStatusKey(GnomeBridgeStatus status) => status switch
+    {
+        GnomeBridgeStatus.Connected => "triggers.hook_running",
+        GnomeBridgeStatus.VersionMismatch => "triggers.gnome_version_mismatch",
+        _ => "triggers.gnome_waiting",
+    };
 
     /// <summary>
     /// A Linux back end that doesn't load is explained (X11 session, X libraries) instead of showing libuiohook's

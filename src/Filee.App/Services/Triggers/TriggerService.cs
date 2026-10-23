@@ -25,7 +25,6 @@ public sealed class TriggerService : IDisposable
     private readonly Func<EventLoopGlobalHook> _createHook;
     private GnomePointerBridge? _gnomeBridge;
     private GnomePointerInput? _gnomeInput;
-    private bool _gnomeConnected;
     private HashSet<string> _excluded = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>FILEE_TRACE_GESTURES=1 logs each mouse press and scope decision, to find why a gesture doesn't fire.</summary>
@@ -111,7 +110,10 @@ public sealed class TriggerService : IDisposable
     /// <summary>Last known cursor position (physical pixels).</summary>
     public (int X, int Y) LastCursor { get; private set; }
 
-    public bool IsRunning => _gnomeConnected || _hook?.IsRunning == true;
+    public bool IsRunning => GnomeExtensionStatus == GnomeBridgeStatus.Connected || _hook?.IsRunning == true;
+
+    /// <summary>Where the GNOME Shell extension connection stands, or null when Filee doesn't use it.</summary>
+    internal GnomeBridgeStatus? GnomeExtensionStatus { get; private set; }
     public string? Error { get; private set; }
 
     /// <summary>
@@ -237,14 +239,16 @@ public sealed class TriggerService : IDisposable
     {
         if (_gnomeBridge is not null)
             return;
+        Error = null;
+        LinuxBackendMissing = false;
         if (GnomePointerBridge.SocketPath is not { } path)
         {
-            Error = "GNOME pointer integration requires XDG_RUNTIME_DIR.";
+            // A GNOME Wayland session always sets it, so this stays in the log; the page shows gestures as stopped.
+            _log.LogWarning("GNOME pointer integration needs XDG_RUNTIME_DIR; drag gestures stay off");
             NotifyStatus();
             return;
         }
-        Error = null;
-        LinuxBackendMissing = false;
+        GnomeExtensionStatus = GnomeBridgeStatus.Waiting;
         _gnomeInput = new GnomePointerInput(_detector);
         GnomePointerBridge? bridge = null;
         bridge = new GnomePointerBridge(path, state => Post(() =>
@@ -258,14 +262,19 @@ public sealed class TriggerService : IDisposable
                 linux.GnomePointerIsDesktop = state.Desktop;
             }
             _gnomeInput?.Apply(state);
-        }), connected => Post(() =>
+        }), status => Post(() =>
         {
-            if (!ReferenceEquals(_gnomeBridge, bridge) || connected == _gnomeConnected)
+            if (!ReferenceEquals(_gnomeBridge, bridge) || status == GnomeExtensionStatus)
                 return;
-            _gnomeConnected = connected;
-            if (!connected)
+            if (GnomeExtensionStatus == GnomeBridgeStatus.Connected)
                 _gnomeInput?.Reset(LastCursor.X, LastCursor.Y);
-            _log.LogInformation("GNOME pointer extension {State}", connected ? "connected" : "disconnected; waiting to reconnect");
+            GnomeExtensionStatus = status;
+            if (status == GnomeBridgeStatus.VersionMismatch)
+                _log.LogWarning("GNOME pointer extension speaks another protocol version than this Filee ({Version}); " +
+                    "sign out and in to load the installed extension", GnomePointerState.ProtocolVersion);
+            else
+                _log.LogInformation("GNOME pointer extension {State}",
+                    status == GnomeBridgeStatus.Connected ? "connected" : "disconnected; waiting to reconnect");
             NotifyStatus();
         }));
         _gnomeBridge = bridge;
@@ -391,7 +400,7 @@ public sealed class TriggerService : IDisposable
     {
         _gnomeBridge?.Dispose();
         _gnomeBridge = null;
-        _gnomeConnected = false;
+        GnomeExtensionStatus = null;
         _gnomeInput?.Reset(LastCursor.X, LastCursor.Y);
         _gnomeInput = null;
         _permissionWatch?.Dispose();

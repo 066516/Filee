@@ -8,22 +8,25 @@ namespace Filee.App.Services.Triggers;
 /// Connects to the per-user GNOME Shell extension. It sends pointer state only, never typed keys or file contents.
 /// No native global hook is loaded on this path. Reconnection also covers enabling the extension after Filee starts.
 /// </summary>
-internal sealed class GnomePointerBridge(Action<GnomePointerState> received, Action<bool> status) : IDisposable
+internal sealed class GnomePointerBridge(Action<GnomePointerState> received, Action<GnomeBridgeStatus> status) : IDisposable
 {
     private readonly CancellationTokenSource _stop = new();
     private readonly Task _reader = Task.CompletedTask;
 
-    public GnomePointerBridge(string socketPath, Action<GnomePointerState> received, Action<bool> status)
+    public GnomePointerBridge(string socketPath, Action<GnomePointerState> received, Action<GnomeBridgeStatus> status)
         : this(received, status) => _reader = ReadAsync(socketPath);
 
+    // The name has no version in it: every line carries one, so a Shell still running an older or newer extension
+    // is reported as a mismatch instead of looking like a missing extension.
     public static string? SocketPath => Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR") is { } directory
-        && Path.IsPathFullyQualified(directory) ? Path.Combine(directory, "filee-gnome", "pointer-v1.sock") : null;
+        && Path.IsPathFullyQualified(directory) ? Path.Combine(directory, "filee-gnome", "pointer.sock") : null;
 
     private async Task ReadAsync(string path)
     {
         var cancel = _stop.Token;
         while (!cancel.IsCancellationRequested)
         {
+            var mismatch = false;
             try
             {
                 using var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
@@ -38,11 +41,18 @@ internal sealed class GnomePointerBridge(Action<GnomePointerState> received, Act
                     var line = await reader.ReadLineAsync(timeout.Token);
                     if (line is null)
                         break;
-                    if (!GnomePointerState.TryParse(line, out var state))
+                    var parsed = GnomePointerState.Parse(line, out var state);
+                    if (parsed == GnomePointerParse.OtherVersion)
+                    {
+                        // GNOME Shell keeps running the extension it loaded at sign-in, even after an update.
+                        mismatch = true;
+                        break;
+                    }
+                    if (parsed != GnomePointerParse.Valid)
                         throw new IOException("Invalid GNOME pointer protocol.");
                     if (!connected)
                     {
-                        status(true);
+                        status(GnomeBridgeStatus.Connected);
                         connected = true;
                     }
                     received(state!);
@@ -54,9 +64,9 @@ internal sealed class GnomePointerBridge(Action<GnomePointerState> received, Act
             }
             finally
             {
-                status(false);
+                status(mismatch ? GnomeBridgeStatus.VersionMismatch : GnomeBridgeStatus.Waiting);
             }
-            try { await Task.Delay(TimeSpan.FromSeconds(1), cancel); }
+            try { await Task.Delay(TimeSpan.FromSeconds(mismatch ? 5 : 1), cancel); }
             catch (OperationCanceledException) { break; }
         }
     }
@@ -69,23 +79,43 @@ internal sealed class GnomePointerBridge(Action<GnomePointerState> received, Act
     }
 }
 
+internal enum GnomeBridgeStatus { Waiting, Connected, VersionMismatch }
+
+internal enum GnomePointerParse { Valid, OtherVersion, Invalid }
+
 internal sealed record GnomePointerState(int Version, int X, int Y, int Modifiers, int Buttons,
     string? Process, bool Desktop, bool Blocked)
 {
-    public static bool TryParse(string json, out GnomePointerState? state)
+    /// <summary>The protocol version this Filee reads; the extension sends it as <c>PROTOCOL_VERSION</c>.</summary>
+    public const int ProtocolVersion = 1;
+
+    public static bool TryParse(string json, out GnomePointerState? state) => Parse(json, out state) == GnomePointerParse.Valid;
+
+    public static GnomePointerParse Parse(string json, out GnomePointerState? state)
     {
         state = null;
         if (json.Length > 2048)
-            return false;
+            return GnomePointerParse.Invalid;
         try
         {
-            // Deserialize only the fixed protocol fields; a missing version never turns into input.
-            state = JsonSerializer.Deserialize<GnomePointerState>(json);
-            return state is { Version: 1, Modifiers: >= 0 and <= 15, Buttons: >= 0 and <= 31 }
-                && Math.Abs((long)state.X) <= 1_000_000 && Math.Abs((long)state.Y) <= 1_000_000
-                && (state.Process?.Length ?? 0) <= 256;
+            // A missing version never turns into input; another version is reported, never read.
+            using var document = JsonDocument.Parse(json);
+            if (document.RootElement.ValueKind != JsonValueKind.Object
+                || !document.RootElement.TryGetProperty("Version", out var version)
+                || version.ValueKind != JsonValueKind.Number || !version.TryGetInt32(out var number))
+                return GnomePointerParse.Invalid;
+            if (number != ProtocolVersion)
+                return GnomePointerParse.OtherVersion;
+            // Deserialize only the fixed protocol fields.
+            var parsed = document.RootElement.Deserialize<GnomePointerState>();
+            if (parsed is not { Modifiers: >= 0 and <= 15, Buttons: >= 0 and <= 31 }
+                || Math.Abs((long)parsed.X) > 1_000_000 || Math.Abs((long)parsed.Y) > 1_000_000
+                || (parsed.Process?.Length ?? 0) > 256)
+                return GnomePointerParse.Invalid;
+            state = parsed;
+            return GnomePointerParse.Valid;
         }
-        catch (JsonException) { return false; }
+        catch (JsonException) { return GnomePointerParse.Invalid; }
     }
 }
 

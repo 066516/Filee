@@ -110,6 +110,58 @@ public sealed class GnomePointerBridgeTests
     [InlineData("bad JSON")]
     public void Invalid_protocol_never_becomes_input(string json) => Assert.False(GnomePointerState.TryParse(json, out _));
 
+    [Theory]
+    [InlineData("{\"Version\":2,\"X\":1}", "OtherVersion")]
+    [InlineData("{\"Version\":0}", "OtherVersion")]
+    [InlineData("{\"Version\":\"1\"}", "Invalid")]
+    [InlineData("[1]", "Invalid")]
+    [InlineData("{\"Version\":1,\"X\":5}", "Valid")]
+    public void Another_protocol_version_is_told_apart_from_bad_input(string json, string result)
+    {
+        var expected = Enum.Parse<GnomePointerParse>(result);
+        Assert.Equal(expected, GnomePointerState.Parse(json, out var state));
+        Assert.Equal(expected == GnomePointerParse.Valid, state is not null);
+    }
+
+    [Theory]
+    [InlineData("Waiting", "triggers.gnome_waiting")]
+    [InlineData("Connected", "triggers.hook_running")]
+    [InlineData("VersionMismatch", "triggers.gnome_version_mismatch")]
+    public void Triggers_page_shows_the_extension_state(string status, string key) =>
+        Assert.Equal(key, Filee.App.ViewModels.Pages.TriggersPageViewModel.GnomeStatusKey(Enum.Parse<GnomeBridgeStatus>(status)));
+
+    [Fact]
+    public async Task Real_unix_socket_reports_an_extension_of_another_version()
+    {
+        if (!OperatingSystem.IsLinux())
+            return;
+        var directory = Path.Combine(Path.GetTempPath(), "filee-gnome-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "pointer.sock");
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        try
+        {
+            listener.Bind(new UnixDomainSocketEndPoint(path));
+            listener.Listen(1);
+            var mismatch = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var received = 0;
+            using var bridge = new GnomePointerBridge(path, _ => Interlocked.Increment(ref received), status =>
+            {
+                if (status == GnomeBridgeStatus.VersionMismatch) mismatch.TrySetResult();
+            });
+            using var socket = await listener.AcceptAsync(deadline.Token);
+            await socket.SendAsync(Encoding.UTF8.GetBytes("{\"Version\":2,\"X\":120,\"Y\":300}\n"), deadline.Token);
+            await mismatch.Task.WaitAsync(deadline.Token);
+            Assert.Equal(0, received);
+        }
+        finally
+        {
+            listener.Close();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task Real_unix_socket_delivers_pointer_frames_and_reconnects_after_extension_restart()
     {
@@ -131,9 +183,9 @@ public sealed class GnomePointerBridgeTests
             using var bridge = new GnomePointerBridge(path, state =>
             {
                 if (!first.TrySetResult(state)) second.TrySetResult(state);
-            }, connected =>
+            }, status =>
             {
-                if (connected) seen = true;
+                if (status == GnomeBridgeStatus.Connected) seen = true;
                 else if (seen) disconnected.TrySetResult();
             });
             using (var socket = await listener.AcceptAsync(deadline.Token))
