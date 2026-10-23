@@ -2,6 +2,7 @@
 // (HwpxConverter) and the DOCX writer (DocxWriterConverter) take their input formats from here, so a new reader is one
 // line in BuiltIn and both writers (and every route through them) pick it up.
 
+using System.Globalization;
 using System.Text;
 using System.Text.Json.Nodes;
 using Filee.Engines.Ebooks;
@@ -176,8 +177,13 @@ internal static class DocumentReaders
 
     /// <summary>
     /// Text in whatever encoding its PC used, the way subtitles are read (<see cref="Subtitles.SubtitleEncoding"/>): by
-    /// its byte order mark, as UTF-8 when it is valid UTF-8, as CP949 when the bytes look Korean, else in the PC's own
-    /// code page (GBK on Chinese Windows, #491; Shift-JIS on Japanese; Windows-1252 on Western).
+    /// its byte order mark, as UTF-8 when it is valid UTF-8, as CP949 when the bytes look Korean or, on Korean Windows,
+    /// are valid CP949; else in the PC's own code page (GBK on Chinese Windows, #491; Shift-JIS on Japanese; Windows-1252
+    /// on Western). A <c>charset=</c> in the text is content here, not the file's encoding, so it isn't followed.
     /// </summary>
-    internal static string DecodeText(byte[] bytes) => Subtitles.SubtitleEncoding.Decode(bytes);
+    internal static string DecodeText(byte[] bytes) => DecodeText(bytes, CultureInfo.CurrentCulture.TextInfo.ANSICodePage);
+
+    /// <summary><see cref="DecodeText(byte[])"/> with the PC's ANSI code page given (for tests).</summary>
+    internal static string DecodeText(byte[] bytes, int ansiCodePage) =>
+        Subtitles.SubtitleEncoding.Decode(bytes, ansiCodePage, declaredCharset: false);
 }

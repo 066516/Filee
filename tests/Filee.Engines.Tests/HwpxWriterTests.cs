@@ -134,18 +134,34 @@ public class HwpxWriterTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal(Text, HwpxConverter.DecodeText(Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(Text)).ToArray()));
     }
 
-    [Fact]
-    public void Chinese_text_files_are_not_read_as_korean()
+    [Theory]
+    [InlineData(936, "我是一个学生，这是我的文件。")] // #491: GBK, "ANSI" on Chinese Windows
+    [InlineData(950, "這是繁體中文的檔案。")]
+    [InlineData(932, "これは日本語のファイルです。")]
+    [InlineData(1252, "Café, déjà vu à l'été")]
+    public void Text_files_are_read_in_the_pcs_own_code_page(int codePage, string text)
     {
-        // #491: a GBK ("ANSI" on Chinese Windows) TXT came out as Hangul. It is read like a subtitle now: GBK on a
-        // Chinese PC, never CP949 unless the bytes look Korean.
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        var gbk = Encoding.GetEncoding(936).GetBytes("我是一个学生，这是我的文件。");
+        Assert.Equal(text, DocumentReaders.DecodeText(Encoding.GetEncoding(codePage).GetBytes(text), codePage));
+    }
 
-        var text = HwpxConverter.DecodeText(gbk);
+    [Theory]
+    [InlineData("■ Item one\n※ Note\n● Point ①")]
+    [InlineData("大韓民國 憲法 第一條")]
+    [InlineData("한글 메모 <meta charset=\"iso-8859-1\"> encoding=\"cp1252\"")]
+    public void Korean_windows_reads_any_valid_cp949_text_as_cp949(string text)
+    {
+        // Symbols and Hanja aren't "mostly Hangul", and a charset= in the text is content, not the file's encoding.
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        Assert.Equal(text, DocumentReaders.DecodeText(Encoding.GetEncoding(949).GetBytes(text), 949));
+    }
 
-        Assert.Equal(Filee.Engines.Subtitles.SubtitleEncoding.Decode(gbk), text);
-        Assert.DoesNotContain(text, c => c is >= '가' and <= '힣');
+    [Fact]
+    public void Korean_windows_still_reads_a_western_file_as_windows_1252()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        const string Text = "Café, déjà vu à l'été. Señor Müller";
+        Assert.Equal(Text, DocumentReaders.DecodeText(Encoding.GetEncoding(1252).GetBytes(Text), 949));
     }
 
     [Fact]
