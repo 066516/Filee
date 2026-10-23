@@ -10,6 +10,7 @@
 <p align="center" dir="rtl">
   <a href="https://filee.sh"><b>الموقع</b></a> ·
   <a href="https://github.com/KnifeLemon/Filee/releases/latest"><b>تنزيل</b></a> ·
+  <a href="https://www.linkedin.com/company/filee-sh/"><b>LinkedIn</b></a> ·
   <a href="#التثبيت">التثبيت</a> ·
   <a href="#سطر-الأوامر">سطر الأوامر</a> ·
   <a href="#التطوير">التطوير</a>

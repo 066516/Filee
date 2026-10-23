@@ -10,6 +10,7 @@
 <p align="center">
   <a href="https://filee.sh"><b>Website</b></a> ·
   <a href="https://github.com/KnifeLemon/Filee/releases/latest"><b>Download</b></a> ·
+  <a href="https://www.linkedin.com/company/filee-sh/"><b>LinkedIn</b></a> ·
   <a href="#install">Install</a> ·
   <a href="#command-line">Command line</a> ·
   <a href="#development">Development</a>
