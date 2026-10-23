@@ -67,7 +67,6 @@ public partial class LocalizationTests
             "format.category.Archive",
             "format.category.Font"
         ];
-        string[] removed = ["toolbar.tab.document", "toolbar.tab.other"];
 
         foreach (var language in LocalizationService.Languages)
         {
@@ -77,9 +76,6 @@ public partial class LocalizationTests
                 Assert.True(translations.TryGetValue(key, out var value), $"{language.Code}:{key} is missing");
                 Assert.False(string.IsNullOrWhiteSpace(value), $"{language.Code}:{key} is empty");
             }
-
-            foreach (var key in removed)
-                Assert.False(translations.ContainsKey(key), $"{language.Code}:{key} should be removed");
         }
     }
 

@@ -392,6 +392,7 @@
         <!-- Kinds of preset (All first). Hidden when one kind would only repeat All. Wraps rather than scrolls sideways. -->
         <ListBox x:Name="PaletteTabs" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab}"
                  IsVisible="{Binding ShowTabRow}"
+                 AutomationProperties.Name="{DynamicResource toolbar.available}"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
           <ListBox.ItemsPanel>
             <ItemsPanelTemplate>
