@@ -26,17 +26,26 @@ public sealed partial class ProfileItemViewModel(ToolbarProfile profile, ILocali
 {
     public ToolbarProfile Profile { get; } = profile;
 
+    private ILocalizer _loc = loc;
+
     [ObservableProperty] private string _name = loc.DisplayName(profile);
 
-    public string Count => $"{Profile.PresetIds.Count}";
+    /// <summary>Slices on the front, and on the back when it has any (#425): "8" or "8 · 3".</summary>
+    public string Count => Profile.BackPresetIds is { Count: > 0 } back ? $"{Profile.PresetIds.Count} · {back.Count}" : $"{Profile.PresetIds.Count}";
+
+    /// <summary>What the two numbers are: "Front 8 · Back 3".</summary>
+    public string CountTip =>
+        $"{_loc["toolbar.face_front"]} {Profile.PresetIds.Count} · {_loc["toolbar.face_back"]} {Profile.BackPresetIds?.Count ?? 0}";
 
     /// <summary>A donut for mixed selections (marked in the list).</summary>
     public bool IsMixed => Profile.IsFallback;
 
     public void Refresh(ILocalizer l)
     {
+        _loc = l;
         Name = l.DisplayName(Profile);
         OnPropertyChanged(nameof(Count));
+        OnPropertyChanged(nameof(CountTip));
         OnPropertyChanged(nameof(IsMixed));
     }
 }
@@ -199,6 +208,8 @@ public sealed partial class ToolbarPageViewModel : ObservableObject, IDisposable
         ProfileName = value is null ? "" : _loc.DisplayName(value.Profile);
         _loading = false;
         Message = null;
+        // A search typed for the last donut's presets would hide this one's (#427).
+        PaletteSearch = "";
         RebuildProfileEditor();
         ForgetJudgements();
         Rebuild();

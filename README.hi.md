@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.pl.md">Polski</a> · <b>हिन्दी</b> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <b>हिन्दी</b> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a></p>
 
 <table>
   <tr>
@@ -55,7 +55,7 @@
   सेटअप Filee का अपना इंस्टॉलर है, Filee की ही भाषाओं में, और PC पर इसके लिए कुछ और नहीं चाहिए। यह Explorer
   मेनू, साइन इन पर Filee शुरू करना, `filee` कमांड और वैकल्पिक इंजन जोड़ सकता है; साइलेंट इंस्टॉल Inno Setup के स्विच
   (`/VERYSILENT /SUPPRESSMSGBOXES`) लेते हैं।
-- **macOS 13+** (प्रीव्यू): `osx-arm64` या `osx-x64` पैकेज खोलें और `./install.sh` चलाएँ।
+- **macOS 13+** (प्रीव्यू): `osx-arm64` या `osx-x64` पैकेज खोलें और `./install.sh` चलाएँ। या `.dmg` खोलें और Filee को Applications में खींचें (`filee` कमांड सिर्फ़ `install.sh` से जुड़ता है)।
   बिल्ड अभी नोटराइज़ नहीं हुआ है, इसलिए पहली बार चलाने की अनुमति System Settings → Privacy & Security → **Open Anyway** से दें।
 - **Linux x64/ARM64** (Ubuntu 22.04+): पैकेज खोलें और `./install.sh` चलाएँ (root की ज़रूरत नहीं, Python 3 चाहिए)।
   ड्रैग जेस्चर के लिए X11 चाहिए। Wayland पर ड्रॉप ज़ोन और फ़ाइल मैनेजर का राइट-क्लिक मेनू इस्तेमाल करें।
@@ -77,7 +77,7 @@
 - **वॉच फ़ोल्डर** में आने वाली हर फ़ाइल अपने-आप कन्वर्ट हो जाती है।
 - **हाल के कन्वर्ज़न** होम पर, हर एक के थंबनेल के साथ: नतीजे को "फ़ाइल खोलें" से खोलें, या "इसके साथ खोलें" से किसी दूसरे ऐप में।
 - **दूसरे तरीके**: राइट-क्लिक मेनू, कीबोर्ड शॉर्टकट, ड्रॉप ज़ोन और [`filee` कमांड](#कमांड-लाइन)।
-- लाइट और डार्क थीम, अपने एक्सेंट रंग और डोनट की अपारदर्शिता के साथ, English, Español, 日本語, 한국어, 简体中文, Polski, हिन्दी, Русский, العربية (दाएँ से बाएँ) और Português (Brasil) में।
+- लाइट और डार्क थीम, अपने एक्सेंट रंग और डोनट की अपारदर्शिता के साथ, English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (दाएँ से बाएँ), Português (Brasil), Français और नेपाली में।
 
 ## स्क्रीनशॉट
 
@@ -151,8 +151,8 @@ dotnet test
 ## कोड साइनिंग नीति
 
 Filee को **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)) विकसित और प्रकाशित करते हैं।
-Windows रिलीज़ को Myeonggu Kim के नाम जारी [Certum](https://www.certum.eu/) ओपन-सोर्स कोड साइनिंग सर्टिफ़िकेट से साइन किया जाएगा।
-सर्टिफ़िकेट अभी जारी होने की प्रक्रिया में है।
+Windows रिलीज़ Myeonggu Kim के नाम जारी [Certum](https://www.certum.eu/) ओपन-सोर्स कोड साइनिंग सर्टिफ़िकेट से साइन की जाती हैं।
+2.0.0 तक की रिलीज़ साइन नहीं हैं।
 
 पूरी नीति और गोपनीयता नीति [अंग्रेज़ी README](README.md#code-signing-policy) में है।
 Filee आपकी फ़ाइलें अपलोड नहीं करता और इस्तेमाल का कोई डेटा नहीं भेजता।

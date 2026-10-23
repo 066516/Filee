@@ -31,14 +31,18 @@ public class RenderTests
         { "presets", "en" }, { "theme", "en" }, { "engines", "en" }, { "about", "en" },
         { "general", "ko" }, { "toolbar", "ko" }, { "home", "ko" },
         { "general", "zh-CN" }, { "presets", "zh-CN" }, { "toolbar", "zh-CN" }, { "home", "zh-CN" },
+        { "general", "zh-TW" }, { "presets", "zh-TW" }, { "toolbar", "zh-TW" }, { "home", "zh-TW" },
+        { "triggers", "zh-TW" }, { "engines", "zh-TW" }, { "watch", "zh-TW" },
         { "general", "pl" }, { "toolbar", "pl" }, { "presets", "pl" }, { "home", "pl" },
         { "home", "es" }, { "general", "es" }, { "toolbar", "es" }, { "presets", "es" }, { "engines", "es" },
         { "home", "pt-BR" }, { "general", "pt-BR" }, { "toolbar", "pt-BR" }, { "presets", "pt-BR" }, { "engines", "pt-BR" },
+        { "home", "fr" }, { "general", "fr" }, { "toolbar", "fr" }, { "presets", "fr" }, { "engines", "fr" },
         { "home", "hi" }, { "general", "hi" }, { "toolbar", "hi" }, { "presets", "hi" }, { "engines", "hi" },
         { "home", "ja" }, { "general", "ja" }, { "triggers", "ja" }, { "toolbar", "ja" },
         { "presets", "ja" }, { "theme", "ja" }, { "engines", "ja" }, { "about", "ja" }, { "watch", "ja" },
         { "home", "ru" }, { "general", "ru" }, { "triggers", "ru" }, { "toolbar", "ru" }, { "presets", "ru" },
         { "theme", "ru" }, { "engines", "ru" }, { "about", "ru" }, { "watch", "ru" },
+        { "home", "ne" }, { "general", "ne" }, { "toolbar", "ne" }, { "presets", "ne" }, { "engines", "ne" },
     };
 
     [AvaloniaTheory]
@@ -350,6 +354,7 @@ public class RenderTests
     [InlineData("ru")]
     [InlineData("ar")]
     [InlineData("pt-BR")]
+    [InlineData("fr")]
     public void Home_page_search_finds_old_conversions_in_a_long_history(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1442,6 +1447,7 @@ public class RenderTests
     [InlineData("ru", false)]
     [InlineData("ar", true)]
     [InlineData("pt-BR", false)]
+    [InlineData("fr", false)]
     public void Preset_editor_shows_media_and_archive_options(string language, bool dark)
     {
         TestServices.EnsureInitialized(language);
@@ -1884,6 +1890,7 @@ public class RenderTests
     [InlineData("ru")]
     [InlineData("ar")]
     [InlineData("pt-BR")]
+    [InlineData("fr")]
     public void Live_photo_options_render_for_jpg_and_heic_and_save_only_there(string language)
     {
         TestServices.EnsureInitialized(language);
