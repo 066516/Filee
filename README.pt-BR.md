@@ -90,6 +90,22 @@ Baixe em [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
 O Filee mostra versões novas no menu e se atualiza sozinho, mantendo suas configurações e motores.
 Depois de uma atualização, alguns slides mostram o que há de novo.
 
+**Windows: o Filee não abre (sem janela nem erro)?**
+Isso acontece no Windows 10 que está há muito tempo sem atualizações, em PCs cujo processador oferece a proteção de pilha imposta por hardware (CET).
+O Windows liga essa proteção, mas falta uma parte de que o .NET precisa, então o Filee e o instalador fecham na hora.
+
+- **Recomendado:** instale as atualizações disponíveis do Windows (a atualização cumulativa mais recente).
+- **Se não der para atualizar:** desligar a proteção só para o Filee costuma funcionar.
+  Execute no PowerShell como administrador:
+
+```powershell
+Set-ProcessMitigation -Name Filee.exe -Disable UserShadowStack
+Set-ProcessMitigation -Name filee-cli.exe -Disable UserShadowStack
+```
+
+Faça o mesmo com o nome do arquivo do instalador (por exemplo, `Filee-<version>-win-Setup.exe`), ou use o ZIP portátil, que só precisa dessas duas linhas.
+Para desfazer, remova essas entradas em Segurança do Windows → Controle de aplicativos e do navegador → Configurações de proteção contra exploração → Configurações de programa.
+
 ## Recursos
 
 - **Um menu circular no cursor**: segure uma tecla, arraste os arquivos e solte num formato.

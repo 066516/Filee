@@ -90,6 +90,22 @@ Téléchargez Filee depuis les [Releases](https://github.com/KnifeLemon/Filee/re
 Filee signale les nouvelles versions dans son menu et se met à jour tout seul, en conservant vos paramètres et vos moteurs.
 Après une mise à jour, quelques diapositives présentent les nouveautés.
 
+**Windows : Filee ne démarre pas (ni fenêtre ni erreur) ?**
+Cela arrive sur un Windows 10 qui n'a pas été mis à jour depuis longtemps, sur un PC dont le processeur prend en charge la protection de la pile appliquée par le matériel (CET).
+Windows active cette protection mais il lui manque un élément dont .NET a besoin, si bien que Filee et le programme d'installation s'arrêtent aussitôt.
+
+- **Recommandé :** installez les mises à jour Windows disponibles (la dernière mise à jour cumulative).
+- **Si la mise à jour est impossible :** désactiver la protection pour Filee seul fonctionne généralement.
+  Exécutez ceci dans PowerShell en tant qu'administrateur :
+
+```powershell
+Set-ProcessMitigation -Name Filee.exe -Disable UserShadowStack
+Set-ProcessMitigation -Name filee-cli.exe -Disable UserShadowStack
+```
+
+Faites de même avec le nom de fichier du programme d'installation (par ex. `Filee-<version>-win-Setup.exe`), ou utilisez le ZIP portable, qui n'a besoin que de ces deux lignes.
+Pour annuler, supprimez ces entrées dans Sécurité Windows → Contrôle des applications et du navigateur → Paramètres de protection contre les exploits → Paramètres du programme.
+
 ## Fonctionnalités
 
 - **Un menu circulaire sous le curseur** : maintenez une touche, faites glisser des fichiers et déposez-les sur un format.

@@ -90,6 +90,22 @@ Pobierz z [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
 Filee pokazuje nowe wersje w swoim menu i sam się aktualizuje, zachowując Twoje ustawienia i silniki.
 Po aktualizacji kilka slajdów pokazuje, co nowego.
 
+**Windows: Filee się nie uruchamia (nie ma okna ani błędu)?**
+Dzieje się tak w Windows 10, który od dawna nie był aktualizowany, na komputerze z procesorem obsługującym wymuszaną sprzętowo ochronę stosu (CET).
+Windows włącza tę ochronę, ale brakuje mu elementu potrzebnego platformie .NET, więc Filee i Setup od razu się zamykają.
+
+- **Zalecane:** zainstaluj dostępne aktualizacje Windows (najnowszą aktualizację zbiorczą).
+- **Jeśli aktualizacja nie jest możliwa:** zwykle wystarczy wyłączyć ochronę tylko dla Filee.
+  Uruchom w PowerShell jako administrator:
+
+```powershell
+Set-ProcessMitigation -Name Filee.exe -Disable UserShadowStack
+Set-ProcessMitigation -Name filee-cli.exe -Disable UserShadowStack
+```
+
+To samo zrób z nazwą pliku Setup (np. `Filee-<version>-win-Setup.exe`) albo użyj przenośnego pliku ZIP, któremu wystarczą te dwa wiersze.
+Aby to cofnąć, usuń te wpisy w Zabezpieczenia Windows → Kontrola aplikacji i przeglądarki → Ustawienia ochrony przed lukami w zabezpieczeniach → Ustawienia programu.
+
 ## Funkcje
 
 - **Pierścień przy kursorze**: przytrzymaj klawisz, przeciągnij pliki i upuść je na format.

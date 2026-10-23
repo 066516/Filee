@@ -90,6 +90,22 @@ Download from [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
 Filee shows new releases in its menu and updates itself, keeping your settings and engines.
 After an update, a few slides show what's new.
 
+**Windows: Filee doesn't start (no window, no error)?**
+This happens on Windows 10 that hasn't been updated for a long time, on a PC whose processor supports Hardware-enforced Stack Protection (CET).
+Windows turns that protection on but lacks a part that .NET needs, so Filee and Setup stop right away.
+
+- **Recommended:** install the available Windows updates (the latest cumulative update).
+- **If updating isn't possible:** turning the protection off for Filee alone usually works.
+  Run this in PowerShell as administrator:
+
+```powershell
+Set-ProcessMitigation -Name Filee.exe -Disable UserShadowStack
+Set-ProcessMitigation -Name filee-cli.exe -Disable UserShadowStack
+```
+
+Do the same with Setup's file name (e.g. `Filee-<version>-win-Setup.exe`), or use the portable ZIP, which needs only these two lines.
+To undo it, remove the entries in Windows Security → App & browser control → Exploit protection settings → Program settings.
+
 ## Features
 
 - **A donut at the cursor**: hold a key, drag files and drop them on a format.

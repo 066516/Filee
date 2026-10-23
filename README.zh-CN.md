@@ -89,6 +89,22 @@
 有新版本时 Filee 会在菜单中提示，更新时保留设置和引擎。
 更新后会用几张幻灯片介绍新功能。
 
+**Windows：Filee 无法启动（没有窗口也没有报错）？**
+这种情况发生在长期未更新的 Windows 10 上，且电脑的处理器支持“硬件强制堆栈保护”（CET）。
+Windows 会开启这项保护，却缺少 .NET 需要的一项功能，于是 Filee 和安装程序会立即退出。
+
+- **推荐**：安装 Windows 更新中可用的更新（最新的累积更新）。
+- **无法更新时**：通常只对 Filee 关闭这项保护就能启动。
+  以管理员身份打开 PowerShell 并运行：
+
+```powershell
+Set-ProcessMitigation -Name Filee.exe -Disable UserShadowStack
+Set-ProcessMitigation -Name filee-cli.exe -Disable UserShadowStack
+```
+
+安装程序也运行同样的命令，换成它的文件名（例如 `Filee-<version>-win-Setup.exe`）；使用便携版 ZIP 则只需上面两行。
+要撤销，请在“Windows 安全中心 → 应用和浏览器控制 → Exploit Protection 设置 → 程序设置”中删除这些条目。
+
 ## 功能
 
 - **光标旁的圆环**，按住按键拖动文件，放到格式上即可。

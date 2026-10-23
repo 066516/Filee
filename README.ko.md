@@ -91,6 +91,22 @@
 새 버전이 나오면 메뉴에 표시되고, 설정과 엔진은 그대로 둔 채 업데이트돼요.
 업데이트한 뒤에는 새 기능을 슬라이드 몇 장으로 보여 줘요.
 
+**Windows: Filee가 실행되지 않나요(창도 오류도 없음)?**
+오랫동안 업데이트하지 않은 Windows 10을 하드웨어 적용 스택 보호(CET)를 지원하는 프로세서의 PC에서 쓰면 생기는 문제예요.
+Windows가 이 보호 기능을 켜지만 .NET에 필요한 기능이 빠져 있어서 Filee와 설치 프로그램이 바로 종료돼요.
+
+- **권장:** Windows 업데이트에서 받을 수 있는 업데이트(최신 누적 업데이트)를 설치하세요.
+- **업데이트할 수 없다면:** Filee에만 이 보호 기능을 끄면 대개 실행돼요.
+  관리자 권한 PowerShell에서 실행하세요.
+
+```powershell
+Set-ProcessMitigation -Name Filee.exe -Disable UserShadowStack
+Set-ProcessMitigation -Name filee-cli.exe -Disable UserShadowStack
+```
+
+설치 프로그램은 파일 이름(예: `Filee-<version>-win-Setup.exe`)으로 같은 명령을 실행하거나, 위 두 줄만 있으면 되는 포터블 ZIP을 쓰세요.
+되돌리려면 Windows 보안 → 앱 및 브라우저 컨트롤 → Exploit Protection 설정 → 프로그램 설정에서 해당 항목을 지우세요.
+
 ## 기능
 
 - **커서 옆 도넛**: 키를 누른 채 파일을 끌어 형식 위에 놓으면 끝.

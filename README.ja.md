@@ -90,6 +90,23 @@
 新しいバージョンが出るとメニューでお知らせし、設定とエンジンはそのままでFilee自身が更新します。
 更新後は、新機能を数枚のスライドで紹介します。
 
+**Windows：Fileeが起動しない（ウィンドウもエラーも出ない）場合**
+長い間更新していないWindows 10を、ハードウェア強制スタック保護（CET）に対応したプロセッサーのPCで使っていると起こります。
+Windowsはこの保護を有効にしますが、.NETに必要な機能が欠けているため、Fileeとセットアップがすぐに終了します。
+
+- **推奨**：Windows Updateで利用できる更新プログラム（最新の累積更新プログラム）をインストールしてください。
+- **更新できない場合**：Fileeだけこの保護をオフにすると、たいていは起動します。
+  管理者として開いたPowerShellで次を実行します。
+
+```powershell
+Set-ProcessMitigation -Name Filee.exe -Disable UserShadowStack
+Set-ProcessMitigation -Name filee-cli.exe -Disable UserShadowStack
+```
+
+セットアップも、そのファイル名（例：`Filee-<version>-win-Setup.exe`）で同じように実行してください。
+ポータブル版のZIPなら上の2行だけで済みます。
+元に戻すには、「Windows セキュリティ」→「アプリとブラウザー コントロール」→「Exploit Protection の設定」→「プログラム設定」で該当する項目を削除します。
+
 ## 機能
 
 - **カーソル位置にドーナツメニュー**：キーを押しながらファイルをドラッグし、形式の上にドロップするだけ。
