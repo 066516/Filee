@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <b>Polski</b> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <b>Polski</b> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a> · <a href="README.th.md">ไทย</a></p>
 
 <table>
   <tr>
@@ -55,7 +55,7 @@ Pobierz z [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
   Setup to własny instalator Filee, mówi w językach Filee i nie potrzebuje na komputerze niczego więcej. Może dodać menu
   Eksploratora, uruchamianie po zalogowaniu, polecenie `filee` i opcjonalne silniki; instalacja cicha przyjmuje
   przełączniki Inno Setup (`/VERYSILENT /SUPPRESSMSGBOXES`).
-- **macOS 13+** (wersja zapoznawcza): rozpakuj pakiet `osx-arm64` lub `osx-x64` i uruchom `./install.sh`.
+- **macOS 13+** (wersja zapoznawcza): rozpakuj pakiet `osx-arm64` lub `osx-x64` i uruchom `./install.sh`. Albo otwórz plik `.dmg` i przeciągnij Filee do Programów (polecenie `filee` dodaje tylko `install.sh`).
   Aplikacja nie jest jeszcze notaryzowana, więc przy pierwszym uruchomieniu zezwól na nią w Ustawienia systemowe → Prywatność i ochrona → **Otwórz mimo to**.
 - **Linux x64/ARM64** (Ubuntu 22.04+): rozpakuj pakiet i uruchom `./install.sh` (bez uprawnień roota, wymaga Pythona 3).
   Gesty przeciągania wymagają X11. W Waylandzie korzystaj ze strefy upuszczania i menu kontekstowego menedżera plików.
@@ -77,7 +77,7 @@ kilka slajdów pokazuje, co nowego.
 - **Obserwowane foldery** konwertują każdy plik, który do nich trafi.
 - **Ostatnie konwersje** na ekranie Start, każda z miniaturą: otwórz wynik albo otwórz go za pomocą innej aplikacji.
 - **Inne sposoby**: menu kontekstowe, skrót klawiszowy, strefa upuszczania i [polecenie `filee`](#wiersz-poleceń).
-- Jasny i ciemny motyw z własnym kolorem akcentu i kryciem pierścienia, w językach English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (od prawej do lewej), Português (Brasil) i Français.
+- Jasny i ciemny motyw z własnym kolorem akcentu i kryciem pierścienia, w językach English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (od prawej do lewej), Português (Brasil), Français, नेपाली i ไทย.
 
 ## Zrzuty ekranu
 
@@ -111,7 +111,7 @@ kilka slajdów pokazuje, co nowego.
 | **Archiwa**: ZIP, ANSYS Workbench (WBPZ), 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG, … | rozpakowanie, ZIP, 7Z, TAR, TAR.GZ; dowolne pliki → jeden ZIP |
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **Czcionki**: TTF, OTF, WOFF, WOFF2, EOT | między sobą |
-| **Dane**: JSON, JSON Lines, YAML, TOML, XML · vCard | między sobą, CSV i XLSX (tabele); vCard ↔ CSV |
+| **Dane**: JSON, JSON Lines, YAML, TOML, XML · vCard, iCalendar | między sobą, CSV i XLSX (tabele); vCard, iCalendar ↔ CSV |
 | **Modele 3D**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY; FBX tylko odczyt | między sobą, podgląd PNG |
 | **Dane geoprzestrzenne (wektorowe)**: Shapefile, GeoJSON, KML, KMZ, GPX · CSV ze współrzędnymi | między sobą oraz CSV / XLSX / JSON; dane w odwzorowaniach (UTM, Web Mercator, Lambert, Albers) wychodzą jako długość / szerokość geograficzna WGS 84 |
 
@@ -151,8 +151,8 @@ Pull requesty są mile widziane. Jeśli Filee oszczędza Ci kilka kliknięć, �
 ## Zasady podpisywania kodu
 
 Filee tworzy i publikuje **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
-Wydania dla Windows będą podpisywane certyfikatem [Certum](https://www.certum.eu/) do podpisywania kodu open source,
-wystawionym na Myeonggu Kim. Certyfikat jest w trakcie wydawania.
+Wydania dla Windows są podpisywane certyfikatem [Certum](https://www.certum.eu/) do podpisywania kodu open source,
+wystawionym na Myeonggu Kim. Wydania do 2.0.0 włącznie nie są podpisane.
 
 Pełne zasady i politykę prywatności znajdziesz w [angielskim README](README.md#code-signing-policy).
 Filee nie wysyła Twoich plików ani danych o użytkowaniu.

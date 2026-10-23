@@ -116,15 +116,18 @@ public partial class App : Application
             TransparentWindows.Watch(log);
         }
         // macOS: ask for Accessibility with the system's own alert when the user opened Filee (not at sign-in) and
-        // a drag gesture is on. The home page keeps a reminder until it is given. Asked once the main window is up:
-        // asked earlier, the alert ends up behind it.
-        if (OperatingSystem.IsMacOS() && triggers.NeedsPermission && !Program.Options.Background
+        // a drag gesture is on, once ever (see ShouldAskForPermission). The home page keeps a reminder until it is
+        // given. Asked once the main window is up: asked earlier, the alert ends up behind it.
+        if (OperatingSystem.IsMacOS() && !Program.Options.Background
             && platform is Filee.Platform.MacOS.MacOSPlatformServices mac
-            && store.Settings.Triggers.Any(t => t.Enabled && t.Kind == TriggerKind.Drag))
+            && TriggerService.ShouldAskForPermission(store.Settings, triggers.NeedsPermission))
             DispatcherTimer.RunOnce(() =>
             {
-                if (OperatingSystem.IsMacOS() && triggers.NeedsPermission)
-                    mac.RequestAccessibilityPermission();
+                if (!OperatingSystem.IsMacOS() || !TriggerService.ShouldAskForPermission(store.Settings, triggers.NeedsPermission))
+                    return;
+                store.Settings.AccessibilityPromptShown = true;
+                store.SaveSettings();
+                mac.RequestAccessibilityPermission();
             }, TimeSpan.FromSeconds(1.5));
 
         store.SettingsChanged += (_, _) => ApplySettings(store.Settings);
