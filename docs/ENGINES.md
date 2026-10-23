@@ -7,12 +7,12 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 |---|---|---|
 | ImageMagick (Magick.NET) | built in (library) | JPG, PNG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, MNG, QOI, DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster, MIFF ↔ each other, and **APNG** (Filee's own reader and writer); HEIC (written with FFmpeg), XCF, camera RAW (LibRaw), DICOM (uncompressed ones by Filee's own reader), Photo CD, OpenEXR, Radiance HDR, EMF/WMF (Windows) and the photo of an iPhone LIVP read |
 | Windows Imaging Component | part of Windows (Windows only) | **JPEG XR** (JXR, WDP, HDP; HDR screenshots of Windows) → the images ImageMagick writes, and PDF, ICNS, HEIC and SVG through PNG; HDR tone-mapped to SDR |
-| Vector graphics | built in (Svg.Skia, SkiaSharp, ACadSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, **SVG → DXF** (→ DWG with the CAD engine), **raster images → SVG (tracing)**, PDF-compatible AI → PDF |
+| Vector graphics | built in (Svg.Skia, SkiaSharp, ACadSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, **SVG → DXF** (→ DWG with the CAD engine), **raster images → SVG (tracing)**, PDF-compatible AI → PDF, **HP-GL / HP-GL/2 plot files (PLT) → SVG**, PDF and images (pen moves, packed PE polylines, arcs and filled polygons; text labels are not drawn) |
 | ICNS | built in | images → ICNS (16–1024 px), ICNS → images |
-| PDFsharp | built in (library) | images → PDF, merge, split, page ranges, **compression** (smaller PDFs, see below) |
+| PDFsharp | built in (library) | images → PDF, merge, split, page ranges, **compression** (smaller PDFs, see below), PDFs without their metadata |
 | PDFium | built in (library) | PDF → images (multi-page TIFF/GIF supported) |
 | Unhwp | built in (library) | HWP/HWPX → TXT, Markdown, HTML (pictures in a `<name>_files` folder next to the Markdown, embedded in the HTML) |
-| Text & Markdown (Markdig) | built in (library) | **Markdown → HTML, TXT**; **TXT, LOG, PY, PAC, BAT, COMMAND → UTF-8 TXT**, preserving source text without running scripts (and → PDF / DOCX through the HWPX writer, rhwp or LibreOffice) |
+| Text & Markdown (Markdig) | built in (library) | **Markdown → HTML, TXT**; **TXT, LOG, PY, PAC, BAT, COMMAND, LUA, CSS → UTF-8 TXT**, preserving source text without running scripts (and → PDF / DOCX through the HWPX writer, rhwp or LibreOffice) |
 | Spreadsheets (ExcelDataReader for XLS) | built in (library) | **XLSX, XLS, ODS, CSV, TSV → XLSX, ODS, CSV, TSV** (one CSV / TSV per sheet) |
 | Office Open XML | built in | **DOCM / DOTX / DOTM ↔ DOCX, XLSM / XLTX ↔ XLSX, PPTM / POTX / POTM / PPSX ↔ PPTX** (macros removed for macro-free types) |
 | Fonts | built in | **TTF, OTF, WOFF, WOFF2, EOT ↔ each other**; CFF (PostScript) outlines become TrueType for TTF and EOT |
@@ -21,7 +21,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | PDF text | built in (PdfPig) | **PDF → TXT, Markdown** (reading order, also two columns; Markdown keeps headings, emphasis, links and the pictures; no OCR) |
 | PDF slides | built in (PDFium, PdfPig) | **PDF → PPTX**: a picture of each page on its own slide (looks like the PDF, not editable), the page's text in the speaker notes |
 | E-mail | built in (MimeKit, MsgReader) | **EML, Outlook MSG → HTML** (headers + body, inline pictures), **TXT**, **ZIP** (the attachments); **MSG → EML**; **MHTML → HTML** (the saved page in one file, pictures inlined; on to PDF, DOCX, HWPX, TXT, Markdown, EPUB from there) |
-| Data | built in (System.Text.Json, YamlDotNet, Tomlyn, System.Xml) | **JSON, JSON Lines, YAML, TOML, XML, CSV ↔ each other** (CSV for tables); **vCard ↔ CSV**; spreadsheets and contacts reach JSON / YAML / TOML / XML through CSV |
+| Data | built in (System.Text.Json, YamlDotNet, Tomlyn, System.Xml) | **JSON, JSON Lines, YAML, TOML, XML, CSV ↔ each other** (CSV for tables); **vCard, iCalendar ↔ CSV**; spreadsheets, contacts and events reach JSON / YAML / TOML / XML through CSV |
 | **E-books** | built in | **EPUB, MOBI/AZW/AZW3/PRC, FB2, HTMLZ, TXTZ → EPUB, HWPX (→ PDF), TXT, HTML, Markdown, FB2, HTMLZ, TXTZ**; HTML, Markdown, TXT, DOCX → EPUB/FB2/HTMLZ/TXTZ; HTML → TXT; comics CBZ/CBR/CB7/CBT/CBC → PDF, EPUB, CBZ; PDF → CBZ; AZW4 → PDF; **EPUB ↔ KEPUB** (Kobo) |
 | CAD (ACadSharp + built-in renderer) | built in (library) | **DWG ↔ DXF**; DWG/DXF → **PDF** (vector), **SVG**, PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF |
 | **Subtitles** | built in | **SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD, SCC → SRT, ASS, WebVTT, SAMI, LRC, TTML, MicroDVD**, always UTF-8 (Korean CP949 / EUC-KR files read correctly) |
@@ -32,7 +32,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | LibreOffice + H2Orestart + Java | **optional download** (~420 MB, 1.3 GB on disk) | older and rare formats only: DOC, XLS, PPT, RTF and OpenDocument → PDF and to each other, output as DOCX/ODT/ODS/ODP; HWP/HWPX → DOCX/ODT; read-only formats (see below) → PDF and their kind's editable formats; FODT, OpenDocument templates (OTT, OTS, OTP) and XLT out; SVG → EMF/WMF/ODG, a PDF page → SVG |
 | Pandoc | **optional download** (~42 MB, 240 MB on disk) | Markdown ↔ DOCX/ODT/RTF, DOCX/ODT/HTML/RTF → Markdown, HTML ↔ DOCX/ODT, markup languages (reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML) ↔ Markdown/HTML/DOCX/ODT and each other (and → RTF, EPUB, TXT), Markdown and markup → PPTX slides |
 | Ghostscript | **optional download** (~20 MB, 31 MB on disk) | EPS/PS → PDF, PDF → EPS/PS, PostScript-based AI → PDF (images through PDF and PDFium); smaller PDFs when a preset asks for it |
-| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG, a still frame or every frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, Live / Motion Photos → their video, a clip of a video → an iPhone Live Photo or Android Motion Photo (experimental), images → HEIC |
+| FFmpeg | **optional download** (~100 MB, 272 MB on disk) | **all video and audio**: video ↔ video (H.264, HEVC, AV1), video → animated GIF / APNG, a still frame or every frame, audio and subtitle extraction, audio ↔ audio (also APE, WavPack, TTA, DSD, DTS, ALAC, …), GIF, APNG and photos → MP4/WEBM/MOV, Live / Motion Photos → their video, a clip of a video → an iPhone Live Photo or Android Motion Photo (experimental), images → HEIC, clips or audio files joined into one, pictures → a slideshow MP4, copies without metadata (see "Media tools") |
 | Calibre | **optional download** (~216 MB, 660 MB on disk) | rare e-book formats: LIT, LRF, CHM, PDB, PML, RB, SNB, TCR, OEB → EPUB; EPUB → MOBI, AZW3, LIT, LRF, PDB, PML, RB, SNB, TCR; e-books → PDF (ranked above the HWPX writer, see below) |
 
 DOCX, XLSX, XLS, ODS and PPTX → PDF need neither Microsoft Office nor LibreOffice: they are read in-process, written as HWPX
@@ -325,7 +325,8 @@ Readers turn the source into a small document model (`Hwp/Hwpx/HwpxModel.cs`) an
   - Word's document grid ("lines"), which 한글 does not have, as an "at least" line spacing.
 - **XLSX, XLS, ODS, CSV and TSV** (`Office/Sheets`, see [Spreadsheets](#spreadsheets)): every visible sheet becomes a section with one table. Cells show what Excel
   shows (number formats via ExcelNumberFormat, dates, percentages, cached formula results), with fonts, fills,
-  borders, alignment and merged cells; frozen top rows repeat on every page. The page is A4 with narrow margins,
+  borders, alignment and merged cells; an XLSX's rows to repeat at the top (Print Titles, #407), else frozen top
+  rows, repeat on every page, and rows above the print titles come once before them. The page is A4 with narrow margins,
   landscape when the columns are much wider than portrait, and the table is scaled to the page width like
   Excel's "Fit all columns on one page". CSV is read with its delimiter (comma, semicolon, tab) and encoding
   (UTF-8 / UTF-16 with BOM, else CP949 as saved by Korean Excel). Not converted: charts, pictures, conditional
@@ -398,7 +399,7 @@ the text the spreadsheet shows, the value behind it and its Excel number format.
 
 | Format | Read | Written |
 |---|---|---|
-| XLSX | own reader: values, number formats, fonts, fills, borders, alignment, merges, widths, heights, hidden rows / columns / sheets, frozen rows | every sheet, numbers and dates as numbers with their formats, booleans, styles, merges, widths, heights, hidden rows / columns, frozen rows |
+| XLSX | own reader: values, number formats, fonts, fills, borders, alignment, merges, widths, heights, hidden rows / columns / sheets, frozen rows, print titles (rows) | every sheet, numbers and dates as numbers with their formats, booleans, styles, merges, widths, heights, hidden rows / columns, frozen rows |
 | XLS (Excel 97–2003, also Excel 5/95) | ExcelDataReader (MIT): values, number formats, merges, horizontal / vertical alignment; widths, heights and hidden rows / columns from the BIFF records (`XlsLayout.cs`) | no (LibreOffice) |
 | ODS | own reader (`content.xml`, `styles.xml`, `settings.xml`): repeated rows / columns (the empty repeats up to the end of the sheet are skipped), spans, every value type, the text Calc shows (`text:p`), data styles as Excel codes, cell styles, widths, heights, hidden rows / columns / sheets, frozen and header rows | every sheet, typed cells (float, percentage, currency, date, time, boolean) with data styles and the shown text, styles, merges, widths, heights, hidden rows / columns, frozen rows |
 | CSV / TSV | delimiter (CSV: comma, semicolon or tab; TSV: tab) and encoding (UTF-8 / UTF-16 with BOM, else CP949) | UTF-8 with BOM, CRLF, one file per sheet |
@@ -700,6 +701,31 @@ PDFsharp and Magick.NET; nothing has to be installed.
 - **Not done**: object streams (PDFsharp writes none), font subsetting or removal of unused glyphs, converting
   colour to gray, flattening transparency or form fields, recompressing JBIG2/CCITT scans.
 
+## Media tools
+
+Everyday presets, on the back faces of the images, PDF, video and audio donuts where they fit ("Video from images" is
+in the preset library only). Video and audio need FFmpeg.
+
+- **Compress image / video / audio** re-encode smaller (quality 75, never above a JPEG's own and PNG at zlib level 9;
+  H.264 at the Small quality, at most 1080p; AAC at the Small quality). A copy in the same format that isn't smaller is
+  replaced by the source, with the same notice as Compress PDF (`OutputRule.OnlyIfSmaller`); under "Save as ZIP" the
+  source goes into the ZIP instead.
+- **Extract audio** copies AAC or ALAC into M4A without an encode (`MediaOptions.CopyAudioWhenPossible`); other sound
+  is encoded to AAC.
+- **Merge videos** copies the clips with the concat demuxer only when all share the codec setup (ffprobe's extradata
+  hash), size, pixel format, frame rate, turn and kind of sound; otherwise every clip is fitted into the first clip's
+  frame and encoded, a clip without sound silent for its length. **Merge audio** always decodes and joins the sound
+  into one M4A, so no encoder padding or gap is left between files. Both are in `Media/MediaJoining.cs`.
+- **Video from images**: each picture is fitted into 1920 × 1080 as a JPEG, then shown for the preset's seconds with
+  crossfades (`xfade`) of 1 s, at most half a picture's time, or cuts. At most `MediaOptions.MaxSlides` (300)
+  pictures, not counting downloads that failed; the queue refuses more before any is converted. A filter graph too
+  long for a command line goes into a `-/filter_complex` file.
+- **Remove metadata** keeps the format. Images lose EXIF, XMP, IPTC, comments and the ICC profile, and a JPEG keeps
+  its own quality. Video and audio are copied without global and per-stream tags, chapters and data tracks; an MKV's
+  attachments (subtitle fonts) stay, with their file name and type. PDFs lose their document information and every
+  XMP packet (`PdfSharpConverter.StripMetadata`), and PDFsharp writes a new one holding only its own name and the save
+  date; pages, links, bookmarks and form fields stay.
+
 ## Office Open XML variants
 
 `Office/OoxmlConverter.cs` converts between the variants of a family (Word, Excel, PowerPoint) by copying the
@@ -762,7 +788,7 @@ saved as octet-stream, and scripts, frames, remote pictures, fonts and style she
 (windows-1252, `file:///C:/` locations, VML fallbacks), a `cid:`-only page in EUC-KR, a picture on disk named by a
 `file:` URI that must not be read, and the routes to HTML, TXT, DOCX, HWPX and PDF.
 
-## Data (JSON, YAML, TOML, XML, CSV, vCard)
+## Data (JSON, YAML, TOML, XML, CSV, vCard, iCalendar)
 
 `Data/DataConverter.cs` (engine id `data`) reads every format into one tree (`Data/DataTree.cs`: objects with their
 keys in file order, arrays, text, true / false, integers of any size, floats, TOML dates and null) and writes it
@@ -781,10 +807,11 @@ options: the output is always pretty-printed.
 | CSV (`.csv`) | Filee (`Office/Sheets/CsvFormat.cs`) | first row = keys, one object per row; plain numbers (not `007`) and `true` / `false` typed, the rest text; delimiter and encoding detected as for spreadsheets | only tables: an array of objects (columns = every key, first seen first; an object inside a row becomes `parent.child` columns, one level only), an object of arrays (columns), an array of arrays (rows) or one flat object (one row); objects that only wrap the array (`{"users": […]}`, `<rows><row/>…</rows>`) are looked through. Anything else stops with a message saying what is not a table |
 
 **`.csv` and `.xml` ownership.** CSV stays a spreadsheet format: the spreadsheets donut, XLSX / ODS routes and
-"Merge into PDF" are unchanged, and the data engine only adds edges `csv ↔ json / jsonl / yaml / toml / xml`. Routes
-combine: XLSX → CSV → JSON, YAML → CSV → XLSX, vCard → CSV → JSON. The spreadsheets donut gets "JSON". `.xml` had no
-owner before; XML-based formats Filee converts have their own extensions (`.svg`, `.fb2`, `.dbk`, `.opml` …), so a
-plain `.xml` file is treated as data and opens the data donut.
+"Merge into PDF" are unchanged. The data engine adds `csv ↔ json / jsonl / yaml / toml / xml` edges, and vCard and
+iCalendar each convert to and from CSV. Routes combine: XLSX → CSV → JSON, YAML → CSV → XLSX, vCard → CSV → JSON,
+and ICS → CSV → JSON. The spreadsheets donut gets "JSON". `.xml` had no owner before; XML-based formats Filee
+converts have their own extensions (`.svg`, `.fb2`, `.dbk`, `.opml` …), so a plain `.xml` file is treated as data
+and opens the data donut.
 
 **vCard** (`Data/VCard.cs`, own parser): vCard 2.1, 3.0 and 4.0 → CSV with the columns Full name, Given name, Family
 name, Organization, Title, Email, Phone, Address, Birthday, Note (one row per contact; several values joined with
@@ -795,6 +822,18 @@ of older Korean phones); UTF-16 files with a BOM are read too. Pictures and nest
 a missing full name is made from the name parts (홍길동, "Ada Lovelace"). CSV → vCard reads those columns (also
 `Name`, `Company`, `Mobile`, `E-mail` … and Korean / Chinese headers such as 이름, 전화번호, 이메일, 姓名, 电话) and writes
 vCard 3.0 in UTF-8, lines folded at 75 bytes; an address goes into the street field.
+
+**iCalendar** (`Data/ICalendar.cs`, own parser): VEVENTs and VTODOs ↔ CSV; one component per row, with these 14 columns
+in order: `Type`, `Title`, `Start`, `End`, `All day`, `Time zone`, `Location`, `Description`, `Organizer`,
+`Attendees`, `RRULE`, `EXDATE`, `Recurrence ID`, `UID`. Times use ISO 8601, retaining the original offset;
+all-day values are dates only, and a DTSTART TZID is kept in its own `Time zone` column. If a TZID cannot be
+resolved, the local time stays floating without an offset. A VTIMEZONE in the same calendar without RRULE takes
+precedence; RRULE-based zones are resolved through the system time-zone database instead, so historical years are
+not guaranteed to match. CSV → ICS writes the normalized columns as VEVENTs or VTODOs. A numeric offset without a
+`Time zone` is written in UTC. Each VTIMEZONE is built from the system rule in force at that zone's earliest timed
+Start (or End when no Start); offsets in other years, including past years, may therefore be lost. The original
+VTIMEZONE definition is not preserved, and only these columns are supported rather than arbitrary calendar data.
+VALARM, X-properties, VJOURNAL, VFREEBUSY, binary attachments and other unsupported properties are lost.
 
 ## CAD drawings (DWG, DXF)
 

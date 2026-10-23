@@ -66,6 +66,7 @@ public static class FormatRegistry
         new("wmf", "WMF", FormatCategory.Vector, ["wmf"]),
         new("cdr", "CDR", FormatCategory.Vector, ["cdr"], Writable: false),
         new("cgm", "CGM", FormatCategory.Vector, ["cgm"], Writable: false),
+        new("plt", "PLT", FormatCategory.Vector, ["plt", "hpgl", "hpg", "hgl"], Writable: false),
         new("vsd", "VSD", FormatCategory.Vector, ["vsd", "vsdx"], Writable: false),
         new("odg", "ODG", FormatCategory.Vector, ["odg"]),
         new("fodg", "FODG", FormatCategory.Vector, ["fodg"], Writable: false),
@@ -134,8 +135,9 @@ public static class FormatRegistry
         new("sda", "SDA", FormatCategory.Presentation, ["sda", "sdd"], Writable: false),
 
         // Plain text / markup
-        // Text logs and source/proxy scripts are read as plain text, never executed (issues #273, #284, #254).
-        new("txt", "TXT", FormatCategory.Text, ["txt", "log", "py", "pac", "bat", "command"]),
+        // Text logs, source/proxy scripts and style sheets are read as plain text, never executed (issues #273, #284, #254,
+        // #388, #368).
+        new("txt", "TXT", FormatCategory.Text, ["txt", "log", "py", "pac", "bat", "command", "lua", "css"]),
         new("md", "Markdown", FormatCategory.Text, ["md", "markdown"]),
         new("html", "HTML", FormatCategory.Text, ["html", "htm", "xhtml"]),
         // A web page saved with its pictures in one MIME file (Chrome, Edge, Word); read as the page it holds.
@@ -165,6 +167,7 @@ public static class FormatRegistry
         new("vcf", "vCard", FormatCategory.Data, ["vcf", "vcard"]),
         // A browser's recorded network requests (HTTP Archive): JSON, read as one table row per request (issue #328).
         new("har", "HAR", FormatCategory.Data, ["har"], Writable: false),
+        new("ics", "iCalendar", FormatCategory.Data, ["ics", "ical"]),
 
         // E-books
         new("epub", "EPUB", FormatCategory.Ebook, ["epub"]),

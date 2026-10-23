@@ -1,9 +1,9 @@
-// Structured data between JSON, JSON Lines, YAML, TOML and XML (and CSV for tables), plus vCard contacts ↔ CSV,
+// Structured data between JSON, JSON Lines, YAML, TOML and XML (and CSV for tables), plus vCard contacts and iCalendar ↔ CSV,
 // in-process. Every format is read into one tree (DataTree) and written from it, so structure and types carry over as
 // far as the target can hold them; see the format files for what each one loses (TOML has no null, XML no types,
 // CSV only tables). Output is UTF-8 without BOM (CSV: with BOM, like the spreadsheet engine), indented by two spaces.
-// Spreadsheets reach JSON and the others through CSV (XLSX → CSV → JSON), contacts through CSV as well. HAR network
-// logs are read as JSON, and become a table of their requests (HarData).
+// Spreadsheets reach JSON and the others through CSV (XLSX → CSV → JSON), contacts and calendars through CSV as well. HAR
+// network logs are read as JSON, and become a table of their requests (HarData).
 
 using System.Text;
 using Filee.Core.Conversion;
@@ -13,7 +13,7 @@ using Filee.Engines.Office.Sheets;
 
 namespace Filee.Engines.Data;
 
-/// <summary>JSON, JSON Lines, YAML, TOML, XML and CSV into each other; vCard ↔ CSV; HAR → all of them.</summary>
+/// <summary>JSON, JSON Lines, YAML, TOML, XML and CSV into each other; vCard and iCalendar ↔ CSV; HAR → all of them.</summary>
 public sealed class DataConverter : IConverter
 {
     private static readonly string[] Trees = ["json", "jsonl", "yaml", "toml", "xml"];
@@ -30,10 +30,12 @@ public sealed class DataConverter : IConverter
         new("vcf", "csv"),
         new("csv", "vcf"),
         .. Trees.Append("csv").Select(to => new ConversionEdge("har", to)),
+        new("ics", "csv"),
+        new("csv", "ics"),
     ];
 
     public EngineStatus GetStatus() =>
-        EngineStatus.Available("JSON, JSON Lines, YAML, TOML, XML, CSV ↔ each other; vCard ↔ CSV",
+        EngineStatus.Available("JSON, JSON Lines, YAML, TOML, XML, CSV ↔ each other; vCard and iCalendar ↔ CSV",
             $"{EngineVersions.BuiltIn} · {EngineVersions.Library("YamlDotNet", typeof(YamlDotNet.RepresentationModel.YamlStream))}"
             + $" · {EngineVersions.Library("Tomlyn", typeof(Tomlyn.TomlSerializer))}");
 
@@ -64,6 +66,30 @@ public sealed class DataConverter : IConverter
                 File.WriteAllText(vcf, VCard.Write(contacts), Utf8);
                 progress?.Report(1);
                 return [vcf];
+            }
+            if (step.From == "ics")
+            {
+                var components = ICalendar.Read(File.ReadAllBytes(step.InputPath));
+                if (components.Count == 0)
+                    throw new InvalidDataException("The file has no iCalendar events or to-dos.");
+                cancellationToken.ThrowIfCancellationRequested();
+                if (step.Output.Allocate("csv") is not { } csv)
+                    return [];
+                CsvFormat.WriteRows(ICalendar.ToRows(components), csv);
+                progress?.Report(1);
+                return [csv];
+            }
+            if (step.To == "ics")
+            {
+                var components = ICalendar.FromRows(CsvData.ReadRows(step.InputPath));
+                if (components.Count == 0)
+                    throw new InvalidDataException("The table has no iCalendar events or to-dos.");
+                cancellationToken.ThrowIfCancellationRequested();
+                if (step.Output.Allocate("ics") is not { } ics)
+                    return [];
+                File.WriteAllText(ics, ICalendar.Write(components), Utf8);
+                progress?.Report(1);
+                return [ics];
             }
 
             var tree = Read(step.InputPath, step.From);
