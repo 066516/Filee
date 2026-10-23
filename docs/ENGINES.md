@@ -9,7 +9,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | Windows Imaging Component | part of Windows (Windows only) | **JPEG XR** (JXR, WDP, HDP; HDR screenshots of Windows) → the images ImageMagick writes, and PDF, ICNS, HEIC and SVG through PNG; HDR tone-mapped to SDR |
 | Vector graphics | built in (Svg.Skia, SkiaSharp, ACadSharp) | **SVG/SVGZ → PDF (vector) and images**, SVG ↔ SVGZ, **SVG → DXF** (→ DWG with the CAD engine), **raster images → SVG (tracing)**, PDF-compatible AI → PDF, **HP-GL / HP-GL/2 plot files (PLT) → SVG**, PDF and images (pen moves, packed PE polylines, arcs and filled polygons; text labels are not drawn), **Tajima DST embroidery → SVG** (stitches as lines, a palette colour per thread; → PNG, JPG, PDF from there) |
 | ICNS | built in | images → ICNS (16–1024 px), ICNS → images |
-| PDFsharp | built in (library) | images → PDF, merge, split, page ranges, **compression** (smaller PDFs, see below), PDFs without their metadata |
+| PDFsharp | built in (library) | images → PDF, merge, split, page ranges, spreadsheet print-studio assembly, **compression** (smaller PDFs, see below), PDFs without their metadata |
 | PDFium | built in (library) | PDF → images (multi-page TIFF/GIF supported) |
 | Unhwp | built in (library) | HWP/HWPX → TXT, Markdown, HTML (pictures in a `<name>_files` folder next to the Markdown, embedded in the HTML) |
 | Text & Markdown (Markdig) | built in (library) | **Markdown → HTML, TXT**; **TXT, LOG, PY, PAC, BAT, COMMAND, LUA, CSS, PS1 → UTF-8 TXT**, preserving source text without running scripts (and → PDF / DOCX through the HWPX writer, rhwp or LibreOffice) |
@@ -427,6 +427,13 @@ the text the spreadsheet shows, the value behind it and its Excel number format.
 - Not converted: formulas (their cached results are kept), charts, pictures, comments, conditional formatting,
   data validation, print areas and page breaks.
 
+The XLSX donut also offers **PDF + Edit** (`tool-sheet-studio`). Unlike an ordinary routed XLSX → PDF conversion,
+this interactive tool always requires LibreOffice regardless of engine priority: it preserves the original workbook,
+makes one disposable copy per selected sheet region, applies that region's print settings, and asks LibreOffice to
+render it. PDFsharp combines the resulting PDFs. The live preview follows this exact studio export path and uses
+PDFium/PDFtoImage for lazy thumbnails and the selected large page; the ordinary donut's PDF can differ because its
+built-in XLSX route reads the workbook into Filee's document model.
+
 ## Fonts
 
 Fonts are converted in-process (`Filee.Engines/Fonts`); zlib and Brotli come with .NET. The input format is
@@ -737,6 +744,26 @@ in the preset library only). Video and audio need FFmpeg.
   attachments (subtitle fonts) stay, with their file name and type. PDFs lose their document information and every
   XMP packet (`PdfSharpConverter.StripMetadata`), and PDFsharp writes a new one holding only its own name and the save
   date; pages, links, bookmarks and form fields stay.
+
+## PDF watermark, page numbers and password
+
+A preset that writes PDF can finish every PDF it makes (`PdfOptions.Watermark`, `PageNumbers`, `Password`;
+`Pdf/PdfFinishing.cs`, PDFsharp only). `JobQueue` runs it (`IPdfFinisher`) on each PDF a file became, whichever engine
+wrote it (PDFsharp, rhwp, LibreOffice, Ghostscript …), and once on a merged PDF, so its pages are numbered through.
+
+- **Watermark**: the text in light grey (22 % opacity), bold, along the page's diagonal over the content, at 70 % of
+  the diagonal and at most a quarter of the short side high.
+- **Page numbers**: "3 / 10", 9 pt dark grey, centred 10 mm above the bottom edge.
+- Both go on the page as it is shown: centred in its crop box (the media box when it has none), the right way up
+  for its `/Rotate`. The page is drawn on unturned and its `/Rotate` put back.
+- Text is drawn as glyph outlines (`Vector/GlyphOutlines.cs`, HarfBuzz shaping, shared with SVG text in PDFs). Any
+  script works with a font the PC has for it (Skia's font fallback, else Arial or the default face), and no font is
+  embedded, so the PDF grows by a few kilobytes. The text can't be selected or searched.
+- **Password**: opens the PDF (user and owner password are the same), AES-256 (`SetEncryptionToV5`). It is saved with
+  the preset in the settings file, but left out of a preset export and of the copy history keeps to convert failed
+  files again: a retry takes it from the preset again, and fails (`error.pdf_password_gone`) when the preset no
+  longer has one. The editor takes at most 127 UTF-8 bytes, all that AES-256 readers use, and turns the box off while
+  PDF/A is ticked, since PDF/A forbids encryption.
 
 ## Office Open XML variants
 

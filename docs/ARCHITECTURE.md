@@ -48,6 +48,8 @@
    Each name stays reserved while a conversion holds it. A conversion that fails or is cancelled deletes what it began
    writing, but only at a path that was its alone: nothing was there before and no other conversion was handed the
    same name ("Overwrite"). It frees its names and removes an output folder it made if that is left empty.
+   A PDF target's finishing (watermark, page numbers, password; `IPdfFinisher`) runs after the last step, on every
+   PDF a file became, and once on a merged PDF.
    *Replace the original* (`OutputRule.ReplaceOriginal`, off by default) comes after that, for a finished result of
    the source's own format and extension, or another spelling of it (`.jpeg` / `.jpg`; TXT also covers scripts and
    logs, PPT also `.pps` and `.pot`, so those need the same extension). The result is first
@@ -163,6 +165,25 @@ multi-frame pictures refused, the EXIF thumbnail dropped), one history entry for
   button, and `CropSummaryRing` the end summary's donut (a slice per file).
 - `Controls/CropMath` holds the arithmetic (ratios and their portrait forms, nudging by whole pixels, the frame in
   pixels, where the size chip goes, where the dial opens) and is unit tested.
+
+## Spreadsheet print studio
+
+The `tool-sheet-studio` tool opens an independent `Views/SpreadsheetPrintStudioWindow` for each dropped XLSX workbook
+instead of starting a normal conversion job. `SpreadsheetPrintStudioViewModel` owns an ordered, non-destructive print plan: each visible
+sheet starts as one region and the user can add more regions, change paper, orientation, scale, margins, page order,
+hidden rows and manual breaks, then see the PDF that those settings will produce.
+
+- `SpreadsheetPrintInspector` reads workbook metadata and streams the large worksheet data with `XmlReader`; opening
+  a large workbook neither builds nor retains an `XDocument` for every sheet.
+- `SpreadsheetPrintPackage` makes a disposable XLSX under `JobQueue.DefaultWorkRoot`. It keeps every worksheet and
+  named range so cross-sheet formulas remain valid, hides the sheets not being rendered, and changes only the chosen
+  sheet's print settings. A new print area is written only after the user explicitly changes or accepts the range.
+- `SpreadsheetPrintService` runs LibreOffice once for each region. Preview and export use the same disposable-workbook
+  path; export then joins the region PDFs in the chosen order with PDFsharp. The ordinary XLSX → PDF donut conversion
+  can still differ because route planning may select Filee's built-in spreadsheet reader instead of LibreOffice.
+- `PdfPreviewDocument` caches a PDF's bytes and page geometry. The studio asks PDFium/PDFtoImage for small thumbnails
+  and only one large selected page, all decoded away from the UI thread; exporting never performs preview rendering.
+  Cancellation closes LibreOffice and the temporary job folder is removed on success, error or window close.
 
 ## Settings and data
 
