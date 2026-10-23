@@ -200,6 +200,29 @@ public class ReplaceOriginalTests
     }
 
     [Fact]
+    public async Task Another_kind_of_file_in_the_same_format_is_not_replaced_but_another_spelling_is()
+    {
+        using var dir = new TempDir();
+        using var bin = new TempDir();
+        var show = dir.File("talk.pps");
+        var trash = new FakeTrash(bin.Path);
+        await using (var queue = new JobQueue(new ConverterCatalog([new FakeConverter("office", new ConversionEdge("ppt", "ppt"))]), moveToTrash: trash.Move))
+        {
+            var job = new ConversionJob([show], new Preset { TargetFormat = "ppt", Output = { ReplaceOriginal = true } }, "Test");
+            await queue.RunAsync(job);
+            Assert.Equal([Path.Combine(dir.Path, "talk.ppt")], job.Outputs);
+        }
+        Assert.Empty(trash.Moved);
+        Assert.Equal("x", File.ReadAllText(show));
+
+        var photo = dir.File("photo.jpeg");
+        var replaced = await Run(trash, photo, new Preset { TargetFormat = "jpg", Output = { ReplaceOriginal = true } });
+
+        Assert.Equal([photo], trash.Moved);
+        Assert.Equal([photo], replaced.Outputs);
+    }
+
+    [Fact]
     public async Task Only_if_smaller_leaves_an_unchanged_original_alone()
     {
         using var dir = new TempDir();

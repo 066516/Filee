@@ -49,7 +49,8 @@
    writing, but only at a path that was its alone: nothing was there before and no other conversion was handed the
    same name ("Overwrite"). It frees its names and removes an output folder it made if that is left empty.
    *Replace the original* (`OutputRule.ReplaceOriginal`, off by default) comes after that, for a finished result of
-   the source's own format (for TXT, which also covers scripts and logs, the same extension). The result is first
+   the source's own format and extension, or another spelling of it (`.jpeg` / `.jpg`; TXT also covers scripts and
+   logs, PPT also `.pps` and `.pot`, so those need the same extension). The result is first
    moved next to the source under a temporary name, then the source goes to the Recycle Bin / Trash
    (`IPlatformServices.MoveToTrash`, in the app and the command line), then the result takes its name. Windows only
    ever recycles (IFileOperation with a sink that refuses a delete it can't recycle). When the source can't go there

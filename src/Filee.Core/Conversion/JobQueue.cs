@@ -1025,9 +1025,9 @@ public sealed class JobQueue : IAsyncDisposable
             || FormatRegistry.Detect(output) is not { } format || format.Id != sourceFormat
             || string.Equals(Path.GetFullPath(output), Path.GetFullPath(source), Platform.FileSystemPaths.Comparison))
             return output;
-        // TXT also covers scripts and logs (.bat, .py, .log): there only the same extension replaces. Elsewhere the
-        // extensions are spellings of one format (.jpeg / .jpg).
-        if (format.Id == "txt" && !string.Equals(Path.GetExtension(output), Path.GetExtension(source), StringComparison.OrdinalIgnoreCase))
+        // One format can cover different kinds of file (TXT: .bat, .py, .log; PPT: .pot; AIFF: .aifc), and the result
+        // takes the original's name: only the same extension, or another spelling of it (.jpeg / .jpg), replaces.
+        if (!SameKindOfFile(Path.GetExtension(output), Path.GetExtension(source)))
             return output;
         if (copiedSource)
         {
@@ -1078,12 +1078,21 @@ public sealed class JobQueue : IAsyncDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // The original is in the Trash already: the result stays next to where it was, under its temporary name.
+            // The original is in the Trash already: the result goes back to the name it was saved under.
             _log.LogWarning(ex, "Could not rename {Staged} to {Source}", staged, source);
             file.NoticeKey = "notice.original_in_trash";
             file.NoticeReasonKey = "trash.cannot_place";
             file.NoticeDetail = ex.Message;
-            return staged;
+            try
+            {
+                File.Move(staged, output);
+                return output;
+            }
+            catch (Exception again) when (again is IOException or UnauthorizedAccessException)
+            {
+                _log.LogWarning(again, "Could not move {Staged} back to {Output}", staged, output);
+                return staged;
+            }
         }
 
         string Kept(Platform.TrashRefusal why, string result)
@@ -1095,6 +1104,18 @@ public sealed class JobQueue : IAsyncDisposable
             return result;
         }
     }
+
+    /// <summary>Extensions that only spell the same kind of file differently ("Replace the original" may swap them).</summary>
+    private static readonly string[][] Spellings =
+    [
+        [".jpg", ".jpeg", ".jpe", ".jfif"], [".tiff", ".tif"], [".html", ".htm"], [".md", ".markdown"], [".yaml", ".yml"],
+        [".mpg", ".mpeg"], [".wav", ".wave"], [".aiff", ".aif"], [".ogg", ".oga"], [".3gp", ".3gpp"], [".m2ts", ".mts"],
+        [".mov", ".qt"], [".tex", ".latex"],
+    ];
+
+    private static bool SameKindOfFile(string a, string b) =>
+        string.Equals(a, b, StringComparison.OrdinalIgnoreCase)
+        || Spellings.Any(s => s.Contains(a, StringComparer.OrdinalIgnoreCase) && s.Contains(b, StringComparer.OrdinalIgnoreCase));
 
     /// <summary>Lets go of <paramref name="path"/> (under the lock): free once nobody holds it.</summary>
     private void Unreserve(string path)
