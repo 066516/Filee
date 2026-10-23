@@ -147,8 +147,9 @@ spacing is preserved. Thai receives English engine-name fallbacks and its own ex
 following the existing contribution policy; no new native-language review is claimed for it.
 
 Approved final pt-PT edits: `sponsor.thanks` is `Obrigado a quem apoia o Filee`; `merge.order_hint` explains that
-files are combined from the top of the list to the bottom. The CLI hint keeps `<folder>` and `<format>` at the
-contributor's request; they are argument descriptions, while `filee watch` / `--to` remain literal syntax.
+files are combined from the top of the list to the bottom. The final approved CLI hint uses `<pasta>` and `<formato>`,
+matching pt-BR and several other translated catalogs. They describe the path and format that the user supplies;
+`filee watch` / `--to` remain literal syntax recognized by the parser.
 `Página inicial`, `Apoiar` and `Apoiar o Filee` remain. The contextual glossary follows the approved acknowledgement.
 
 Commit `fea4fa0` fixes the old CI's Setup slide-timer race without changing production behavior or dropping an

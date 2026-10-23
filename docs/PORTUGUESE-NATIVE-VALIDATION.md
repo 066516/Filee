@@ -8,6 +8,33 @@ CI completed on 22 October 2026; report consolidated on 23 October. Only Blacksp
 all nine jobs passed. This closes the previously pending automated CI and full-formatter checks. It does not
 certify an interactive installation, OS-language session, permission dialog or screen reader.
 
+## CLI argument-description clarification — 23 October 2026
+
+After the contributor clarified the earlier wording decision, pt-PT's `watch.cli_hint` is now
+`Também na linha de comandos: filee watch <pasta> --to <formato>`. pt-BR already uses `<pasta>` / `<formato>`;
+Spanish, Korean, Russian, Thai and both Chinese catalogs also translate these descriptions. `filee watch` and
+`--to` remain the literal syntax recognized by `CliOptions`. The user replaces the angle-bracket descriptions
+with a path and format; the application does not interpolate them like `{0}`.
+
+Only this pt-PT catalog value and the corresponding review notes change. All other catalogs are unchanged,
+and all 978 pt-PT keys, tokens, line breaks, NFC and English key order are retained. No demonstration contains
+this Watch-page footer, so no media regeneration is needed. App and Setup resources were rebuilt in the same
+verified temporary copy described below: zero build errors, five existing warnings. The existing App selection
+passed **163 / 0 failed / 0 skipped**: 157 localization cases and six Watch-page light/dark/2x geometry cases
+across the two Portuguese variants. The Watch cases also emitted fresh headless PNGs. No new native-interaction
+claim is made for this wording change. `git diff --check` passes.
+
+Commands:
+
+```powershell
+dotnet build Filee.slnx -m:1 -c Release --no-restore -p:UseSharedCompilation=false
+$env:FILEE_LOCALIZATION_SCREENSHOTS='1'
+dotnet test tests/Filee.App.Tests -c Release --no-build --filter 'FullyQualifiedName~Localization|(FullyQualifiedName~PortugueseRenderTests.Pages_render_at_minimum_width_in_both_themes&DisplayName~watch)'
+```
+
+Local evidence is retained in ignored
+`artifacts/portuguese-phase1/cli-hint-followup/`. The broader results below describe the preceding integration.
+
 ## Current upstream integration — 23 October 2026
 
 UI/media snapshot: `c59c394`; catalog layout preservation: `4fefecf`. The final acknowledgement fixture is
@@ -16,7 +43,8 @@ Upstream `main` was checked again at `4c3a3e1cbedec48c3033c68fd0da161977e7afdf` 
 remote contribution head was `987c03f`, and its main remained `a121a3c`. Published history was preserved by merge
 `47616f7`; all seventeen conflicts are resolved. Each of the fifteen catalogs has 978 keys. pt-PT adds 67 new
 upstream strings, updates three changed source messages and applies the two approved editorial suggestions.
-`<folder>` / `<format>` remain unchanged. pt-BR retains all newer upstream translations and the seven existing
+The final CLI-hint follow-up translates the argument descriptions to `<pasta>` / `<formato>` while retaining
+`filee watch` / `--to`. pt-BR retains all newer upstream translations and the seven existing
 contribution corrections; no further Brazilian editorial changes were introduced.
 
 The previous [CI run 39987984354](https://github.com/Blackspirits/Filee/actions/runs/39987984354) passed formatting,

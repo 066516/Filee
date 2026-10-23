@@ -43,8 +43,9 @@ is not evidence of an error.
 Glossary checks are contextual: `arquivo` is appropriate pt-PT when describing PDF/A archiving, for example.
 Tests preserve placeholder multiplicity, numeric format specifiers, newlines and NFC. Actual folder names,
 regexes, replacement references and command switches stay unchanged. Quotation style and descriptions such as
-`<pasta>` in command examples are translatable; `filee watch` and `--to` are literal syntax. For this contribution,
-the approved CLI hint keeps `<folder>` and `<format>` unchanged.
+`<pasta>` in command examples are translatable; `filee watch` and `--to` are literal syntax. The CLI hint uses
+`filee watch <pasta> --to <formato>`, matching pt-BR's translated argument descriptions. Only the user replaces
+`<pasta>` and `<formato>` with an actual path and format; these are not runtime interpolation tokens.
 
 ## Language and region policy
 
