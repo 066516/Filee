@@ -15,7 +15,7 @@ public class ScriptTextTests
     public void Scripts_and_style_sheets_are_text(string name) => Assert.Equal("txt", FormatRegistry.Detect(name)?.Id);
 
     [Fact]
-    public void Version_32_text_donuts_learn_them_without_taking_custom_claims()
+    public void Version_33_text_donuts_learn_them_without_taking_custom_claims()
     {
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
@@ -23,11 +23,11 @@ public class ScriptTextTests
             profile.Extensions.RemoveAll(e => e is "lua" or "css");
         profiles.Insert(0, new ToolbarProfile { Id = "my-web", Name = "Web", Extensions = ["css"] });
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(32, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(33, presets, profiles));
 
         var text = profiles.Single(p => p.Id == "text").Extensions;
         Assert.Contains("lua", text);
         Assert.DoesNotContain("css", text); // the user's own donut has it
-        Assert.False(SettingsMigrations.ApplyToLibrary(32, presets, profiles));
+        Assert.False(SettingsMigrations.ApplyToLibrary(33, presets, profiles));
     }
 }

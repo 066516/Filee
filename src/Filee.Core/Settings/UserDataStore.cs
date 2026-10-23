@@ -772,8 +772,8 @@ internal static class SettingsMigrations
                 changed = true;
             }
         }
-        // v33: Lua scripts and CSS style sheets learn the text donut; custom claims stay put.
-        if (from < 33)
+        // v34: Lua scripts and CSS style sheets learn the text donut; custom claims stay put.
+        if (from < 34)
             changed |= LearnExtensions(profiles, out _, ["lua", "css"]);
         return changed;
     }
