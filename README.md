@@ -85,8 +85,9 @@ Download from [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
   - Or open the `.dmg` and drag Filee to Applications (the `filee` command comes with `install.sh`).
   - The build isn't notarized yet, so allow the first start in System Settings → Privacy & Security → **Open Anyway**.
 - **Linux x64/ARM64** (Ubuntu 22.04+): unpack the package and run `./install.sh` (no root, needs Python 3).
-  - Drag gestures need X11.
-    On Wayland, use the drop zone and the file manager's right-click menu.
+  - Drag gestures work on X11. GNOME Wayland has experimental support through the bundled
+    “Filee donut at the cursor” extension, without input-device permissions. See [GNOME Wayland setup](docs/GNOME-WAYLAND.md).
+    The drop zone and file manager's right-click menu also work on Wayland.
 
 Filee shows new releases in its menu and updates itself, keeping your settings and engines.
 After an update, a few slides show what's new.

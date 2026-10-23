@@ -21,6 +21,18 @@ public sealed class LinuxPlatformServices : IPlatformServices
         string.Equals(Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"), "wayland", StringComparison.OrdinalIgnoreCase)
         || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
 
+    public static bool IsGnomeWaylandSession => IsWaylandSession
+        && (Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? "").Split(':')
+            .Contains("GNOME", StringComparer.OrdinalIgnoreCase);
+
+    // Enabling the Shell extension opts in; no /dev/input permission or environment setup is needed on GNOME.
+    // Keep KDE's existing libinput opt-in independent. A value of 0 explicitly disables the GNOME bridge too.
+    public static bool UsesGnomePointerBridge => IsGnomeWaylandSession
+        && Environment.GetEnvironmentVariable("FILEE_WAYLAND_GESTURES") != "0";
+
+    public string? GnomePointerProcess { get; set; }
+    public bool GnomePointerIsDesktop { get; set; }
+
     // Wayland gestures (experimental) are opt-in: FILEE_WAYLAND_GESTURES=1 on KDE Plasma. libuiohook's libinput backend
     // reads /dev/input, so /dev/input is only probed once the switch is set, and it works once the user is in the
     // `input` group. Presses carry no position and a mouse only moves relatively there; a KWin script places the donut.
@@ -43,7 +55,7 @@ public sealed class LinuxPlatformServices : IPlatformServices
         return false;
     }
 
-    public bool SupportsGlobalPointerGestures => X11WindowSystem.IsAvailable || WaylandGestures;
+    public bool SupportsGlobalPointerGestures => X11WindowSystem.IsAvailable || WaylandGestures || UsesGnomePointerBridge;
     public bool PressCarriesPosition => !WaylandGestures;
     public bool SupportsSelectionShortcut => false;
     public string SelectionShortcutUnavailableReason =>
@@ -57,8 +69,10 @@ public sealed class LinuxPlatformServices : IPlatformServices
     // Wayland can't say which window is under the cursor, so any Ctrl+drag may open the (invisible) donut window;
     // it only shows when files are dragged in, and excluded apps can't be told apart there either.
     public bool IsFileManagerAt(int x, int y) =>
-        WaylandGestures || ProcessNameAt(x, y) is { } name && FileManagers.Contains(name);
-    public string? ProcessNameAt(int x, int y) => X11WindowSystem.ProcessNameAt(x, y);
+        UsesGnomePointerBridge && GnomePointerIsDesktop
+        || WaylandGestures || ProcessNameAt(x, y) is { } name && FileManagers.Contains(name);
+    public string? ProcessNameAt(int x, int y) => UsesGnomePointerBridge
+        ? GnomePointerProcess : X11WindowSystem.ProcessNameAt(x, y);
 
     public IReadOnlyList<string> RunningAppNames() => IPlatformServices.AppNames(X11WindowSystem.ClientProcessNames());
     public IReadOnlyList<string> GetFileManagerSelection() => throw new NotSupportedException(SelectionShortcutUnavailableReason);

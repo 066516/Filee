@@ -85,8 +85,9 @@ Baixe em [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
   - Ou abra o `.dmg` e arraste o Filee para Aplicativos (o comando `filee` só vem com o `install.sh`).
   - A build ainda não é notarizada, então permita a primeira abertura em Ajustes do Sistema → Privacidade e Segurança → **Abrir Mesmo Assim**.
 - **Linux x64/ARM64** (Ubuntu 22.04+): descompacte o pacote e execute `./install.sh` (sem root, precisa do Python 3).
-  - Gestos de arrastar precisam do X11.
-    No Wayland, use a área de soltar e o menu do botão direito do gerenciador de arquivos.
+  - Gestos de arrastar funcionam no X11. No GNOME Wayland, há suporte experimental pela extensão
+    “Filee donut at the cursor”, sem permissão para dispositivos de entrada. Veja o [guia do GNOME Wayland](docs/GNOME-WAYLAND.md).
+    A área de soltar e o menu do botão direito do gerenciador também funcionam no Wayland.
 
 O Filee mostra versões novas no menu e se atualiza sozinho, mantendo suas configurações e motores.
 Depois de uma atualização, alguns slides mostram o que há de novo.

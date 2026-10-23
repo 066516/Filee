@@ -23,6 +23,9 @@ public sealed class TriggerService : IDisposable
     private EventLoopGlobalHook? _hook;
     private Thread? _hookThread;
     private readonly Func<EventLoopGlobalHook> _createHook;
+    private GnomePointerBridge? _gnomeBridge;
+    private GnomePointerInput? _gnomeInput;
+    private bool _gnomeConnected;
     private HashSet<string> _excluded = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>FILEE_TRACE_GESTURES=1 logs each mouse press and scope decision, to find why a gesture doesn't fire.</summary>
@@ -108,7 +111,7 @@ public sealed class TriggerService : IDisposable
     /// <summary>Last known cursor position (physical pixels).</summary>
     public (int X, int Y) LastCursor { get; private set; }
 
-    public bool IsRunning => _hook?.IsRunning == true;
+    public bool IsRunning => _gnomeConnected || _hook?.IsRunning == true;
     public string? Error { get; private set; }
 
     /// <summary>
@@ -148,6 +151,12 @@ public sealed class TriggerService : IDisposable
 
     public void Start()
     {
+        if (OperatingSystem.IsLinux() && _platform is Filee.Platform.Linux.LinuxPlatformServices
+            && Filee.Platform.Linux.LinuxPlatformServices.UsesGnomePointerBridge)
+        {
+            StartGnomeBridge();
+            return;
+        }
         if (_hook is not null)
             return;
         if (!_platform.SupportsGlobalPointerGestures)
@@ -222,6 +231,46 @@ public sealed class TriggerService : IDisposable
             _hookThread = null;
             NotifyStatus();
         }
+    }
+
+    private void StartGnomeBridge()
+    {
+        if (_gnomeBridge is not null)
+            return;
+        if (GnomePointerBridge.SocketPath is not { } path)
+        {
+            Error = "GNOME pointer integration requires XDG_RUNTIME_DIR.";
+            NotifyStatus();
+            return;
+        }
+        Error = null;
+        LinuxBackendMissing = false;
+        _gnomeInput = new GnomePointerInput(_detector);
+        GnomePointerBridge? bridge = null;
+        bridge = new GnomePointerBridge(path, state => Post(() =>
+        {
+            if (!ReferenceEquals(_gnomeBridge, bridge))
+                return;
+            LastCursor = (state.X, state.Y);
+            if (OperatingSystem.IsLinux() && _platform is Filee.Platform.Linux.LinuxPlatformServices linux)
+            {
+                linux.GnomePointerProcess = state.Process;
+                linux.GnomePointerIsDesktop = state.Desktop;
+            }
+            _gnomeInput?.Apply(state);
+        }), connected => Post(() =>
+        {
+            if (!ReferenceEquals(_gnomeBridge, bridge) || connected == _gnomeConnected)
+                return;
+            _gnomeConnected = connected;
+            if (!connected)
+                _gnomeInput?.Reset(LastCursor.X, LastCursor.Y);
+            _log.LogInformation("GNOME pointer extension {State}", connected ? "connected" : "disconnected; waiting to reconnect");
+            NotifyStatus();
+        }));
+        _gnomeBridge = bridge;
+        _log.LogInformation("Waiting for the Filee GNOME pointer extension (no input-device permission required)");
+        NotifyStatus();
     }
 
     private void ReportFailure(Exception exception, string message)
@@ -340,6 +389,11 @@ public sealed class TriggerService : IDisposable
 
     public void Dispose()
     {
+        _gnomeBridge?.Dispose();
+        _gnomeBridge = null;
+        _gnomeConnected = false;
+        _gnomeInput?.Reset(LastCursor.X, LastCursor.Y);
+        _gnomeInput = null;
         _permissionWatch?.Dispose();
         _permissionWatch = null;
         try

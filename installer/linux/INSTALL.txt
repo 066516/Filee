@@ -24,6 +24,21 @@ X11 supports the global gesture toolbar; it needs libXtst and libXt (libxtst6,
 libxt6). A native Wayland session has additional input restrictions; use the
 drop window and file-manager actions, or the experimental setup below.
 
+GNOME Wayland gestures (experimental, GNOME Shell 45–50): the Linux package
+includes the “Filee donut at the cursor” Shell extension. install.sh installs
+it for the current user on GNOME and requests activation. Open Extensions and
+enable it. If it is missing or still running an older version, sign out and
+sign in again, then start Filee and hold Ctrl while dragging a file in Files.
+No input group, sudo, or FILEE_WAYLAND_GESTURES setting is required on GNOME.
+The Triggers page says when Filee is waiting for the extension. The extension
+provides pointer state over a private local socket and places the menu once
+per opening; Filee respects its configured gestures, Pause and excluded apps.
+It does not collect typed keys. Global selection/hold gestures and Tab/wheel
+flipping during a drag are not supplied by this integration. Disabling the
+extension stops detection; FILEE_WAYLAND_GESTURES=0 opts out on GNOME too.
+Read GNOME-WAYLAND.md in the package (docs/GNOME-WAYLAND.md in the source) for
+troubleshooting, manual checks and the implementation record.
+
 Wayland gesture (experimental, KDE Plasma 6 only, off by default): Filee reads
 the mouse and keyboard from /dev/input through libinput, and a KWin script moves
 the donut to the cursor because Wayland apps cannot place windows. It needs
