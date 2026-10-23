@@ -40,6 +40,8 @@ libwayland-client0 on Ubuntu). To turn it on:
      kpackagetool6 --type=KWin/Script --install "${XDG_DATA_HOME:-$HOME/.local/share}/filee/application/kwin/filee-donut"
      kwriteconfig6 --file kwinrc --group Plugins --key filee-donutEnabled true
      qdbus6 org.kde.KWin /KWin reconfigure
+   The qdbus tool is qdbus6, qdbus-qt6 or plain qdbus depending on the
+   distribution; use whichever one you have.
    After updating Filee, upgrade the installed script the same way, with
    --upgrade instead of --install, then run the reconfigure line again.
    For Hyprland: Add the floating and placement window rules in ~/.config/hypr/hyprland.conf (or hyprland.lua):

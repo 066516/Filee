@@ -136,6 +136,16 @@ public sealed class TriggerService : IDisposable
 
     private Timer? _permissionWatch;
 
+    /// <summary>
+    /// macOS: whether to show the system's Accessibility alert: gestures wait for the permission, a drag gesture is
+    /// on, and Filee hasn't asked before. Once, not at every start (#316): after an update of the ad-hoc signed app,
+    /// the list can show Filee switched on while macOS still denies it, and the alert came back at every start. The
+    /// Home reminder stays until the permission is given and says to remove Filee from the list and add it again.
+    /// </summary>
+    internal static bool ShouldAskForPermission(AppSettings settings, bool needsPermission) =>
+        needsPermission && !settings.AccessibilityPromptShown
+        && settings.Triggers.Any(t => t.Enabled && t.Kind == TriggerKind.Drag);
+
     public void Start()
     {
         if (_hook is not null)

@@ -68,6 +68,8 @@ public static class FormatRegistry
         new("cgm", "CGM", FormatCategory.Vector, ["cgm"], Writable: false),
         new("plt", "PLT", FormatCategory.Vector, ["plt", "hpgl", "hpg", "hgl"], Writable: false),
         new("vsd", "VSD", FormatCategory.Vector, ["vsd", "vsdx"], Writable: false),
+        // Tajima embroidery designs: the stitches drawn as lines (issue #397).
+        new("dst", "DST", FormatCategory.Vector, ["dst"], Writable: false),
         new("odg", "ODG", FormatCategory.Vector, ["odg"]),
         new("fodg", "FODG", FormatCategory.Vector, ["fodg"], Writable: false),
 
@@ -137,7 +139,7 @@ public static class FormatRegistry
         // Plain text / markup
         // Text logs, source/proxy scripts and style sheets are read as plain text, never executed (issues #273, #284, #254,
         // #388, #368).
-        new("txt", "TXT", FormatCategory.Text, ["txt", "log", "py", "pac", "bat", "command", "lua", "css"]),
+        new("txt", "TXT", FormatCategory.Text, ["txt", "log", "py", "pac", "bat", "command", "lua", "css", "ps1"]),
         new("md", "Markdown", FormatCategory.Text, ["md", "markdown"]),
         new("html", "HTML", FormatCategory.Text, ["html", "htm", "xhtml"]),
         // A web page saved with its pictures in one MIME file (Chrome, Edge, Word); read as the page it holds.

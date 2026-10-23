@@ -80,9 +80,14 @@ internal sealed record AudioStreamInfo(int Channels, int SampleRate, string? Cod
 /// always encoded, never copied into a container.
 /// </param>
 /// <param name="HasAttachments">The file carries attachments (an MKV's subtitle fonts).</param>
+/// <param name="AudioStreams">Every audio stream in file order (languages, commentary), null for none or only one.</param>
 internal sealed record MediaInfo(TimeSpan? Duration, VideoStreamInfo? Video, AudioStreamInfo? Audio, int? CoverStreamIndex,
-    IReadOnlyList<SubtitleStreamInfo>? SubtitleStreams = null, bool RawStream = false, bool HasAttachments = false)
+    IReadOnlyList<SubtitleStreamInfo>? SubtitleStreams = null, bool RawStream = false, bool HasAttachments = false,
+    IReadOnlyList<AudioStreamInfo>? AudioStreams = null)
 {
+    /// <summary>Every audio stream, in file order: <see cref="Audio"/> first.</summary>
+    public IReadOnlyList<AudioStreamInfo> AudioTracks => AudioStreams ?? (Audio is null ? [] : [Audio]);
+
     /// <summary>Every subtitle stream, in file order.</summary>
     public IReadOnlyList<SubtitleStreamInfo> Subtitles => SubtitleStreams ?? [];
 
@@ -112,6 +117,7 @@ internal sealed record MediaInfo(TimeSpan? Duration, VideoStreamInfo? Video, Aud
         AudioStreamInfo? audio = null;
         int? cover = null;
         List<SubtitleStreamInfo> subtitles = [];
+        List<AudioStreamInfo> audios = [];
         var attachments = false;
         double longestStream = 0;
         if (root.TryGetProperty("streams", out var streams) && streams.ValueKind == JsonValueKind.Array)
@@ -138,9 +144,10 @@ internal sealed record MediaInfo(TimeSpan? Duration, VideoStreamInfo? Video, Aud
                             ColorOf(stream),
                             Text(stream, "extradata_hash"));
                         break;
-                    case "audio" when audio is null:
-                        audio = new AudioStreamInfo((int)Number(stream, "channels"), (int)Number(stream, "sample_rate"),
-                            Text(stream, "codec_name"));
+                    case "audio":
+                        audios.Add(new AudioStreamInfo((int)Number(stream, "channels"), (int)Number(stream, "sample_rate"),
+                            Text(stream, "codec_name")));
+                        audio ??= audios[0];
                         break;
                     case "attachment":
                         attachments = true;
@@ -158,7 +165,7 @@ internal sealed record MediaInfo(TimeSpan? Duration, VideoStreamInfo? Video, Aud
             seconds = longestStream;
         var raw = root.TryGetProperty("format", out var container) && Text(container, "format_name") is "h264" or "hevc";
         return new MediaInfo(seconds > 0 ? TimeSpan.FromSeconds(seconds) : null, video, audio, cover,
-            subtitles.Count > 0 ? subtitles : null, raw, attachments);
+            subtitles.Count > 0 ? subtitles : null, raw, attachments, audios.Count > 1 ? audios : null);
     }
 
     /// <summary>The colour tags of a video stream; null when it has none ("unknown" counts as none).</summary>
