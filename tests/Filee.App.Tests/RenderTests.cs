@@ -1201,7 +1201,8 @@ public class RenderTests
         var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
         var preset = new Filee.Core.Presets.Preset
         {
-            TargetFormat = "pdf", Name = "Scans",
+            TargetFormat = "pdf",
+            Name = "Scans",
             Pdf = { SplitPages = true, Compression = Filee.Core.Presets.PdfCompression.Screen, PageSize = Filee.Core.Presets.PdfPageSize.A4, MarginMm = 10 },
         };
         var vm = new PresetEditorViewModel(preset, loc);

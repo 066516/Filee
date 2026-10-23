@@ -140,40 +140,40 @@ public sealed class TesseractConverter : IConverter
         var done = 0;
         try
         {
-        foreach (var page in scans)
-        {
-            await free.WaitAsync(cancellationToken);
-            if (runs.Any(r => r.IsFaulted))
+            foreach (var page in scans)
             {
-                free.Release();
-                break; // a page failed: stop rendering, the error comes out below
-            }
-            var picture = Path.Combine(scratch, $"p{page}.png");
-            try
-            {
-                using var bitmap = Conversion.ToImage(bytes, page, null, options);
-                await using var file = File.Create(picture);
-                bitmap.Encode(file, SKEncodedImageFormat.Png, 100);
-            }
-            catch
-            {
-                free.Release();
-                throw;
-            }
-            runs.Add(Task.Run(async () =>
-            {
-                try
-                {
-                    await ocr.ToPdfAsync($"p{page}.png", $"p{page}", Dpi, cancellationToken);
-                    File.Delete(picture);
-                    progress?.Report(0.05 + 0.9 * Interlocked.Increment(ref done) / scans.Count);
-                }
-                finally
+                await free.WaitAsync(cancellationToken);
+                if (runs.Any(r => r.IsFaulted))
                 {
                     free.Release();
+                    break; // a page failed: stop rendering, the error comes out below
                 }
-            }, cancellationToken));
-        }
+                var picture = Path.Combine(scratch, $"p{page}.png");
+                try
+                {
+                    using var bitmap = Conversion.ToImage(bytes, page, null, options);
+                    await using var file = File.Create(picture);
+                    bitmap.Encode(file, SKEncodedImageFormat.Png, 100);
+                }
+                catch
+                {
+                    free.Release();
+                    throw;
+                }
+                runs.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        await ocr.ToPdfAsync($"p{page}.png", $"p{page}", Dpi, cancellationToken);
+                        File.Delete(picture);
+                        progress?.Report(0.05 + 0.9 * Interlocked.Increment(ref done) / scans.Count);
+                    }
+                    finally
+                    {
+                        free.Release();
+                    }
+                }, cancellationToken));
+            }
         }
         finally
         {
