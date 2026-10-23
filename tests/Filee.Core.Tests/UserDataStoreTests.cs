@@ -1045,12 +1045,12 @@ public class UserDataStoreTests
     }
 
     [Fact]
-    public void Version_32_libraries_learn_icalendar_extensions_and_preset_without_overriding_user_choices()
+    public void Version_35_libraries_learn_icalendar_extensions_and_preset_without_overriding_user_choices()
     {
         using var fullDir = new TempDir();
         var full = new UserDataStore(fullDir.Path);
         full.Load();
-        full.Settings.SchemaVersion = 32;
+        full.Settings.SchemaVersion = 35;
         var data = full.Profiles.Single(p => p.Id == "data");
         data.Extensions.RemoveAll(e => e is "ics" or "ical");
         full.Profiles.Insert(0, new ToolbarProfile { Id = "my-calendar", Name = "My calendar", Extensions = ["ics"] });
@@ -1074,7 +1074,7 @@ public class UserDataStoreTests
         using var roomDir = new TempDir();
         var room = new UserDataStore(roomDir.Path);
         room.Load();
-        room.Settings.SchemaVersion = 32;
+        room.Settings.SchemaVersion = 35;
         foreach (var profile in room.Profiles)
             profile.Extensions.RemoveAll(e => e is "ics" or "ical");
         room.Profiles.Single(p => p.Id == "spreadsheets").BackPresetIds!.Remove("to-ics");
@@ -1099,7 +1099,7 @@ public class UserDataStoreTests
         using var deletedDir = new TempDir();
         var deleted = new UserDataStore(deletedDir.Path);
         deleted.Load();
-        deleted.Settings.SchemaVersion = 32;
+        deleted.Settings.SchemaVersion = 35;
         deleted.Profiles.RemoveAll(p => p.Id == "data");
         foreach (var profile in deleted.Profiles)
             profile.Extensions.RemoveAll(e => e is "ics" or "ical");

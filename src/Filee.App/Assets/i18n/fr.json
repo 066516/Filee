@@ -136,7 +136,7 @@
   "engine.pdf-text.description": "Extrait le texte des PDF dans l'ordre de lecture, y compris sur deux colonnes (pas d'OCR pour les numérisations).",
   "engine.pdf-slides.description": "Convertit les PDF en diapositives PowerPoint : chaque page devient une image sur sa propre diapositive (fidèle au PDF, non modifiable), avec le texte de la page dans les notes du présentateur.",
   "engine.email.description": "E-mails (EML, MSG Outlook) en HTML et texte avec expéditeur, destinataires et date, images comprises ; pièces jointes dans un ZIP.\nMSG en EML. Pages web enregistrées (MHTML) en un seul fichier HTML avec leurs images.",
-  "engine.data.description": "JSON, JSON Lines, YAML, TOML, XML et CSV entre eux.\nContacts vCard en CSV et inversement.\nLes commentaires sont supprimés. Le CSV ne contient que des tableaux.",
+  "engine.data.description": "JSON, JSON Lines, YAML, TOML, XML et CSV entre eux.\nContacts vCard et événements iCalendar en CSV et inversement.\nLes commentaires sont supprimés. Le CSV ne contient que des tableaux.",
   "engine.vector.description": "SVG et SVGZ en PDF vectoriel, images et DXF ; images vectorisées en SVG ; fichiers Illustrator enregistrés avec contenu PDF.",
   "engine.icns.description": "Icônes d'apps macOS (ICNS) depuis et vers des images.",
   "engine.font.description": "Polices : TTF, OTF, WOFF, WOFF2 et EOT entre eux.",

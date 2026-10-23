@@ -129,7 +129,7 @@
   "engine.pdf-text.description": "पढ्ने क्रममा PDF को पाठ निकाल्छ, दुई-स्तम्भ पृष्ठहरूबाट पनि (स्क्यानका लागि OCR होइन)।",
   "engine.pdf-slides.description": "PDF लाई PowerPoint स्लाइडमा रूपान्तरण गर्दछ: प्रत्येक पृष्ठ आफ्नै स्लाइडमा तस्बिर बन्छ (PDF जस्तै देखिन्छ, सम्पादन गर्न मिल्दैन), र पृष्ठको पाठ वक्ता नोटमा रहन्छ।",
   "engine.email.description": "इमेलहरू (EML, Outlook MSG) लाई प्रेषक, प्राप्तकर्ता र मितिसहित HTML र पाठमा रूपान्तरण गर्दछ, तस्बिरहरूसहित; संलग्नकहरू ZIP मा।\nMSG लाई EML मा। सुरक्षित वेब पृष्ठहरू (MHTML) लाई तिनका तस्बिरहरूसहित एउटै HTML फाइलमा।",
-  "engine.data.description": "JSON, YAML, XML, TOML र CSV बीच डाटा रूपान्तरण गर्दछ।",
+  "engine.data.description": "JSON, JSON Lines, YAML, TOML, XML र CSV एकअर्कामा।\nvCard सम्पर्कहरू र iCalendar घटनाहरू CSV मा, र CSV बाट तिनीहरूमा।\nटिप्पणीहरू हटाइन्छन्। CSV मा तालिका मात्र रहन्छ।",
   "engine.vector.description": "SVG र SVGZ बाट भेक्टर PDF, छवि र DXF; तस्बिरहरूलाई SVG मा ट्रेस गर्ने; PDF सामग्रीसहित सुरक्षित गरिएका Illustrator फाइलहरू।",
   "engine.icns.description": "छविहरूबाट र छविहरूमा macOS एप आइकन (ICNS)।",
   "engine.font.description": "TTF, OTF, WOFF, WOFF2 फन्टहरू एकअर्कामा रूपान्तरण गर्दछ।",

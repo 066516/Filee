@@ -778,9 +778,9 @@ internal static class SettingsMigrations
         // v35: HP-GL plot files learn their donut; custom claims stay put.
         if (from < 35)
             changed |= LearnExtensions(profiles, out _, ["plt", "hpgl", "hpg", "hgl"]);
-        // v33: iCalendar (.ics, .ical) on the data donut, and "iCalendar" (CSV → ICS) after "vCard" on the back of the
+        // v36: iCalendar (.ics, .ical) on the data donut, and "iCalendar" (CSV → ICS) after "vCard" on the back of the
         //      spreadsheets donut when it has room; custom claims stay put.
-        if (from < 33)
+        if (from < 36)
         {
             changed |= LearnExtensions(profiles, out _, ["ics", "ical"]);
             changed |= AddCalendarPreset(presets, profiles);
