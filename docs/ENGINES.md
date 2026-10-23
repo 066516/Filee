@@ -862,7 +862,10 @@ and writes the files; Filee's own renderer draws them with SkiaSharp (one drawin
   which AutoCAD 2007 opens; kept from a 2007 source, as 2010. Before 2007, text is stored in the drawing's code page
   (`$DWGCODEPAGE`), so `CadCodePages` picks the one that holds the most of the drawing's text (its own on a tie;
   Korean for Hangul, Japanese for Kana, Big5 before GBK for Chinese, East Asian pages only for East Asian text) and
-  writes any character it can't hold as `\U+XXXX`. Korean is written as `ANSI_949`, as AutoCAD names it (ACadSharp
+  writes any character it can't hold as `\U+XXXX` (one `?` for a character outside the BMP). Names count and are
+  escaped too: layers, blocks, text and dimension styles, linetypes, layouts and attribute tags, so a Korean layer in a
+  drawing with only English text gets `ANSI_949`. Text inside table cells (2004 and later) isn't escaped. In a DWG, the
+  header's code page index is ACadSharp's (`KSC5601` / `GB2312`), the DXF says `ANSI_949`; both read back the same. Korean is written as `ANSI_949`, as AutoCAD names it (ACadSharp
   needs `KCS5601` to encode it, so the DXF header is renamed after writing). Objects the chosen version doesn't
   have are left out with a note: tables and arc dimensions before 2004, multileaders and PDF underlays before 2007,
   meshes before 2010. ACadSharp's DWG writer is younger than its reader
