@@ -96,6 +96,16 @@ public sealed class UserDataStore
         SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>
+    /// Remembers the window zoom (<see cref="AppSettings.UiScale"/>) without raising <see cref="SettingsChanged"/>:
+    /// the zoom is already applied, and nothing else changed that would have to be applied again.
+    /// </summary>
+    public void SaveUiScale(double scale)
+    {
+        Settings.UiScale = scale;
+        Write(SettingsPath, Settings, FileeJsonContext.Default.AppSettings);
+    }
+
     public void SaveLibrary()
     {
         EnsureConsistency();

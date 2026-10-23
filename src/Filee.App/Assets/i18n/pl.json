@@ -695,6 +695,11 @@
   "theme.donut_opacity": "Krycie paska-pierścienia",
   "theme.reduce_motion": "Ogranicz animacje",
   "theme.reduce_motion_hint": "Zalecane na starszych komputerach. Wyłącza przejścia i odbijanie pierścienia.",
+  "theme.window_size": "Rozmiar okien",
+  "theme.window_size_smaller": "Mniejsze",
+  "theme.window_size_larger": "Większe",
+  "theme.window_size_reset": "Resetuj",
+  "theme.window_size_hint": "Powiększa lub pomniejsza całą zawartość okien Filee. W każdym oknie to samo robią {0} + kółko myszy i {0} + plus / minus, a {0} + 0 przywraca 100%.",
   "theme.preview": "Podgląd",
 
   "engines.title": "Silniki konwersji",

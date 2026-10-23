@@ -256,6 +256,12 @@ public sealed class AppSettings
     public bool ZipGeoResults { get; set; }
 
     /// <summary>
+    /// How large Filee's windows draw everything (Theme → Window size; Ctrl + mouse wheel, Ctrl + plus / minus, Ctrl + 0):
+    /// 1 as designed, 0.7 to 1.8. A missing value (settings from before it) reads as 1, so it needs no schema step.
+    /// </summary>
+    public double UiScale { get; set; } = 1;
+
+    /// <summary>
     /// Returns <paramref name="preset"/> itself, or a copy with the app-wide output settings applied: it saves to
     /// <see cref="DefaultOutput"/> when the preset's location is <see cref="OutputLocation.Default"/>, and keeps the
     /// original dates when <see cref="KeepFileDates"/> is on and is saved as a ZIP when <see cref="ZipGeoResults"/> is on and the

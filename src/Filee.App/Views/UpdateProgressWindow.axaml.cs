@@ -21,6 +21,7 @@ public partial class UpdateProgressWindow : Window
     {
         InitializeComponent();
         Motion.Track(this);
+        UiZoom.Track(this);
     }
 
     public UpdateProgressWindow(UpdateService updates, ILocalizer loc) : this()

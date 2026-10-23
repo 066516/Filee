@@ -695,6 +695,11 @@
   "theme.donut_opacity": "环形工具栏不透明度",
   "theme.reduce_motion": "减少动画",
   "theme.reduce_motion_hint": "适合配置较低的电脑。关闭过渡效果和圆环的弹跳效果。",
+  "theme.window_size": "窗口大小",
+  "theme.window_size_smaller": "缩小",
+  "theme.window_size_larger": "放大",
+  "theme.window_size_reset": "重置",
+  "theme.window_size_hint": "放大或缩小 Filee 窗口中的所有内容。在任意窗口中，{0} + 鼠标滚轮和 {0} + 加号 / 减号也能调整，{0} + 0 恢复为 100%。",
   "theme.preview": "预览",
 
   "engines.title": "转换引擎",
