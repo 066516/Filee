@@ -68,6 +68,8 @@ public static class FormatRegistry
         new("cgm", "CGM", FormatCategory.Vector, ["cgm"], Writable: false),
         new("plt", "PLT", FormatCategory.Vector, ["plt", "hpgl", "hpg", "hgl"], Writable: false),
         new("vsd", "VSD", FormatCategory.Vector, ["vsd", "vsdx"], Writable: false),
+        // Tajima embroidery designs: the stitches drawn as lines (issue #397).
+        new("dst", "DST", FormatCategory.Vector, ["dst"], Writable: false),
         new("odg", "ODG", FormatCategory.Vector, ["odg"]),
         new("fodg", "FODG", FormatCategory.Vector, ["fodg"], Writable: false),
 

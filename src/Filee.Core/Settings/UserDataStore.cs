@@ -791,6 +791,9 @@ internal static class SettingsMigrations
         //      "Extract audio" replaces the plain M4A slice on the video donut's back.
         if (from < 37)
             changed |= AddMediaTools(presets, profiles);
+        // v38: Tajima embroidery designs (.dst) learn the vector donut; custom claims stay put.
+        if (from < 38)
+            changed |= LearnExtensions(profiles, out _, ["dst"]);
         return changed;
     }
 
