@@ -116,6 +116,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _pageSize = PageSizes.First(p => p.Value == _edit.Pdf.PageSize);
         _compressionLevel = CompressionLevels.FirstOrDefault(c => c.Value == _edit.Pdf.Compression) ?? CompressionLevels[0];
         _compressWithGhostscript = _edit.Pdf.CompressWithGhostscript;
+        _watermark = _edit.Pdf.Watermark;
+        _pageNumbers = _edit.Pdf.PageNumbers;
+        _pdfPassword = _edit.Pdf.Password;
         _ocr = _edit.Pdf.Ocr;
         _ocrLanguage = OcrLanguageChoices.FirstOrDefault(l => l.Value == _edit.Pdf.OcrLanguage) ?? OcrLanguageChoices[0];
         _location = Locations.First(l => l.Value == _edit.Output.Location);
@@ -418,6 +421,23 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty] private bool _compressWithGhostscript;
 
+    /// <summary>A PDF target's finishing: watermark text, page numbers, a password to open it (PdfOptions).</summary>
+    [ObservableProperty] private string _watermark;
+    [ObservableProperty] private bool _pageNumbers;
+    [ObservableProperty] private string _pdfPassword;
+
+    /// <summary>AES-256 readers use at most 127 UTF-8 bytes of a password: the box takes no more.</summary>
+    internal const int MaxPasswordBytes = 127;
+
+    partial void OnPdfPasswordChanged(string value)
+    {
+        if (System.Text.Encoding.UTF8.GetByteCount(value) <= MaxPasswordBytes)
+            return;
+        var bytes = 0;
+        var fits = string.Concat(value.EnumerateRunes().TakeWhile(r => (bytes += r.Utf8SequenceLength) <= MaxPasswordBytes));
+        PdfPassword = fits;
+    }
+
     /// <summary>Recognize the text of scans and pictures (PdfOptions.Ocr), in <see cref="OcrLanguage"/>.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowPdfSplit), nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions), nameof(ShowPageSize))]
@@ -663,6 +683,12 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         pdf.SplitTallImage = SplitTallImage;
         pdf.Compression = CompressionLevel.Value;
         pdf.CompressWithGhostscript = CompressWithGhostscript;
+        // Only for a PDF target, where they are shown: a password left behind by it must not lock nothing.
+        pdf.Watermark = ShowPdfBuild ? Watermark.Trim() : "";
+        pdf.PageNumbers = ShowPdfBuild && PageNumbers;
+        // PDF/A can't be encrypted, so the box is off while it is ticked.
+        pdf.Password = ShowPdfBuild && !PdfA ? PdfPassword : "";
+        pdf.PasswordLeftOut = false;
         // Only where the option is shown, as with SaveEveryFrame below.
         pdf.Ocr = Recognizes;
         pdf.OcrLanguage = OcrLanguage.Value;

@@ -1,5 +1,5 @@
 // FITS astronomy pictures (issue #460): .fits and .fts are FITS, ".fit" is left for Garmin's FIT; the images donut
-// learns the extensions in schema 42 without taking them from a donut of the user's.
+// learns the extensions in schema 43 without taking them from a donut of the user's.
 
 using Filee.Core.Formats;
 using Filee.Core.Presets;
@@ -31,7 +31,7 @@ public class FitsFormatTests
         Assert.Equal("images", ProfileSelector.Select(BuiltInData.CreateProfiles(), ["a.fits", "b.fts"])?.Id);
 
     [Fact]
-    public void Version_41_libraries_learn_fits_once_and_keep_a_custom_claim()
+    public void Version_42_libraries_learn_fits_once_and_keep_a_custom_claim()
     {
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
@@ -39,12 +39,12 @@ public class FitsFormatTests
         images.Extensions.RemoveAll(e => e is "fits" or "fts");
         profiles.Add(new ToolbarProfile { Id = "astro", Extensions = ["fts"] });
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(41, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(42, presets, profiles));
 
         Assert.Contains("fits", images.Extensions);
         Assert.DoesNotContain("fts", images.Extensions);
         Assert.Equal("astro", ProfileSelector.Select(profiles, ["light.fts"])?.Id);
-        Assert.False(SettingsMigrations.ApplyToLibrary(41, presets, profiles));
+        Assert.False(SettingsMigrations.ApplyToLibrary(42, presets, profiles));
     }
 
     [Fact]
