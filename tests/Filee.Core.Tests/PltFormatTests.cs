@@ -18,14 +18,14 @@ public class PltFormatTests
     }
 
     [Fact]
-    public void Version_32_vector_donuts_learn_them()
+    public void Version_34_vector_donuts_learn_them()
     {
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
         foreach (var profile in profiles)
             profile.Extensions.RemoveAll(e => e is "plt" or "hpgl" or "hpg" or "hgl");
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(32, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(34, presets, profiles));
 
         Assert.Contains("plt", profiles.Single(p => p.Id == "vector").Extensions);
     }
