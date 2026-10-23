@@ -78,8 +78,8 @@ internal static class SoftPalette
             : [Korean, Chinese, Japanese];
         var traditional = AppLanguages.IsTraditionalChinese(language) ? $"{TraditionalChineseSystem}, " : "";
         // Noto Sans comes first: the first face also draws the trimming ellipsis, which Noto Sans Arabic lacks.
-        return $"{Latin}, {Arabic}, {Devanagari}, {Thai}, {traditional}{string.Join(", ", cjk.Select(f => f.Embedded))}, Segoe UI, Nirmala UI, "
-            + $"{string.Join(", ", cjk.Select(f => f.System))}, Kohinoor Devanagari, Geeza Pro, sans-serif";
+        return $"{Latin}, {Arabic}, {Devanagari}, {Thai}, {traditional}{string.Join(", ", cjk.Select(f => f.Embedded))}, Segoe UI, Nirmala UI, Leelawadee UI, "
+            + $"{string.Join(", ", cjk.Select(f => f.System))}, Kohinoor Devanagari, Geeza Pro, Thonburi, sans-serif";
     }
 
     /// <summary>
@@ -93,7 +93,7 @@ internal static class SoftPalette
             : language.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? [Chinese, Korean, Japanese]
             : [Korean, Chinese, Japanese];
         var traditional = AppLanguages.IsTraditionalChinese(language) ? $"{TraditionalChineseSystem}, " : "";
-        return $"Segoe UI, Nirmala UI, {traditional}{string.Join(", ", cjk.Select(f => f.System))}, sans-serif";
+        return $"Segoe UI, Nirmala UI, Leelawadee UI, {traditional}{string.Join(", ", cjk.Select(f => f.System))}, sans-serif";
     }
 
     /// <summary>The resource Soft.axaml's Window style takes <see cref="Visual.FlowDirection"/> from.</summary>

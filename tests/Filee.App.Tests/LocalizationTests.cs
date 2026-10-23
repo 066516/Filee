@@ -107,8 +107,9 @@ public partial class LocalizationTests
     [InlineData("frr-DE", "en")]
     [InlineData("ne-NP", "ne")]
     [InlineData("new-NP", "en")]
-    [InlineData("de-DE", "en")]
     [InlineData("th-TH", "th")]
+    [InlineData("thl-NP", "en")]
+    [InlineData("de-DE", "en")]
     [InlineData("", "en")] // Linux without LANG: the invariant culture
     public void Auto_follows_the_language_the_user_reads_the_os_in(string os, string expected) =>
         Assert.Equal(expected, LocalizationService.Resolve("auto", () => os));
