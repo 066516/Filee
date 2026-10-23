@@ -27,6 +27,7 @@ public class MediaTests(EngineFixture fx) : IClassFixture<EngineFixture>
     public void Cri_usm_game_videos_go_to_mp4_through_ffmpeg()
     {
         // #485: read only, through FFmpeg's usm demuxer; never a step towards something else.
+        SkipUnlessInstalled();
         var route = fx.Catalog.CreatePlanner().Plan("usm", "mp4");
         Assert.NotNull(route);
         Assert.Equal("ffmpeg", Assert.Single(route.Steps).Converter.Id);
