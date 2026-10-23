@@ -12,6 +12,7 @@ using Filee.App.Views;
 
 namespace Filee.App.Tests;
 
+[Collection("MainWindow")]
 public class SingleMainWindowTests
 {
     private static void Pump()
@@ -243,3 +244,8 @@ public class SingleMainWindowTests
         }
     }
 }
+
+// The app has one WindowService and so one main window: tests that open, close or count it run one at a time, never
+// next to each other (a test pumping the dispatcher would otherwise run another one's posted close in between).
+[CollectionDefinition("MainWindow", DisableParallelization = true)]
+public sealed class MainWindowCollection;
