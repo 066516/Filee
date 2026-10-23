@@ -170,20 +170,10 @@ internal static class DocumentReaders
         return document;
     }
 
-    /// <summary>UTF-8 (with or without BOM) or UTF-16 with BOM; anything else is read as CP949, common for Korean text.</summary>
-    internal static string DecodeText(byte[] bytes)
-    {
-        if (bytes is [0xFF, 0xFE, ..] or [0xFE, 0xFF, ..])
-            return new StreamReader(new MemoryStream(bytes), detectEncodingFromByteOrderMarks: true).ReadToEnd();
-        try
-        {
-            var text = new UTF8Encoding(false, throwOnInvalidBytes: true).GetString(bytes);
-            return text.Length > 0 && text[0] == '﻿' ? text[1..] : text;
-        }
-        catch (DecoderFallbackException)
-        {
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            return Encoding.GetEncoding(949).GetString(bytes);
-        }
-    }
+    /// <summary>
+    /// Text in whatever encoding its PC used, the way subtitles are read (<see cref="Subtitles.SubtitleEncoding"/>): by
+    /// its byte order mark, as UTF-8 when it is valid UTF-8, as CP949 when the bytes look Korean, else in the PC's own
+    /// code page (GBK on Chinese Windows, #491; Shift-JIS on Japanese; Windows-1252 on Western).
+    /// </summary>
+    internal static string DecodeText(byte[] bytes) => Subtitles.SubtitleEncoding.Decode(bytes);
 }

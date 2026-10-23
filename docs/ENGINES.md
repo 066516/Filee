@@ -333,7 +333,7 @@ Readers turn the source into a small document model (`Hwp/Hwpx/HwpxModel.cs`) an
   rows, repeat on every page, and rows above the print titles come once before them. The page is A4 with narrow margins,
   landscape when the columns are much wider than portrait, and the table is scaled to the page width like
   Excel's "Fit all columns on one page". CSV is read with its delimiter (comma, semicolon, tab) and encoding
-  (UTF-8 / UTF-16 with BOM, else CP949 as saved by Korean Excel). Not converted: charts, pictures, conditional
+  (UTF-8 / UTF-16 with BOM; else CP949 when it looks Korean, as Korean Excel saves it; else the PC's code page). Not converted: charts, pictures, conditional
   formatting, print areas and page breaks.
 - **PPTX** (`Hwp/Hwpx/Pptx`): one page per slide, sized like the slide, with every object floating at its place:
   placeholders inherit position and text style from the layout and master, text with bullets and numbering,
@@ -341,7 +341,8 @@ Readers turn the source into a small document model (`Hwp/Hwpx/HwpxModel.cs`) an
   tables with PowerPoint's default table style, groups, master decorations and the slide background. Not
   converted: charts, SmartArt, rotation, effects (shadows, glow), picture cropping, animations, notes and hidden
   slides.
-- **TXT** needs no reader (one paragraph per line; UTF-8, UTF-16 or the Korean code page CP949).
+- **TXT** needs no reader (one paragraph per line; UTF-8, UTF-16, CP949 when the bytes look Korean, else the PC's
+  code page: GBK on Chinese Windows, Shift-JIS on Japanese, Windows-1252 on Western, as subtitles are read).
 - **Markdown** is parsed with Markdig (`MarkdownReader.cs`): headings, emphasis, code, lists (1. / a. / i. with
   start numbers), task lists, quotes, tables with spans, links, images, footnotes and math. No Pandoc needed.
 - **PDF** is read with PdfPig (see *PDF reader* below); DOCM / DOTX / DOTM, XLSM / XLTX and PPTM / POTX / POTM / PPSX
@@ -406,7 +407,7 @@ the text the spreadsheet shows, the value behind it and its Excel number format.
 | XLSX | own reader: values, number formats, fonts, fills, borders, alignment, merges, widths, heights, hidden rows / columns / sheets, frozen rows, print titles (rows) | every sheet, numbers and dates as numbers with their formats, booleans, styles, merges, widths, heights, hidden rows / columns, frozen rows |
 | XLS (Excel 97–2003, also Excel 5/95) | ExcelDataReader (MIT): values, number formats, merges, horizontal / vertical alignment; widths, heights and hidden rows / columns from the BIFF records (`XlsLayout.cs`) | no (LibreOffice) |
 | ODS | own reader (`content.xml`, `styles.xml`, `settings.xml`): repeated rows / columns (the empty repeats up to the end of the sheet are skipped), spans, every value type, the text Calc shows (`text:p`), data styles as Excel codes, cell styles, widths, heights, hidden rows / columns / sheets, frozen and header rows | every sheet, typed cells (float, percentage, currency, date, time, boolean) with data styles and the shown text, styles, merges, widths, heights, hidden rows / columns, frozen rows |
-| CSV / TSV | delimiter (CSV: comma, semicolon or tab; TSV: tab) and encoding (UTF-8 / UTF-16 with BOM, else CP949) | UTF-8 with BOM, CRLF, one file per sheet |
+| CSV / TSV | delimiter (CSV: comma, semicolon or tab; TSV: tab) and encoding (UTF-8 / UTF-16 with BOM, CP949 when it looks Korean, else the PC's code page) | UTF-8 with BOM, CRLF, one file per sheet |
 
 - Number formats: Excel codes and OpenDocument data styles are converted both ways (`OdsNumberStyles.cs`) for
   digits, decimals, grouping, thousands scaling, percent, scientific, currency symbols, literal text, colours,

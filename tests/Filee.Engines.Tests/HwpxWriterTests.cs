@@ -135,6 +135,20 @@ public class HwpxWriterTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public void Chinese_text_files_are_not_read_as_korean()
+    {
+        // #491: a GBK ("ANSI" on Chinese Windows) TXT came out as Hangul. It is read like a subtitle now: GBK on a
+        // Chinese PC, never CP949 unless the bytes look Korean.
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        var gbk = Encoding.GetEncoding(936).GetBytes("我是一个学生，这是我的文件。");
+
+        var text = HwpxConverter.DecodeText(gbk);
+
+        Assert.Equal(Filee.Engines.Subtitles.SubtitleEncoding.Decode(gbk), text);
+        Assert.DoesNotContain(text, c => c is >= '가' and <= '힣');
+    }
+
+    [Fact]
     public void Docx_is_written_by_the_built_in_writer_in_one_step()
     {
         var catalog = new ConverterCatalog(fx.Converters) { Priority = new AppSettings().EnginePriority };
