@@ -286,6 +286,7 @@
   "general.integration_macos": "Finder 우클릭 메뉴에 나타나요(메뉴가 길면 빠른 동작 또는 서비스 안에).\nFilee는 응용 프로그램 폴더에 두세요.",
   "general.integration_linux": "Thunar, Nautilus, Nemo, Dolphin에 파일 동작을 추가해요.\nThunar 단축키를 바꿀 때는 Thunar를 닫았다가 적용한 뒤 다시 열어 주세요.",
   "general.integration_failed": "시스템 연동을 적용하지 못했어요: {0}",
+  "general.startup_entry_missing": "로그인 시작 항목이 저장하자마자 지워지거나 바뀌었어요. 보안 프로그램이 막고 있을 수 있어요.",
   "general.modern_menu_hint": "Windows 11에서는 “추가 옵션 표시” 안에 있어요.\n기본 메뉴에도 넣을 수 있어요(관리자 권한을 한 번 요청해요).",
   "general.modern_menu_on": "“Filee로 변환”이 Windows 11 기본 메뉴에 있어요.",
   "general.modern_menu_outdated": "기본 메뉴 항목이 이전 버전이나 다른 위치의 Filee를 가리키고 있어요.\n다시 추가하면 업데이트돼요.",

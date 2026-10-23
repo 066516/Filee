@@ -31,6 +31,12 @@ public interface IPlatformServices
     string? ProcessNameAt(int x, int y);
 
     /// <summary>
+    /// The window in front, the one keys go to: a keyboard shortcut's scope goes by it, not by what the pointer is over.
+    /// Null where the platform can't tell, and the pointer decides.
+    /// </summary>
+    ForegroundWindowInfo? GetForegroundWindow() => null;
+
+    /// <summary>
     /// Names of the apps that have a window open now, as <see cref="ProcessNameAt"/> reports them, sorted, without
     /// Filee. Windows reports a main window per process; macOS and Linux list the windows on screen.
     /// </summary>
@@ -90,7 +96,10 @@ public interface IPlatformServices
     /// <summary>True if the user asked the OS to reduce animations.</summary>
     bool PrefersReducedMotion { get; }
 
-    /// <summary>Adds or removes "start with the system".</summary>
+    /// <summary>
+    /// Adds or removes "start with the system". Throws <see cref="StartupEntryNotKeptException"/> where the platform can
+    /// tell that the entry it added didn't stay.
+    /// </summary>
     void SetStartWithSystem(bool enabled, string executablePath);
 
     /// <summary>Adds or removes the file manager context-menu entry ("Convert with Filee") and Send To shortcut.</summary>
@@ -126,6 +135,15 @@ public interface IPlatformServices
     /// </summary>
     void RaiseTopmost(nint windowHandle);
 }
+
+/// <summary>
+/// The "start with the system" entry read back after writing it was gone or different: something (security software,
+/// usually) took it away. The message is English, for the log; the UI says it in the user's language.
+/// </summary>
+public sealed class StartupEntryNotKeptException(string message) : IOException(message);
+
+/// <summary>The window in front: its process name as <see cref="IPlatformServices.ProcessNameAt"/> reports it, and whether it belongs to the file manager or desktop.</summary>
+public sealed record ForegroundWindowInfo(string? ProcessName, bool IsFileManager);
 
 /// <summary>Whether "Convert with Filee" is in the top-level Windows 11 File Explorer menu (not just "Show more options").</summary>
 public enum ModernContextMenuState

@@ -274,6 +274,7 @@
   "general.integration_macos": "Finderの右クリックメニューに表示されます（メニューが長い場合は「クイックアクション」または「サービス」の中にあります）。\nFileeは「アプリケーション」フォルダーに置いてください。",
   "general.integration_linux": "Thunar、Nautilus、Nemo、Dolphinにファイル操作を追加します。\nThunarのショートカットを変更するときは、先にThunarを閉じ、変更後に開き直してください。",
   "general.integration_failed": "システム連携を適用できませんでした：{0}",
+  "general.startup_entry_missing": "サインイン時の起動設定が保存直後に削除または変更されました。セキュリティソフトがブロックしている可能性があります。",
   "general.modern_menu_hint": "Windows 11では、この項目は「その他のオプションを確認」の中にあります。\nメインメニューに追加することもできます（管理者の許可が一度必要です）。",
   "general.modern_menu_on": "「Fileeで変換」はWindows 11のメインメニューに表示されています。",
   "general.modern_menu_outdated": "メインメニューの項目は、古いバージョンのFileeか、移動前のFileeに紐づいています。\n項目を更新するには、もう一度追加してください。",

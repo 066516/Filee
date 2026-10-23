@@ -286,6 +286,7 @@
   "general.integration_macos": "Finder pokazuje to w menu prawego przycisku (w Szybkich czynnościach lub Usługach, gdy menu jest długie).\nTrzymaj Filee w Aplikacjach.",
   "general.integration_linux": "Dodaje akcje plików do Thunara, Nautilusa, Nemo i Dolphina.\nAby zmienić skrót w Thunarze, najpierw zamknij Thunara, a potem otwórz go ponownie.",
   "general.integration_failed": "Nie udało się zastosować integracji z systemem: {0}",
+  "general.startup_entry_missing": "Wpis uruchamiania po zalogowaniu został usunięty lub zmieniony zaraz po zapisaniu. Może go blokować oprogramowanie zabezpieczające.",
   "general.modern_menu_hint": "W Windows 11 ta pozycja jest w „Pokaż więcej opcji”.\nMoże też trafić do głównego menu (Windows raz poprosi o uprawnienia administratora).",
   "general.modern_menu_on": "„Konwertuj w Filee” jest w głównym menu Windows 11.",
   "general.modern_menu_outdated": "Pozycja w głównym menu należy do starszej lub przeniesionej kopii Filee.\nDodaj ją ponownie, aby ją zaktualizować.",

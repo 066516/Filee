@@ -286,6 +286,7 @@
   "general.integration_macos": "O Finder mostra no menu do botão direito (em Ações rápidas ou Serviços quando o menu é longo).\nMantenha o Filee em Aplicativos.",
   "general.integration_linux": "Adiciona ações de arquivo ao Thunar, Nautilus, Nemo e Dolphin.\nPara mudar o atalho do Thunar, feche o Thunar antes e abra de novo depois.",
   "general.integration_failed": "Não foi possível aplicar a integração com o sistema: {0}",
+  "general.startup_entry_missing": "A entrada de inicialização foi removida ou alterada logo depois de ser salva. Um software de segurança pode estar bloqueando.",
   "general.modern_menu_hint": "No Windows 11 esta entrada fica em “Mostrar mais opções”.\nTambém pode ir no menu principal (o Windows pede permissão de administrador uma vez).",
   "general.modern_menu_on": "“Converter com o Filee” está no menu principal do Windows 11.",
   "general.modern_menu_outdated": "A entrada do menu principal pertence a uma cópia antiga ou movida do Filee.\nAdicione de novo para atualizá-la.",
