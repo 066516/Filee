@@ -265,12 +265,15 @@ public sealed class TriggerService : IDisposable
 
     internal bool InScope(TriggerGesture gesture, int x, int y)
     {
-        var process = _platform.ProcessNameAt(x, y);
+        // A keyboard shortcut goes to the window in front, wherever the pointer is (over the taskbar, say: #450).
+        // Mouse gestures go by the window under the pointer.
+        var front = gesture.Kind == TriggerKind.KeyChord ? _platform.GetForegroundWindow() : null;
+        var process = front is null ? _platform.ProcessNameAt(x, y) : front.ProcessName;
         if (Trace)
-            _log.LogInformation("Trace: {Gesture} at {X},{Y} over {Process}", gesture.Kind, x, y, process ?? "(none)");
+            _log.LogInformation("Trace: {Gesture} at {X},{Y} {Where} {Process}", gesture.Kind, x, y, front is null ? "over" : "in front:", process ?? "(none)");
         if (process is not null && (string.Equals(process, _ownProcess, StringComparison.OrdinalIgnoreCase) || _excluded.Contains(process)))
             return false;
-        return gesture.Scope == TriggerScope.Anywhere || _platform.IsFileManagerAt(x, y)
+        return gesture.Scope == TriggerScope.Anywhere || (front?.IsFileManager ?? _platform.IsFileManagerAt(x, y))
                // A picture or link dragged out of a web page opens the donut like a file.
                || gesture.Kind == TriggerKind.Drag && WebBrowsers.IsBrowser(process);
     }
