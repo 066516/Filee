@@ -836,6 +836,9 @@ internal static class SettingsMigrations
                 changed = true;
             }
         }
+        // v43: CRI USM game videos (.usm) learn the video donut; custom claims stay put.
+        if (from < 43)
+            changed |= LearnExtensions(profiles, out _, ["usm"]);
         return changed;
     }
 
