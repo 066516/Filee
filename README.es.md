@@ -111,7 +111,7 @@ actualización, unas pocas diapositivas muestran las novedades.
 | **Archivos comprimidos**: ZIP, ANSYS Workbench (WBPZ), 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG, … | extraer, ZIP, 7Z, TAR, TAR.GZ; cualquier conjunto de archivos → un ZIP |
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **Tipografías**: TTF, OTF, WOFF, WOFF2, EOT | entre sí |
-| **Datos**: JSON, JSON Lines, YAML, TOML, XML · vCard | entre sí, CSV y XLSX (tablas); vCard ↔ CSV |
+| **Datos**: JSON, JSON Lines, YAML, TOML, XML · vCard, iCalendar | entre sí, CSV y XLSX (tablas); vCard, iCalendar ↔ CSV |
 | **Modelos 3D**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY; FBX solo lectura | entre sí, vista previa en PNG |
 | **Datos geoespaciales vectoriales**: Shapefile, GeoJSON, KML, KMZ, GPX · CSV con coordenadas | entre sí y a CSV / XLSX / JSON; los datos proyectados (UTM, Web Mercator, Lambert, Albers) salen como longitud / latitud WGS 84 |
 

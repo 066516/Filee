@@ -111,7 +111,7 @@ Filee сообщает о новых версиях в своём меню и о
 | **Архивы**: ZIP, ANSYS Workbench (WBPZ), 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG, … | распаковка, ZIP, 7Z, TAR, TAR.GZ; любые файлы → один ZIP |
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **Шрифты**: TTF, OTF, WOFF, WOFF2, EOT | друг в друга |
-| **Данные**: JSON, JSON Lines, YAML, TOML, XML · vCard | друг в друга, CSV и XLSX (таблицы); vCard ↔ CSV |
+| **Данные**: JSON, JSON Lines, YAML, TOML, XML · vCard, iCalendar | друг в друга, CSV и XLSX (таблицы); vCard, iCalendar ↔ CSV |
 | **3D-модели**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY; FBX только чтение | друг в друга, превью в PNG |
 | **Геоданные (векторные)**: Shapefile, GeoJSON, KML, KMZ, GPX · CSV с координатами | друг в друга и CSV / XLSX / JSON; данные в проекциях (UTM, Web Mercator, Ламберта, Альберса) переводятся в долготу / широту WGS 84 |
 

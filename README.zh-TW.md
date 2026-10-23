@@ -107,7 +107,7 @@
 | **壓縮檔** ZIP、ANSYS Workbench（WBPZ）、7Z、RAR、TAR、TAR.GZ、TAR.BZ2、TAR.XZ、GZ、ISO、CAB、DMG、ALZ、EGG 等 | 解壓縮、ZIP、7Z、TAR、TAR.GZ，多個檔案 → 一個 ZIP |
 | **CAD** DWG、DXF | PDF、SVG、PNG、DWG ↔ DXF |
 | **字型** TTF、OTF、WOFF、WOFF2、EOT | 互相轉換 |
-| **資料** JSON、JSON Lines、YAML、TOML、XML · vCard | 互相轉換、CSV 和 XLSX（表格資料）、vCard ↔ CSV |
+| **資料** JSON、JSON Lines、YAML、TOML、XML · vCard、iCalendar | 互相轉換、CSV 和 XLSX（表格資料）、vCard、iCalendar ↔ CSV |
 | **3D 模型** GLB、glTF、STL、OBJ（+ MTL）、3MF、PLY，FBX 僅讀取 | 互相轉換、PNG 預覽 |
 | **地理資訊（向量）** Shapefile、GeoJSON、KML、KMZ、GPX · 帶座標的 CSV | 互相轉換、CSV / XLSX / JSON，投影座標系統（UTM、Web 麥卡托、蘭伯特、阿爾伯斯）會轉換為 WGS 84 經緯度 |
 

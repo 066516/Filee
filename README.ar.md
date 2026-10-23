@@ -113,7 +113,7 @@
 | **الأرشيفات**: ZIP، وANSYS Workbench (WBPZ)، و7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG وغيرها | الاستخراج، ZIP, 7Z, TAR, TAR.GZ؛ وجمع أي ملفات في ZIP واحد |
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **الخطوط**: TTF, OTF, WOFF, WOFF2, EOT | فيما بينها |
-| **البيانات**: JSON, JSON Lines, YAML, TOML, XML · vCard | فيما بينها، وإلى CSV وXLSX (للجداول)؛ vCard ↔ CSV |
+| **البيانات**: JSON, JSON Lines, YAML, TOML, XML · vCard, iCalendar | فيما بينها، وإلى CSV وXLSX (للجداول)؛ vCard, iCalendar ↔ CSV |
 | **النماذج ثلاثية الأبعاد**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY؛ وFBX للقراءة | فيما بينها، معاينة PNG |
 | **البيانات الجغرافية المتجهية**: Shapefile, GeoJSON, KML, KMZ, GPX · ملفات CSV فيها إحداثيات | فيما بينها، وإلى CSV / XLSX / JSON؛ وتُحوَّل البيانات المُسقَطة (UTM, Web Mercator, Lambert, Albers) إلى خطوط الطول والعرض في WGS 84 |
 
