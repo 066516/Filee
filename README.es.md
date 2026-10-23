@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <b>Español</b> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a></p>
+<p align="center"><a href="README.md">English</a> · <b>Español</b> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a> · <a href="README.th.md">ไทย</a></p>
 
 <table>
   <tr>
@@ -55,7 +55,7 @@ Descárgalo desde [Releases](https://github.com/KnifeLemon/Filee/releases/latest
   El instalador es el propio de Filee, está en los idiomas de Filee y no necesita nada más en el equipo. Puede añadir el menú
   del Explorador, el inicio al iniciar sesión, el comando `filee` y motores opcionales; las instalaciones silenciosas aceptan
   las opciones de Inno Setup (`/VERYSILENT /SUPPRESSMSGBOXES`).
-- **macOS 13+** (versión preliminar): descomprime el paquete `osx-arm64` u `osx-x64` y ejecuta `./install.sh`.
+- **macOS 13+** (versión preliminar): descomprime el paquete `osx-arm64` u `osx-x64` y ejecuta `./install.sh`. O abre el `.dmg` y arrastra Filee a Aplicaciones (el comando `filee` solo lo añade `install.sh`).
   Aún no está notarizado, así que la primera vez tendrás que permitir que se abra en Ajustes del Sistema → Privacidad y seguridad → **Abrir igualmente**.
 - **Linux x64/ARM64** (Ubuntu 22.04+): descomprime el paquete y ejecuta `./install.sh` (no necesita root, sí Python 3).
   Los gestos de arrastre necesitan X11. En Wayland, usa la zona de suelta y el menú contextual del gestor de archivos.
@@ -77,7 +77,7 @@ actualización, unas pocas diapositivas muestran las novedades.
 - **Carpetas supervisadas** que convierten cada archivo que llega a ellas.
 - **Conversiones recientes** en Inicio, cada una con su miniatura: abre el resultado o ábrelo con otra aplicación.
 - **Otras formas de usarlo**: el menú contextual, un atajo de teclado, la zona de suelta y el [comando `filee`](#línea-de-comandos).
-- Temas claro y oscuro con tu propio color de acento y la opacidad del menú circular, en English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (de derecha a izquierda), Português (Brasil) y Français.
+- Temas claro y oscuro con tu propio color de acento y la opacidad del menú circular, en English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (de derecha a izquierda), Português (Brasil), Français, नेपाली y ไทย.
 
 ## Capturas de pantalla
 
@@ -151,8 +151,8 @@ Las pull requests son bienvenidas. Si Filee te ahorra unos cuantos clics, una �
 ## Política de firma de código
 
 Filee lo desarrolla y publica **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
-Las versiones para Windows se firmarán con un certificado de firma de código para código abierto de [Certum](https://www.certum.eu/)
-emitido a nombre de Myeonggu Kim. El certificado está en trámite.
+Las versiones para Windows se firman con un certificado de firma de código para código abierto de [Certum](https://www.certum.eu/)
+emitido a nombre de Myeonggu Kim. Las versiones hasta la 2.0.0 no están firmadas.
 
 La política completa y la política de privacidad están en el [README en inglés](README.md#code-signing-policy).
 Filee no sube tus archivos ni envía datos de uso.

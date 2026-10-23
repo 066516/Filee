@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><b>English</b> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a></p>
+<p align="center"><b>English</b> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a> · <a href="README.th.md">ไทย</a></p>
 
 <table>
   <tr>
@@ -55,7 +55,7 @@ Download from [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
   Setup is Filee's own installer, in Filee's languages, and needs nothing else on the PC. It can add the Explorer
   menu, start at sign-in, the `filee` command and optional engines; silent installs take Inno Setup's switches
   (`/VERYSILENT /SUPPRESSMSGBOXES`).
-- **macOS 13+** (preview): unpack the `osx-arm64` or `osx-x64` package and run `./install.sh`.
+- **macOS 13+** (preview): unpack the `osx-arm64` or `osx-x64` package and run `./install.sh`. Or open the `.dmg` and drag Filee to Applications (the `filee` command comes with `install.sh`).
   The build isn't notarized yet, so allow the first start in System Settings → Privacy & Security → **Open Anyway**.
 - **Linux x64/ARM64** (Ubuntu 22.04+): unpack the package and run `./install.sh` (no root, needs Python 3).
   Drag gestures need X11. On Wayland, use the drop zone and the file manager's right-click menu.
@@ -77,7 +77,7 @@ slides show what's new.
 - **Watch folders** convert every file that lands in them.
 - **Recent conversions** on Home, each with a thumbnail: open the result, or open it with another app.
 - **Other ways in**: the right-click menu, a keyboard shortcut, the drop zone and the [`filee` command](#command-line).
-- Light and dark themes with your own accent colour and donut opacity, in English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (right to left), Português (Brasil) and Français.
+- Light and dark themes with your own accent colour and donut opacity, in English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (right to left), Português (Brasil), Français, नेपाली and ไทย.
 
 ## Screenshots
 
@@ -111,7 +111,7 @@ slides show what's new.
 | **Archives**: ZIP, ANSYS Workbench (WBPZ), 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG, … | extract, ZIP, 7Z, TAR, TAR.GZ; any files → one ZIP |
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **Fonts**: TTF, OTF, WOFF, WOFF2, EOT | each other |
-| **Data**: JSON, JSON Lines, YAML, TOML, XML · vCard | each other, CSV and XLSX (tables); vCard ↔ CSV |
+| **Data**: JSON, JSON Lines, YAML, TOML, XML · vCard, iCalendar | each other, CSV and XLSX (tables); vCard, iCalendar ↔ CSV |
 | **3D models**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY; FBX read | each other, PNG preview |
 | **Geospatial vectors**: Shapefile, GeoJSON, KML, KMZ, GPX · CSV with coordinates | each other and CSV / XLSX / JSON; projected data (UTM, Web Mercator, Lambert, Albers) comes out as WGS 84 longitude / latitude |
 
@@ -152,12 +152,15 @@ Pull requests are welcome. If Filee saves you some clicks, a ⭐ helps other peo
 
 Filee is developed and published by **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
 
-Windows releases will be signed with a [Certum](https://www.certum.eu/) open source code signing certificate issued
-to Myeonggu Kim. The certificate is being issued; until then, releases are not code-signed and Windows SmartScreen
-may warn when you run the installer ("More info" → "Run anyway"). macOS packages are ad-hoc signed and not notarized.
+Windows releases are signed with a [Certum](https://www.certum.eu/) open source code signing certificate issued to
+Myeonggu Kim ("Open Source Developer MYEONGGU KIM"). Releases before it, up to 2.0.0, are not signed. SmartScreen can
+still warn about a new release until it has been downloaded enough ("More info" → "Run anyway"). macOS packages are
+ad-hoc signed and not notarized.
 
-Only the installer and files built by this repository's GitHub Actions release workflow are signed, and every release
-is approved by hand. Bundled third-party programs (rhwp, 7-Zip) keep their own publishers' files.
+Only files built by this repository's GitHub Actions release workflow are signed, and every release is signed and
+approved by hand. Libraries and programs their makers signed (.NET, SkiaSharp, ImageMagick, the Microsoft C++
+runtime …) keep their own signatures; bundled ones that come unsigned (rhwp, 7-Zip and most libraries) are signed with
+Filee's certificate, as part of Filee.
 
 ### Privacy policy
 

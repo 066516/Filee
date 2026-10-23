@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <b>Français</b></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <b>Français</b> · <a href="README.th.md">ไทย</a></p>
 
 <table>
   <tr>
@@ -55,7 +55,7 @@ Téléchargez Filee depuis les [Releases](https://github.com/KnifeLemon/Filee/re
   Le programme d'installation est celui de Filee, dans les langues de Filee, et ne demande rien d'autre sur le PC. Il peut ajouter le menu
   de l'Explorateur, le démarrage à l'ouverture de session, la commande `filee` et des moteurs facultatifs ; les installations silencieuses acceptent
   les options d'Inno Setup (`/VERYSILENT /SUPPRESSMSGBOXES`).
-- **macOS 13+** (préversion) : décompressez le paquet `osx-arm64` ou `osx-x64` et lancez `./install.sh`.
+- **macOS 13+** (préversion) : décompressez le paquet `osx-arm64` ou `osx-x64` et lancez `./install.sh`. Ou ouvrez le `.dmg` et faites glisser Filee dans Applications (seul `install.sh` ajoute la commande `filee`).
   L'application n'est pas encore notarisée : autorisez le premier lancement dans Réglages Système → Confidentialité et sécurité → **Ouvrir quand même**.
 - **Linux x64/ARM64** (Ubuntu 22.04+) : décompressez le paquet et lancez `./install.sh` (sans root, Python 3 requis).
   Les gestes de glisser nécessitent X11. Sous Wayland, utilisez la zone de dépôt et le menu contextuel du gestionnaire de fichiers.
@@ -77,7 +77,7 @@ mise à jour, quelques diapositives présentent les nouveautés.
 - **Des dossiers surveillés** convertissent chaque fichier qui y arrive.
 - **Conversions récentes** dans l'Accueil, chacune avec sa miniature : ouvrez le résultat, ou ouvrez-le avec une autre application.
 - **D'autres points d'entrée** : le menu contextuel, un raccourci clavier, la zone de dépôt et la [commande `filee`](#ligne-de-commande).
-- Thèmes clair et sombre avec votre propre couleur d'accentuation et l'opacité du menu circulaire, en English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (de droite à gauche), Português (Brasil) et Français.
+- Thèmes clair et sombre avec votre propre couleur d'accentuation et l'opacité du menu circulaire, en English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (de droite à gauche), Português (Brasil), Français, नेपाली et ไทย.
 
 ## Captures d'écran
 
@@ -152,12 +152,13 @@ Les pull requests sont les bienvenues. Si Filee vous épargne quelques clics, un
 
 Filee est développé et publié par **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
 
-Les versions Windows seront signées avec un certificat de signature de code open source [Certum](https://www.certum.eu/) délivré
-à Myeonggu Kim. Le certificat est en cours de délivrance ; d'ici là, les versions ne sont pas signées et Windows SmartScreen
-peut afficher un avertissement au lancement du programme d'installation (« Informations complémentaires » → « Exécuter quand même »). Les paquets macOS sont signés ad hoc et ne sont pas notarisés.
+Les versions Windows sont signées avec un certificat de signature de code open source [Certum](https://www.certum.eu/) délivré
+à Myeonggu Kim. Les versions jusqu'à la 2.0.0 ne sont pas signées. Windows SmartScreen peut encore afficher un
+avertissement pour une nouvelle version tant qu'elle n'a pas été assez téléchargée (« Informations complémentaires » → « Exécuter quand même »). Les paquets macOS sont signés ad hoc et ne sont pas notarisés.
 
-Seuls le programme d'installation et les fichiers produits par le workflow de publication GitHub Actions de ce dépôt sont signés, et chaque version
-est approuvée manuellement. Les programmes tiers inclus (rhwp, 7-Zip) conservent les fichiers de leurs propres éditeurs.
+Seuls les fichiers produits par le workflow de publication GitHub Actions de ce dépôt sont signés, et chaque version
+est signée et approuvée manuellement. Les bibliothèques et programmes déjà signés par leurs éditeurs gardent leur
+signature ; ceux qui arrivent sans signature (rhwp, 7-Zip et la plupart des bibliothèques) sont signés avec le certificat de Filee.
 
 ### Politique de confidentialité
 

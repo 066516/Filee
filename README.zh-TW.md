@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <b>繁體中文</b> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <b>繁體中文</b> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a> · <a href="README.th.md">ไทย</a></p>
 
 <table>
   <tr>
@@ -55,7 +55,7 @@
   安裝程式是 Filee 自己的，使用與 Filee 相同的語言，電腦上無需另外安裝任何元件。
   安裝時可以新增檔案總管選單、登入時啟動、`filee` 命令和可選引擎。靜默安裝沿用 Inno Setup 的參數
   （`/VERYSILENT /SUPPRESSMSGBOXES`）。
-- **macOS 13 及以上**（預覽）解壓縮 `osx-arm64` 或 `osx-x64` 壓縮檔並執行 `./install.sh`。
+- **macOS 13 及以上**（預覽）解壓縮 `osx-arm64` 或 `osx-x64` 壓縮檔並執行 `./install.sh`。也可以打開 `.dmg`，把 Filee 拖到「應用程式」檔案夾（`filee` 指令只由 `install.sh` 加入）。
   目前尚未公證，首次啟動時請在系統設定 → 隱私權與安全性中按一下 **仍要打開**。
 - **Linux x64、ARM64**（Ubuntu 22.04 及以上）解壓縮後執行 `./install.sh`（無需 root，需要 Python 3）。
   拖曳手勢需要 X11，Wayland 下請使用拖放區域和檔案管理員的右鍵選單。
@@ -73,7 +73,7 @@
 - **監視資料夾**，放入的檔案自動轉換。
 - **最近的轉換**顯示在首頁上，每項都有縮圖，可以直接「開啟檔案」，也可以用「開啟方式」換個應用程式開啟。
 - **其他方式** 右鍵選單、鍵盤快速鍵、拖放區域和 [`filee` 命令](#命令列)。
-- 淺色和深色主題，可自選強調色和環形工具列不透明度，支援 English、Español、日本語、한국어、简体中文、繁體中文、Polski、हिन्दी、Русский、العربية（從右到左）、Português (Brasil)、Français。
+- 淺色和深色主題，可自選強調色和環形工具列不透明度，支援 English、Español、日本語、한국어、简体中文、繁體中文、Polski、हिन्दी、Русский、العربية（從右到左）、Português (Brasil)、Français、नेपाली、ไทย。
 
 ## 截圖
 
@@ -147,7 +147,7 @@ dotnet test
 ## 程式碼簽章政策
 
 Filee 由 **Myeonggu Kim**（[KnifeLemon](https://github.com/KnifeLemon)）開發和發布。
-Windows 版本將使用頒發給 Myeonggu Kim 的 [Certum](https://www.certum.eu/) 開放原始碼程式碼簽章憑證簽署，憑證正在辦理中。
+Windows 版本使用頒發給 Myeonggu Kim 的 [Certum](https://www.certum.eu/) 開放原始碼程式碼簽章憑證簽署。2.0.0 及更早的版本沒有簽署。
 
 詳細政策和隱私權政策見[英文 README](README.md#code-signing-policy)。
 Filee 不會上傳檔案，也不會傳送任何使用資料。

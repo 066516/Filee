@@ -30,7 +30,7 @@
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
 </p>
 
-<p align="center" dir="ltr"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <b>العربية</b> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a></p>
+<p align="center" dir="ltr"><a href="README.md">English</a> · <a href="README.es.md">Español</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.pl.md">Polski</a> · <a href="README.hi.md">हिन्दी</a> · <a href="README.ru.md">Русский</a> · <b>العربية</b> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.fr.md">Français</a> · <a href="README.th.md">ไทย</a></p>
 
 <div dir="rtl">
 
@@ -57,7 +57,7 @@
   برنامج الإعداد خاص بـ Filee، ويعمل بلغات Filee، ولا يحتاج إلى أي شيء آخر على الكمبيوتر. يمكنه إضافة قائمة مستكشف
   الملفات، والتشغيل عند تسجيل الدخول، والأمر `filee`، والمحركات الاختيارية؛ وتقبل عمليات التثبيت الصامت مفاتيح
   Inno Setup نفسها (`/VERYSILENT /SUPPRESSMSGBOXES`).
-- **macOS 13 أو أحدث** (إصدار تجريبي): فكّ ضغط حزمة `osx-arm64` أو `osx-x64` وشغّل `./install.sh`.
+- **macOS 13 أو أحدث** (إصدار تجريبي): فكّ ضغط حزمة `osx-arm64` أو `osx-x64` وشغّل `./install.sh`. أو افتح ملف `.dmg` واسحب Filee إلى مجلد التطبيقات (يضيف `install.sh` وحده الأمر `filee`).
   لم تُوثّق Apple هذا الإصدار بعد (notarization)، لذا اسمح بالتشغيل الأول من إعدادات النظام ← الخصوصية والأمن ← **فتح على أي حال**.
 - **Linux x64/ARM64** (Ubuntu 22.04 أو أحدث): فكّ ضغط الحزمة وشغّل `./install.sh` (لا يحتاج إلى root، ويحتاج إلى Python 3).
   تعمل إيماءات السحب على X11. أما على Wayland فاستخدم منطقة الإفلات وقائمة النقر بالزر الأيمن في مدير الملفات.
@@ -79,7 +79,7 @@
 - **مراقبة المجلدات**: يُحوَّل كل ملف يصل إلى المجلد المراقَب.
 - **التحويلات الأخيرة** في الصفحة الرئيسية، لكل نتيجة صورة مصغّرة: افتح الملف، أو افتحه باستخدام تطبيق آخر.
 - **طرق أخرى**: قائمة النقر بالزر الأيمن، واختصار لوحة المفاتيح، ومنطقة الإفلات، و[الأمر `filee`](#سطر-الأوامر).
-- مظهر فاتح وداكن، باللون المميّز وشفافية الشريط الدائري اللذين تختارهما، وباللغات: English · Español · 日本語 · 한국어 · 简体中文 · 繁體中文 · Polski · हिन्दी · Русский · العربية (من اليمين إلى اليسار) · Português (Brasil) · Français.
+- مظهر فاتح وداكن، باللون المميّز وشفافية الشريط الدائري اللذين تختارهما، وباللغات: English · Español · 日本語 · 한국어 · 简体中文 · 繁體中文 · Polski · हिन्दी · Русский · العربية (من اليمين إلى اليسار) · Português (Brasil) · Français · नेपाली · ไทย.
 
 ## لقطات الشاشة
 
@@ -161,8 +161,8 @@ dotnet test
 ## سياسة توقيع الشيفرة
 
 يطوّر Filee وينشره **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
-ستُوقَّع إصدارات Windows بشهادة توقيع شيفرة للمشاريع مفتوحة المصدر من [Certum](https://www.certum.eu/) صادرة باسم
-Myeonggu Kim، والشهادة قيد الإصدار.
+تُوقَّع إصدارات Windows بشهادة توقيع شيفرة للمشاريع مفتوحة المصدر من [Certum](https://www.certum.eu/) صادرة باسم
+Myeonggu Kim. الإصدارات حتى 2.0.0 غير موقَّعة.
 
 السياسة الكاملة وسياسة الخصوصية في [README الإنجليزي](README.md#code-signing-policy).
 لا يرفع Filee ملفاتك ولا يرسل أي بيانات استخدام.
