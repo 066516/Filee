@@ -775,6 +775,9 @@ internal static class SettingsMigrations
         // v34: Lua scripts and CSS style sheets learn the text donut; custom claims stay put.
         if (from < 34)
             changed |= LearnExtensions(profiles, out _, ["lua", "css"]);
+        // v33: HP-GL plot files learn their donut; custom claims stay put.
+        if (from < 33)
+            changed |= LearnExtensions(profiles, out _, ["plt", "hpgl", "hpg", "hgl"]);
         return changed;
     }
 
