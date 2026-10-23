@@ -77,46 +77,82 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
     /// <summary>
     /// Shows (or brings to front) the main window, optionally on a page. Going to the tray closes it
-    /// (<see cref="MainWindow.HideToTray"/>): a new one opens where and on the page the last one was.
+    /// (<see cref="MainWindow.HideToTray"/>): a new one opens where and on the page the last one was. There is never
+    /// more than one: a call made while one is being built (a tray click handled meanwhile) goes to that one, and one
+    /// that is being released is left to close while a new one opens.
     /// </summary>
     public void ShowMain(string? page = null)
     {
+        if (_openingMain)
+        {
+            _openingMainPage = page ?? _openingMainPage;
+            return;
+        }
         Motion.Refresh();
+        if (_main is { IsReleased: true })
+            _main = null; // closing for real (or closed): it can't be shown again
         if (_main is null)
         {
-            var model = ActivatorUtilities.CreateInstance<MainWindowViewModel>(services);
-            var main = new MainWindow { DataContext = model };
-            if (_mainPlacement is { } placement)
+            _openingMain = true;
+            _openingMainPage = null;
+            try
             {
-                placement.ApplyTo(main);
-                if (page is null)
-                    model.Navigate(placement.Page);
+                _main = CreateMain(page);
             }
-            main.Closing += (_, _) =>
+            finally
             {
-                // While it is still on screen: the release closes it hidden, when its position may no longer be known.
-                if (main.IsVisible)
-                    _mainPlacement = MainWindowPlacement.Of(main, model, _mainPlacement);
-            };
-            main.Closed += (_, _) =>
-            {
-                if (_main == main)
-                    _main = null;
-                model.Dispose();
-                trimmer.Request();
-            };
-            _main = main;
+                _openingMain = false;
+            }
+            page = _openingMainPage ?? page;
         }
-        if (page is not null && _main.DataContext is MainWindowViewModel vm)
+        var main = _main;
+        // Any other main window still alive goes to the tray (and is released) instead of staying next to this one.
+        foreach (var other in _mains.ToArray())
+            if (other != main && !other.IsReleased)
+                other.HideToTray();
+        if (page is not null && main.DataContext is MainWindowViewModel vm)
             vm.Navigate(page);
 
-        if (!_main.IsVisible)
-            _main.Show();
-        if (_main.WindowState == WindowState.Minimized)
-            _main.WindowState = WindowState.Normal;
-        _main.Activate();
+        if (!main.IsVisible)
+            main.Show();
+        if (main.WindowState == WindowState.Minimized)
+            main.WindowState = WindowState.Normal;
+        main.Activate();
         MainShown?.Invoke(this, EventArgs.Empty);
     }
+
+    private MainWindow CreateMain(string? page)
+    {
+        var model = ActivatorUtilities.CreateInstance<MainWindowViewModel>(services);
+        var main = new MainWindow { DataContext = model };
+        if (_mainPlacement is { } placement)
+        {
+            placement.ApplyTo(main);
+            if (page is null)
+                model.Navigate(placement.Page);
+        }
+        main.Closing += (_, _) =>
+        {
+            // While it is still on screen: the release closes it hidden, when its position may no longer be known.
+            if (main.IsVisible)
+                _mainPlacement = MainWindowPlacement.Of(main, model, _mainPlacement);
+        };
+        main.Closed += (_, _) =>
+        {
+            _mains.Remove(main);
+            if (_main == main)
+                _main = null;
+            model.Dispose();
+            trimmer.Request();
+        };
+        _mains.Add(main);
+        return main;
+    }
+
+    // Every main window that isn't closed yet: normally just _main, plus one that is being released.
+    private readonly List<MainWindow> _mains = [];
+    private bool _openingMain;
+    private string? _openingMainPage;
 
     /// <summary>Raised whenever <see cref="ShowMain"/> showed the main window (the user opened Filee).</summary>
     public event EventHandler? MainShown;
