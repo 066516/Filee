@@ -111,7 +111,7 @@ kilka slajdów pokazuje, co nowego.
 | **Archiwa**: ZIP, ANSYS Workbench (WBPZ), 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG, … | rozpakowanie, ZIP, 7Z, TAR, TAR.GZ; dowolne pliki → jeden ZIP |
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **Czcionki**: TTF, OTF, WOFF, WOFF2, EOT | między sobą |
-| **Dane**: JSON, JSON Lines, YAML, TOML, XML · vCard | między sobą, CSV i XLSX (tabele); vCard ↔ CSV |
+| **Dane**: JSON, JSON Lines, YAML, TOML, XML · vCard, iCalendar | między sobą, CSV i XLSX (tabele); vCard, iCalendar ↔ CSV |
 | **Modele 3D**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY; FBX tylko odczyt | między sobą, podgląd PNG |
 | **Dane geoprzestrzenne (wektorowe)**: Shapefile, GeoJSON, KML, KMZ, GPX · CSV ze współrzędnymi | między sobą oraz CSV / XLSX / JSON; dane w odwzorowaniach (UTM, Web Mercator, Lambert, Albers) wychodzą jako długość / szerokość geograficzna WGS 84 |
 
