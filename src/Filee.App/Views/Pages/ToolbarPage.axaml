@@ -74,6 +74,42 @@
       <Setter Property="Opacity" Value="0.8" />
     </Style>
 
+    <!-- Palette tabs: pills that wrap inside the narrow column (every name stays whole), the selected one filled with the accent -->
+    <Style Selector="ListBox#PaletteTabs">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="ListBox#PaletteTabs ListBoxItem">
+      <Setter Property="Margin" Value="0,0,4,4" />
+      <Setter Property="Padding" Value="10,3" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="FontSize" Value="12.5" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border x:Name="Pill" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1"
+                  CornerRadius="999" Padding="{TemplateBinding Padding}">
+            <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                              Foreground="{TemplateBinding Foreground}" />
+          </Border>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+    <Style Selector="ListBox#PaletteTabs ListBoxItem:pointerover">
+      <Setter Property="Background" Value="{DynamicResource AccentFaintBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+    <Style Selector="ListBox#PaletteTabs ListBoxItem:selected">
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+    </Style>
+    <Style Selector="ListBox#PaletteTabs ListBoxItem:focus-visible /template/ Border#Pill">
+      <Setter Property="BorderBrush" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
     <!-- Mixed-selection check list: group rows with a chevron, extension toggle chips -->
     <Style Selector="Border.ext-groups">
       <Setter Property="BorderBrush" Value="{DynamicResource SubtleBorderBrush}" />
@@ -329,7 +365,7 @@
       </StackPanel>
 
       <!-- Palette -->
-      <StackPanel Grid.Column="4" Spacing="8">
+      <StackPanel x:Name="PaletteColumn" Grid.Column="4" Spacing="8">
         <TextBlock Classes="label" Text="{DynamicResource toolbar.available}" />
         <!-- Two to a row in a narrow column: little padding, centred, and an ellipsis rather than text past the edge. -->
         <Grid ColumnDefinitions="*,6,*">
@@ -348,11 +384,27 @@
             </StackPanel>
           </Button>
         </Grid>
-        <TextBox Classes="search clearButton" Text="{Binding PaletteSearch}" Watermark="{DynamicResource common.search}">
+        <TextBox x:Name="PaletteSearchBox" Classes="search clearButton" Text="{Binding PaletteSearch}" Watermark="{DynamicResource common.search}">
           <TextBox.InnerLeftContent>
             <PathIcon Width="14" Height="14" Margin="10,0,0,0" Data="{StaticResource Icon.Search}" Foreground="{DynamicResource TextSecondaryBrush}" />
           </TextBox.InnerLeftContent>
         </TextBox>
+        <!-- Kinds of preset (All first). Hidden when one kind would only repeat All. Wraps rather than scrolls sideways. -->
+        <ListBox x:Name="PaletteTabs" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab}"
+                 IsVisible="{Binding ShowTabRow}"
+                 AutomationProperties.Name="{DynamicResource toolbar.available}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel />
+            </ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:PaletteTabItem">
+              <TextBlock Text="{Binding Label}" TextWrapping="Wrap" />
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
         <Border x:Name="PaletteBox" MinHeight="180" Padding="6" CornerRadius="{DynamicResource SoftRadius}"
                 BorderThickness="2" BorderBrush="{DynamicResource SubtleBorderBrush}" Background="Transparent">
           <ItemsControl ItemsSource="{Binding VisiblePalette}">
