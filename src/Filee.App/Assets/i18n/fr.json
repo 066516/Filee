@@ -30,7 +30,7 @@
   "home.drop_hint": "Ou maintenez {0} en glissant des fichiers dans l'Explorateur. Le menu circulaire s'ouvre sous le curseur.",
   "home.drop_hint_macos": "Ou maintenez {0} en glissant des fichiers dans le Finder. Le menu circulaire s'ouvre sous le curseur.",
   "home.drop_hint_linux": "Ou maintenez {0} en glissant des fichiers dans votre gestionnaire de fichiers. Le menu circulaire s'ouvre sous le curseur.",
-  "home.accessibility_needed": "Pour ouvrir le menu circulaire en glissant avec ⌥ Option, autorisez Filee dans Accessibilité.\nCela fonctionne dès que vous l'activez.",
+  "home.accessibility_needed": "Pour ouvrir le menu circulaire en glissant avec ⌥ Option, autorisez Filee dans Accessibilité.\nCela fonctionne dès que vous l'activez. Si Filee figure déjà dans la liste et est activé, supprimez-le avec − puis ajoutez-le à nouveau avec + : macOS ne reporte pas l'autorisation sur un Filee mis à jour ou réinstallé.",
   "home.elevated": "Filee s'exécute en tant qu'administrateur : l'Explorateur ne peut donc ni y déposer de fichiers ni utiliser son menu.\nLe raccourci ne peut pas non plus lire la sélection de l'Explorateur.\nRedémarrez Filee sans droits d'administrateur pour y remédier.",
   "home.elevated_restart": "Redémarrer sans droits d'administrateur",
   "home.elevated_restart_failed": "Filee n'a pas pu redémarrer.\nQuittez Filee depuis la zone de notification, puis relancez-le.",
@@ -343,7 +343,7 @@
 
   "triggers.title": "Raccourcis",
   "triggers.description": "Choisissez comment s'ouvre le menu circulaire. Vous pouvez ajouter autant de gestes que vous voulez.",
-  "triggers.macos_permissions": "Autorisez Filee dans Réglages Système > Confidentialité et sécurité > Accessibilité.\nLe Finder demande aussi l'autorisation d'automatisation la première fois que vous utilisez un raccourci sur la sélection.",
+  "triggers.macos_permissions": "Autorisez Filee dans Réglages Système > Confidentialité et sécurité > Accessibilité.\nSi Filee est déjà activé mais que les gestes ne démarrent pas, supprimez-le avec − puis ajoutez-le à nouveau avec +.\nLe Finder demande aussi l'autorisation d'automatisation la première fois que vous utilisez un raccourci sur la sélection.",
   "triggers.linux_x11": "Les gestes de glissement fonctionnent sous X11.\nAvec l'intégration au gestionnaire de fichiers activée, le premier raccourci clavier lance l'action Filee de Thunar (rouvrez Thunar après l'avoir modifié).\nLes gestes de maintien et les raccourcis dans les autres gestionnaires de fichiers ne sont pas disponibles. Utilisez le menu Filee ou la zone de dépôt.",
   "triggers.linux_wayland": "Les gestes qui suivent le curseur ne sont pas disponibles sous Wayland.\nUtilisez une session X11, ou convertissez avec le menu du gestionnaire de fichiers et la zone de dépôt.\nThunar peut utiliser le premier raccourci clavier après son redémarrage.",
   "triggers.linux_wayland_experimental": "Les gestes sous Wayland sont expérimentaux et ne fonctionnent que sous KDE Plasma.\nFilee lit la souris depuis /dev/input et un script KWin place le menu circulaire au curseur (voir INSTALL.txt). Ctrl+glisser dans d'autres applications peut être interrompu ; utilisez un autre modificateur comme Ctrl+Shift s'il vous gêne.",

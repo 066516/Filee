@@ -30,7 +30,7 @@
   "home.drop_hint": "Ou segure {0} ao arrastar arquivos no Explorador. O menu circular abre no cursor.",
   "home.drop_hint_macos": "Ou segure {0} ao arrastar arquivos no Finder. O menu circular abre no cursor.",
   "home.drop_hint_linux": "Ou segure {0} ao arrastar arquivos no gerenciador de arquivos. O menu circular abre no cursor.",
-  "home.accessibility_needed": "Para abrir o menu ao arrastar com ⌥ Option, permita o Filee em Acessibilidade.\nEle passa a funcionar assim que você ativar.",
+  "home.accessibility_needed": "Para abrir o menu ao arrastar com ⌥ Option, permita o Filee em Acessibilidade.\nEle passa a funcionar assim que você ativar. Se o Filee já estiver na lista e ativado, remova-o com − e adicione-o de novo com +: o macOS não mantém a permissão para um Filee atualizado ou reinstalado.",
   "home.elevated": "O Filee está em execução como administrador, então o Explorador não consegue soltar arquivos nele nem usar o menu.\nO atalho também não lê a seleção do Explorador.\nReinicie o Filee sem direitos de administrador para corrigir isso.",
   "home.elevated_restart": "Reiniciar sem direitos de administrador",
   "home.elevated_restart_failed": "O Filee não conseguiu se reiniciar.\nSaia do Filee pela bandeja e inicie de novo.",
@@ -343,7 +343,7 @@
 
   "triggers.title": "Atalhos",
   "triggers.description": "Escolha como o menu circular abre. Você pode adicionar quantos gestos quiser.",
-  "triggers.macos_permissions": "Permita o Filee em Ajustes do Sistema > Privacidade e Segurança > Acessibilidade.\nO Finder também pede permissão de Automação na primeira vez que você usa um atalho de seleção.",
+  "triggers.macos_permissions": "Permita o Filee em Ajustes do Sistema > Privacidade e Segurança > Acessibilidade.\nSe o Filee já estiver ativado, mas os gestos não iniciarem, remova-o com − e adicione-o de novo com +.\nO Finder também pede permissão de Automação na primeira vez que você usa um atalho de seleção.",
   "triggers.linux_x11": "Gestos de arrastar funcionam no X11.\nCom a integração do gerenciador de arquivos ligada, o primeiro atalho de teclado executa a ação do Filee no Thunar (reabra o Thunar depois de mudar).\nGestos de segurar e atalhos em outros gerenciadores não estão disponíveis. Use o menu do Filee ou a área de soltar.",
   "triggers.linux_wayland": "Gestos que seguem o cursor não estão disponíveis no Wayland.\nUse uma sessão X11, ou converta pelo menu do gerenciador de arquivos e pela área de soltar.\nO Thunar pode usar o primeiro atalho de teclado depois de reiniciar.",
   "triggers.linux_wayland_experimental": "Gestos no Wayland são experimentais e só funcionam no KDE Plasma.\nO Filee lê o mouse em /dev/input e um script do KWin coloca o menu no cursor (veja INSTALL.txt). Ctrl+arrastar em outros apps pode ser interrompido; use outro modificador, como Ctrl+Shift, se atrapalhar.",

@@ -794,8 +794,11 @@ internal static class SettingsMigrations
         // v38: Tajima embroidery designs (.dst) learn the vector donut; custom claims stay put.
         if (from < 38)
             changed |= LearnExtensions(profiles, out _, ["dst"]);
-        // v39: "Searchable PDF" (text recognition), after "Compress PDF" as in a new library, on no donut.
-        if (from < 39 && !presets.Any(p => p.Id == "searchable-pdf"))
+        // v39: PowerShell scripts (.ps1) learn the text donut; custom claims stay put.
+        if (from < 39)
+            changed |= LearnExtensions(profiles, out _, ["ps1"]);
+        // v40: "Searchable PDF" (text recognition), after "Compress PDF" as in a new library, on no donut.
+        if (from < 40 && !presets.Any(p => p.Id == "searchable-pdf"))
         {
             var at = presets.FindIndex(p => p.Id == "compress-pdf");
             presets.Insert(at < 0 ? presets.Count : at + 1, BuiltInData.OcrPresets().Single());

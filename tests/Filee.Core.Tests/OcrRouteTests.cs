@@ -100,17 +100,17 @@ public class OcrRouteTests
     }
 
     [Fact]
-    public void A_version_38_library_gets_searchable_pdf_after_compress_pdf()
+    public void A_version_39_library_gets_searchable_pdf_after_compress_pdf()
     {
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id == "searchable-pdf");
         var profiles = BuiltInData.CreateProfiles();
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(38, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(39, presets, profiles));
 
         var ids = presets.Select(p => p.Id).ToList();
         Assert.Equal(ids.IndexOf("compress-pdf") + 1, ids.IndexOf("searchable-pdf"));
         Assert.True(presets.Single(p => p.Id == "searchable-pdf").Pdf.Ocr);
-        Assert.False(SettingsMigrations.ApplyToLibrary(39, presets, profiles));
+        Assert.False(SettingsMigrations.ApplyToLibrary(40, presets, profiles));
     }
 }
