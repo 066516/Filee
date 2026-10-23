@@ -185,7 +185,7 @@ internal static class NativeMethods
     /// NSFileManager trashItemAtURL: the file goes to the Trash of its volume, where Finder can put it back. Null when
     /// it worked, else the reason macOS gives.
     /// </summary>
-    public static string? MoveToTrash(string path)
+    public static Filee.Core.Platform.TrashRefusal? MoveToTrash(string path)
     {
         using var pool = new AutoreleasePool();
         var text = CFStringCreateWithCString(0, Path.GetFullPath(path), 0x08000100);
@@ -196,8 +196,8 @@ internal static class NativeMethods
             if (SendTrash(manager, sel_registerName("trashItemAtURL:resultingItemURL:error:"), url, 0, out var error))
                 return null;
             var description = error == 0 ? 0 : Send(error, sel_registerName("localizedDescription"));
-            return description == 0 ? "macOS couldn't move it to the Trash"
-                : Marshal.PtrToStringUTF8(Send(description, sel_registerName("UTF8String")));
+            return new Filee.Core.Platform.TrashRefusal("trash.failed",
+                description == 0 ? null : Marshal.PtrToStringUTF8(Send(description, sel_registerName("UTF8String"))));
         }
         finally
         {

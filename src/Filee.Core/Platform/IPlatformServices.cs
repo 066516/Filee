@@ -22,10 +22,10 @@ public interface IPlatformServices
     bool IsFileManagerAt(int x, int y);
 
     /// <summary>
-    /// Moves a file to the Recycle Bin / Trash, where the user can restore it (<see cref="Presets.OutputRule.ReplaceOriginal"/>).
-    /// Null when it worked; otherwise why not, in a few words, and the file is left where it is.
+    /// Moves a file to the Recycle Bin / Trash, where the user can restore it (<see cref="Presets.OutputRule.ReplaceOriginal"/>),
+    /// and never deletes it for good. Null when it worked; otherwise why not, and the file is left where it is.
     /// </summary>
-    string? MoveToTrash(string path) => "there is no Recycle Bin / Trash here";
+    TrashRefusal? MoveToTrash(string path) => new TrashRefusal("trash.no_recycle_bin");
 
     /// <summary>Process name (without extension) owning the window under the point, or <c>null</c>.</summary>
     string? ProcessNameAt(int x, int y);
@@ -186,3 +186,9 @@ public sealed class NullPlatformServices : IPlatformServices
         System.Diagnostics.Process.Start(start)?.Dispose();
     }
 }
+
+/// <summary>
+/// Why a file wasn't moved to the Recycle Bin / Trash: a localization key (<c>trash.*</c>) and, when the system said
+/// more, its own words.
+/// </summary>
+public sealed record TrashRefusal(string ReasonKey, string? Detail = null);

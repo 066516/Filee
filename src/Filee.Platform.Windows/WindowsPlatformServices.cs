@@ -49,7 +49,7 @@ public sealed class WindowsPlatformServices : IPlatformServices
                 NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_NOOWNERZORDER);
     }
 
-    public string? MoveToTrash(string path) => RecycleBin.Move(path);
+    public TrashRefusal? MoveToTrash(string path) => RecycleBin.Move(path);
 
     public bool IsFileManagerAt(int x, int y)
     {

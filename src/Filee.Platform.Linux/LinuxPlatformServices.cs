@@ -56,7 +56,7 @@ public sealed class LinuxPlatformServices : IPlatformServices
 
     // Wayland can't say which window is under the cursor, so any Ctrl+drag may open the (invisible) donut window;
     // it only shows when files are dragged in, and excluded apps can't be told apart there either.
-    public string? MoveToTrash(string path) => FreedesktopTrash.Move(path, Path.Combine(XdgDirectory("XDG_DATA_HOME", ".local/share"), "Trash"));
+    public TrashRefusal? MoveToTrash(string path) => FreedesktopTrash.Move(path, Path.Combine(XdgDirectory("XDG_DATA_HOME", ".local/share"), "Trash"));
 
     public bool IsFileManagerAt(int x, int y) =>
         WaylandGestures || ProcessNameAt(x, y) is { } name && FileManagers.Contains(name);

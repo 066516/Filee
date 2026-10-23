@@ -170,8 +170,7 @@ internal static class Cli
         return string.IsNullOrWhiteSpace(file.ErrorDetail) ? message : $"{message} ({file.ErrorDetail})";
     }
 
-    private static string Notice(FileResult file, ILocalizer texts) =>
-        string.IsNullOrWhiteSpace(file.NoticeDetail) ? texts[file.NoticeKey!] : $"{texts[file.NoticeKey!]} ({file.NoticeDetail})";
+    private static string Notice(FileResult file, ILocalizer texts) => texts.Notice(file);
 
     /// <summary>Relative to the current folder when the file is inside it, else the full path.</summary>
     private static string Shorten(string path)

@@ -26,12 +26,68 @@ public sealed class TrashTests : IDisposable
         var file = Path.Combine(_root, "open.png");
         File.WriteAllText(file, "x");
 
-        string? reason;
+        Filee.Core.Platform.TrashRefusal? refusal;
         using (new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
-            reason = new WindowsPlatformServices().MoveToTrash(file);
+            refusal = new WindowsPlatformServices().MoveToTrash(file);
 
-        Assert.Equal("the file is open in another program", reason);
+        Assert.Equal("trash.in_use", refusal?.ReasonKey);
         Assert.Equal("x", File.ReadAllText(file));
+    }
+
+    [Fact]
+    public void Windows_recycles_and_never_deletes_for_good()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Skip("Requires Windows.");
+            return;
+        }
+        // A subst drive reports itself as fixed, but has no Recycle Bin: Windows would delete the file outright.
+        var letter = "ZYXWVUTSRQPONMLKJ".Select(c => $"{c}:").First(d => !Directory.Exists(d + "\\"));
+        Assert.Equal(0, Subst(letter, _root));
+        try
+        {
+            var file = Path.Combine(letter + "\\", "kept.png");
+            File.WriteAllText(file, "x");
+
+            var refusal = new WindowsPlatformServices().MoveToTrash(file);
+
+            Assert.Equal("trash.no_recycle_bin", refusal?.ReasonKey);
+            Assert.Equal("x", File.ReadAllText(file));
+        }
+        finally
+        {
+            Subst(letter, null);
+        }
+
+        // On the real drive it goes to the Recycle Bin.
+        var recycled = Path.Combine(_root, $"filee-test-recycle-{Guid.NewGuid():N}.txt");
+        File.WriteAllText(recycled, "x");
+        Assert.Null(new WindowsPlatformServices().MoveToTrash(recycled));
+        Assert.False(File.Exists(recycled));
+
+        static int Subst(string drive, string? folder)
+        {
+            using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("subst.exe")
+            {
+                ArgumentList = { drive, folder ?? "/D" },
+                CreateNoWindow = true,
+                UseShellExecute = false,
+            })!;
+            process.WaitForExit();
+            return process.ExitCode;
+        }
+    }
+
+    [Fact]
+    public void A_mount_holds_only_its_own_folders()
+    {
+        string[] roots = ["/", "/home", "/media/usb"];
+
+        Assert.Equal("/home", FreedesktopTrash.MountOf("/home/ana/a.png", roots));
+        Assert.Equal("/", FreedesktopTrash.MountOf("/home2/ana/a.png", roots));
+        Assert.Equal("/media/usb", FreedesktopTrash.MountOf("/media/usb/a.png", roots));
+        Assert.Equal("/", FreedesktopTrash.MountOf("/media/usb2/a.png", roots));
     }
 
     [Fact]
@@ -66,6 +122,14 @@ public sealed class TrashTests : IDisposable
         var info = File.ReadAllText(Path.Combine(trash, "info", "my photo 2.png.trashinfo"));
         Assert.StartsWith("[Trash Info]\nPath=" + FreedesktopTrash.Escape(first) + "\nDeletionDate=", info);
         Assert.Contains("my%20photo.png", info);
+        foreach (var folder in new[] { trash, Path.Combine(trash, "files"), Path.Combine(trash, "info") })
+            Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute, File.GetUnixFileMode(folder));
+
+        // A folder of that name in the Trash is in the way too.
+        Directory.CreateDirectory(Path.Combine(trash, "files", "my photo 3.png"));
+        File.WriteAllText(first, "3");
+        Assert.Null(FreedesktopTrash.Move(first, trash));
+        Assert.Equal("3", File.ReadAllText(Path.Combine(trash, "files", "my photo 4.png")));
     }
 
     [Fact]

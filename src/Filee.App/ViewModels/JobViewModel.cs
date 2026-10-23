@@ -123,7 +123,7 @@ public sealed partial class JobViewModel : ObservableObject
         var noted = Job.Files.Where(f => f.State == FileState.Done && f.NoticeKey is not null).ToList();
         HasNotices = noted.Count > 0;
         Notices = noted.Count == 0 ? null : string.Join(Environment.NewLine,
-            noted.Select(f => $"{Path.GetFileName(f.SourcePath)} — {FailureText.Reason(_loc, f.NoticeKey, f.NoticeDetail)}"));
+            noted.Select(f => $"{Path.GetFileName(f.SourcePath)} — {_loc.Notice(f)}"));
 
         var missingFonts = Job.Files.SelectMany(f => f.MissingFonts)
             .Distinct(StringComparer.OrdinalIgnoreCase)

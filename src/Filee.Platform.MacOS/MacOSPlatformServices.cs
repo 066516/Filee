@@ -32,7 +32,7 @@ public sealed class MacOSPlatformServices : IPlatformServices
 
     public string? LastSelectionError { get; private set; }
 
-    public string? MoveToTrash(string path) => NativeMethods.MoveToTrash(path);
+    public TrashRefusal? MoveToTrash(string path) => NativeMethods.MoveToTrash(path);
 
     public bool IsFileManagerAt(int x, int y) =>
         string.Equals(ProcessNameAt(x, y), "Finder", StringComparison.OrdinalIgnoreCase);

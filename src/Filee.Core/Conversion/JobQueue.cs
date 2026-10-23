@@ -29,7 +29,7 @@ public sealed class JobQueue : IAsyncDisposable
     /// <summary>Output folders this queue made (a subfolder, a fixed folder that wasn't there): removed again when left empty.</summary>
     private readonly HashSet<string> _madeFolders = new(Platform.FileSystemPaths.Comparer);
     private readonly Task _worker;
-    private readonly Func<string, string?>? _moveToTrash;
+    private readonly Func<string, Platform.TrashRefusal?>? _moveToTrash;
     private int _busy;
 
     /// <param name="catalog">Converters and their priority.</param>
@@ -43,7 +43,7 @@ public sealed class JobQueue : IAsyncDisposable
     /// why not. Without it originals are always kept.
     /// </param>
     public JobQueue(ConverterCatalog catalog, IPdfMerger? pdfMerger = null, ILogger<JobQueue>? log = null, IFileCombiner? combiner = null,
-        ITiffMerger? tiffMerger = null, IMediaJoiner? mediaJoiner = null, Func<string, string?>? moveToTrash = null)
+        ITiffMerger? tiffMerger = null, IMediaJoiner? mediaJoiner = null, Func<string, Platform.TrashRefusal?>? moveToTrash = null)
     {
         _moveToTrash = moveToTrash;
         _catalog = catalog;
@@ -599,13 +599,25 @@ public sealed class JobQueue : IAsyncDisposable
         }
     }
 
-    /// <summary>Gives the outputs the creation and modification dates of the source (<see cref="OutputRule.KeepDates"/>).</summary>
-    private void CopyDates(string source, IEnumerable<string> outputs)
+    /// <summary>The creation and modification dates of <paramref name="source"/>, or null when they can't be read.</summary>
+    private static (DateTime Created, DateTime Modified)? DatesOf(string source)
     {
         try
         {
-            var created = File.GetCreationTimeUtc(source);
-            var modified = File.GetLastWriteTimeUtc(source);
+            return (File.GetCreationTimeUtc(source), File.GetLastWriteTimeUtc(source));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Gives the outputs the creation and modification dates of the source (<see cref="OutputRule.KeepDates"/>).</summary>
+    private void CopyDates((DateTime Created, DateTime Modified) dates, IEnumerable<string> outputs)
+    {
+        try
+        {
+            var (created, modified) = dates;
             foreach (var output in outputs)
             {
                 if (File.Exists(output))
@@ -623,7 +635,7 @@ public sealed class JobQueue : IAsyncDisposable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // The conversion itself worked: keep the files, only the dates are new.
-            _log.LogWarning(ex, "Could not copy the dates of {Source}", source);
+            _log.LogWarning(ex, "Could not copy the source's dates to {Outputs}", string.Join(", ", outputs));
         }
     }
 
@@ -763,7 +775,8 @@ public sealed class JobQueue : IAsyncDisposable
             }
 
             // Under "Save as ZIP" the output is still in the work folder: the source copied over it goes into the ZIP.
-            if (finalOutput && job.Preset.Output.OnlyIfSmaller && inputs.Count == 1 && CopyIfNotSmaller(file.SourcePath, inputs[0]))
+            var copiedSource = finalOutput && job.Preset.Output.OnlyIfSmaller && inputs.Count == 1 && CopyIfNotSmaller(file.SourcePath, inputs[0]);
+            if (copiedSource)
                 file.NoticeKey = "notice.pdf_not_smaller";
 
             if (zipResult && inputs.Count > 0)
@@ -772,16 +785,18 @@ public sealed class JobQueue : IAsyncDisposable
             else if (finalOutput && inputs.Count == 1 && final is { Handed: 1 })
                 inputs = [NextToSource(job, file, index, inputs[0], final)];
 
+            // The source's dates are read now: "Replace the original" may send it to the Trash below.
+            var dates = finalOutput && job.Preset.Output.KeepDates ? DatesOf(file.SourcePath) : null;
             if (finalOutput && !zipResult && inputs.Count == 1)
-                inputs = [ReplaceOriginal(job, file, source.Id, inputs[0])];
+                inputs = [ReplaceOriginal(job, file, source.Id, inputs[0], copiedSource)];
 
             // A name the engine took but wrote nothing to is free again.
             final?.Release(except: inputs);
             if (finalOutput)
             {
                 file.Outputs.AddRange(inputs);
-                if (job.Preset.Output.KeepDates)
-                    CopyDates(file.SourcePath, inputs);
+                if (dates is { } kept)
+                    CopyDates(kept, inputs);
             }
             file.State = inputs.Count == 0 && finalOutput ? FileState.Skipped : FileState.Done;
             file.Progress = ceiling;
@@ -995,35 +1010,90 @@ public sealed class JobQueue : IAsyncDisposable
     }
 
     /// <summary>
-    /// "Replace the original" (<see cref="OutputRule.ReplaceOriginal"/>): moves the source to the Recycle Bin / Trash and
-    /// the finished <paramref name="output"/> to its path, which is returned. Anything that stops it keeps the source and
-    /// the output as they are, with a note saying why.
+    /// "Replace the original" (<see cref="OutputRule.ReplaceOriginal"/>): the finished <paramref name="output"/> takes the
+    /// source's place and the source goes to the Recycle Bin / Trash. The path of the result is returned. The result is
+    /// first moved next to the source under a temporary name (a copy when it was saved on another drive), so a failure
+    /// there leaves the source alone; then the source goes to the Trash; then the result is renamed within the folder.
+    /// Anything that stops it keeps the source, with a note saying why.
     /// </summary>
-    private string ReplaceOriginal(ConversionJob job, FileResult file, string sourceFormat, string output)
+    /// <param name="copiedSource">"Only if smaller" copied the source as the result: nothing changed, so the source stays
+    /// where it is and the copy goes.</param>
+    private string ReplaceOriginal(ConversionJob job, FileResult file, string sourceFormat, string output, bool copiedSource)
     {
+        var source = file.SourcePath;
         if (!job.Preset.Output.ReplaceOriginal || job.Fetcher is not null || !File.Exists(output)
-            || FormatRegistry.Detect(output)?.Id != sourceFormat
-            || string.Equals(Path.GetFullPath(output), Path.GetFullPath(file.SourcePath), Platform.FileSystemPaths.Comparison))
+            || FormatRegistry.Detect(output) is not { } format || format.Id != sourceFormat
+            || string.Equals(Path.GetFullPath(output), Path.GetFullPath(source), Platform.FileSystemPaths.Comparison))
             return output;
-        var reason = _moveToTrash is null ? "no Recycle Bin / Trash here" : _moveToTrash(file.SourcePath);
-        if (reason is null)
+        // TXT also covers scripts and logs (.bat, .py, .log): there only the same extension replaces. Elsewhere the
+        // extensions are spellings of one format (.jpeg / .jpg).
+        if (format.Id == "txt" && !string.Equals(Path.GetExtension(output), Path.GetExtension(source), StringComparison.OrdinalIgnoreCase))
+            return output;
+        if (copiedSource)
         {
             try
             {
-                File.Move(output, file.SourcePath);
-                return file.SourcePath;
+                File.Delete(output);
+                file.NoticeKey = "notice.original_unchanged";
+                return source;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                // The original is already in the Trash: the result stays where it was written.
-                _log.LogWarning(ex, "Could not move {Output} to {Source}", output, file.SourcePath);
-                reason = ex.Message;
+                return output;
             }
         }
-        _log.LogInformation("Kept the original {Source}: {Reason}", file.SourcePath, reason);
-        file.NoticeKey = File.Exists(file.SourcePath) ? "notice.original_kept" : "notice.original_in_trash";
-        file.NoticeDetail = reason;
-        return output;
+        if (_moveToTrash is null)
+            return Kept(new Platform.TrashRefusal("trash.no_recycle_bin"), output);
+
+        var staged = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(source))!,
+            $".{Path.GetFileName(source)}.{Guid.NewGuid().ToString("N")[..8]}.filee-tmp");
+        try
+        {
+            File.Move(output, staged);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _log.LogWarning(ex, "Could not move {Output} next to {Source}", output, source);
+            return Kept(new Platform.TrashRefusal("trash.cannot_place", ex.Message), output);
+        }
+
+        if (_moveToTrash(source) is { } refusal)
+        {
+            // The result goes back to where it was saved.
+            try
+            {
+                File.Move(staged, output);
+                return Kept(refusal, output);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                _log.LogWarning(ex, "Could not move {Staged} back to {Output}", staged, output);
+                return Kept(refusal, staged);
+            }
+        }
+        try
+        {
+            File.Move(staged, source);
+            return source;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // The original is in the Trash already: the result stays next to where it was, under its temporary name.
+            _log.LogWarning(ex, "Could not rename {Staged} to {Source}", staged, source);
+            file.NoticeKey = "notice.original_in_trash";
+            file.NoticeReasonKey = "trash.cannot_place";
+            file.NoticeDetail = ex.Message;
+            return staged;
+        }
+
+        string Kept(Platform.TrashRefusal why, string result)
+        {
+            _log.LogInformation("Kept the original {Source}: {Reason} {Detail}", source, why.ReasonKey, why.Detail);
+            file.NoticeKey = "notice.original_kept";
+            file.NoticeReasonKey = why.ReasonKey;
+            file.NoticeDetail = why.Detail;
+            return result;
+        }
     }
 
     /// <summary>Lets go of <paramref name="path"/> (under the lock): free once nobody holds it.</summary>

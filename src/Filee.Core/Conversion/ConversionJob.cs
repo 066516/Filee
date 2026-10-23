@@ -57,7 +57,10 @@ public sealed class FileResult
     /// </summary>
     public string? NoticeKey { get; set; }
 
-    /// <summary>Non-localized detail shown after the notice in brackets (why the original was kept), or null.</summary>
+    /// <summary>Why, after the notice in brackets: a localization key (why the original was kept), or null.</summary>
+    public string? NoticeReasonKey { get; set; }
+
+    /// <summary>The system's own words after <see cref="NoticeReasonKey"/> (not localized), or null.</summary>
     public string? NoticeDetail { get; set; }
 
     /// <summary>

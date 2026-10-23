@@ -2,6 +2,7 @@
 // both are kept with a note saying why.
 
 using Filee.Core.Conversion;
+using Filee.Core.Platform;
 using Filee.Core.Presets;
 using Filee.Core.Watching;
 
@@ -12,12 +13,16 @@ public class ReplaceOriginalTests
     private static readonly Preset Replacing = new() { TargetFormat = BuiltInData.SameAsSource, Output = { ReplaceOriginal = true } };
 
     /// <summary>Moves files into a folder, or refuses with <paramref name="refuse"/>.</summary>
-    private sealed class FakeTrash(string folder, string? refuse = null)
+    private sealed class FakeTrash(string folder, TrashRefusal? refuse = null)
     {
         public List<string> Moved { get; } = [];
 
-        public string? Move(string path)
+        /// <summary>What the source's folder held when the Trash was asked.</summary>
+        public List<string> SeenBeside { get; } = [];
+
+        public TrashRefusal? Move(string path)
         {
+            SeenBeside.AddRange(Directory.GetFiles(Path.GetDirectoryName(path)!).Select(Path.GetFileName)!);
             if (refuse is not null)
                 return refuse;
             File.Move(path, Path.Combine(folder, Path.GetFileName(path)));
@@ -60,7 +65,7 @@ public class ReplaceOriginalTests
         using var dir = new TempDir();
         var source = dir.File("a.jpg");
 
-        var job = await Run(new FakeTrash(dir.Path, refuse: "the file is open in another program"), source, Replacing);
+        var job = await Run(new FakeTrash(dir.Path, refuse: new TrashRefusal("trash.in_use")), source, Replacing);
 
         Assert.Equal(JobState.Completed, job.State);
         Assert.Equal("x", File.ReadAllText(source));
@@ -68,7 +73,8 @@ public class ReplaceOriginalTests
         Assert.NotEqual(source, output);
         Assert.True(File.Exists(output));
         Assert.Equal("notice.original_kept", job.Files[0].NoticeKey);
-        Assert.Equal("the file is open in another program", job.Files[0].NoticeDetail);
+        Assert.Equal("trash.in_use", job.Files[0].NoticeReasonKey);
+        Assert.Null(job.Files[0].NoticeDetail);
     }
 
     [Fact]
@@ -129,6 +135,85 @@ public class ReplaceOriginalTests
 
         Assert.Empty(trash.Moved);
         Assert.Equal("x", File.ReadAllText(source));
+    }
+
+    [Fact]
+    public async Task The_result_is_beside_the_original_before_it_goes_and_keeps_its_dates()
+    {
+        using var dir = new TempDir();
+        using var other = new TempDir();
+        using var bin = new TempDir();
+        var source = dir.File("a.jpg");
+        var then = new DateTime(2020, 5, 1, 12, 0, 0, DateTimeKind.Utc);
+        File.SetCreationTimeUtc(source, then);
+        File.SetLastWriteTimeUtc(source, then);
+        var trash = new FakeTrash(bin.Path);
+        var preset = new Preset
+        {
+            TargetFormat = BuiltInData.SameAsSource,
+            Output = { ReplaceOriginal = true, KeepDates = true, Location = OutputLocation.CustomFolder, CustomFolder = other.Path },
+        };
+
+        var job = await Run(trash, source, preset);
+
+        Assert.Equal([source], job.Outputs);
+        Assert.Equal(2, trash.SeenBeside.Count); // the original and the result under its temporary name
+        Assert.Empty(Directory.GetFiles(other.Path));
+        Assert.Equal(then, File.GetLastWriteTimeUtc(source));
+        Assert.Equal("a.jpg→jpg by magick", File.ReadAllText(source));
+    }
+
+    [Fact]
+    public async Task When_the_trash_refuses_the_result_stays_where_it_was_saved()
+    {
+        using var dir = new TempDir();
+        using var other = new TempDir();
+        var source = dir.File("a.jpg");
+        var preset = new Preset
+        {
+            TargetFormat = BuiltInData.SameAsSource,
+            Output = { ReplaceOriginal = true, Location = OutputLocation.CustomFolder, CustomFolder = other.Path },
+        };
+
+        var job = await Run(new FakeTrash(dir.Path, refuse: new TrashRefusal("trash.no_recycle_bin")), source, preset);
+
+        Assert.Equal([Path.Combine(other.Path, "a.jpg")], job.Outputs);
+        Assert.Equal([source], Directory.GetFiles(dir.Path));
+        Assert.Equal("x", File.ReadAllText(source));
+    }
+
+    [Fact]
+    public async Task A_script_is_not_replaced_by_text_of_another_kind()
+    {
+        using var dir = new TempDir();
+        using var bin = new TempDir();
+        var script = dir.File("run.bat");
+        var trash = new FakeTrash(bin.Path);
+        await using var queue = new JobQueue(new ConverterCatalog([new FakeConverter("text", new ConversionEdge("txt", "txt"))]), moveToTrash: trash.Move);
+        var job = new ConversionJob([script], new Preset { TargetFormat = "txt", Output = { ReplaceOriginal = true } }, "Test");
+
+        await queue.RunAsync(job);
+
+        Assert.Empty(trash.Moved);
+        Assert.Equal("x", File.ReadAllText(script));
+        Assert.Equal([Path.Combine(dir.Path, "run.txt")], job.Outputs);
+    }
+
+    [Fact]
+    public async Task Only_if_smaller_leaves_an_unchanged_original_alone()
+    {
+        using var dir = new TempDir();
+        using var bin = new TempDir();
+        var source = dir.File("a.jpg");
+        var trash = new FakeTrash(bin.Path);
+        var preset = new Preset { TargetFormat = BuiltInData.SameAsSource, Output = { ReplaceOriginal = true, OnlyIfSmaller = true } };
+
+        var job = await Run(trash, source, preset); // the fake result is larger than "x"
+
+        Assert.Empty(trash.Moved);
+        Assert.Equal([source], Directory.GetFiles(dir.Path)); // no copy beside it
+        Assert.Equal("x", File.ReadAllText(source));
+        Assert.Equal("notice.original_unchanged", job.Files[0].NoticeKey);
     }
 
     [Fact]
