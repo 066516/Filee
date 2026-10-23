@@ -55,7 +55,7 @@ Download from [Releases](https://github.com/KnifeLemon/Filee/releases/latest).
   Setup is Filee's own installer, in Filee's languages, and needs nothing else on the PC. It can add the Explorer
   menu, start at sign-in, the `filee` command and optional engines; silent installs take Inno Setup's switches
   (`/VERYSILENT /SUPPRESSMSGBOXES`).
-- **macOS 13+** (preview): unpack the `osx-arm64` or `osx-x64` package and run `./install.sh`.
+- **macOS 13+** (preview): unpack the `osx-arm64` or `osx-x64` package and run `./install.sh`. Or open the `.dmg` and drag Filee to Applications (the `filee` command comes with `install.sh`).
   The build isn't notarized yet, so allow the first start in System Settings → Privacy & Security → **Open Anyway**.
 - **Linux x64/ARM64** (Ubuntu 22.04+): unpack the package and run `./install.sh` (no root, needs Python 3).
   Drag gestures need X11. On Wayland, use the drop zone and the file manager's right-click menu.
@@ -111,7 +111,7 @@ slides show what's new.
 | **Archives**: ZIP, ANSYS Workbench (WBPZ), 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG, … | extract, ZIP, 7Z, TAR, TAR.GZ; any files → one ZIP |
 | **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
 | **Fonts**: TTF, OTF, WOFF, WOFF2, EOT | each other |
-| **Data**: JSON, JSON Lines, YAML, TOML, XML · vCard | each other, CSV and XLSX (tables); vCard ↔ CSV |
+| **Data**: JSON, JSON Lines, YAML, TOML, XML · vCard, iCalendar | each other, CSV and XLSX (tables); vCard, iCalendar ↔ CSV |
 | **3D models**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY; FBX read | each other, PNG preview |
 | **Geospatial vectors**: Shapefile, GeoJSON, KML, KMZ, GPX · CSV with coordinates | each other and CSV / XLSX / JSON; projected data (UTM, Web Mercator, Lambert, Albers) comes out as WGS 84 longitude / latitude |
 
