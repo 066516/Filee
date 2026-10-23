@@ -140,6 +140,8 @@ else {
     Copy-Item -LiteralPath (Join-Path $root 'installer/linux/uninstall.sh') -Destination $package
     Copy-Item -LiteralPath (Join-Path $root 'installer/linux/INSTALL.txt') -Destination $package
     Copy-Item -LiteralPath (Join-Path $root 'installer/linux/kwin') -Destination $package -Recurse
+    Copy-Item -LiteralPath (Join-Path $root 'installer/linux/gnome') -Destination $package -Recurse
+    Copy-Item -LiteralPath (Join-Path $root 'docs/GNOME-WAYLAND.md') -Destination $package
 }
 Invoke-Checked 'Installer permissions' { chmod +x (Join-Path $package 'install.sh') (Join-Path $package 'uninstall.sh') }
 $temporaryArchive = "$archive.$([Guid]::NewGuid().ToString('N')).partial"
