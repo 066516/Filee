@@ -37,6 +37,9 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     private ClipWindow? _clipWindow;
 
     internal ClipWindow? ClipWindow => _clipWindow;
+    private readonly HashSet<SpreadsheetPrintStudioWindow> _spreadsheetStudios = [];
+
+    internal IReadOnlyCollection<SpreadsheetPrintStudioWindow> SpreadsheetStudios => _spreadsheetStudios;
     private MergeOrderWindow? _mergeOrder;
 
     internal MergeOrderWindow? MergeOrder => _mergeOrder;
@@ -64,11 +67,20 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
     public MainWindow? Main => _main;
 
-    /// <summary>Opens the window of a tool preset (crop, cut a clip) on the files. A tool this version doesn't know opens nothing.</summary>
+    /// <summary>
+    /// Opens the window of a tool preset (crop, cut a clip, the spreadsheet print studio: one per workbook) on the files.
+    /// A tool this version doesn't know opens nothing.
+    /// </summary>
     public void ShowTool(IReadOnlyList<string> files, Preset preset, PixelPoint? near = null)
     {
         if (preset.IsClipTool)
             ShowClipWindow(files, preset, near);
+        // Before the crop: the print studio has no Tool of its own, which reads as a crop.
+        else if (preset.Id == "tool-sheet-studio")
+        {
+            foreach (var workbook in files.Where(file => Path.GetExtension(file).Equals(".xlsx", StringComparison.OrdinalIgnoreCase)))
+                ShowSpreadsheetPrintStudio(workbook);
+        }
         else if (preset.IsCropTool)
             ShowCropOverlay(files, preset, near);
     }
@@ -123,6 +135,31 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         _cropOverlay = win;
         win.Show();
         win.Activate();
+    }
+
+    /// <summary>Opens the non-destructive XLSX print studio. One workbook owns one window and print plan.</summary>
+    public void ShowSpreadsheetPrintStudio(string file)
+    {
+        SpreadsheetPrintStudioViewModel vm;
+        try
+        {
+            vm = ActivatorUtilities.CreateInstance<SpreadsheetPrintStudioViewModel>(services, file);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            services.GetService<ILogger<WindowService>>()?.LogWarning(ex, "Could not open spreadsheet print studio for {File}", file);
+            _ = MessageAsync(null, ex.Message);
+            return;
+        }
+        var window = new SpreadsheetPrintStudioWindow { DataContext = vm };
+        window.Closed += (_, _) =>
+        {
+            _spreadsheetStudios.Remove(window);
+            trimmer.Request();
+        };
+        _spreadsheetStudios.Add(window);
+        window.Show();
+        window.Activate();
     }
 
     /// <summary>
@@ -479,6 +516,20 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         _updateNotice?.Close();
         _updateProgress?.Close();
         await MessageAsync(_main is { IsVisible: true } main ? main : null, loc["update.failed_alert"]);
+        services.GetRequiredService<UpdateService>().OpenDownloadPage();
+    }
+
+    /// <summary>
+    /// The last run's in-app update (Linux) failed while installing and the installer put the old version back: say so,
+    /// with the log that has the details, then open the website to download the new version there.
+    /// </summary>
+    public async Task ShowUpdateRolledBackAsync(string? logPath)
+    {
+        _updateNotice?.Close();
+        var message = loc["update.rolled_back_alert"];
+        if (!string.IsNullOrWhiteSpace(logPath))
+            message += "\n\n" + loc.Format("update.rolled_back_log", logPath);
+        await MessageAsync(_main is { IsVisible: true } main ? main : null, message);
         services.GetRequiredService<UpdateService>().OpenDownloadPage();
     }
 

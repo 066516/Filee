@@ -49,6 +49,11 @@ public static class BuiltInData
             Id = "tool-crop", NameKey = "preset.crop", TargetFormat = SameAsSource,
             Kind = PresetKind.Tool, Output = { FileNamePattern = "{name}_cropped" },
         },
+        new()
+        {
+            Id = "tool-sheet-studio", NameKey = "preset.sheet_studio", TargetFormat = "pdf",
+            Kind = PresetKind.Tool, Output = { FileNamePattern = "{name}_prepared" },
+        },
         .. ImageToolPresets(),
         new()
         {
@@ -116,7 +121,7 @@ public static class BuiltInData
     ];
 
     /// <summary>
-    /// "Cut a clip" (added in settings schema 42): a part of a video, chosen on a timeline, as a file of its own. First on
+    /// "Cut a clip" (added in settings schema 43): a part of a video, chosen on a timeline, as a file of its own. First on
     /// the back of the video donut, as "Crop" is on the images donut.
     /// </summary>
     public static List<Preset> ClipPresets() =>
@@ -521,7 +526,7 @@ public static class BuiltInData
         NameKey = "profile.spreadsheets",
         Extensions = ExtensionsOf(FormatCategory.Spreadsheet),
         PresetIds = ["to-pdf", "to-xlsx", "to-csv", "to-json", "to-ods", "to-hwpx", "to-hwp", "to-html", "merge-pdf"],
-        BackPresetIds = ["to-docx", "to-md", "to-txt", "to-yaml", "to-xml", "to-vcf", "to-ics", "to-png", "zip-all"],
+        BackPresetIds = ["tool-sheet-studio", "to-docx", "to-md", "to-txt", "to-yaml", "to-xml", "to-vcf", "to-ics", "to-png", "zip-all"],
     };
 
     /// <summary>PowerPoint and OpenDocument slides (split from "office" in settings schema 5).</summary>

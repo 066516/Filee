@@ -220,6 +220,17 @@ public sealed class RadialController(
         var window = new RadialWindow { DataContext = viewModel };
         var donut = window.DonutControl;
 
+        // On native Wayland, hiding an xdg_toplevel surface causes the compositor to destroy its surface,
+        // and re-showing raises an InvalidOperationException. Track Closed to re-create on the next gesture.
+        if (Filee.Platform.Linux.WaylandSupport.NativeWaylandRequested)
+        {
+            window.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_window, window))
+                    _window = null;
+            };
+        }
+
         window.DragEntered += () => _dragReachedDonut = true;
         // Tells "the drag reached the donut but brought no files" apart, with what it brought (file promises, say).
         window.DragWithoutFiles += formats =>

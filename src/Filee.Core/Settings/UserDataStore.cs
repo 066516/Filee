@@ -204,9 +204,10 @@ public sealed class UserDataStore
     /// <summary>The preset <paramref name="id"/> when it converts (a group or tool doesn't), for every place that runs one.</summary>
     public Preset? FindConversion(string id) => Presets.FirstOrDefault(p => p.Id == id && !p.IsGroup && !p.IsTool);
 
-    /// <summary>Exports presets and profiles to a shareable JSON file.</summary>
+    /// <summary>Exports presets and profiles to a shareable JSON file, without PDF passwords.</summary>
     public void Export(string path) =>
-        Write(path, new PresetBundle { Presets = Presets, Profiles = Profiles }, FileeJsonContext.Default.PresetBundle);
+        Write(path, new PresetBundle { Presets = [.. Presets.Select(p => p.WithoutPassword(mark: false))], Profiles = Profiles },
+            FileeJsonContext.Default.PresetBundle);
 
     /// <summary>
     /// Imports presets and profiles from a bundle. Items with an existing id are replaced, new ones added.
@@ -807,12 +808,30 @@ internal static class SettingsMigrations
         // v41: PNG/JPEG download aliases learn the images donut; custom claims stay put.
         if (from < 41)
             changed |= LearnExtensions(profiles, out _, ["png_large", "jpg_large"]);
-        // v42: "Cut a clip" (a part of a video as a file of its own), after "Motion Photo (Android)" as in a new library,
+        // v42: the print studio for XLSX → PDF (a tool), after "Crop" as in a new library, and first on the back of the
+        //      spreadsheets donut when it has room and the user hasn't put it on either face.
+        if (from < 42)
+        {
+            const string id = "tool-sheet-studio";
+            if (presets.All(p => p.Id != id))
+            {
+                var at = presets.FindIndex(p => p.Id == "tool-crop");
+                presets.Insert(at < 0 ? presets.Count : at + 1, BuiltInData.CreatePresets().Single(p => p.Id == id));
+                changed = true;
+            }
+            if (profiles.FirstOrDefault(p => p.Id == "spreadsheets") is { BackPresetIds: { } back } spreadsheets
+                && !back.Contains(id) && !spreadsheets.PresetIds.Contains(id) && back.Count < ToolbarProfile.MaxSlices)
+            {
+                back.Insert(0, id);
+                changed = true;
+            }
+        }
+        // v43: "Cut a clip" (a part of a video as a file of its own), after "Motion Photo (Android)" as in a new library,
         //      and first on the back of the video donut in place of FLAC (which stays in the library), when the user
         //      hasn't put it elsewhere on the donut and the face has room.
-        //      Present already but saved since by a Filee before 42: that one dropped the tool's name, which made it a
+        //      Present already but saved since by a Filee before 43: that one dropped the tool's name, which made it a
         //      crop, so it is put back. The user's own changes (name, file name pattern) stay.
-        if (from < 42)
+        if (from < 43)
             changed |= AddClipTool(presets, profiles);
         return changed;
     }
