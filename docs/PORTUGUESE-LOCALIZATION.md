@@ -32,6 +32,10 @@ is not evidence of an error.
 | Mouse | Rato | Mouse |
 | System default | Predefinição do sistema | Padrão do sistema |
 | About | Acerca de | Sobre |
+| Home | Página inicial | Início |
+| Sponsor action | Apoiar | Patrocinar |
+| Sponsor dialog | Apoiar o Filee | Patrocinar o Filee |
+| Supporter acknowledgements | patrocinadores | patrocinadores |
 | Percent | Percentagem | Porcentagem |
 | Mixed files | Ficheiros mistos | Arquivos mistos |
 

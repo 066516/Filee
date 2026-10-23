@@ -870,6 +870,8 @@ public class RenderTests
     [InlineData("ko")]
     [InlineData("ru")]
     [InlineData("ar")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
     public void Sponsor_window_renders(string language)
     {
         TestServices.EnsureInitialized(language);
