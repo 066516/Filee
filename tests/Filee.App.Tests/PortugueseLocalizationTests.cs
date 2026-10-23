@@ -90,7 +90,7 @@ public class PortugueseLocalizationTests
     [InlineData("home.title", "Página inicial", "Início")]
     [InlineData("about.sponsor", "Apoiar", "Patrocinar")]
     [InlineData("sponsor.title", "Apoiar o Filee", "Patrocinar o Filee")]
-    [InlineData("sponsor.thanks", "Obrigado aos nossos patrocinadores", "Obrigado aos nossos patrocinadores")]
+    [InlineData("sponsor.thanks", "Obrigado a quem apoia o Filee", "Obrigado aos nossos patrocinadores")]
     [InlineData("nav.engines", "Motores", "Motores")]
     [InlineData("general.language_auto", "Predefinição do sistema", "Padrão do sistema")]
     [InlineData("triggers.button", "Botão do rato", "Botão do mouse")]

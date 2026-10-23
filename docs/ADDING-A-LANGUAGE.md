@@ -37,8 +37,9 @@ and validates their strings files with `plutil`. These system texts follow macOS
 Keep technical identifiers such as the KWin `Filee Donut` window title stable.
 
 
-Optional, but welcome in the same or a later pull request: a translated README. Add `README.<code>.md` and link
-it from the language line at the top of the other READMEs.
+Optional, but welcome in the same or a later pull request: a translated README. Add `README.<code>.md` with every
+section `README.md` has, link it from the language line at the top of the other READMEs and add the language to
+their list of UI languages. The maintainers add the language to the website (filee.sh).
 
 ## Demonstration recordings
 
