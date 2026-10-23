@@ -850,10 +850,16 @@ and writes the files; Filee's own renderer draws them with SkiaSharp (one drawin
   some 3D and underlay data) are not written; degenerate dimensions it cannot measure are left out of DWG output
   instead of failing the file.
 - **What is drawn**: model space seen from the top (Z is dropped). If model space has nothing visible, the active
-  layout (paper space) is drawn instead; viewports inside it are not followed. The page is fitted to the extents of
+  layout (paper space) is drawn instead (for a PDF, every layout, see below). The page is fitted to the extents of
   what is actually drawn — the header's EXTMIN/EXTMAX are ignored, so drawings far from the origin still fill it.
   - PDF: an ISO A3 sheet (A4 or Letter when the preset asks for it), landscape when the drawing is wider than tall,
     10 mm margins (or the preset's margin). Vector paths, text as text with embedded fonts.
+  - PDF of a drawing with paper-space layouts (#172): **one page per layout** with something on it, in tab order,
+    each fitted like the one-page PDF to the layout's drawing and viewport frames. Inside each viewport model space
+    is drawn at the viewport's scale (height ÷ view height) around its view centre, clipped to the frame, under the
+    layout's own drawing (title block, notes). Not followed: twisted views (drawn untwisted), layers frozen per
+    viewport, non-rectangular viewports and the layout's plot settings (paper size, plot scale). Images and SVG stay
+    one picture of model space.
   - SVG: the drawing's aspect ratio with a 420 mm (A3) long edge at 96 px/inch, white background, text as `<text>`.
   - Images: the same page rendered at the preset's render resolution (150 dpi → 2480 px on the long edge, at most
     12 000 px / 80 MP), then the preset's image options (resize, grayscale, quality, DPI) as for other images.

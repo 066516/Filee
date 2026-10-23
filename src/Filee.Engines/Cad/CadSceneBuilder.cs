@@ -4,6 +4,7 @@
 
 using ACadSharp;
 using ACadSharp.Entities;
+using ACadSharp.Objects;
 using ACadSharp.Tables;
 using SkiaSharp;
 using AcadColor = ACadSharp.Color;
@@ -56,6 +57,39 @@ internal sealed partial class CadSceneBuilder
             builder.DrawEntities(paper.Entities, DrawContext.Root);
         }
         return builder._scene;
+    }
+
+    /// <summary>
+    /// The paper-space layouts that have something on them, in tab order (#172): each one's own entities (title block,
+    /// notes) and the viewports that show model space. Empty when the drawing has none, so it is drawn as before.
+    /// </summary>
+    public static List<LayoutSheet> BuildLayouts(CadDocument document, CancellationToken cancellationToken)
+    {
+        var sheets = new List<LayoutSheet>();
+        foreach (var layout in document.Layouts
+                     .Where(l => l.Name != Layout.ModelLayoutName && l.AssociatedBlock is not null)
+                     .OrderBy(l => l.TabOrder))
+        {
+            var builder = new CadSceneBuilder(document, cancellationToken);
+            builder._scene.Space = layout.Name;
+            builder.DrawEntities(layout.AssociatedBlock!.Entities, DrawContext.Root);
+            // The viewport that is the sheet itself (RepresentsPaper) shows no model space. Twisted views are drawn
+            // untwisted.
+            var views = layout.AssociatedBlock.Entities.OfType<Viewport>()
+                .Where(v => !v.RepresentsPaper && v.Width > 0 && v.Height > 0 && v.ViewHeight > 0)
+                .Select(v =>
+                {
+                    var frame = Box2.Empty;
+                    frame.Add(new Vec2(v.Center.X - v.Width / 2, v.Center.Y - v.Height / 2));
+                    frame.Add(new Vec2(v.Center.X + v.Width / 2, v.Center.Y + v.Height / 2));
+                    return new ViewportView(frame, new Vec2(v.ViewCenter.X, v.ViewCenter.Y), v.Height / v.ViewHeight);
+                })
+                .Where(v => !v.Frame.IsEmpty)
+                .ToList();
+            if (builder._scene.Items.Count > 0 || views.Count > 0)
+                sheets.Add(new LayoutSheet(layout.Name, builder._scene, views));
+        }
+        return sheets;
     }
 
     private static BlockRecord? TryGetPaperSpace(CadDocument document) =>

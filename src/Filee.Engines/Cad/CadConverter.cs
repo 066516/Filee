@@ -17,7 +17,8 @@ namespace Filee.Engines.Cad;
 /// <remarks>
 /// Rendering draws model space as seen from the top (the active layout when model space is empty), fitted to the
 /// page: PDF on an A3 sheet (A4 / Letter when the preset says so), SVG and images with the drawing's aspect ratio
-/// on a white background. See docs/ENGINES.md for what is and is not drawn.
+/// on a white background. A PDF of a drawing with paper-space layouts has one page per layout instead, with model
+/// space shown through each layout's viewports. See docs/ENGINES.md for what is and is not drawn.
 /// </remarks>
 public sealed class CadConverter(ILogger? logger = null) : IConverter, IImageTransformer
 {
@@ -66,7 +67,11 @@ public sealed class CadConverter(ILogger? logger = null) : IConverter, IImageTra
 
             var scene = CadSceneBuilder.Build(document, cancellationToken);
             Report(step.InputPath, scene);
-            if (scene.Items.Count == 0)
+            // A PDF follows the layouts like a plot of every sheet; images and SVG stay one picture of model space.
+            var sheets = step.To == "pdf" ? CadSceneBuilder.BuildLayouts(document, cancellationToken) : [];
+            if (sheets.Count > 0)
+                _logger.LogInformation("{File}: {Count} layout(s), one PDF page each", step.InputPath, sheets.Count);
+            if (scene.Items.Count == 0 && sheets.Count == 0)
                 throw new InvalidDataException(scene.Skipped.Count > 0
                     ? $"The drawing only contains objects Filee cannot draw ({string.Join(", ", scene.Skipped.Keys)})."
                     : "The drawing has nothing visible to draw: model space and the layout are empty, or every entity is on a layer that is off, frozen or not plotted.");
@@ -80,7 +85,12 @@ public sealed class CadConverter(ILogger? logger = null) : IConverter, IImageTra
             {
                 case "pdf":
                     using (var stream = File.Create(output))
-                        CadRenderer.WritePdf(scene, step.Preset.Pdf, Path.GetFileNameWithoutExtension(step.InputPath), stream);
+                    {
+                        if (sheets.Count > 0)
+                            CadRenderer.WritePdf(sheets, scene, step.Preset.Pdf, Path.GetFileNameWithoutExtension(step.InputPath), stream);
+                        else
+                            CadRenderer.WritePdf(scene, step.Preset.Pdf, Path.GetFileNameWithoutExtension(step.InputPath), stream);
+                    }
                     break;
                 case "svg":
                     using (var stream = File.Create(output))
