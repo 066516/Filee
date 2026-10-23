@@ -418,6 +418,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         var fits = string.Concat(value.EnumerateRunes().TakeWhile(r => (bytes += r.Utf8SequenceLength) <= MaxPasswordBytes));
         PdfPassword = fits;
     }
+
     /// <summary>Recognize the text of scans and pictures (PdfOptions.Ocr), in <see cref="OcrLanguage"/>.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowPdfSplit), nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions), nameof(ShowPageSize))]

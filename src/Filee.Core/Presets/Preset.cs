@@ -485,6 +485,7 @@ public sealed class PdfOptions
     /// <summary>A PDF this preset writes gets a watermark, page numbers or a password (<see cref="Conversion.IPdfFinisher"/>).</summary>
     [JsonIgnore]
     public bool FinishesPdf => !string.IsNullOrWhiteSpace(Watermark) || PageNumbers || Password.Length > 0 || PasswordLeftOut;
+
     /// <summary>Formats text read from scans can go into (<see cref="Ocr"/>): those Filee writes from a PDF's text itself.</summary>
     public static readonly IReadOnlyList<string> OcrTargets = ["pdf", "docx", "txt", "md", "hwpx"];
 
