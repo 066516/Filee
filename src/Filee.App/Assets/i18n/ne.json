@@ -133,6 +133,7 @@
   "engine.docx-writer.description": "PDF, OFD, HWP/HWPX, Markdown, HTML, स्प्रेडसिट, स्लाइड र इ-पुस्तकबाट Word कागजातहरू (DOCX) लेख्छ।",
   "engine.pdf-text.description": "पढ्ने क्रममा PDF को पाठ निकाल्छ, दुई-स्तम्भ पृष्ठहरूबाट पनि (स्क्यानका लागि OCR होइन)।",
   "engine.pdf-slides.description": "PDF लाई PowerPoint स्लाइडमा रूपान्तरण गर्दछ: प्रत्येक पृष्ठ आफ्नै स्लाइडमा तस्बिर बन्छ (PDF जस्तै देखिन्छ, सम्पादन गर्न मिल्दैन), र पृष्ठको पाठ वक्ता नोटमा रहन्छ।",
+  "engine.pdf-tables.description": "PDF मा रेखाले बनाइएका तालिकाहरूलाई Excel वर्कबुकमा बदल्छ, हरेक तालिका एउटा शिट, अङ्क र मितिहरू वास्तविक मानका रूपमा।",
   "engine.email.description": "इमेलहरू (EML, Outlook MSG) लाई प्रेषक, प्राप्तकर्ता र मितिसहित HTML र पाठमा रूपान्तरण गर्दछ, तस्बिरहरूसहित; संलग्नकहरू ZIP मा।\nMSG लाई EML मा। सुरक्षित वेब पृष्ठहरू (MHTML) लाई तिनका तस्बिरहरूसहित एउटै HTML फाइलमा।",
   "engine.data.description": "JSON, JSON Lines, YAML, TOML, XML र CSV एकअर्कामा।\nvCard सम्पर्कहरू र iCalendar घटनाहरू CSV मा, र CSV बाट तिनीहरूमा।\nटिप्पणीहरू हटाइन्छन्। CSV मा तालिका मात्र रहन्छ।",
   "engine.vector.description": "SVG र SVGZ बाट भेक्टर PDF, छवि र DXF; तस्बिरहरूलाई SVG मा ट्रेस गर्ने; PDF सामग्रीसहित सुरक्षित गरिएका Illustrator फाइलहरू।",

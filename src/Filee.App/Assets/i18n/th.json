@@ -133,6 +133,7 @@
   "engine.docx-writer.description": "เขียนเอกสาร Word (DOCX) จาก PDF, OFD, HWP/HWPX, Markdown, HTML, สเปรดชีต, สไลด์ และอีบุ๊ก",
   "engine.pdf-text.description": "แยกข้อความของ PDF ตามลำดับการอ่าน รวมถึงหน้าที่มีสองคอลัมน์ (ไม่มี OCR สำหรับเอกสารสแกน)",
   "engine.pdf-slides.description": "แปลง PDF เป็นสไลด์ PowerPoint แต่ละหน้าจะกลายเป็นรูปภาพบนสไลด์ของตัวเอง (หน้าตาเหมือน PDF แก้ไขข้อความไม่ได้) โดยมีข้อความของหน้านั้นอยู่ในบันทึกของผู้บรรยาย",
+  "engine.pdf-tables.description": "แปลงตารางที่วาดด้วยเส้นใน PDF เป็นสมุดงาน Excel ตารางละหนึ่งชีต โดยตัวเลขและวันที่เป็นค่าจริง",
   "engine.email.description": "อีเมล (EML, Outlook MSG) เป็น HTML และข้อความ พร้อมผู้ส่ง ผู้รับ วันที่ และรูปภาพ แนบไฟล์ลงใน ZIP\nMSG เป็น EML บันทึกหน้าเว็บ (MHTML) เป็นไฟล์ HTML ไฟล์เดียวพร้อมรูปภาพ",
   "engine.data.description": "JSON, JSON Lines, YAML, TOML, XML และ CSV สลับกันได้\nรายชื่อติดต่อ vCard และกิจกรรม iCalendar เป็น CSV และกลับกัน\nความคิดเห็นจะถูกตัดออก CSV เก็บเฉพาะตารางเท่านั้น",
   "engine.vector.description": "SVG และ SVGZ เป็นเวกเตอร์ PDF รูปภาพ และ DXF แปลงภาพบิตแมปเป็น SVG ไฟล์ Illustrator ที่บันทึกพร้อมเนื้อหา PDF",

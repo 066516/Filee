@@ -140,6 +140,7 @@
   "engine.docx-writer.description": "Создаёт документы Word (DOCX) из PDF, OFD, HWP/HWPX, Markdown, HTML, таблиц, презентаций и электронных книг.",
   "engine.pdf-text.description": "Достаёт текст из PDF в порядке чтения, в том числе со страниц в две колонки (сканы не распознаются).",
   "engine.pdf-slides.description": "Превращает PDF в слайды PowerPoint: каждая страница становится картинкой на своём слайде (выглядит как PDF, но не редактируется), текст страницы — в заметках докладчика.",
+  "engine.pdf-tables.description": "Превращает таблицы PDF, нарисованные линиями, в книгу Excel — по листу на таблицу, с числами и датами как настоящими значениями.",
   "engine.email.description": "Письма (EML, Outlook MSG) — в HTML и текст с отправителем, получателями и датой, вместе с картинками; вложения — в ZIP.\nMSG в EML. Сохранённые веб-страницы (MHTML) — в один HTML-файл с картинками.",
   "engine.data.description": "JSON, JSON Lines, YAML, TOML, XML и CSV друг в друга.\nКонтакты vCard и события iCalendar в CSV и обратно.\nКомментарии отбрасываются. CSV хранит только таблицы.",
   "engine.vector.description": "SVG и SVGZ — в векторный PDF, картинки и DXF; векторизация картинок в SVG; файлы Illustrator, сохранённые с PDF-содержимым.",

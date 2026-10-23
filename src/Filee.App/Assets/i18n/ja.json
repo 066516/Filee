@@ -133,6 +133,7 @@
   "engine.docx-writer.description": "PDF、OFD、HWP/HWPX、Markdown、HTML、表計算ファイル、スライド、電子書籍からWord文書（DOCX）を作成します。",
   "engine.pdf-text.description": "PDFのテキストを読み順に抽出します。2段組みのページにも対応します（スキャン画像のOCRには非対応）。",
   "engine.pdf-slides.description": "PDFをPowerPointのスライドに変換します。各ページを画像にし、1ページずつ別のスライドに配置します（見た目はPDFと同じですが、編集はできません）。ページ内のテキストは発表者ノートに入ります。",
+  "engine.pdf-tables.description": "PDF の罫線で描かれた表を Excel ブックに変換します。表ごとに 1 シートで、数値と日付は実際の値になります。",
   "engine.email.description": "メール（EML、Outlook MSG）を、差出人、宛先、日付、画像を含めてHTMLとテキストに変換します。添付ファイルはZIPにまとめます。\nMSGからEMLへの変換にも対応します。画像を含む保存済みのWebページ（MHTML）を、1つのHTMLファイルに変換します。",
   "engine.data.description": "JSON、JSON Lines、YAML、TOML、XML、CSVを相互変換します。\nvCardの連絡先とiCalendarの予定をCSVと相互変換できます。\nコメントは削除されます。CSVで扱えるのは表形式のデータだけです。",
   "engine.vector.description": "SVGとSVGZをベクターPDF、画像、DXFに変換します。画像をトレースしてSVGを作成し、PDF互換で保存されたIllustratorファイルにも対応します。",
