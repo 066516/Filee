@@ -1,13 +1,11 @@
 # Build, test and style check on every push and pull request.
 name: CI
 
-# Changes to documentation only (Markdown, docs/) skip the build and tests.
+# Changes to documentation and repository metadata only skip the build and tests (see the changes job).
 on:
   push:
     branches: [main]
-    paths-ignore: ['**/*.md', 'docs/**']
   pull_request:
-    paths-ignore: ['**/*.md', 'docs/**']
 
 permissions:
   contents: read
@@ -18,10 +16,51 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Decides whether the change touches anything the build depends on. The workflow always runs, so the required
+  # build check always reports: a job skipped by its condition counts as passed for the branch rules. When the file
+  # list can't be read, everything runs.
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.files.outputs.code }}
+    steps:
+      - id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          if [ -n "$PR" ]; then
+            files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename') || files='(unreadable)'
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != 0000000000000000000000000000000000000000 ]; then
+            # The compare API lists at most 300 files.
+            files=$(gh api "repos/$REPO/compare/$BEFORE...$AFTER"               --jq 'if (.files | length) >= 300 then "(too many)" else .files[].filename end') || files='(unreadable)'
+          else
+            files='(unknown)'
+          fi
+          code=false
+          while IFS= read -r f; do
+            case "$f" in
+              *.md|docs/*|LICENSE|.mailmap|.github/CODEOWNERS|.github/ISSUE_TEMPLATE/*|.github/labeler.yml|.github/FUNDING.yml) ;;
+              *) code=true; echo "Needs the build: $f"; break ;;
+            esac
+          done <<< "$files"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
   portable:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     uses: ./.github/workflows/portable.yml
 
   build:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
