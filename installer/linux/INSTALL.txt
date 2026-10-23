@@ -37,12 +37,12 @@ It does not collect typed keys. Global selection/hold gestures and Tab/wheel
 flipping during a drag are not supplied by this integration. Disabling the
 extension stops detection; FILEE_WAYLAND_GESTURES=0 opts out on GNOME too.
 Read GNOME-WAYLAND.md in the package (docs/GNOME-WAYLAND.md in the source) for
-troubleshooting, manual checks and the implementation record.
+setup, limits and troubleshooting.
 
-Wayland gesture (experimental, KDE Plasma 6 only, off by default): Filee reads
-the mouse and keyboard from /dev/input through libinput, and a KWin script moves
-the donut to the cursor because Wayland apps cannot place windows. It needs
-libinput, libudev and libwayland-client (libinput10, libudev1 and
+Wayland gesture (experimental, KDE Plasma 6 and Hyprland, off by default): Filee reads
+the mouse and keyboard from /dev/input through libinput, and a KWin script or Hyprland
+window rule places the donut at the cursor because Wayland apps cannot place windows.
+It needs libinput, libudev and libwayland-client (libinput10, libudev1 and
 libwayland-client0 on Ubuntu). To turn it on:
 1. Start Filee with FILEE_WAYLAND_GESTURES=1 in its environment, for example
    with the line FILEE_WAYLAND_GESTURES=1 in ~/.config/environment.d/filee.conf
@@ -51,9 +51,7 @@ libwayland-client0 on Ubuntu). To turn it on:
    can read all keyboard and mouse input from any program they run, so enable
    this only if you accept that. You may already be in it for other tools.
      sudo usermod -aG input "$USER"
-3. Install the KWin script and enable it, so it loads at every login (you can
-   also enable "Filee donut at the cursor" in System Settings > Window
-   Management > KWin Scripts):
+3. For KDE Plasma: Install the KWin script and enable it, so it loads at every login:
      kpackagetool6 --type=KWin/Script --install "${XDG_DATA_HOME:-$HOME/.local/share}/filee/application/kwin/filee-donut"
      kwriteconfig6 --file kwinrc --group Plugins --key filee-donutEnabled true
      qdbus6 org.kde.KWin /KWin reconfigure
@@ -61,6 +59,18 @@ libwayland-client0 on Ubuntu). To turn it on:
    distribution; use whichever one you have.
    After updating Filee, upgrade the installed script the same way, with
    --upgrade instead of --install, then run the reconfigure line again.
+   For Hyprland: Add the floating and placement window rules in ~/.config/hypr/hyprland.conf (or hyprland.lua):
+     windowrulev2 = float, title:^(Filee Donut)$
+     windowrulev2 = move cursor -50% -50%, title:^(Filee Donut)$
+     windowrulev2 = noborder, title:^(Filee Donut)$
+     windowrulev2 = noshadow, title:^(Filee Donut)$
+     windowrulev2 = noblur, title:^(Filee Donut)$
+
+Native Wayland Backend (experimental, off by default):
+By default, Filee runs through XWayland on Wayland desktops for maximum compatibility.
+To opt into the native Wayland backend (Avalonia.Wayland):
+  Start Filee with FILEE_USE_WAYLAND=1 in its environment.
+  (e.g., export FILEE_USE_WAYLAND=1 or set in ~/.config/environment.d/filee.conf).
 Limits: Wayland cannot say which window is under the cursor, so a Ctrl+drag in
 any app opens an invisible donut window. It only shows when files are dragged
 onto it, but it rejects drops that are not files, so Ctrl+drag to copy text in an
