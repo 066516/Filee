@@ -738,6 +738,26 @@ in the preset library only). Video and audio need FFmpeg.
   XMP packet (`PdfSharpConverter.StripMetadata`), and PDFsharp writes a new one holding only its own name and the save
   date; pages, links, bookmarks and form fields stay.
 
+## PDF watermark, page numbers and password
+
+A preset that writes PDF can finish every PDF it makes (`PdfOptions.Watermark`, `PageNumbers`, `Password`;
+`Pdf/PdfFinishing.cs`, PDFsharp only). `JobQueue` runs it (`IPdfFinisher`) on each PDF a file became, whichever engine
+wrote it (PDFsharp, rhwp, LibreOffice, Ghostscript …), and once on a merged PDF, so its pages are numbered through.
+
+- **Watermark**: the text in light grey (22 % opacity), bold, along the page's diagonal over the content, at 70 % of
+  the diagonal and at most a quarter of the short side high.
+- **Page numbers**: "3 / 10", 9 pt dark grey, centred 10 mm above the bottom edge.
+- Both go on the page as it is shown: centred in its crop box (the media box when it has none), the right way up
+  for its `/Rotate`. The page is drawn on unturned and its `/Rotate` put back.
+- Text is drawn as glyph outlines (`Vector/GlyphOutlines.cs`, HarfBuzz shaping, shared with SVG text in PDFs). Any
+  script works with a font the PC has for it (Skia's font fallback, else Arial or the default face), and no font is
+  embedded, so the PDF grows by a few kilobytes. The text can't be selected or searched.
+- **Password**: opens the PDF (user and owner password are the same), AES-256 (`SetEncryptionToV5`). It is saved with
+  the preset in the settings file, but left out of a preset export and of the copy history keeps to convert failed
+  files again: a retry takes it from the preset again, and fails (`error.pdf_password_gone`) when the preset no
+  longer has one. The editor takes at most 127 UTF-8 bytes, all that AES-256 readers use, and turns the box off while
+  PDF/A is ticked, since PDF/A forbids encryption.
+
 ## Office Open XML variants
 
 `Office/OoxmlConverter.cs` converts between the variants of a family (Word, Excel, PowerPoint) by copying the

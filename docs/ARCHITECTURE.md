@@ -48,6 +48,8 @@
    Each name stays reserved while a conversion holds it. A conversion that fails or is cancelled deletes what it began
    writing, but only at a path that was its alone: nothing was there before and no other conversion was handed the
    same name ("Overwrite"). It frees its names and removes an output folder it made if that is left empty.
+   A PDF target's finishing (watermark, page numbers, password; `IPdfFinisher`) runs after the last step, on every
+   PDF a file became, and once on a merged PDF.
    *Replace the original* (`OutputRule.ReplaceOriginal`, off by default) comes after that, for a finished result of
    the source's own format and extension, or another spelling of it (`.jpeg` / `.jpg`; TXT also covers scripts and
    logs, PPT also `.pps` and `.pot`, so those need the same extension). The result is first
