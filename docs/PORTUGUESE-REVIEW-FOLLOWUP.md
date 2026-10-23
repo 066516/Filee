@@ -2,7 +2,20 @@
 
 The independent review examined b694dad, based on Filee 2.0.0 at 799e394. The first follow-up integrated upstream
 a121a3c9e3254918f8b171bb7f675b0bdc532244 on 22 October. The current integration is
-4c3a3e1cbedec48c3033c68fd0da161977e7afdf, verified on 23 October 2026. Only Blackspirits/Filee is changed.
+a97a07cd2eea20dbf80f03332d2710b874eb09f9, verified on 23 October 2026. Only Blackspirits/Filee is changed.
+
+## Final upstream catch-up — 23 October 2026
+
+Merge `614cb4d5` incorporates the next 48 upstream commits, including spreadsheet printing, PDF finishing and
+update rollback handling. All 47 new keys are translated in pt-PT; the fifteen catalogs now each contain 1,025
+keys. Existing Portuguese key order, format items, line breaks and NFC are preserved. New Brazilian and other
+community translations remain upstream values; the seven earlier targeted Brazilian corrections are unchanged.
+
+A minimum-width print-studio capture reproduced two pt-BR text overflows: a workbook choice and the automatic
+page-height caption. Choices and page-width/height captions now wrap; geometry cases retain English and both
+Portuguese variants. The existing PDF-finishing fixture also runs for pt-PT/pt-BR. A fixture cleanup error during
+development was corrected by retaining the window's ownership of its view model; no production lifecycle or
+assertion was weakened. The native-validation report separates these current results from historical snapshots.
 
 ## Findings and responses
 

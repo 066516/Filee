@@ -1,14 +1,14 @@
 # Portuguese localization
 
 Phase 1 adds European Portuguese and refines regional integration with the Brazilian translation already merged
-in #322. The current baseline is upstream `4c3a3e1cbedec48c3033c68fd0da161977e7afdf` (23 October 2026).
+in #322. The current baseline is upstream `a97a07cd2eea20dbf80f03332d2710b874eb09f9` (23 October 2026).
 French, Traditional Chinese, Nepali, Thai, Material You, OCR, palette tabs and the other merged upstream changes
 are retained.
 Phase 2 has not started.
 
 ## Coverage and wording
 
-Both Portuguese catalogs contain all **978 English keys**, in English key order: 956 upstream entries,
+Both Portuguese catalogs contain all **1,025 English keys**, in English key order: 1,003 upstream entries,
 18 descriptive engine names and four compact donut labels. Three native macOS strings per variant are additional
 to those JSON entries. There are fifteen registered languages. The twelve non-Portuguese translations retain
 English for the new engine names pending maintainer review; compact labels reuse their existing full translations.
@@ -117,6 +117,20 @@ The [earlier validation report](PORTUGUESE-NATIVE-VALIDATION.md#editorial-follow
 local automated results, headless PNGs and partial real Windows interaction. It also links the new CI run;
 the historical successful run below must not be treated as validation of the new head. The earlier head remained
 a draft. See the current integration report for readiness.
+
+## Final upstream catch-up — 23 October 2026
+
+Merge `614cb4d5` incorporates upstream `a97a07c` without conflicts or rewritten history. The 47 new English
+keys cover the spreadsheet print studio, PDF finishing/passwords and update rollback notices. pt-PT translates
+all of them; the new upstream pt-BR and other-language values are retained unchanged. The seven earlier Brazilian
+count/pointer corrections remain the only changes to existing upstream Brazilian entries.
+
+The new print-studio layout permits translated choices and page-count captions to wrap. Three geometry cases
+exercise English and both Portuguese variants at its existing 1,040 px minimum width; the existing PDF-finishing
+render cases now include both Portuguese variants. This follows a reproduced pt-BR cut-off without shortening
+community wording. Existing Portuguese demonstration scenes do not contain these new controls, so their media
+remain valid. App and Setup embed the rebuilt catalogs. The previous integration/test counts below describe
+older snapshots; current CI/readiness is reported in the PR checks and the latest native-validation section.
 
 ## Current integration and approved final wording — 23 October 2026
 

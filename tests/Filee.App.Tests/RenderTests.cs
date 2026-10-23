@@ -1184,6 +1184,8 @@ public class RenderTests
     [AvaloniaTheory]
     [InlineData("en")]
     [InlineData("ko")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
     public void Preset_editor_shows_and_saves_watermark_page_numbers_and_password(string language)
     {
         TestServices.EnsureInitialized(language);

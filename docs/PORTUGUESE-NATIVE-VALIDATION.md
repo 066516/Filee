@@ -8,6 +8,45 @@ CI completed on 22 October 2026; report consolidated on 23 October. Only Blacksp
 all nine jobs passed. This closes the previously pending automated CI and full-formatter checks. It does not
 certify an interactive installation, OS-language session, permission dialog or screen reader.
 
+## Final upstream catch-up — 23 October 2026
+
+Merge `614cb4d5` incorporates upstream `a97a07cd2eea20dbf80f03332d2710b874eb09f9`. All 47 newly added
+messages are translated in pt-PT. Each of the fifteen catalogs now has 1,025 keys; both Portuguese catalogs
+preserve English key order, format-item multiplicity, line breaks and NFC. The seven earlier targeted changes
+remain the only edits to existing upstream pt-BR values. Other upstream catalog values/layouts are retained.
+
+App/Setup were rebuilt from the faithful temporary source copy: zero errors, five existing obsolete-API warnings
+in the final incremental solution build (the first integration build reported fourteen upstream warnings).
+A 179-case App selection passed 176 localization/PDF/preset cases and exposed a pt-BR print-studio caption
+cut-off. A preceding measurement had also exposed its workbook choice. Neither community translation was
+shortened: the four choice templates and page-width/height captions now wrap. After rebuilding, all three
+print-studio geometry cases passed in English, pt-PT and pt-BR at the existing 1,040 px minimum width. These
+three final cases replace the earlier studio results and are not added twice. No remaining selected failure
+was left unresolved. The fixture's initial double-dispose cleanup was corrected without changing production
+lifecycle behavior or weakening assertions. Fresh headless studio PNGs were inspected separately from native
+interaction; these tests do not certify LibreOffice export or PDF preview correctness.
+
+The earlier 373-case App/Setup/Core/CLI/Platform results below describe the preceding integration. The final
+catch-up's complete native platform matrix is a current CI check, not inferred from those older passes.
+Run `39997779173` tested `fd91193` before this catch-up and must not certify the final head. Current run status
+and submission readiness are recorded in the PR checks/body so a report-only push does not restart the matrix.
+Existing native limitations below remain explicit follow-ups. Themes and Phase 2 have not started.
+
+Commands used in the same verified temporary copy (with eighteen pinned Noto fonts):
+
+```powershell
+dotnet restore Filee.slnx --disable-parallel
+dotnet build Filee.slnx -m:1 -c Release --no-restore -p:UseSharedCompilation=false
+$env:FILEE_LOCALIZATION_SCREENSHOTS='1'
+dotnet test tests/Filee.App.Tests -c Release --no-build --no-restore --filter 'FullyQualifiedName~Localization|FullyQualifiedName~Translated_print_settings_fit_at_the_minimum_window_width|FullyQualifiedName~Preset_editor_shows_and_saves_watermark_page_numbers_and_password|FullyQualifiedName~Translated_choices_fit_in_the_preset_dialog'
+# After the wrapping correction and rebuild: all three affected geometry cases pass.
+dotnet test tests/Filee.App.Tests -c Release --no-build --no-restore --filter 'FullyQualifiedName~Translated_print_settings_fit_at_the_minimum_window_width'
+dotnet format Filee.slnx --verify-no-changes --no-restore --severity warn --include tests/Filee.App.Tests/SpreadsheetPrintStudioTests.cs tests/Filee.App.Tests/RenderTests.cs
+git diff --check
+```
+
+Local logs/TRX/PNG evidence is retained in ignored `artifacts/portuguese-phase1/submission/`.
+
 ## CLI argument-description clarification — 23 October 2026
 
 After the contributor clarified the earlier wording decision, pt-PT's `watch.cli_hint` is now
