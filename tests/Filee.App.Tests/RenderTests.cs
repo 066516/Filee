@@ -884,10 +884,13 @@ public class RenderTests
         window.Close();
     }
 
-    [AvaloniaFact]
-    public void Sponsor_window_with_supporters_renders()
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
+    public void Sponsor_window_with_supporters_renders(string language)
     {
-        TestServices.EnsureInitialized("en");
+        TestServices.EnsureInitialized(language);
         var window = Filee.App.Views.SponsorWindow.Create(AppHost.Get<Filee.Core.Localization.ILocalizer>());
         var view = window.Supporters;
         view.Show(new SupporterList(
@@ -895,10 +898,11 @@ public class RenderTests
             [new("Kim"), new("Lee"), new("Park")]), _ => Logo());
         window.Show();
         Pump();
-        Save(window, "window-sponsor-supporters-en.png");
+        CheckAcknowledgement(window);
+        Save(window, $"window-sponsor-supporters-{language}.png");
         window.Close();
 
-        var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+        using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
         vm.Navigate("about");
         var main = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
         main.Show();
@@ -908,8 +912,20 @@ public class RenderTests
             [new Supporter("Acme", "https://acme.example", "acme.png"), new Supporter("Globex", "https://globex.example")],
             [new("Kim"), new("Lee"), new("Park")]), _ => Logo());
         Pump();
-        Save(main, "page-about-supporters-en.png");
+        CheckAcknowledgement(main);
+        Save(main, $"page-about-supporters-{language}.png");
         main.Close();
+
+        static void CheckAcknowledgement(Window target)
+        {
+            var thanks = AppHost.Get<Filee.Core.Localization.ILocalizer>()["sponsor.thanks"];
+            var labels = target.GetVisualDescendants().OfType<TextBlock>()
+                .Where(t => t.IsEffectivelyVisible && t.Text == thanks).ToArray();
+            Assert.NotEmpty(labels);
+            Assert.All(labels, text => Assert.True(text.TextLayout.Width <= text.Bounds.Width + 1 &&
+                                                    text.TextLayout.Height <= text.Bounds.Height + 1,
+                $"Acknowledgement is clipped: {thanks}"));
+        }
 
         // A stand-in logo: a wide coloured mark like a company's.
         static Avalonia.Media.Imaging.Bitmap Logo()
