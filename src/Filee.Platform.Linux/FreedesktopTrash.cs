@@ -4,11 +4,13 @@
 // are left where they are.
 
 using System.Globalization;
+using System.Runtime.Versioning;
 using System.Text;
 using Filee.Core.Platform;
 
 namespace Filee.Platform.Linux;
 
+[UnsupportedOSPlatform("windows")]
 internal static class FreedesktopTrash
 {
     /// <summary>The spec asks for Trash folders only their owner can open.</summary>

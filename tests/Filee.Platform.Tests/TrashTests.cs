@@ -5,6 +5,9 @@ using Filee.Platform.Linux;
 using Filee.Platform.MacOS;
 using Filee.Platform.Windows;
 
+// Each test checks the OS it needs; the mount and missing-file checks are plain string and file work.
+#pragma warning disable CA1416
+
 namespace Filee.Platform.Tests;
 
 public sealed class TrashTests : IDisposable

@@ -5,10 +5,12 @@
 // the file then stays where it is. IFileOperation needs an STA thread.
 
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using Filee.Core.Platform;
 
 namespace Filee.Platform.Windows;
 
+[SupportedOSPlatform("windows")]
 internal static class RecycleBin
 {
     private const uint FOF_SILENT = 0x4;
@@ -162,7 +164,8 @@ internal static class RecycleBin
         [PreserveSig] int PreDeleteItem(uint flags, IShellItem item);
         [PreserveSig] int PostDeleteItem(uint flags, IShellItem item, int result, IShellItem? created);
         [PreserveSig] int PreNewItem(uint flags, IShellItem destination, [MarshalAs(UnmanagedType.LPWStr)] string? newName);
-        [PreserveSig] int PostNewItem(uint flags, IShellItem destination, [MarshalAs(UnmanagedType.LPWStr)] string? newName,
+        [PreserveSig]
+        int PostNewItem(uint flags, IShellItem destination, [MarshalAs(UnmanagedType.LPWStr)] string? newName,
             [MarshalAs(UnmanagedType.LPWStr)] string? template, uint attributes, int result, IShellItem? created);
         [PreserveSig] int UpdateProgress(uint total, uint done);
         [PreserveSig] int ResetTimer();
