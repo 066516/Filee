@@ -1171,6 +1171,10 @@ public class RenderTests
         Assert.True(vm.Ocr);
         Assert.Equal("eng", vm.OcrLanguage.Value);
         Assert.Equal("eng", vm.OcrLanguageChoices[0].Value); // English first, the others by their own names
+        // On a Mac Apple Vision reads the common languages, with nothing to download.
+        Assert.Equal(loc[OperatingSystem.IsMacOS() ? "presets.ocr_hint_macos" : "presets.ocr_hint"], vm.OcrHint);
+        if (OperatingSystem.IsMacOS())
+            Assert.Null(vm.OcrLanguageChoices.Single(l => l.Value == "deu").Detail);
 
         var window = new PresetEditorWindow { DataContext = vm, Height = 1400 };
         window.Show();

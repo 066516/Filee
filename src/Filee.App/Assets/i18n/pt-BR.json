@@ -86,6 +86,7 @@
   "error.cannot_turn": "Girar e espelhar só funcionam em imagens",
   "error.no_transparency": "Este formato não tem transparência, então não há nada para cortar",
   "error.ocr_language_download": "Não foi possível baixar o idioma do OCR",
+  "error.ocr_needs_tesseract": "O Apple Vision não lê este idioma. Instale o Tesseract em Configurações → Motores",
   "error.too_many_frames": "Quadros demais para salvar como imagens. Aumente “A cada N quadros”",
   "error.too_many_pictures": "Imagens demais para um vídeo; divida-as em vários",
   "error.not_enough_space": "Não há espaço livre suficiente em disco para as imagens",
@@ -164,6 +165,7 @@
   "engine.pandoc.description": "Markdown e HTML ↔ ODT e RTF, DOCX → Markdown\nreStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter e mais ↔ Markdown, HTML, DOCX e ODT\nMarkdown e Org → slides PPTX",
   "engine.ghostscript.description": "EPS, PostScript e arquivos antigos do Illustrator para PDF e imagens; PDF para EPS e PS.",
   "engine.tesseract.description": "Reconhece o texto de digitalizações e imagens (OCR): PDF pesquisável, DOCX, TXT.",
+  "engine.vision.description": "Reconhece o texto de digitalizações e imagens com o reconhecimento de texto do próprio macOS (OCR): PDF pesquisável, DOCX, TXT. Nada para baixar.",
   "engine.calibre.description": "Formatos raros de e-book (LIT, LRF, CHM, PDB, RB…) e saída Kindle (MOBI, AZW3).\nAcima do gravador de HWPX, também gera os PDFs de e-books (bem mais rápido em livros longos).",
   "engine.libreoffice.description": "Lê formatos antigos e menos comuns: DOC, PPT, Pages, Keynote, Numbers, WordPerfect, ClarisWorks, Publisher, Visio…\nTambém salva como DOC, XLS, PPT, ODT, ODP, modelos OpenDocument e EMF.",
 
@@ -562,6 +564,7 @@
   "presets.pdf_ghostscript_hint": "Muitas vezes menor, mas reescreve o arquivo inteiro.\nO menor resultado é mantido.",
   "presets.ocr": "Reconhecer texto (OCR)",
   "presets.ocr_hint": "Digitalizações e imagens ganham texto que pode ser pesquisado e editado. Requer o Tesseract (Configurações → Motores).\nPáginas que já têm texto ficam como estão.",
+  "presets.ocr_hint_macos": "Digitalizações e imagens ganham texto que pode ser pesquisado e editado, com o reconhecimento de texto do próprio macOS (Apple Vision). Idiomas que ele não lê precisam do Tesseract (Configurações → Motores).\nPáginas que já têm texto ficam como estão.",
   "presets.ocr_language": "Idioma do texto",
   "presets.ocr_language_size": "Download de {0}",
   "presets.pdf_keep_metadata": "Manter metadados de página e imagem (XMP)",

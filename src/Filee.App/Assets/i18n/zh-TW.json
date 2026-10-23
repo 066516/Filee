@@ -86,6 +86,7 @@
   "error.cannot_turn": "只能旋轉和翻轉圖片",
   "error.no_transparency": "此格式沒有透明部分，無需裁切",
   "error.ocr_language_download": "無法下載 OCR 語言資料",
+  "error.ocr_needs_tesseract": "Apple Vision 無法辨識此語言。請在「設定 → 轉換引擎」中安裝 Tesseract",
   "error.too_many_frames": "影格數太多，請調大「每 N 個影格」",
   "error.too_many_pictures": "圖片太多，無法放進同一部影片，請分成幾次",
   "error.not_enough_space": "磁碟空間不足，無法儲存這些圖片",
@@ -164,6 +165,7 @@
   "engine.pandoc.description": "Markdown 和 HTML ↔ ODT、RTF，DOCX → Markdown\nreStructuredText、LaTeX、Org、AsciiDoc、Typst、MediaWiki、DocBook、Jupyter 等 ↔ Markdown、HTML、DOCX、ODT\nMarkdown 和 Org → PPTX 投影片",
   "engine.ghostscript.description": "EPS、PostScript 和舊版 Illustrator 檔案轉為 PDF 和圖片；PDF 轉為 EPS 和 PS。",
   "engine.tesseract.description": "辨識掃描檔和圖片中的文字（OCR）：可搜尋的 PDF、DOCX、TXT。",
+  "engine.vision.description": "使用 macOS 內建的文字辨識來辨識掃描檔和圖片中的文字（OCR）：可搜尋的 PDF、DOCX、TXT。不需要下載。",
   "engine.calibre.description": "少見的電子書格式（LIT、LRF、CHM、PDB、RB…）以及 Kindle 輸出（MOBI、AZW3）。\n排在 HWPX writer 之上時，也由它把電子書轉為 PDF（長書快得多）。",
   "engine.libreoffice.description": "讀取較舊或少見的格式，如 DOC、PPT、Pages、Keynote、Numbers、WordPerfect、ClarisWorks、Publisher、Visio。\n也能儲存為 DOC、XLS、PPT、ODT、ODP、OpenDocument 範本或 EMF。",
 
@@ -562,6 +564,7 @@
   "presets.pdf_ghostscript_hint": "通常更小，但會重寫整個檔案。\n保留最小的結果。",
   "presets.ocr": "辨識文字（OCR）",
   "presets.ocr_hint": "讓掃描檔和圖片中的文字可以搜尋和編輯。需要 Tesseract（設定 → 轉換引擎）。\n已有文字的頁面保持不變。",
+  "presets.ocr_hint_macos": "使用 macOS 內建的文字辨識（Apple Vision），讓掃描檔和圖片中的文字可以搜尋和編輯。它無法辨識的語言需要 Tesseract（設定 → 轉換引擎）。\n已有文字的頁面保持不變。",
   "presets.ocr_language": "文字的語言",
   "presets.ocr_language_size": "下載 {0}",
   "presets.pdf_keep_metadata": "保留頁面和圖片中繼資料 (XMP)",

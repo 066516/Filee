@@ -86,6 +86,7 @@
   "error.cannot_turn": "Поворот и отражение работают только с изображениями",
   "error.no_transparency": "В этом формате нет прозрачности, обрезать нечего",
   "error.ocr_language_download": "Не удалось скачать язык для OCR",
+  "error.ocr_needs_tesseract": "Apple Vision не читает этот язык. Установите Tesseract в разделе «Настройки → Движки»",
   "error.too_many_frames": "Слишком много кадров для сохранения картинками — увеличьте «Каждый N-й кадр»",
   "error.too_many_pictures": "Слишком много картинок для одного видео — разделите их на несколько",
   "error.not_enough_space": "Не хватает места на диске для картинок",
@@ -164,6 +165,7 @@
   "engine.pandoc.description": "Markdown и HTML ↔ ODT и RTF, DOCX → Markdown\nreStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter и другие ↔ Markdown, HTML, DOCX и ODT\nMarkdown и Org → слайды PPTX",
   "engine.ghostscript.description": "EPS, PostScript и старые файлы Illustrator — в PDF и картинки; PDF — в EPS и PS.",
   "engine.tesseract.description": "Распознаёт текст сканов и изображений (OCR): PDF с поиском, DOCX, TXT.",
+  "engine.vision.description": "Распознаёт текст сканов и изображений встроенным в macOS распознаванием текста (OCR): PDF с поиском, DOCX, TXT. Ничего скачивать не нужно.",
   "engine.calibre.description": "Редкие форматы электронных книг (LIT, LRF, CHM, PDB, RB…) и вывод для Kindle (MOBI, AZW3).\nЕсли стоит выше HWPX writer, он же делает PDF из электронных книг (для длинных книг намного быстрее).",
   "engine.libreoffice.description": "Читает старые и редкие форматы: DOC, PPT, Pages, Keynote, Numbers, WordPerfect, ClarisWorks, Publisher, Visio…\nА ещё сохраняет в DOC, XLS, PPT, ODT, ODP, шаблоны OpenDocument и EMF.",
 
@@ -562,6 +564,7 @@
   "presets.pdf_ghostscript_hint": "Часто получается меньше, но он перезаписывает весь файл.\nОстаётся самый маленький результат.",
   "presets.ocr": "Распознать текст (OCR)",
   "presets.ocr_hint": "Текст сканов и изображений можно будет искать и редактировать. Нужен Tesseract (Настройки → Движки).\nСтраницы, где уже есть текст, не меняются.",
+  "presets.ocr_hint_macos": "Текст сканов и изображений можно будет искать и редактировать с помощью встроенного в macOS распознавания текста (Apple Vision). Для языков, которые оно не читает, нужен Tesseract (Настройки → Движки).\nСтраницы, где уже есть текст, не меняются.",
   "presets.ocr_language": "Язык текста",
   "presets.ocr_language_size": "Загрузка {0}",
   "presets.pdf_keep_metadata": "Сохранять метаданные страниц и картинок (XMP)",

@@ -86,6 +86,7 @@
   "error.cannot_turn": "Obracanie i odbicie działają tylko na obrazach",
   "error.no_transparency": "Ten format nie ma przezroczystości, więc nie ma czego przycinać",
   "error.ocr_language_download": "Nie udało się pobrać języka OCR",
+  "error.ocr_needs_tesseract": "Apple Vision nie czyta tego języka. Zainstaluj Tesseract w Ustawienia → Silniki",
   "error.too_many_frames": "Za dużo klatek do zapisania jako obrazy, zwiększ „Co N-ta klatka”",
   "error.too_many_pictures": "Za dużo zdjęć na jedno wideo, podziel je na kilka",
   "error.not_enough_space": "Za mało wolnego miejsca na dysku na obrazy",
@@ -164,6 +165,7 @@
   "engine.pandoc.description": "Markdown i HTML ↔ ODT i RTF, DOCX → Markdown\nreStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter i inne ↔ Markdown, HTML, DOCX i ODT\nMarkdown i Org → slajdy PPTX",
   "engine.ghostscript.description": "EPS, PostScript i starsze pliki Illustratora do PDF i obrazów; PDF do EPS i PS.",
   "engine.tesseract.description": "Rozpoznaje tekst skanów i obrazów (OCR): przeszukiwalny PDF, DOCX, TXT.",
+  "engine.vision.description": "Rozpoznaje tekst skanów i obrazów wbudowanym rozpoznawaniem tekstu macOS (OCR): przeszukiwalny PDF, DOCX, TXT. Nic nie trzeba pobierać.",
   "engine.calibre.description": "Rzadkie formaty e-booków (LIT, LRF, CHM, PDB, RB…) i zapis dla Kindle (MOBI, AZW3).\nUmieszczony nad HWPX writer tworzy też PDF-y e-booków (znacznie szybciej przy długich książkach).",
   "engine.libreoffice.description": "Odczytuje starsze i rzadsze formaty: DOC, PPT, Pages, Keynote, Numbers, WordPerfect, ClarisWorks, Publisher, Visio…\nZapisuje też jako DOC, XLS, PPT, ODT, ODP, szablony OpenDocument i EMF.",
 
@@ -562,6 +564,7 @@
   "presets.pdf_ghostscript_hint": "Często daje mniejszy plik, ale zapisuje cały plik od nowa.\nZostaje najmniejszy wynik.",
   "presets.ocr": "Rozpoznaj tekst (OCR)",
   "presets.ocr_hint": "Tekst skanów i obrazów da się przeszukiwać i edytować. Wymaga Tesseract (Ustawienia → Silniki).\nStrony, które mają już tekst, pozostają bez zmian.",
+  "presets.ocr_hint_macos": "Tekst skanów i obrazów da się przeszukiwać i edytować dzięki wbudowanemu rozpoznawaniu tekstu macOS (Apple Vision). Języki, których nie czyta, wymagają Tesseract (Ustawienia → Silniki).\nStrony, które mają już tekst, pozostają bez zmian.",
   "presets.ocr_language": "Język tekstu",
   "presets.ocr_language_size": "Pobieranie {0}",
   "presets.pdf_keep_metadata": "Zachowaj metadane stron i obrazów (XMP)",
