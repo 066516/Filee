@@ -103,6 +103,17 @@ titles and explanations are localized. The multilingual language showcase also r
 ignored. App and Setup refresh the selected media on a language change without resetting the current slide.
 Every file stays under 400 KiB, each pack under 2 MiB and all shared/Portuguese media under 6 MiB.
 
+## Approved editorial follow-up — 23 October 2026
+
+`about.sponsor` is now `Apoiar` and `sponsor.title` is `Apoiar o Filee` in pt-PT. `Página inicial` and the
+acknowledgement `patrocinadores` remain unchanged; no pt-BR or other JSON catalog was edited in this follow-up.
+The existing glossary and sponsor-window render cases cover both variants. pt-PT theme/history clips and the
+shared language showcase were regenerated; App and Setup were rebuilt afterwards.
+
+The [current validation report](PORTUGUESE-NATIVE-VALIDATION.md#editorial-follow-up--23-october-2026) separates
+local automated results, headless PNGs and partial real Windows interaction. It also links the new CI run;
+the historical successful run below must not be treated as validation of the new head. The PR remains a draft.
+
 ## Validation and remaining checks
 
 [Independent-review follow-up](PORTUGUESE-REVIEW-FOLLOWUP.md) records current commands, results and the disposition

@@ -82,6 +82,59 @@ and keyboard/NVDA/VoiceOver checks remain required. Complete native CI has since
 [native validation report](PORTUGUESE-NATIVE-VALIDATION.md) records the evidence and interactive checklist.
 The PR stays a draft pending those interactive checks.
 
+## Approved Phase 1 follow-up — 23 October 2026
+
+The remote contribution branch was confirmed at `484d6fb`, then advanced by the small editorial commit
+`91174f2` and generated-media commit `ff7b349`. Only pt-PT's sponsor action/title changed to `Apoiar` /
+`Apoiar o Filee`. `Página inicial`, `patrocinadores`, all 911 keys, variables and formatting remain intact;
+pt-BR and the other JSON catalogs are unchanged. The glossary has five additional existing-fixture cases and
+the sponsor-window render fixture now includes both Portuguese variants.
+
+[The updated native report](PORTUGUESE-NATIVE-VALIDATION.md#editorial-follow-up--23-october-2026) records the
+339 focused App passes, 168 Setup passes after repairing the environment's screenshot output, full Core/CLI/Platform
+results and the separate 155-case check after the final resource rebuild. It distinguishes transient output adapters
+from committed code, and local full-format diagnostics from the successful formatter step in the new native CI.
+
+The real isolated Windows app passed the pt-PT automatic → explicit pt-BR → full exit/restart → automatic sequence.
+Selected native focus/preset keyboard checks and the new support title were observed. Reverse OS-language,
+mismatched native numeric region, modal keyboard, real release installation/UAC/Explorer, macOS/Finder/permissions
+and NVDA/VoiceOver checks remain open. The PR stays a draft and Phase 2 has not started.
+
+Commands used for this follow-up (PowerShell, Release):
+
+```powershell
+dotnet restore Filee.slnx --disable-parallel
+./build/fetch-fonts.ps1
+dotnet build Filee.slnx -m:1 -c Release --no-restore
+dotnet format Filee.slnx --verify-no-changes --no-restore --severity warn
+dotnet format Filee.slnx --verify-no-changes --no-restore --severity warn --include tests/Filee.App.Tests/PortugueseLocalizationTests.cs tests/Filee.App.Tests/RenderTests.cs
+
+$env:FILEE_WHATSNEW_LANGUAGE = 'pt-PT'
+$env:FILEE_WHATSNEW_ONLY = 'theme,more'
+./tests/Filee.App.Tests/bin/Release/net10.0/Filee.App.Tests.exe -method Filee.App.Tests.WhatsNewMedia.Generate_2_0_0 -explicit only
+$env:FILEE_WHATSNEW_LANGUAGE = 'en'
+$env:FILEE_WHATSNEW_ONLY = 'languages'
+./tests/Filee.App.Tests/bin/Release/net10.0/Filee.App.Tests.exe -method Filee.App.Tests.WhatsNewMedia.Generate_2_0_0 -explicit only
+
+$env:FILEE_LOCALIZATION_SCREENSHOTS = '1'
+$appFilter = 'FullyQualifiedName~Localization|FullyQualifiedName~Portuguese|FullyQualifiedName~DonutLabelPlacement|FullyQualifiedName~ToolbarEditorTests|FullyQualifiedName~WhatsNewTests|FullyQualifiedName~InstallerTests|FullyQualifiedName~SupportersTests|FullyQualifiedName~ReleaseNotesTests|FullyQualifiedName~Live_photo_options_render_for_jpg_and_heic_and_save_only_there|FullyQualifiedName~Sponsor_window_renders'
+dotnet test tests/Filee.App.Tests -c Release --no-build --no-restore --filter $appFilter --logger trx
+dotnet test tests/Filee.Setup.Tests -c Release --no-build --no-restore --logger trx
+dotnet test tests/Filee.Core.Tests -c Release --no-build --no-restore --logger trx
+dotnet test tests/Filee.Cli.Tests -c Release --no-build --no-restore --logger trx
+dotnet test tests/Filee.Platform.Tests -c Release --no-build --no-restore --logger trx
+
+# After restoring the original helpers and rebuilding all embedded assets:
+dotnet build Filee.slnx -m:1 -c Release --no-restore
+$resourceFilter = 'FullyQualifiedName~Localization|FullyQualifiedName~The_2_0_0_deck_ships_with_its_media_and_texts|FullyQualifiedName~Slide_media_stay_small|FullyQualifiedName~Portuguese_recordings_preserve_the_desktop_context_and_localize_the_other_slides|FullyQualifiedName~Changing_language_refreshes_the_current_recording_without_resetting_the_slide'
+dotnet test tests/Filee.App.Tests -c Release --no-build --no-restore --filter $resourceFilter --logger trx
+```
+
+The successful media/capture commands used temporary output-folder adapters as documented in the native report;
+those adapters are not repository features or committed changes. The local logs retain failed attempts as well as
+final successes. Local commits were created without SSH signatures because the configured signing key required an
+unavailable passphrase; the user's signing configuration was not changed.
+
 ## References
 
 - [Apple pt-PT automation permissions](https://support.apple.com/pt-pt/guide/mac-help/mchl108e1718/mac)
