@@ -119,6 +119,10 @@ public sealed class PresetAvailability
                 }
                 return new(PresetUse.Unusable, _loc["error.unsupported_source"]);
             }
+            if (preset.Id.StartsWith("tool-pdf-", StringComparison.Ordinal))
+                return formats.Count > 0 && formats.All(f => f.Id == "pdf")
+                    ? new(PresetUse.Usable, null)
+                    : new(PresetUse.Unusable, _loc["error.unsupported_source"]);
             if (preset.IsCropTool && formats.Count > 0 && formats.All(f => WritableSingleFrameRasterFormats.Contains(f.Id)))
                 return new(PresetUse.Usable, null);
             return new(PresetUse.Unusable, _loc["error.unsupported_source"]);
