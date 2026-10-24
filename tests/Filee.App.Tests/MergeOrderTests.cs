@@ -16,6 +16,7 @@ using PdfSharp.Pdf.IO;
 
 namespace Filee.App.Tests;
 
+[Collection("MainWindow")]
 public class MergeOrderTests
 {
     private static void Click(Window window, string name)

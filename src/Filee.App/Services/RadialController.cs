@@ -220,6 +220,17 @@ public sealed class RadialController(
         var window = new RadialWindow { DataContext = viewModel };
         var donut = window.DonutControl;
 
+        // On native Wayland, hiding an xdg_toplevel surface causes the compositor to destroy its surface,
+        // and re-showing raises an InvalidOperationException. Track Closed to re-create on the next gesture.
+        if (Filee.Platform.Linux.WaylandSupport.NativeWaylandRequested)
+        {
+            window.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_window, window))
+                    _window = null;
+            };
+        }
+
         window.DragEntered += () => _dragReachedDonut = true;
         // Tells "the drag reached the donut but brought no files" apart, with what it brought (file promises, say).
         window.DragWithoutFiles += formats =>
@@ -327,7 +338,8 @@ public sealed class RadialController(
             return;
         }
 
-        if (preset.TargetFormat == "pdf" && preset.Pdf.MergeIntoSingle && sources.Count > 1)
+        // Merged PDFs, joined clips and slideshows follow the order the user picks.
+        if ((preset.TargetFormat == "pdf" && preset.Pdf.MergeIntoSingle || preset.JoinsIntoOneMedia) && sources.Count > 1)
         {
             Close(animate: false);
             _ = MergeInOrderAsync(sources, preset.Clone(), web);
@@ -380,6 +392,10 @@ public sealed class RadialController(
     {
         switch (preset.Id)
         {
+            case "tool-sheet-studio":
+                foreach (var workbook in files.Where(file => Path.GetExtension(file).Equals(".xlsx", StringComparison.OrdinalIgnoreCase)))
+                    windows.ShowSpreadsheetPrintStudio(workbook);
+                break;
             case "tool-pdf-pages":
                 windows.ShowPdfPageEditor(files, preset);
                 break;
@@ -501,7 +517,13 @@ public sealed class RadialController(
     /// Has the global hook report the flip key and the wheel only while a drag-mode donut shows files that could flip;
     /// they are left alone otherwise (see <see cref="TriggerService.WatchFlipKey"/>).
     /// </summary>
-    private void WatchFlipKey() => triggers.WatchFlipKey = FlipsFromHook;
+    private void WatchFlipKey()
+    {
+        triggers.WatchFlipKey = FlipsFromHook;
+        // One source per press: the hook in drag mode, the window in click mode (#504).
+        if (_window is not null)
+            _window.DonutControl.FlipKeyFromHook = FlipsFromHook;
+    }
 
     /// <summary>A drag-mode donut shows files and nothing was dropped yet: the hook's flip key and wheel flip it.</summary>
     private bool FlipsFromHook => _visible && !_dropped && !viewModel.IsClickMode && viewModel.HasFiles;

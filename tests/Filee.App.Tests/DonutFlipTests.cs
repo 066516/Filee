@@ -323,6 +323,9 @@ public class DonutFlipTests
             Assert.True(triggers.WatchFlipKey);
 
             provider.PostKey(EventType.KeyPressed, KeyCode.VcTab, EventMask.LeftCtrl);
+            // #504: macOS can hand the donut's window the same press as well; it must not flip a second time.
+            window.KeyPress(Key.Tab, RawInputModifiers.Control, PhysicalKey.Tab, null);
+            Dispatcher.UIThread.RunJobs();
             Assert.True(TriggerServiceLifecycleTests.Settle(() => vm.IsBackFace));
             Assert.Equal(ImageBack, vm.Items.Select(i => i.Id));
             provider.PostKey(EventType.KeyReleased, KeyCode.VcTab, EventMask.LeftCtrl);
@@ -713,9 +716,10 @@ public class DonutFlipTests
             RenderTests.Save(window, $"toolbar-back-face-{language}{(dark ? "-dark" : "")}.png");
 
             var back = ImageBack;
+            // The built-in back face is full (settings schema 37): a slice goes before another comes in.
+            page.RemoveAt(page.SliceCount - 1);
             Assert.True(page.Insert("to-psd", 0));
             page.Move(0, 2);
-            page.RemoveAt(page.SliceCount - 1);
             List<string> edited = [.. back[..2], "to-psd", .. back[2..^1]];
             Assert.Equal(edited, Images.BackPresetIds);
             Assert.Equal(front, Images.PresetIds); // the front as it was

@@ -74,7 +74,7 @@ public class BackFaceTests
     }
 
     [Fact]
-    public void Version_32_library_gets_pdf_edit_once_without_replacing_custom_back_slices()
+    public void Version_45_library_gets_pdf_edit_once_without_replacing_custom_back_slices()
     {
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id is "tool-pdf-crop" or "tool-pdf-pages" or "tool-pdf-add"
@@ -83,12 +83,12 @@ public class BackFaceTests
         var pdf = profiles.Single(p => p.Id == "pdf");
         pdf.BackPresetIds = ["to-html", "zip-all"];
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(32, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(45, presets, profiles));
 
         Assert.Equal(["pdf-edit", "to-html", "zip-all"], pdf.BackPresetIds);
         Assert.All(new[] { "tool-pdf-crop", "tool-pdf-pages", "tool-pdf-add", "pdf-rotate-left", "pdf-rotate-right", "pdf-edit" },
             id => Assert.Single(presets, p => p.Id == id));
-        Assert.False(SettingsMigrations.ApplyToLibrary(32, presets, profiles));
+        Assert.False(SettingsMigrations.ApplyToLibrary(45, presets, profiles));
     }
 
     [Fact]

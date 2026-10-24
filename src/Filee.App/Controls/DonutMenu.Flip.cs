@@ -63,6 +63,12 @@ public sealed partial class DonutMenu
     public bool FlipWithWheel { get => GetValue(FlipWithWheelProperty); set => SetValue(FlipWithWheelProperty, value); }
 
     /// <summary>
+    /// Drag mode: the global hook flips on the flip key (RadialController), so the window's own key press doesn't flip
+    /// too. macOS can give the donut's window the keyboard during a drag, and one press then flipped twice (#504).
+    /// </summary>
+    public bool FlipKeyFromHook { get; set; }
+
+    /// <summary>
     /// A wheel event at <paramref name="nowMs"/> (milliseconds, any clock): flips on the first one of a turn of the wheel
     /// and ignores the rest of it (<see cref="WheelQuietMs"/>). Returns true when it flipped.
     /// </summary>

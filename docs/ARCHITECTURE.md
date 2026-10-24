@@ -48,9 +48,27 @@
    Each name stays reserved while a conversion holds it. A conversion that fails or is cancelled deletes what it began
    writing, but only at a path that was its alone: nothing was there before and no other conversion was handed the
    same name ("Overwrite"). It frees its names and removes an output folder it made if that is left empty.
+   A PDF target's finishing (watermark, page numbers, password; `IPdfFinisher`) runs after the last step, on every
+   PDF a file became, and once on a merged PDF.
+   *Replace the original* (`OutputRule.ReplaceOriginal`, off by default) comes after that, for a finished result of
+   the source's own format and extension, or another spelling of it (`.jpeg` / `.jpg`; TXT also covers scripts and
+   logs, PPT also `.pps` and `.pot`, so those need the same extension). The result is first
+   moved next to the source under a temporary name, then the source goes to the Recycle Bin / Trash
+   (`IPlatformServices.MoveToTrash`, in the app and the command line), then the result takes its name. Windows only
+   ever recycles (IFileOperation with a sink that refuses a delete it can't recycle). When the source can't go there
+   (no Recycle Bin on the drive, a file open elsewhere, a read-only file), both stay and the file's notice says why,
+   with a translated reason (`trash.*`). A result "Only if smaller" copied from the source leaves the source alone.
+   Watch folders and files from a browser never replace.
    "Merge into one PDF" converts each file to PDF and merges with PDFsharp.
    "Compress into one archive" packs the dropped files, unconverted, with the archive engine (`IFileCombiner`).
+   "Merge videos", "Merge audio" and "Video from images" join the files, in the order picked in the merge order
+   window, into one file with FFmpeg (`IMediaJoiner`); pictures become PNG through the image engines first. Like the
+   other one-file jobs, the output follows "subfolder only for several files", and a join that fails or is cancelled
+   is undone by the job's allocator, which deletes only paths that were the job's own.
 6. **Report** – progress and results appear in the toast window and in Home → Recent conversions.
+   Renderers check only the original source for referenced fonts. `ConversionStep.MissingFonts` reports any missing
+   families to `FileResult.MissingFonts`; the toast card can offer one trusted source, while the CLI and watch jobs
+   report the names without pausing conversion or installing anything.
 
 ## Files dragged from a web browser
 
@@ -141,7 +159,9 @@ text, vectors, outlines, forms, page labels and document information remain PDF 
   skipped. Every file starts free and whole, its portrait/landscape choice following the picture.
 - `Controls/CropCanvas` is the stage: the picture inside `ImagePadding`, the part outside the frame frosted (a copy at
   most 40 px across, drawn large) under a veil of the page colour, the frame in the accent colour with round handles,
-  a rule-of-thirds grid while dragging and a size chip that follows the frame. The preview is downscaled once by
+  a rule-of-thirds grid while dragging and a size chip that follows the frame. A frame being moved snaps onto the
+  picture's vertical or horizontal centre line within `CropMath.SnapDistance` (8 px) and shows that line as a dashed
+  guide until the drag ends. The preview is downscaled once by
   `CropService.LoadPreviewAsync`; nothing is decoded again while dragging. Programmatic changes (reset, a ratio, a
   new picture) ease in with tweens read against the clock, so a lost frame never leaves one half done; dragging and
   arrow-key nudges follow at once, and `PlayAnimations` (from `Motion.Enabled`) turns all of it off.
@@ -162,6 +182,25 @@ without a password but requires an owner password for modify mode uses the same 
 its outlines and form fields are not preserved by that fallback. Generated copies are writable even when the source
 has the read-only attribute; the source's bytes and attributes are left alone.
 
+## Spreadsheet print studio
+
+The `tool-sheet-studio` tool opens an independent `Views/SpreadsheetPrintStudioWindow` for each dropped XLSX workbook
+instead of starting a normal conversion job. `SpreadsheetPrintStudioViewModel` owns an ordered, non-destructive print plan: each visible
+sheet starts as one region and the user can add more regions, change paper, orientation, scale, margins, page order,
+hidden rows and manual breaks, then see the PDF that those settings will produce.
+
+- `SpreadsheetPrintInspector` reads workbook metadata and streams the large worksheet data with `XmlReader`; opening
+  a large workbook neither builds nor retains an `XDocument` for every sheet.
+- `SpreadsheetPrintPackage` makes a disposable XLSX under `JobQueue.DefaultWorkRoot`. It keeps every worksheet and
+  named range so cross-sheet formulas remain valid, hides the sheets not being rendered, and changes only the chosen
+  sheet's print settings. A new print area is written only after the user explicitly changes or accepts the range.
+- `SpreadsheetPrintService` runs LibreOffice once for each region. Preview and export use the same disposable-workbook
+  path; export then joins the region PDFs in the chosen order with PDFsharp. The ordinary XLSX → PDF donut conversion
+  can still differ because route planning may select Filee's built-in spreadsheet reader instead of LibreOffice.
+- `PdfPreviewDocument` caches a PDF's bytes and page geometry. The studio asks PDFium/PDFtoImage for small thumbnails
+  and only one large selected page, all decoded away from the UI thread; exporting never performs preview rendering.
+  Cancellation closes LibreOffice and the temporary job folder is removed on success, error or window close.
+
 ## Settings and data
 
 `UserDataStore` owns `settings.json`, `presets.json`, `profiles.json` and `history.json`
@@ -178,6 +217,20 @@ Bump `AppSettings.CurrentSchemaVersion` and add a step to `SettingsMigrations` w
   stay left to right. Light/dark surface colours are theme dictionaries in `Styles/Soft.axaml`; a user's
   `theme.json` (`CustomTheme`, see [CUSTOM-THEMES.md](CUSTOM-THEMES.md)) overrides them with theme dictionaries in
   application resources, which are searched first.
+- Window zoom (`Services/UiZoom`): Theme → *Window size* (− / + and *Reset*), and in any tracked window the
+  platform's command key (`HotkeyConfiguration.CommandModifiers`: Ctrl, Cmd on macOS) with the mouse wheel, plus /
+  minus (Shift allowed, Alt not: AltGr is Ctrl + Alt) or 0 for 100 %. 70–180 % in 10 % steps, every window at once.
+  `UiZoom.Track(window)` wraps the window's content in a `LayoutTransformControl`, so layouts see the room they really
+  have. Small wheel deltas (touchpads, smooth wheels, pinching on a Windows touchpad) add up to one step per whole notch.
+  Windows that can't be resized grow with the zoom (their designed width × the zoom) up to their screen, cap their
+  height to it and scroll; the engine setup keeps itself on screen and scrolls its own list (`fitsItself`).
+  Tracked: the main window, the preset, group, rename and merge-order editors, the engine setup, LibreOffice options,
+  close, sponsor, what's new and update-progress windows and `WindowService`'s message dialog. Not tracked, so at
+  100 %: the donut (it has its own size), the toast and the corner notices (update, engine update, feedback, format
+  request, elevation), which are placed in a screen corner like system notifications, and the crop overlay, whose
+  wheel zooms the crop. Drop-down lists, context menus and tooltips open in their own popup windows outside the
+  transform and stay at 100 % too. The size is `UiScale` in settings.json (1 when missing, so no schema step); it is
+  written by `UserDataStore.SaveUiScale` 0.6 s after the last change (and on exit), without raising `SettingsChanged`.
 
 ## "What's new" slides
 
@@ -241,7 +294,7 @@ so a file is handed to its app and never started itself; only formats Filee know
 `SupportsOpenWith` (Windows), the shell's "Open with" dialog (`SHOpenWithDialog`, on a thread of its own because it
 blocks until closed). The cards' pictures come from `HistoryThumbnails`: Skia decodes them off the UI thread, scaled
 down while decoding where the format allows, from a copy read in one go so the file isn't held open, and a small cache
-keeps them while the files are unchanged.
+keeps them while the files are unchanged. For video files, FFmpeg extracts and scales a representative frame off the UI thread without locking the file.
 
 On macOS, files reach Filee from file managers other than Finder too (issue #160). The "Convert with Filee" service
 (`MacOSServicesProvider`) and the donut's drags (`DraggedFiles`) read file URLs first, then the older
@@ -336,8 +389,11 @@ have no semibold) instead of the app's embedded Noto fonts.
   (`SetupPayload`): ~48 MB segments compressed in parallel with SharpCompress's LZMA (48 MB dictionary), programs
   first through the x86 branch filter (`X86Filter`, from the LZMA SDK) as 7-Zip and Inno Setup do. The manifest lists
   every file with its size, SHA-256 and filter, the SHA-256 of the compressed data, the version and the engines to
-  offer (from `EngineDownloads`). A future signature goes after the trailer (Setup looks
-  for the trailer in front of the certificate table), so sign after packing. The code is trim- and AOT-safe
+  offer (from `EngineDownloads`). Setup.exe's signature goes after the trailer (Setup looks
+  for the trailer in front of the certificate table; the manifest is padded so the file ends on the 8-byte boundary
+  signtool needs), so Setup.exe is signed after packing. The Setup program is signed before: its signature stays at
+  the end of the program, Setup.exe's header stops pointing to it, and the manifest's `programSignature` lets the
+  uninstaller copied out of Setup.exe (`CopyProgramTo`) point to it again, so `uninstall.exe` is signed too. The code is trim- and AOT-safe
   (compiled bindings, source-generated P/Invoke and COM); Native AOT would need the MSVC linker on the build machine
   and still couldn't link SkiaSharp's native libraries in.
 - **Rights**: Setup starts unelevated (asInvoker) and, for an install for all users, starts itself again with
@@ -365,3 +421,27 @@ have no semibold) instead of the app's embedded Noto fonts.
   against `MemoryRegistry`, a fake `ISetupSystem` and scratch folders, and renders every page. `/SANDBOX=<folder>`
   runs the real Setup with a registry file and all folders inside `<folder>`; `build-installer.ps1 -CheckOnly` (CI)
   installs, updates and uninstalls that way.
+
+## Linux installer and updates
+
+On Linux, Filee is distributed as a self-contained archive (`Filee-<version>-<rid>.tar.gz` for `linux-x64` and
+`linux-arm64`) containing the application, `filee-cli`, bundled conversion engines, application icon, `.desktop` launcher,
+and standalone shell scripts (`install.sh`, `uninstall.sh`).
+
+- **Installation**: `install.sh` installs for the current user into `~/.local/share/filee/application` without root,
+  creating a launcher symlink at `~/.local/bin/filee` and desktop registration at
+  `~/.local/share/applications/com.filee.app.desktop`. A `.filee-package` marker containing `com.filee.app` identifies
+  the directory as an authentic managed installation. Running without `--upgrade` refuses to overwrite an existing
+  installation.
+- **In-app updates** (`UpdateService`): Checks GitHub releases for matching `<rid>.tar.gz` and `<rid>-SHA256SUMS.txt`
+  assets. The tarball is verified against SHA-256 before extraction. Archive extraction validates that all entries stay
+  within the target directory, rejecting absolute paths, directory symlinks, and escaping links, and masks permissions to
+  standard rwx bits (excluding setuid/setgid/sticky bits).
+- **Transactional upgrade**: `UpdateAsync` stages the payload in a private directory (`~/.local/share/filee/.update-*`),
+  spawns a detached `/bin/sh` helper, and requests application shutdown (`App.Quit`). Once the old process exits, the
+  helper executes `install.sh --upgrade` (which safely moves the existing installation to a backup directory, validates the
+  new files, and rolls back on failure or signal interruption), and restarts Filee with `--background --whats-new`.
+  Output and rollback diagnostics are appended to Filee's daily log (`~/.config/Filee/logs/`). Downloaded conversion engines
+  (`~/.local/share/Filee/engines`) and user settings (`~/.config/Filee`) remain untouched.
+- **Uninstallation**: `uninstall.sh` removes the application directory, desktop launcher, and `~/.local/bin/filee` symlink
+  after verifying the `.filee-package` marker. User settings and converted files are kept.
