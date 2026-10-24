@@ -121,7 +121,7 @@ public static class BuiltInData
     ];
 
     /// <summary>
-    /// "Cut a clip" (added in settings schema 44): a part of a video, chosen on a timeline, as a file of its own. First on
+    /// "Cut a clip" (added in settings schema 45): a part of a video, chosen on a timeline, as a file of its own. First on
     /// the back of the video donut, as "Crop" is on the images donut.
     /// </summary>
     public static List<Preset> ClipPresets() =>

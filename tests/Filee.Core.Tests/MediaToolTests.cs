@@ -145,7 +145,7 @@ public class MediaToolTests
 
         Assert.True(SettingsMigrations.ApplyToLibrary(36, presets, profiles));
 
-        // "Cut a clip" (schema 44) comes in first as well.
+        // "Cut a clip" (schema 45) comes in first as well.
         Assert.Equal(["tool-clip", "mp4-av1", "to-wav", "compress-video", "merge-videos", "extract-audio", "zip-all"], video.BackPresetIds);
     }
 
