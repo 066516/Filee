@@ -47,6 +47,9 @@ public static class FormatRegistry
         new("pcd", "Photo CD", FormatCategory.Image, ["pcd"], Writable: false),
         new("exr", "OpenEXR", FormatCategory.Image, ["exr"], Writable: false),
         new("hdr", "Radiance HDR", FormatCategory.Image, ["hdr"], Writable: false),
+        // Astronomy pictures from telescope cameras and stacking software, read by Filee itself (issue #460). ".fit" is
+        // left to Garmin's FIT activity files (issue #451).
+        new("fits", "FITS", FormatCategory.Image, ["fits", "fts"], Writable: false),
         // Read on Windows only, with its own codec (HDR screenshots of Windows are JPEG XR).
         new("jxr", "JPEG XR", FormatCategory.Image, ["jxr", "wdp", "hdp"], Writable: false),
         new("xcf", "XCF", FormatCategory.Image, ["xcf"], Writable: false),

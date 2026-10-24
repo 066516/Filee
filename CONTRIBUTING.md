@@ -54,6 +54,8 @@ machine that built it. Check a package with
   the user in the `input` group (libuiohook's libinput back end) and a compositor positioning mechanism (the KWin script in
   `installer/linux/kwin` or a Hyprland floating window rule). Native Wayland support (`Avalonia.Wayland`) is also available
   as an opt-in via `FILEE_USE_WAYLAND=1`. See `installer/linux/INSTALL.txt`.
+  On GNOME Wayland, the bundled Shell extension supplies pointer state through a private Unix socket; no input
+  group is required. See [docs/GNOME-WAYLAND.md](docs/GNOME-WAYLAND.md) for setup, limits and troubleshooting.
 - **macOS:** grant Filee Accessibility permission for gestures and Finder Automation permission for selection.
   Keep the development `.app` at a stable path while testing these permissions. Finder integration is a Quick
   Action under Services; auto-start uses a per-user LaunchAgent.

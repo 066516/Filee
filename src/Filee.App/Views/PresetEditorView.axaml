@@ -173,6 +173,15 @@
         </Grid>
         <CheckBox Content="{DynamicResource presets.multipage_tiff}" IsChecked="{Binding MultiPageTiff}" IsVisible="{Binding ShowMultiPageTiff}"
                   ToolTip.Tip="{DynamicResource presets.multipage_tiff_hint}" />
+        <Grid ColumnDefinitions="*,12,*" IsVisible="{Binding ShowFitsTiff}">
+          <StackPanel>
+            <TextBlock Classes="label" Text="{DynamicResource presets.fits_tiff}" />
+            <ComboBox ItemsSource="{Binding FitsTiffModes}" SelectedItem="{Binding FitsTiffMode}" HorizontalAlignment="Stretch"
+                      ToolTip.Tip="{DynamicResource presets.fits_tiff_hint}" />
+          </StackPanel>
+        </Grid>
+        <CheckBox Content="{DynamicResource presets.fits_debayer}" IsChecked="{Binding FitsDebayer}" IsVisible="{Binding ShowFitsDebayer}"
+                  ToolTip.Tip="{DynamicResource presets.fits_debayer_hint}" />
         <StackPanel Spacing="6" IsVisible="{Binding ShowSaveEveryFrame}">
           <CheckBox Content="{DynamicResource presets.save_every_frame}" IsChecked="{Binding SaveEveryFrame}"
                     ToolTip.Tip="{DynamicResource presets.save_every_frame_hint}" />
@@ -290,6 +299,20 @@
           <Slider Minimum="0" Maximum="100" Value="{Binding TraceDetail}" TickFrequency="1" IsSnapToTickEnabled="True"
                   ToolTip.Tip="{DynamicResource presets.trace_detail_hint}" />
         </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- DWG / DXF: the AutoCAD version to write (#489) -->
+    <Border x:Name="CadCard" Classes="card" IsVisible="{Binding ShowCad}" Padding="14">
+      <StackPanel Spacing="10">
+        <TextBlock Classes="h2" Text="{DynamicResource presets.group.cad}" />
+        <Grid ColumnDefinitions="*,12,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="{DynamicResource presets.cad_version}" />
+            <ComboBox ItemsSource="{Binding CadVersions}" SelectedItem="{Binding CadVersion}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+        </Grid>
+        <TextBlock Classes="caption" Text="{DynamicResource presets.cad_version_hint}" TextWrapping="Wrap" />
       </StackPanel>
     </Border>
 

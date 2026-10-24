@@ -19,16 +19,16 @@ public class UsmFormatTests
     }
 
     [Fact]
-    public void Version_42_libraries_learn_usm_once()
+    public void Version_43_libraries_learn_usm_once()
     {
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
         var video = profiles.Single(p => p.Id == "video");
         video.Extensions.Remove("usm");
 
-        Assert.True(SettingsMigrations.ApplyToLibrary(42, presets, profiles));
+        Assert.True(SettingsMigrations.ApplyToLibrary(43, presets, profiles));
 
         Assert.Contains("usm", video.Extensions);
-        Assert.False(SettingsMigrations.ApplyToLibrary(42, presets, profiles));
+        Assert.False(SettingsMigrations.ApplyToLibrary(43, presets, profiles));
     }
 }
