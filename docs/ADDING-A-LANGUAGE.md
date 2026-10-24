@@ -62,8 +62,7 @@ choices, whose group supplies additional context (Rotate → Left), and is a sep
 
 ## Adding a UI string
 
-Add the key to **all** language files in the same pull request. Until a language maintainer reviews a new
-translation, retain the English value and document that follow-up. In XAML use
+Add the key to **all** language files in the same pull request. In XAML use
 `Text="{DynamicResource my.key}"`; in code use `ILocalizer["my.key"]` or `ILocalizer.Format("my.key", arg)`.
 
 Set `FILEE_LOCALIZATION_SCREENSHOTS=1` for PNG captures in `PortugueseRenderTests`. Geometry assertions
