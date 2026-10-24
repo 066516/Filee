@@ -113,6 +113,9 @@ public class DonutFlipTests
         var pin = System.Runtime.InteropServices.GCHandle.Alloc(pixel, System.Runtime.InteropServices.GCHandleType.Pinned);
         try { image.CopyPixels(new PixelRect((int)at.X, (int)at.Y, 1, 1), pin.AddrOfPinnedObject(), 4, 4); }
         finally { pin.Free(); }
+        // Always B, G, R, A: macOS renders RGBA where Windows and Linux render BGRA.
+        if (image.Format == Avalonia.Platform.PixelFormat.Rgba8888)
+            (pixel[0], pixel[2]) = (pixel[2], pixel[0]);
         return pixel;
     }
 
