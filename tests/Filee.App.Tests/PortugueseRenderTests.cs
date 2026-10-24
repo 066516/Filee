@@ -18,6 +18,51 @@ namespace Filee.App.Tests;
 public class PortugueseRenderTests
 {
     [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
+    public void First_run_engine_names_and_statuses_fit_their_cards(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var vm = new EngineSetupViewModel(AppHost.Get<EngineDownloadService>(), AppHost.Get<ILocalizer>());
+        var calibre = vm.Packages.Single(p => p.Package.Id == "calibre");
+        var beforeStatus = calibre.Status;
+        var beforeSystem = calibre.FromSystem;
+        var window = new EngineSetupWindow { DataContext = vm };
+        try
+        {
+            // The long translated package name and system-copy status reproduced a native pt-PT cut-off.
+            // Make the state deterministic even when Calibre is absent from the test host.
+            calibre.FromSystem = true;
+            calibre.Status = EnginePackageStatus.OwnCopy;
+            window.Show();
+            RenderTests.Pump();
+            Capture(window, $"portuguese-engine-setup-{language}.png");
+            var card = window.GetVisualDescendants().OfType<Border>()
+                .Single(b => b.Classes.Contains("card") && ReferenceEquals(b.DataContext, calibre));
+            var headings = card.GetVisualDescendants().OfType<TextBlock>()
+                .Where(t => t.Text == calibre.Name || t.Text == calibre.StatusText).ToList();
+            Assert.Equal(2, headings.Count);
+            foreach (var text in headings)
+            {
+                var right = text.TranslatePoint(new Point(text.Bounds.Width, 0), card)!.Value.X;
+                Assert.True(right <= card.Bounds.Width - card.Padding.Right + 1,
+                    $"{language}: engine heading '{text.Text}' extends beyond its card ({right} in {card.Bounds.Width})");
+                Assert.True(text.TextLayout.Width <= text.Bounds.Width + 1 &&
+                            text.TextLayout.Height <= text.Bounds.Height + 1,
+                    $"{language}: engine heading '{text.Text}' is cut off");
+            }
+        }
+        finally
+        {
+            window.Close();
+            vm.CloseCommand.Execute(null);
+            calibre.Status = beforeStatus;
+            calibre.FromSystem = beforeSystem;
+        }
+    }
+
+    [AvaloniaTheory]
     [InlineData("pt-PT", 440, "mp4-720")]
     [InlineData("pt-BR", 440, "mp4-720")]
     [InlineData("pt-PT", 560, "mp4-720")]

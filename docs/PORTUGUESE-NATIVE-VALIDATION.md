@@ -8,6 +8,27 @@ CI completed on 22 October 2026; report consolidated on 23 October. Only Blacksp
 all nine jobs passed. This closes the previously pending automated CI and full-formatter checks. It does not
 certify an interactive installation, OS-language session, permission dialog or screen reader.
 
+## Native engine-setup follow-up - 24 October 2026
+
+A fresh isolated Windows launch after submission exposed a real pt-PT cut-off in the first-run engine chooser:
+the long Calibre name placed `Encontrado neste computador` beyond its card. A deterministic geometry regression
+reproduced it (579 px inside a 508 px card); English and pt-BR passed the same baseline case. Package names and
+status badges now wrap onto another line without shortening translations or changing window sizes. The three
+regression cases, seven first-run render cases, three short-screen/button/escape cases and two UI-scale cases
+all pass: **15 / 0 failed / 0 skipped**, 14 seconds. Changed-test whitespace formatting passes. The solution was
+rebuilt after the XAML change: zero errors, five existing warnings. Existing demo scenes do not show this chooser,
+so their media are unaffected. The 292 App and 176 Setup results below precede this narrow follow-up and are
+not added to these fifteen as a unique-test count.
+
+The installed Computer Use skill operated the submitted development app with a new temporary FILEE_DATA_DIR:
+automatic language opened in pt-PT, `Página inicial` / `Apoiar` were present, and the Theme page exposed the new
+`Escala da interface` controls. Real Ctrl+numpad-plus changed 100% to 110%; Ctrl+0 restored 100% and disabled Repor.
+After the fix, a second fresh native profile showed the complete Calibre name and system-copy badge on separate
+lines, matching the corrected geometry. Both isolated --quit commands completed with exit code 0. This is native
+input evidence, separate from headless captures.
+No engine was installed, and no screen-reader, OS-language reversal, UAC or permission result is inferred.
+Current source-head/CI status remains in the PR body, with native limitations below still explicit.
+
 ## Submission validation - 24 October 2026
 
 The submission integrates upstream `984475954a139fa8beee0ca3e7b6b4c8375ef0f2` in merge `7bdbb3d1`.

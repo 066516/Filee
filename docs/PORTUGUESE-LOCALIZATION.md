@@ -77,6 +77,8 @@ macOS Finder regional-culture initialization still needs a native check; it is n
 
 ## Interface and native resources
 
+The first-run engine chooser wraps long package names and status badges after a native pt-PT Calibre cut-off
+was reproduced; English and both Portuguese variants cover the card geometry and small-screen behavior.
 Preset choices and field captions wrap at 440/560 px; close-dialog actions stay inside their window. Toolbar,
 Theme, Presets and Engines keep usable columns with local scrolling at the existing 820 px main-window minimum.
 The toolbar content minimum is 786 px, fitting the default 1080 px window after navigation and margins. Its new

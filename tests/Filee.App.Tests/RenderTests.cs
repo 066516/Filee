@@ -948,6 +948,8 @@ public class RenderTests
     [InlineData("ko")]
     [InlineData("ru")]
     [InlineData("ar")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
     public void First_run_engine_setup_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -967,10 +969,13 @@ public class RenderTests
         window.Close();
     }
 
-    [AvaloniaFact]
-    public void Engine_setup_on_a_short_screen_scrolls_the_list_and_keeps_its_buttons()
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
+    public void Engine_setup_on_a_short_screen_scrolls_the_list_and_keeps_its_buttons(string language)
     {
-        TestServices.EnsureInitialized("en");
+        TestServices.EnsureInitialized(language);
         var vm = new EngineSetupViewModel(AppHost.Get<EngineDownloadService>(), AppHost.Get<Filee.Core.Localization.ILocalizer>());
         var window = new EngineSetupWindow { DataContext = vm };
         var closed = false;
@@ -998,7 +1003,7 @@ public class RenderTests
             var bottom = Avalonia.VisualExtensions.TranslatePoint(button, new Avalonia.Point(0, button.Bounds.Height), window)!.Value.Y;
             Assert.InRange(bottom, 0, window.ClientSize.Height);
         }
-        Save(window, "engine-setup-short-screen.png");
+        Save(window, $"engine-setup-short-screen-{language}.png");
 
         // Esc closes it like Cancel / Close in the other dialogs.
         window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);

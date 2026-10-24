@@ -5,6 +5,14 @@ a121a3c9e3254918f8b171bb7f675b0bdc532244 on 22 October. The current integration 
 984475954a139fa8beee0ca3e7b6b4c8375ef0f2, verified on 24 October 2026. Code is pushed only to Blackspirits/Filee;
 the contributor has authorized submitting the pull request to KnifeLemon/Filee.
 
+## Native chooser correction - 24 October 2026
+
+An isolated native launch exposed the long pt-PT Calibre name pushing its system-copy badge outside the first-run
+card. A deterministic regression fails before the fix (579 px within a 508 px card) and passes after names/badges
+wrap. All fifteen affected render, geometry, short-screen and zoom cases pass, including both Portuguese variants.
+The actual application also responds to Ctrl+plus (110%) and Ctrl+0 (100%). This is additional native evidence;
+installation, OS-language reversal, permissions and screen readers remain unvalidated.
+
 ## Submission integration: FITS, CAD and Turkish - 24 October 2026
 
 The submission includes upstream `98447595`, retaining its FITS/CAD/GNOME features and Turkish translation.
