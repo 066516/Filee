@@ -176,7 +176,7 @@ pt-BR: Corrigidos texto chinês lido como coreano, símbolos do Word que sumiam,
   the start; cuts, speed, volume or fades are encoded with the preset's settings. Results are saved as `{name}_clip`.
   Needs FFmpeg.
 - **Edit PDF pages** (by @Perricheno). **Edit**, the first slice on the back of the PDF donut, opens into Crop, Rotate left,
-  Rotate right, Pages, Extract and Add. Crop and rotate change only the page boxes and the rotation, so text and
+  Rotate right, Pages, Split and Add. Crop and rotate change only the page boxes and the rotation, so text and
   drawings stay sharp and bookmarks and forms stay. **Pages** opens a page editor with thumbnails and a large preview:
   reorder, rotate and delete pages, add pages from another PDF, or extract the selected page as its own file.
 - **Watermark, page numbers and a password** (by @cre8ive-marketing). The PDF card of the preset editor has three new
