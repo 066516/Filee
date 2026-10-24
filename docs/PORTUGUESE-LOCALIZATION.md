@@ -1,16 +1,16 @@
 # Portuguese localization
 
 Phase 1 adds European Portuguese and refines regional integration with the Brazilian translation already merged
-in #322. The current baseline is upstream `e3c6536ad020bfa92e0a16bca1c704554c9bbdf3` (23 October 2026).
-French, Traditional Chinese, Nepali, Thai, Material You, OCR, palette tabs and the other merged upstream changes
+in #322. The submission baseline is upstream `984475954a139fa8beee0ca3e7b6b4c8375ef0f2` (24 October 2026).
+French, Traditional Chinese, Nepali, Thai, Turkish, Material You, OCR, palette tabs and the other merged upstream changes
 are retained.
 Phase 2 has not started.
 
 ## Coverage and wording
 
-Both Portuguese catalogs contain all **1,034 English keys**, in English key order: 1,011 upstream entries,
+Both Portuguese catalogs contain all **1,048 English keys**, in English key order: 1,025 upstream entries,
 19 descriptive engine names and four compact donut labels. Three native macOS strings per variant are additional
-to those JSON entries. There are fifteen registered languages. The twelve non-Portuguese translations retain
+to those JSON entries. There are sixteen registered languages. The thirteen non-Portuguese translations retain
 English for the new engine names pending maintainer review; compact labels reuse their existing full translations.
 This preserves their earlier metadata-based display rather than claiming unreviewed native translations.
 
@@ -117,6 +117,21 @@ The [earlier validation report](PORTUGUESE-NATIVE-VALIDATION.md#editorial-follow
 local automated results, headless PNGs and partial real Windows interaction. It also links the new CI run;
 the historical successful run below must not be treated as validation of the new head. The earlier head remained
 a draft. See the current integration report for readiness.
+
+## Submission integration: FITS, CAD and Turkish - 24 October 2026
+
+The submission includes upstream `98447595`, retaining its FITS/CAD/GNOME features and Turkish translation.
+All fourteen new source keys and the revised Wayland message are translated in pt-PT. Existing Brazilian and
+other community values are retained. Turkish receives only the same nineteen English engine-name fallbacks
+and four compact labels used by the contribution; compact labels reuse its existing translations and the
+upstream catalog layout/order is preserved. The shared language recording is regenerated for all sixteen
+languages; the other fourteen media files are unchanged. App/Setup are rebuilt after generation.
+
+Ten remaining render fixtures now dispose their directly constructed MainWindowViewModels, releasing service
+subscriptions. This does not establish a measured CI speedup. The UI-scale and FITS fixtures cover both Portuguese
+variants. Upstream itself increased the portable-job timeout from 60 to 90 minutes; this contribution does not
+add another timeout change. Current results and the host-specific Calibre baseline failure are recorded in the
+native-validation report. Unavailable native sessions remain explicit follow-ups; themes and Phase 2 have not started.
 
 ## Submission integration: UI scale and PDF tables — 23 October 2026
 

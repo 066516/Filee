@@ -8,6 +8,68 @@ CI completed on 22 October 2026; report consolidated on 23 October. Only Blacksp
 all nine jobs passed. This closes the previously pending automated CI and full-formatter checks. It does not
 certify an interactive installation, OS-language session, permission dialog or screen reader.
 
+## Submission validation - 24 October 2026
+
+The submission integrates upstream `984475954a139fa8beee0ca3e7b6b4c8375ef0f2` in merge `7bdbb3d1`.
+All sixteen catalogs contain 1,048 keys: 1,025 upstream entries, nineteen descriptive engine names and four
+compact donut labels. All fourteen latest source keys and the changed Wayland message are translated in pt-PT;
+the seven earlier corrections remain the only edits to existing upstream pt-BR values. Turkish community
+values and layout/order are retained, adding only the established fallback/compact keys. The shared language
+demo was regenerated using the existing explicit generator for all sixteen languages: 768 x 432, sixteen
+decoded frames, 191,182 bytes. Fifteen total WebP assets occupy 3,900,634 bytes and remain within every budget.
+App and Setup were rebuilt afterwards from the faithful temporary source copy; zero errors and five existing
+obsolete-API warnings in the final incremental build (fourteen warnings in the preceding integration build).
+
+The final focused App selection passed **292 / 0 failed / 0 skipped** in 3 minutes 37 seconds: 165 localization
+cases, 54 Portuguese minimum-width cases, 51 slideshow/media cases, eleven UI-scale cases, three print-studio
+cases and eight PDF/FITS editor cases. Headless PNGs are distinct from native interaction; the pt-PT FITS capture
+was inspected and its new controls are complete. The complete Setup suite passed **176 / 0 failed / 0 skipped**
+in 41 seconds. This does not certify native OS detection, screen readers or
+conversion quality. The earlier UI-scale/PDF-table integration also passed all 22 PDF-table engine tests.
+
+Commit `e7101aba` disposes ten remaining directly constructed MainWindowViewModels in RenderTests, releasing
+locale/update subscriptions. A 42-case cleanup/zoom selection passed 41 cases and failed the engine-page fixture:
+the external Calibre installed on this host returns no version, while the existing assertion requires a version
+for every available engine. An isolated repeat and the same fixture before the disposal cleanup both fail at the
+same assertion. Its CalibreConverter implementation intentionally reports a null version for external copies.
+The exact final source was restored and rebuilt after that baseline comparison. No assertion, production engine
+behavior or skip was changed to conceal it. This host failure is separate from translation correctness; the new
+complete CI remains required. No measured CI speedup is claimed from the cleanup.
+
+The local SDK 10.0.204 formatter reports two existing whitespace diagnostics at LocalizationService.cs:97-98;
+those lines are byte-for-byte upstream. No diagnostic was reported for the four other included C# files. The
+complete CI formatter is pending for this submitted head. `git diff upstream/main --check` passes. A whitespace
+warning against the older local HEAD comes from an unchanged upstream Preset.cs EOF, outside the contribution.
+
+Previous run [40005326117](https://github.com/Blackspirits/Filee/actions/runs/40005326117), on `478315c3`, ended
+cancelled: seven jobs succeeded, macOS Intel and Linux ARM64 hit the 60-minute limit while App tests were still
+passing, and the subsequent ARM package check failed without its archive. It is not an all-green result.
+Upstream itself increased portable-job timeouts to 90 minutes in the integrated baseline; this contribution
+adds no extra timeout increase. Current run status and PR readiness belong in the PR checks/body, avoiding a
+report-only source push that restarts the entire matrix.
+
+The earlier real Windows language-switch/restart evidence below remains historical and partial. No new native
+claim is made for this FITS/CAD/GNOME integration. A reverse pt-BR OS session, mismatched native number region,
+real installation/UAC/Explorer, macOS Finder/permissions, NVDA/VoiceOver and modal keyboard behavior remain
+explicit unvalidated follow-ups. They do not indefinitely prevent submission of this translation contribution
+under the contributor's authorization. No themes or Phase 2 code is included.
+
+Commands in the verified temporary copy (eighteen pinned fonts):
+
+```powershell
+$env:FILEE_WHATSNEW_LANGUAGE='en'
+$env:FILEE_WHATSNEW_ONLY='languages'
+./tests/Filee.App.Tests/bin/Release/net10.0/Filee.App.Tests.exe -method Filee.App.Tests.WhatsNewMedia.Generate_2_0_0 -explicit only
+dotnet build Filee.slnx -m:1 -c Release --no-restore -p:UseSharedCompilation=false
+$env:FILEE_LOCALIZATION_SCREENSHOTS='1'
+dotnet test tests/Filee.App.Tests -c Release --no-build --no-restore --filter 'FullyQualifiedName~Localization|FullyQualifiedName~PortugueseRenderTests.Pages_render_at_minimum_width_in_both_themes|FullyQualifiedName~Translated_print_settings_fit_at_the_minimum_window_width|FullyQualifiedName~UiZoomTests|FullyQualifiedName~WhatsNewTests|FullyQualifiedName~Preset_editor_shows_and_saves_the_fits_options|FullyQualifiedName~Preset_editor_shows_and_saves_watermark_page_numbers_and_password'
+dotnet test tests/Filee.Setup.Tests -c Release --no-build --no-restore
+dotnet format Filee.slnx --verify-no-changes --no-restore --severity warn --include src/Filee.App/Services/LocalizationService.cs src/Filee.Setup/SetupOptions.cs tests/Filee.App.Tests/RenderTests.cs tests/Filee.App.Tests/UiZoomTests.cs tests/Filee.App.Tests/SpreadsheetPrintStudioTests.cs
+git diff upstream/main --check
+```
+
+Logs, TRX and selected PNG evidence are retained in ignored `artifacts/portuguese-phase1/submission/`.
+
 ## Final upstream catch-up — 23 October 2026
 
 Merge `614cb4d5` incorporates upstream `a97a07cd2eea20dbf80f03332d2710b874eb09f9`. All 47 newly added

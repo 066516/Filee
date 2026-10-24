@@ -2,7 +2,23 @@
 
 The independent review examined b694dad, based on Filee 2.0.0 at 799e394. The first follow-up integrated upstream
 a121a3c9e3254918f8b171bb7f675b0bdc532244 on 22 October. The current integration is
-e3c6536ad020bfa92e0a16bca1c704554c9bbdf3, verified on 23 October 2026. Only Blackspirits/Filee is changed.
+984475954a139fa8beee0ca3e7b6b4c8375ef0f2, verified on 24 October 2026. Code is pushed only to Blackspirits/Filee;
+the contributor has authorized submitting the pull request to KnifeLemon/Filee.
+
+## Submission integration: FITS, CAD and Turkish - 24 October 2026
+
+The submission includes upstream `98447595`, retaining its FITS/CAD/GNOME features and Turkish translation.
+All fourteen new source keys and the revised Wayland message are translated in pt-PT. Existing Brazilian and
+other community values are retained. Turkish receives only the same nineteen English engine-name fallbacks
+and four compact labels used by the contribution; compact labels reuse its existing translations and the
+upstream catalog layout/order is preserved. The shared language recording is regenerated for all sixteen
+languages; the other fourteen media files are unchanged. App/Setup are rebuilt after generation.
+
+Ten remaining render fixtures now dispose their directly constructed MainWindowViewModels, releasing service
+subscriptions. This does not establish a measured CI speedup. The UI-scale and FITS fixtures cover both Portuguese
+variants. Upstream itself increased the portable-job timeout from 60 to 90 minutes; this contribution does not
+add another timeout change. Current results and the host-specific Calibre baseline failure are recorded in the
+native-validation report. Unavailable native sessions remain explicit follow-ups; themes and Phase 2 have not started.
 
 ## Submission integration: UI scale and PDF tables — 23 October 2026
 
