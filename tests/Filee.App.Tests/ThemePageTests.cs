@@ -147,12 +147,10 @@ public class ThemePageTests
             Assert.False(toggle.IsChecked);
             Assert.Equal(settingsBefore, System.Text.Json.JsonSerializer.Serialize(store.Settings));
 
-            var buttons = page.GetVisualDescendants().OfType<Button>()
-                .Where(button => button.Content is string content &&
-                    (content == AppHost.Get<ILocalizer>().Get("common.save") ||
-                     content == AppHost.Get<ILocalizer>().Get("common.cancel")));
-            foreach (var button in buttons)
+            foreach (var name in new[] { "PreviewPrimaryButton", "PreviewSecondaryButton" })
             {
+                var button = page.FindControl<Button>(name)!;
+                Assert.NotNull(button);
                 Assert.False(button.Focusable);
                 Assert.False(button.IsTabStop);
             }
