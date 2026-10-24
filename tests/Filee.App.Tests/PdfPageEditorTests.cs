@@ -78,10 +78,13 @@ public class PdfPageEditorTests
         }
     }
 
-    [AvaloniaFact]
-    public async Task Editor_window_renders_previews_and_all_actions_without_clipping()
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
+    public async Task Editor_window_renders_previews_and_all_actions_without_clipping(string language)
     {
-        TestServices.EnsureInitialized("en");
+        TestServices.EnsureInitialized(language);
         var folder = Directory.CreateTempSubdirectory("filee-pdf-pages-ui-").FullName;
         try
         {
@@ -106,7 +109,7 @@ public class PdfPageEditorTests
             }
 
             RenderTests.Pump();
-            RenderTests.Save(window, "pdf-page-editor-en.png");
+            RenderTests.Save(window, $"pdf-page-editor-{language}.png");
 
             Assert.True(window.PageOrder.Bounds.Width > 220);
             Assert.Equal(4, window.PageOrder.ItemsView.Count);
