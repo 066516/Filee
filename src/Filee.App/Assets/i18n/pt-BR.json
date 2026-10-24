@@ -794,6 +794,8 @@
   "theme.window_size_reset": "Redefinir",
   "theme.window_size_hint": "Deixa tudo nas janelas do Filee maior ou menor. Em qualquer janela, {0} + roda do mouse e {0} + mais / menos fazem o mesmo, e {0} + 0 volta para 100%.",
   "theme.preview": "Prévia",
+  "theme.preview_toggle": "Chave de exemplo (só pré-visualização, não é uma configuração)",
+  "theme.preview_toggle_hint": "Mostra como as chaves ficam neste tema. Não altera nenhuma configuração.",
 
   "engines.title": "Motores de conversão",
   "engines.description": "O Filee escolhe o melhor motor disponível para cada conversão.\nQuando vários fazem o mesmo trabalho, o que está mais acima tem prioridade.",

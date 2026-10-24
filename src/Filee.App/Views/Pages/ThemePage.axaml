@@ -303,13 +303,12 @@
             <Button x:Name="PreviewSecondaryButton" Content="{DynamicResource common.cancel}"
                     Focusable="False" IsTabStop="False" />
           </StackPanel>
+          <!-- On / Off come from the ToggleSwitch style, in the user's language. -->
           <ToggleSwitch x:Name="PreviewToggle"
                         IsChecked="False"
                         HorizontalAlignment="Center"
-                        OnContent="On"
-                        OffContent="Off"
-                        AutomationProperties.Name="Sample toggle, preview only, not a setting"
-                        AutomationProperties.HelpText="Demonstrates how switches look in this theme. Does not change any setting." />
+                        AutomationProperties.Name="{DynamicResource theme.preview_toggle}"
+                        AutomationProperties.HelpText="{DynamicResource theme.preview_toggle_hint}" />
         </StackPanel>
       </StackPanel>
     </Border>
