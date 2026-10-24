@@ -339,6 +339,8 @@ pt-BR: Corrigidos texto chinês lido como coreano, símbolos do Word que sumiam,
   #504, by @cre8ive-marketing). It flips once.
 - A glTF model whose buffer or texture names are percent-encoded (`mesh%20data.bin`) failed to find those files (by
   @Stamina9).
+- The sample switch in Settings → Theme's preview didn't react to clicks. It now flips on and off to show the
+  theme's switch, with the mouse or Space, and still changes no setting (issue #363, by @Saad-elnagar).
 - The engine setup window ran off small or scaled screens with its buttons out of reach (issue #370). The list
   scrolls now, the buttons stay in the window, and Esc closes it.
 - A donut slice's small caption was cut off; it takes a second line where the slice has room (issue #361, by
