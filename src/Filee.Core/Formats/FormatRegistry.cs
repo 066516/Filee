@@ -224,6 +224,8 @@ public static class FormatRegistry
         new("swf", "SWF", FormatCategory.Video, ["swf"], Writable: false),
         new("wtv", "WTV", FormatCategory.Video, ["wtv", "dvr-ms", "dvr"], Writable: false),
         new("cavs", "CAVS", FormatCategory.Video, ["cavs"], Writable: false),
+        // CRI Middleware's video for game cutscenes (#485): FFmpeg's usm demuxer reads unencrypted ones.
+        new("usm", "USM", FormatCategory.Video, ["usm"], Writable: false),
         // Raw H.265 / H.264 streams with no container, as security cameras and VMS software export them (issue #301).
         new("h265", "H.265", FormatCategory.Video, ["h265", "265", "hevc"], Writable: false),
         new("h264", "H.264", FormatCategory.Video, ["h264", "264"], Writable: false),

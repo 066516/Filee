@@ -840,6 +840,9 @@ internal static class SettingsMigrations
         //      renumbered if another change takes it first.)
         if (from < 43)
             changed |= LearnExtensions(profiles, out _, ["fits", "fts"]);
+        // v44: CRI USM game videos (.usm) learn the video donut; custom claims stay put.
+        if (from < 44)
+            changed |= LearnExtensions(profiles, out _, ["usm"]);
         // v45: "Cut a clip" (a part of a video as a file of its own), after "Motion Photo (Android)" as in a new library,
         //      and first on the back of the video donut in place of FLAC (which stays in the library), when the user
         //      hasn't put it elsewhere on the donut and the face has room.
