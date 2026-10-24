@@ -26,7 +26,7 @@ ko: PDF의 표가 엑셀 시트가 되고, 큰 엑셀 파일을 훨씬 빨리 PD
 ko: PDF로 저장하기 전에 스프레드시트 페이지를 배치하고, 저장할 AutoCAD 버전을 고를 수 있어요
 ko: 원본 바꾸기를 켜면 결과가 원본 자리에 들어가고 원본은 휴지통으로 가요
 ko: FITS 천체 사진, iCalendar, HAR, USM 게임 동영상, 자수·플로터 파일을 지원하고 CAD 레이아웃마다 PDF 한 쪽을 만들어요
-ko: 프랑스어, 번체 중국어, 네팔어, 태국어, 튀르키예어와 Material You 테마, 창 크기 조절을 지원해요
+ko: 프랑스어, 번체 중국어, 네팔어, 태국어, 튀르키예어, 유럽 포르투갈어와 Material You 테마, 창 크기 조절을 지원해요
 ko: Linux에서는 Filee 안에서 업데이트하고, GNOME·Hyprland Wayland에서 끌기 제스처를 쓸 수 있어요(실험 기능)
 ko: 중국어 텍스트가 한글로 읽히던 문제, Word 기호가 빠지던 문제, 트레이에서 창이 두 개 뜨던 문제 등을 고쳤어요
 en: Windows files are now code-signed, so Smart App Control and antivirus programs block Filee less often
@@ -37,7 +37,7 @@ en: Tables in PDFs become Excel sheets, and large Excel files turn into PDFs muc
 en: Lay out spreadsheet pages before saving a PDF, and choose the AutoCAD version to save in
 en: Replace the original: the result takes its place and the original goes to the Recycle Bin
 en: FITS astrophotos, iCalendar, HAR, USM game videos, embroidery and plotter files, and a PDF page per CAD layout
-en: French, Traditional Chinese, Nepali, Thai and Turkish, a Material You theme and window zoom
+en: French, Traditional Chinese, Nepali, Thai, Turkish and European Portuguese, a Material You theme and window zoom
 en: Linux: updates from inside Filee, and drag gestures on GNOME and Hyprland Wayland (experimental)
 en: Fixed Chinese text read as Korean, missing Word symbols, a second window from the tray and more
 zh: Windows 文件现已带有代码签名，智能应用控制和杀毒软件拦截 Filee 的情况会更少
@@ -48,7 +48,7 @@ zh: PDF 中的表格可转为 Excel 工作表，大型 Excel 文件转 PDF 也�
 zh: 保存为 PDF 前可以排版电子表格页面，还可以选择保存的 AutoCAD 版本
 zh: 替换原文件：结果放到原文件的位置，原文件移到回收站
 zh: 支持 FITS 天文照片、iCalendar、HAR、USM 游戏视频、刺绣和绘图仪文件，CAD 的每个布局各成一页 PDF
-zh: 新增法语、繁体中文、尼泊尔语、泰语和土耳其语界面，以及 Material You 主题和窗口缩放
+zh: 新增法语、繁体中文、尼泊尔语、泰语、土耳其语和欧洲葡萄牙语界面，以及 Material You 主题和窗口缩放
 zh: Linux：可在 Filee 内直接更新，并支持 GNOME 和 Hyprland Wayland 上的拖动手势（实验性）
 zh: 修复了中文文本被读成韩文、Word 符号丢失、从托盘打开两个窗口等问题
 pl: Pliki dla Windows są teraz podpisane cyfrowo, więc Inteligentna kontrola aplikacji i antywirusy rzadziej blokują Filee
@@ -59,7 +59,7 @@ pl: Tabele z PDF stają się arkuszami Excela, a duże pliki Excela znacznie szy
 pl: Układ stron arkusza przed zapisem do PDF i wybór wersji AutoCAD przy zapisie
 pl: Zastąp oryginał: wynik zajmuje jego miejsce, a oryginał trafia do Kosza
 pl: Zdjęcia astronomiczne FITS, iCalendar, HAR, filmy z gier USM, pliki hafciarskie i plotterowe oraz strona PDF na każdy układ CAD
-pl: Język francuski, chiński tradycyjny, nepalski, tajski i turecki, motyw Material You i powiększanie okien
+pl: Język francuski, chiński tradycyjny, nepalski, tajski, turecki i portugalski europejski, motyw Material You i powiększanie okien
 pl: Linux: aktualizacje z poziomu Filee i gesty przeciągania w GNOME i Hyprland na Wayland (eksperymentalne)
 pl: Poprawiono chiński tekst odczytywany jako koreański, znikające symbole z Worda, drugie okno z zasobnika i więcej
 es: Los archivos de Windows ahora están firmados, así que Control inteligente de aplicaciones y los antivirus bloquean Filee con menos frecuencia
@@ -70,7 +70,7 @@ es: Las tablas de los PDF pasan a hojas de Excel, y los Excel grandes pasan a PD
 es: Prepara las páginas de una hoja de cálculo antes de guardarla en PDF, y elige la versión de AutoCAD al guardar
 es: Reemplazar el original: el resultado ocupa su lugar y el original va a la Papelera
 es: Astrofotos FITS, iCalendar, HAR, vídeos de juegos USM, archivos de bordado y de plóter, y una página de PDF por presentación de CAD
-es: Francés, chino tradicional, nepalí, tailandés y turco, un tema Material You y zoom de ventanas
+es: Francés, chino tradicional, nepalí, tailandés, turco y portugués europeo, un tema Material You y zoom de ventanas
 es: Linux: actualizaciones desde Filee y gestos de arrastre en GNOME e Hyprland con Wayland (experimental)
 es: Corregidos el texto chino leído como coreano, los símbolos de Word que faltaban, una segunda ventana desde la bandeja y más
 hi: Windows की फ़ाइलें अब कोड-साइन की हुई हैं, इसलिए स्मार्ट ऐप कंट्रोल और एंटीवायरस Filee को कम रोकते हैं
@@ -81,7 +81,7 @@ hi: PDF की तालिकाएँ Excel शीट बनती हैं, 
 hi: PDF सहेजने से पहले स्प्रेडशीट के पेज व्यवस्थित करें, और सहेजने के लिए AutoCAD संस्करण चुनें
 hi: मूल फ़ाइल बदलें: परिणाम उसकी जगह लेता है और मूल फ़ाइल रीसायकल बिन में जाती है
 hi: FITS खगोल फ़ोटो, iCalendar, HAR, USM गेम वीडियो, कढ़ाई और प्लॉटर फ़ाइलें, और हर CAD लेआउट का एक PDF पेज
-hi: फ़्रेंच, पारंपरिक चीनी, नेपाली, थाई और तुर्की भाषाएँ, Material You थीम और विंडो ज़ूम
+hi: फ़्रेंच, पारंपरिक चीनी, नेपाली, थाई, तुर्की और यूरोपीय पुर्तगाली भाषाएँ, Material You थीम और विंडो ज़ूम
 hi: Linux: Filee के अंदर से अपडेट, और GNOME व Hyprland Wayland पर ड्रैग जेस्चर (प्रायोगिक)
 hi: चीनी टेक्स्ट का कोरियाई पढ़ा जाना, Word के गायब चिह्न, ट्रे से दूसरी विंडो खुलना और कई गड़बड़ियाँ ठीक की गईं
 ja: Windows 版のファイルにコード署名が付き、スマート アプリ コントロールやウイルス対策ソフトに止められにくくなりました
@@ -92,7 +92,7 @@ ja: PDF の表が Excel のシートになり、大きな Excel ファイルも�
 ja: PDF に保存する前に表計算のページをレイアウトでき、保存する AutoCAD のバージョンも選べます
 ja: 元のファイルを置き換える：結果がその場所に入り、元のファイルはごみ箱へ移ります
 ja: FITS の天体写真、iCalendar、HAR、USM のゲーム動画、刺しゅう・プロッターのファイルに対応し、CAD のレイアウトごとに PDF のページを作ります
-ja: フランス語、繁体字中国語、ネパール語、タイ語、トルコ語、Material You テーマ、ウィンドウの拡大・縮小に対応しました
+ja: フランス語、繁体字中国語、ネパール語、タイ語、トルコ語、ヨーロッパ・ポルトガル語、Material You テーマ、ウィンドウの拡大・縮小に対応しました
 ja: Linux：Filee の中から更新でき、GNOME と Hyprland の Wayland でドラッグ操作が使えます（試験的）
 ja: 中国語のテキストが韓国語として読まれる問題、Word の記号が消える問題、タスクトレイから二つ目のウィンドウが開く問題などを修正しました
 ru: Файлы для Windows теперь подписаны, поэтому Интеллектуальное управление приложениями и антивирусы реже блокируют Filee
@@ -103,7 +103,7 @@ ru: Таблицы из PDF становятся листами Excel, а бол
 ru: Разметка страниц таблицы перед сохранением в PDF и выбор версии AutoCAD для сохранения
 ru: Заменить оригинал: результат занимает его место, а оригинал отправляется в Корзину
 ru: Астрофото FITS, iCalendar, HAR, игровые видео USM, файлы вышивки и плоттера, а также страница PDF на каждый лист CAD
-ru: Французский, традиционный китайский, непальский, тайский и турецкий, тема Material You и масштаб окон
+ru: Французский, традиционный китайский, непальский, тайский, турецкий и европейский португальский, тема Material You и масштаб окон
 ru: Linux: обновления прямо из Filee и жесты перетаскивания в GNOME и Hyprland на Wayland (экспериментально)
 ru: Исправлены чтение китайского текста как корейского, пропадающие символы Word, второе окно из трея и другое
 ar: أصبحت ملفات Windows موقّعة رقميًا، فيقلّ حظر التحكم الذكي في التطبيقات وبرامج مكافحة الفيروسات لـ Filee
@@ -114,7 +114,7 @@ ar: تتحول جداول PDF إلى أوراق Excel، وتتحول ملفات 
 ar: تنسيق صفحات جدول البيانات قبل حفظه بصيغة PDF، واختيار إصدار AutoCAD عند الحفظ
 ar: استبدال الأصل: تأخذ النتيجة مكانه وينتقل الأصل إلى سلة المحذوفات
 ar: صور الفلك FITS وiCalendar وHAR وفيديوهات الألعاب USM وملفات التطريز والراسمات، وصفحة PDF لكل تخطيط CAD
-ar: الفرنسية والصينية التقليدية والنيبالية والتايلاندية والتركية، ومظهر Material You وتكبير النوافذ
+ar: الفرنسية والصينية التقليدية والنيبالية والتايلاندية والتركية والبرتغالية الأوروبية، ومظهر Material You وتكبير النوافذ
 ar: Linux: التحديث من داخل Filee، وإيماءات السحب في GNOME وHyprland على Wayland (تجريبي)
 ar: إصلاح قراءة النص الصيني كأنه كوري، واختفاء رموز Word، وفتح نافذة ثانية من منطقة الإعلام، وغير ذلك
 pt-BR: Os arquivos para Windows agora são assinados, então o Controle Inteligente de Aplicativos e os antivírus bloqueiam o Filee com menos frequência
@@ -125,7 +125,7 @@ pt-BR: Tabelas de PDF viram planilhas do Excel, e arquivos grandes do Excel vira
 pt-BR: Organize as páginas de uma planilha antes de salvar em PDF e escolha a versão do AutoCAD ao salvar
 pt-BR: Substituir o original: o resultado fica no lugar dele e o original vai para a Lixeira
 pt-BR: Astrofotos FITS, iCalendar, HAR, vídeos de jogos USM, arquivos de bordado e de plotter, e uma página de PDF por layout de CAD
-pt-BR: Francês, chinês tradicional, nepalês, tailandês e turco, um tema Material You e zoom das janelas
+pt-BR: Francês, chinês tradicional, nepalês, tailandês, turco e português europeu, um tema Material You e zoom das janelas
 pt-BR: Linux: atualizações dentro do Filee e gestos de arrastar no GNOME e no Hyprland com Wayland (experimental)
 pt-BR: Corrigidos texto chinês lido como coreano, símbolos do Word que sumiam, uma segunda janela pela bandeja e mais
 -->
@@ -275,8 +275,10 @@ pt-BR: Corrigidos texto chinês lido como coreano, símbolos do Word que sumiam,
   Filee to Applications. The `filee` command still comes with the tar.gz's `install.sh`, and the first start still
   goes through Privacy & Security → Open Anyway.
 - **Languages.** Filee speaks French (by @devohmycode), Traditional Chinese, also for Hong Kong and Macau (by
-  @LouisChen-TW), Nepali (by @smjrifle), Thai, with its own font (by @Sudo-Bannawat), and Turkish, in Setup too (by
-  @xmetropolicex). It picks them when Windows, macOS or Linux does.
+  @LouisChen-TW), Nepali (by @smjrifle), Thai, with its own font (by @Sudo-Bannawat), Turkish, in Setup too (by
+  @xmetropolicex), and European Portuguese, next to Brazilian Portuguese (by @Blackspirits). It picks them when
+  Windows, macOS or Linux does: a PC set to Portugal gets European Portuguese, one set to Brazil Brazilian, and a
+  language picked in Settings stays as it is.
 
 ### Improved
 
