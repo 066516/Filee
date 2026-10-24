@@ -191,9 +191,11 @@ public class ToolbarPaletteViewTests
         Dispatcher.UIThread.RunJobs();
         using var view = new View(vm);
         Assert.False(view.Tabs.IsVisible);
-        Assert.Equal(["rotate", "flip", "test-group"], view.Chips);
+        Assert.Equal(["pdf-edit", "rotate", "flip", "test-group"], view.Chips);
 
         // PDF: one kind (Documents) that would only repeat All. Two tabs, but the row stays hidden.
+        // (Without the PDF page tools, which would add the Edit kind.)
+        f.Store.Presets.RemoveAll(p => p.Id.StartsWith("tool-pdf-", StringComparison.Ordinal));
         f.Store.Profiles.Add(Profile("tabs-pdf", "pdf"));
         vm.Profiles.Add(new ProfileItemViewModel(f.Store.Profiles[^1], f.Loc));
         vm.SelectedProfile = vm.Profiles[^1];
@@ -202,7 +204,7 @@ public class ToolbarPaletteViewTests
         Assert.Equal([PaletteTab.All, PaletteTab.Document], view.TabIds);
         Assert.False(view.Tabs.IsVisible);
         Assert.Equal(PaletteTab.All, view.Selected);
-        Assert.Equal(["rotate", "flip", "test-group", "merge-pdf", "test-merge"], view.Chips);
+        Assert.Equal(["pdf-edit", "rotate", "flip", "test-group", "merge-pdf", "test-merge"], view.Chips);
 
         // PNG: several kinds, so the row shows.
         f.Store.Profiles.Add(Profile("tabs-png", "png"));
@@ -290,7 +292,6 @@ public class ToolbarPaletteViewTests
         using var f = new PresetAvailabilityTests.Fixture();
         f.Store.Presets.AddRange(
         [
-            new() { Id = "tool-clip", Kind = PresetKind.Tool, TargetFormat = "mp4" },
             new() { Id = "tool-join", Kind = PresetKind.Tool, TargetFormat = "mp4" },
             new() { Id = "test-same", TargetFormat = BuiltInData.SameAsSource },
             // A target no format is registered for: in All only, under no kind.
@@ -469,7 +470,7 @@ public class ToolbarPaletteViewTests
         view.Click(faces[1]);
         Assert.True(vm.EditingBack);
         Assert.Equal(PaletteTab.Media, view.Selected);
-        Assert.Equal(["rotate", "flip", "test-group", "extract-motion", "test-motion"], view.Chips);
+        Assert.Equal(["pdf-edit", "rotate", "flip", "test-group", "extract-motion", "test-motion"], view.Chips);
         view.Click(faces[0]);
         Assert.False(vm.EditingBack);
         Assert.Equal(PaletteTab.Media, view.Selected);
@@ -486,13 +487,13 @@ public class ToolbarPaletteViewTests
         RenderTests.Pump();
         Assert.Equal(PaletteTab.All, view.Selected);
         view.ClickTab(PaletteTab.Edit);
-        Assert.Equal(["rotate", "flip", "test-group", "tool-crop"], view.Chips);
+        Assert.Equal(["pdf-edit", "rotate", "flip", "test-group", "tool-crop"], view.Chips);
         DoubleTap(view.Chip("tool-crop"));
         RenderTests.Pump();
         Assert.Equal(["tool-crop"], jpg.PresetIds);
         Assert.DoesNotContain(PaletteTab.Edit, view.TabIds);
         Assert.Equal(PaletteTab.All, view.Selected);
-        Assert.Equal(["rotate", "flip", "test-group", "extract-motion", "test-motion"], view.Chips);
+        Assert.Equal(["pdf-edit", "rotate", "flip", "test-group", "extract-motion", "test-motion"], view.Chips);
     }
 
     [AvaloniaFact]

@@ -25,6 +25,8 @@ public class RenderTests
 {
     public static TheoryData<string, string> Pages => new()
     {
+        { "home", "tr" }, { "general", "tr" }, { "triggers", "tr" }, { "toolbar", "tr" },
+        { "presets", "tr" }, { "theme", "tr" }, { "engines", "tr" }, { "about", "tr" }, { "watch", "tr" },
         { "home", "ar" }, { "general", "ar" }, { "triggers", "ar" }, { "toolbar", "ar" },
         { "presets", "ar" }, { "theme", "ar" }, { "engines", "ar" }, { "about", "ar" }, { "watch", "ar" },
         { "home", "th" }, { "general", "th" }, { "triggers", "th" }, { "toolbar", "th" },
@@ -2356,6 +2358,54 @@ public class RenderTests
         Assert.True(restored.ShowImage);
         Assert.True(restored.Apply());
         Assert.Equal(Filee.Core.Presets.LivePhotoKind.None, preset.Media.LivePhoto);
+    }
+
+    public static TheoryData<string, bool> ClipLooks => new()
+    {
+        { "en", false }, { "en", true }, { "ru", false }, { "ru", true }, { "ar", false }, { "ar", true }, { "ja", false }, { "hi", true },
+    };
+
+    /// <summary>
+    /// "Cut a clip": the frame at the active handle large, start / length / end, the timeline with the clip between its
+    /// handles and the toolbar, in light and dark, short and long languages and right to left.
+    /// </summary>
+    [AvaloniaTheory]
+    [MemberData(nameof(ClipLooks))]
+    public void Clip_window_renders(string language, bool dark)
+    {
+        ClipWindowTests.WithClipWindow(language, dark, ["Match highlights.mp4"], (window, vm, frames, _) =>
+        {
+            vm.MoveHandle(ClipHandle.Start, 95.3);
+            vm.SetLength(30);
+            // Cut in three: the middle piece out, the last one faster and louder, a fade in.
+            vm.MovePlayhead(103);
+            vm.Split();
+            vm.MovePlayhead(110);
+            vm.Split();
+            vm.MovePlayhead(106);
+            vm.Delete(closeUp: false); // a gap, with its button
+            vm.MovePlayhead(118);
+            vm.SelectedSpeed = vm.Speeds.Single(s => s.Value == 2);
+            vm.SelectedVolume = 1.5;
+            vm.HasFadeIn = true;
+            vm.IsZoomed = true;
+            var adding = vm.AddMusicAsync(Path.Combine("music", "Summer song.mp3"));
+            ClipWindowTests.WaitFor(() => vm.MusicLoudness.Count > 0);
+            vm.MoveMusic(3);
+            vm.MovePlayhead(98);
+            vm.SelectPiece(0, Filee.App.Controls.ClipLane.Audio);
+            vm.IsCurrentMuted = false;
+            // The sequence's own pictures of the clip, taken again once its ends rest.
+            ClipWindowTests.WaitFor(() => vm.DetailStart == vm.Start && vm.DetailEnd == vm.End && vm.DetailLoudness.Count > 0);
+            ClipWindowTests.WaitFor(() => frames.Times.Contains(vm.PreviewTime));
+            Pump();
+
+            Assert.Equal(("1:35.3", "2:05.3"), (vm.StartText, vm.EndText));
+            Assert.Equal(7.7 + 7 + 15.3 / 2, vm.Length, 6); // the gap stays until closed
+            Assert.True(window.ClipTimeline.Bounds.Width > 600);
+            Assert.True(window.ClipTimeline.XOf(vm.Start) < window.ClipTimeline.XOf(vm.End));
+            Save(window, $"clip-{language}-{(dark ? "dark" : "light")}.png");
+        });
     }
 
     internal static void Pump()

@@ -1407,6 +1407,9 @@ streams without a container: FFmpeg reports them as format `hevc` / `h264` (`Med
 encoded, never copied, because their frames carry no timestamps (a copy into MP4 had non-monotonic DTS). A stream
 without timing information is read at FFmpeg's default 25 fps, so a camera that recorded at another rate plays faster
 or slower; its frames are all kept.
+CRI USM (`.usm`, read only, #485), the video of many games' cutscenes, is read by FFmpeg's `usm` demuxer and goes to
+every video and audio target like the other read-only containers. Encrypted USM files (common in recent games) can't
+be read and fail with FFmpeg's error.
 A Video CD's `MPEGAV/AVSEQ01.DAT` (MPEG-1 in a RIFF/CDXA wrapper) counts as MPEG: `.dat` is an extension of that
 format, and FFmpeg reads what the file holds, so a `.dat` with no video in it fails instead of making a file.
 
@@ -1414,6 +1417,8 @@ format, and FFmpeg reads what the file holds, so a `.dat` with no video in it fa
   It is smaller than the "essentials" build (100 vs 115 MB download, 272 vs 329 MB on disk, because ffmpeg.exe and
   ffprobe.exe share their libraries) and has a superset of its encoders. It links only Windows system DLLs; GPU
   and Vulkan libraries are loaded only if present. Being over 60 MB, it is offered but not ticked on first run.
+- The Cut a clip window's preview plays its sound through `ffplay` when it sits next to Filee's FFmpeg (the gyan.dev
+  build has it); without it, the preview plays silently. Nothing else uses ffplay.
 - Container and codecs per target (`Media/MediaEncoding.cs`, every encoder checked with `ffmpeg -encoders`):
 
   | Target | Written as |

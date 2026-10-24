@@ -840,6 +840,16 @@ internal static class SettingsMigrations
         //      renumbered if another change takes it first.)
         if (from < 43)
             changed |= LearnExtensions(profiles, out _, ["fits", "fts"]);
+        // v44: CRI USM game videos (.usm) learn the video donut; custom claims stay put.
+        if (from < 44)
+            changed |= LearnExtensions(profiles, out _, ["usm"]);
+        // v45: "Cut a clip" (a part of a video as a file of its own), after "Motion Photo (Android)" as in a new library,
+        //      and first on the back of the video donut in place of FLAC (which stays in the library), when the user
+        //      hasn't put it elsewhere on the donut and the face has room.
+        //      Present already but saved since by a Filee before 45: that one dropped the tool's name, which made it a
+        //      crop, so it is put back. The user's own changes (name, file name pattern) stay.
+        if (from < 45)
+            changed |= AddClipTool(presets, profiles);
         // v46: one "Edit" slice on the back of the PDF donut fans out the common lossless page tools. Existing
         //      customised backs keep their layout; the group is offered at the start when there is room.
         if (from < 46)
@@ -950,6 +960,40 @@ internal static class SettingsMigrations
         {
             profile.BackPresetIds = (defaults[profile.Id].BackPresetIds ?? []).Where(ids.Contains).ToList();
             changed = true;
+        }
+        return changed;
+    }
+
+    private static bool AddClipTool(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        var clip = BuiltInData.ClipPresets().Single();
+        if (presets.FirstOrDefault(p => p.Id == clip.Id) is { } existing)
+        {
+            if (!existing.IsClipTool)
+            {
+                existing.Kind = PresetKind.Tool;
+                existing.Tool = Preset.ClipTool;
+                existing.TargetFormat = clip.TargetFormat;
+                existing.SubPresetIds = [];
+                changed = true;
+            }
+        }
+        else
+        {
+            var at = presets.FindLastIndex(p => p.Id is "motion-photo-android" or "live-photo-iphone" or "extract-motion");
+            presets.Insert(at < 0 ? presets.Count : at + 1, clip);
+            changed = true;
+        }
+        if (profiles.FirstOrDefault(p => p.Id == "video") is { BackPresetIds: { } back } video
+            && !back.Contains(clip.Id) && !video.PresetIds.Contains(clip.Id))
+        {
+            changed |= back.Remove("to-flac");
+            if (back.Count < ToolbarProfile.MaxSlices)
+            {
+                back.Insert(0, clip.Id);
+                changed = true;
+            }
         }
         return changed;
     }
