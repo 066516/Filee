@@ -41,8 +41,10 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
     internal IReadOnlyCollection<SpreadsheetPrintStudioWindow> SpreadsheetStudios => _spreadsheetStudios;
     private MergeOrderWindow? _mergeOrder;
+    private PdfPageEditorWindow? _pdfPageEditor;
 
     internal MergeOrderWindow? MergeOrder => _mergeOrder;
+    internal PdfPageEditorWindow? PdfPageEditor => _pdfPageEditor;
 
     private void PrepareWindow(Window window) => services.GetService<ThemeService>()?.ApplyWindowClass(window);
 
@@ -68,19 +70,24 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     public MainWindow? Main => _main;
 
     /// <summary>
-    /// Opens the window of a tool preset (crop, cut a clip, the spreadsheet print studio: one per workbook) on the files.
-    /// A tool this version doesn't know opens nothing.
+    /// Opens the window of a tool preset (crop, cut a clip, the spreadsheet print studio: one per workbook, the PDF page
+    /// editor) on the files. A tool this version doesn't know opens nothing.
     /// </summary>
     public void ShowTool(IReadOnlyList<string> files, Preset preset, PixelPoint? near = null)
     {
         if (preset.IsClipTool)
             ShowClipWindow(files, preset, near);
-        // Before the crop: the print studio has no Tool of its own, which reads as a crop.
+        // Before the crop: the print studio and the PDF page tools have no Tool of their own, which reads as a crop
+        // ("Crop PDF" is one and opens the crop overlay).
         else if (preset.Id == "tool-sheet-studio")
         {
             foreach (var workbook in files.Where(file => Path.GetExtension(file).Equals(".xlsx", StringComparison.OrdinalIgnoreCase)))
                 ShowSpreadsheetPrintStudio(workbook);
         }
+        else if (preset.Id == "tool-pdf-pages")
+            ShowPdfPageEditor(files, preset);
+        else if (preset.Id == "tool-pdf-add")
+            ShowPdfPageEditor(files, preset, addPages: true);
         else if (preset.IsCropTool)
             ShowCropOverlay(files, preset, near);
     }
@@ -133,6 +140,29 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
                 _cropOverlay = null;
         };
         _cropOverlay = win;
+        win.Show();
+        win.Activate();
+    }
+
+    /// <summary>Opens the lossless PDF page organiser. The Add-pages action starts with its file picker open.</summary>
+    public void ShowPdfPageEditor(IReadOnlyList<string> files, Preset preset, bool addPages = false)
+    {
+        if (files.Count == 0)
+            return;
+        _pdfPageEditor?.Close();
+        var store = services.GetRequiredService<UserDataStore>();
+        var log = services.GetService<ILogger<PdfPageEditorViewModel>>();
+        var vm = new PdfPageEditorViewModel(files, preset, loc, store, log);
+        var win = new PdfPageEditorWindow { DataContext = vm };
+        PrepareWindow(win);
+        win.Closed += (_, _) =>
+        {
+            if (_pdfPageEditor == win)
+                _pdfPageEditor = null;
+        };
+        if (addPages)
+            win.Opened += async (_, _) => await win.PickAndAddAsync();
+        _pdfPageEditor = win;
         win.Show();
         win.Activate();
     }
