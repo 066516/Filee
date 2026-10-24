@@ -2,7 +2,17 @@
 
 The independent review examined b694dad, based on Filee 2.0.0 at 799e394. The first follow-up integrated upstream
 a121a3c9e3254918f8b171bb7f675b0bdc532244 on 22 October. The current integration is
-a97a07cd2eea20dbf80f03332d2710b874eb09f9, verified on 23 October 2026. Only Blackspirits/Filee is changed.
+e3c6536ad020bfa92e0a16bca1c704554c9bbdf3, verified on 23 October 2026. Only Blackspirits/Filee is changed.
+
+## Submission integration: UI scale and PDF tables — 23 October 2026
+
+Upstream main advanced to `e3c6536a` while the full native matrix was running. This integration preserves the
+new UI-scale controls and PDF-table converter, translates their eight new source keys in pt-PT, and adds the
+nineteenth descriptive engine name (`Tabelas PDF` / `Tabelas de PDF`) under the existing fallback policy. All
+fifteen catalogs contain 1,034 keys. No existing translation value is rewritten, including the upstream Brazilian
+messages. Fifteen adjacent JSON/Theme-page conflicts retain both the upstream functionality and this
+contribution's scrolling/layout changes. The existing UI-scale Theme-page test also runs in both Portuguese
+variants and produces independent captures. Additional theme packs and Phase 2 remain separate future work.
 
 ## Final upstream catch-up — 23 October 2026
 

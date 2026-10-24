@@ -1,15 +1,15 @@
 # Portuguese localization
 
 Phase 1 adds European Portuguese and refines regional integration with the Brazilian translation already merged
-in #322. The current baseline is upstream `a97a07cd2eea20dbf80f03332d2710b874eb09f9` (23 October 2026).
+in #322. The current baseline is upstream `e3c6536ad020bfa92e0a16bca1c704554c9bbdf3` (23 October 2026).
 French, Traditional Chinese, Nepali, Thai, Material You, OCR, palette tabs and the other merged upstream changes
 are retained.
 Phase 2 has not started.
 
 ## Coverage and wording
 
-Both Portuguese catalogs contain all **1,025 English keys**, in English key order: 1,003 upstream entries,
-18 descriptive engine names and four compact donut labels. Three native macOS strings per variant are additional
+Both Portuguese catalogs contain all **1,034 English keys**, in English key order: 1,011 upstream entries,
+19 descriptive engine names and four compact donut labels. Three native macOS strings per variant are additional
 to those JSON entries. There are fifteen registered languages. The twelve non-Portuguese translations retain
 English for the new engine names pending maintainer review; compact labels reuse their existing full translations.
 This preserves their earlier metadata-based display rather than claiming unreviewed native translations.
@@ -117,6 +117,16 @@ The [earlier validation report](PORTUGUESE-NATIVE-VALIDATION.md#editorial-follow
 local automated results, headless PNGs and partial real Windows interaction. It also links the new CI run;
 the historical successful run below must not be treated as validation of the new head. The earlier head remained
 a draft. See the current integration report for readiness.
+
+## Submission integration: UI scale and PDF tables — 23 October 2026
+
+Upstream main advanced to `e3c6536a` while the full native matrix was running. This integration preserves the
+new UI-scale controls and PDF-table converter, translates their eight new source keys in pt-PT, and adds the
+nineteenth descriptive engine name (`Tabelas PDF` / `Tabelas de PDF`) under the existing fallback policy. All
+fifteen catalogs contain 1,034 keys. No existing translation value is rewritten, including the upstream Brazilian
+messages. Fifteen adjacent JSON/Theme-page conflicts retain both the upstream functionality and this
+contribution's scrolling/layout changes. The existing UI-scale Theme-page test also runs in both Portuguese
+variants and produces independent captures. Additional theme packs and Phase 2 remain separate future work.
 
 ## Final upstream catch-up — 23 October 2026
 
