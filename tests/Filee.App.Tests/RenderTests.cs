@@ -2396,6 +2396,7 @@ public class RenderTests
     public static TheoryData<string, bool> ClipLooks => new()
     {
         { "en", false }, { "en", true }, { "ru", false }, { "ru", true }, { "ar", false }, { "ar", true }, { "ja", false }, { "hi", true },
+        { "pt-PT", false }, { "pt-PT", true }, { "pt-BR", false }, { "pt-BR", true },
     };
 
     /// <summary>

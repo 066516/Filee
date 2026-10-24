@@ -289,7 +289,7 @@
   "clip.fade_out": "Saída gradual",
   "clip.fade_out_hint": "Desvanecer gradualmente para o preto e o silêncio durante 1 segundo",
   "clip.cannot_cut": "Coloca o cursor dentro do excerto, e não exatamente num corte",
-  "clip.last_piece": "O último segmento reproduzido não pode ser removido",
+  "clip.last_piece": "Tens de manter pelo menos um segmento no excerto",
   "clip.silence_removed": "Silêncio removido: {0}",
   "clip.no_silence": "Não foi encontrado silêncio",
   "clip.cannot_play": "Não é possível reproduzir o excerto",
