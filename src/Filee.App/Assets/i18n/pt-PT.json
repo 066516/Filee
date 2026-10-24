@@ -816,6 +816,8 @@
   "theme.window_size_reset": "Repor",
   "theme.window_size_hint": "Aumenta ou reduz todos os elementos nas janelas do Filee. Em qualquer janela, {0} + roda do rato e {0} + mais / menos fazem o mesmo; {0} + 0 repõe 100%.",
   "theme.preview": "Pré-visualização",
+  "theme.preview_toggle": "Interruptor de exemplo (só pré-visualização, não é uma definição)",
+  "theme.preview_toggle_hint": "Mostra o aspeto dos interruptores neste tema. Não altera nenhuma definição.",
 
   "engines.title": "Motores de conversão",
   "engines.description": "O Filee escolhe o melhor motor disponível para cada conversão.\nQuando vários conseguem fazer o mesmo, tem prioridade o que estiver mais acima.",

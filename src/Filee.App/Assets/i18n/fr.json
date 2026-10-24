@@ -816,6 +816,8 @@
   "theme.window_size_reset": "Réinitialiser",
   "theme.window_size_hint": "Agrandit ou réduit tout le contenu des fenêtres de Filee. Dans n'importe quelle fenêtre, {0} + molette de la souris et {0} + plus / moins font de même, et {0} + 0 revient à 100 %.",
   "theme.preview": "Aperçu",
+  "theme.preview_toggle": "Interrupteur d'exemple (aperçu uniquement, pas un réglage)",
+  "theme.preview_toggle_hint": "Montre l'apparence des interrupteurs avec ce thème. Ne modifie aucun réglage.",
 
   "engines.title": "Moteurs de conversion",
   "engines.description": "Filee choisit le meilleur moteur disponible pour chaque conversion.\nQuand plusieurs peuvent faire le même travail, le plus haut l'emporte.",

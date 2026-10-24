@@ -800,6 +800,8 @@
   "theme.window_size_reset": "Restablecer",
   "theme.window_size_hint": "Agranda o reduce todo en las ventanas de Filee. En cualquier ventana, {0} + rueda del ratón y {0} + más / menos hacen lo mismo, y {0} + 0 vuelve al 100 %.",
   "theme.preview": "Vista previa",
+  "theme.preview_toggle": "Interruptor de ejemplo (solo vista previa, no es un ajuste)",
+  "theme.preview_toggle_hint": "Muestra cómo se ven los interruptores con este tema. No cambia ningún ajuste.",
   "engines.title": "Motores de conversión",
   "engines.description": "Filee elige el mejor motor disponible para cada conversión.\nCuando varios pueden hacer el mismo trabajo, gana el que está más arriba.",
   "engines.available": "Disponible",

@@ -816,6 +816,8 @@
   "theme.window_size_reset": "Reset",
   "theme.window_size_hint": "Makes everything in Filee's windows larger or smaller. In any window, {0} + mouse wheel and {0} + plus / minus do the same, and {0} + 0 goes back to 100%.",
   "theme.preview": "Preview",
+  "theme.preview_toggle": "Sample switch (preview only, not a setting)",
+  "theme.preview_toggle_hint": "Shows how switches look in this theme. It doesn't change any setting.",
 
   "engines.title": "Conversion engines",
   "engines.description": "Filee picks the best available engine for each conversion.\nWhen several can do the same job, the higher one wins.",
