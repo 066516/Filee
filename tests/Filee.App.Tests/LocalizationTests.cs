@@ -124,6 +124,10 @@ public partial class LocalizationTests
     }
 
     [Theory]
+    [InlineData("tr", "tr")]
+    [InlineData("tr-TR", "tr")]
+    [InlineData("TR-cy", "tr")]
+    [InlineData("tru", "en")]
     [InlineData("ru-RU", "ru")]
     [InlineData("en-US", "en")]
     [InlineData("pl-PL", "pl")]
@@ -186,6 +190,13 @@ public partial class LocalizationTests
     {
         Assert.Contains(("ne", "नेपाली"), LocalizationService.Languages);
         Assert.Equal("ne", LocalizationService.Resolve("NE"));
+    }
+
+    [Fact]
+    public void Turkish_is_offered_under_its_own_name()
+    {
+        Assert.Contains(("tr", "Türkçe"), LocalizationService.Languages);
+        Assert.Equal("tr", LocalizationService.Resolve("TR"));
     }
 
     [Fact]

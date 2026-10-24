@@ -55,7 +55,7 @@
       फ़ॉर्मैट वहीं दिखते हैं जहाँ आप पहले से हैं, और सिर्फ़ वही जो आपकी खींची जा रही फ़ाइलों के लिए सही हों।
     </td>
     <td width="33%" valign="top">
-      <b>255 फ़ॉर्मैट, कोई और सॉफ़्टवेयर नहीं</b><br>
+      <b>256 फ़ॉर्मैट, कोई और सॉफ़्टवेयर नहीं</b><br>
       इमेज, PDF, Word, Excel, PowerPoint, HWP, ई-बुक, आर्काइव, फ़ॉन्ट, CAD, 3D मॉडल और भू-स्थानिक डेटा Office, Hancom Office या LibreOffice के बिना काम करते हैं।
     </td>
     <td width="33%" valign="top">
@@ -146,7 +146,7 @@ Set-ProcessMitigation -Name filee-cli.exe -Disable UserShadowStack
 
 | किससे | किसमें |
 |---|---|
-| **इमेज**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …;<br>GIMP XCF, कैमरा RAW (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, JPEG XR (Windows), iPhone लाइव फ़ोटो (LIVP) सिर्फ़ पढ़ने के लिए | इनमें से कोई भी (HEIC⁵), PDF, SVG (ट्रेस करके), आकार बदलना, ग्रेस्केल;<br>लाइव/मोशन फ़ोटो (iPhone, Android) → उनका वीडियो (MP4, MOV⁵), और वीडियो → लाइव फ़ोटो (iPhone) या मोशन फ़ोटो (Android)⁵, प्रायोगिक |
+| **इमेज**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …;<br>GIMP XCF, कैमरा RAW (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, FITS, JPEG XR (Windows), iPhone लाइव फ़ोटो (LIVP) सिर्फ़ पढ़ने के लिए | इनमें से कोई भी (HEIC⁵), PDF, SVG (ट्रेस करके), आकार बदलना, ग्रेस्केल;<br>लाइव/मोशन फ़ोटो (iPhone, Android) → उनका वीडियो (MP4, MOV⁵), और वीडियो → लाइव फ़ोटो (iPhone) या मोशन फ़ोटो (Android)⁵, प्रायोगिक |
 | **वेक्टर**: SVG, SVGZ, EMF, WMF, AI<br>EPS, PS¹<br>CDR, VSD, CGM, ODG, FODG² | PDF (वेक्टर), PNG और दूसरी इमेज,<br>SVG ↔ SVGZ, SVG → DXF/DWG, PDF → EPS/PS¹, SVG → EMF, WMF, ODG² |
 | **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, PPTX (हर पेज की एक तस्वीर), SVG²;<br>मर्ज करना (पहले अपनी पसंद का क्रम चुनकर), बाँटना, पेज रेंज, कंप्रेस करना (छोटी PDF फ़ाइलें) |
 | **दस्तावेज़**: DOCX, DOCM, DOTX, EML, Outlook MSG;<br>OFD (चीनी ई-इनवॉइस, सरकारी दस्तावेज़) सिर्फ़ पढ़ने के लिए<br>DOC, ODT, FODT, OTT, RTF, WPS, WPD, Pages, ClarisWorks, MacWrite, T602, …² | PDF, DOCX, HWPX, EPUB, TXT, HTML;<br>MSG → EML<br>ODT, FODT, OTT² |

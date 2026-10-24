@@ -836,6 +836,13 @@ internal static class SettingsMigrations
                 changed = true;
             }
         }
+        // v43: FITS astronomy pictures (.fits, .fts) learn the images donut; custom claims stay put. (Schema 43 may be
+        //      renumbered if another change takes it first.)
+        if (from < 43)
+            changed |= LearnExtensions(profiles, out _, ["fits", "fts"]);
+        // v44: CRI USM game videos (.usm) learn the video donut; custom claims stay put.
+        if (from < 44)
+            changed |= LearnExtensions(profiles, out _, ["usm"]);
         return changed;
     }
 

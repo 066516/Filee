@@ -9,7 +9,7 @@ namespace Filee.Engines.Magick;
 /// <summary>
 /// Converts between PNG, JPG, WEBP, TIFF, BMP, GIF, ICO, AVIF, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, APNG, MNG, QOI,
 /// DDS, PCX, CUR, XPM, XBM, WBMP, PAM, PFM, SGI, Sun Raster and MIFF, and reads HEIC, XCF, camera RAW, DICOM,
-/// Photo CD, OpenEXR, Radiance HDR and (on Windows) EMF/WMF.
+/// Photo CD, OpenEXR, Radiance HDR, FITS and (on Windows) EMF/WMF.
 /// </summary>
 public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransformer
 {
@@ -69,6 +69,9 @@ public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransf
     public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken) =>
         Task.Run<IReadOnlyList<string>>(() =>
         {
+            // FITS → TIFF keeps the file's depth (16 or 32 bits), which the Q8 build can't: Filee writes it.
+            if (step.From == "fits" && step.To == "tiff")
+                return FitsRendering.WriteTiff(step, progress, cancellationToken);
             // Animated PNGs are often saved as .png: read them as APNG, so they stay animated as GIF or WebP.
             var from = step.From == "png" && Apng.IsAnimated(step.InputPath) ? "apng" : step.From;
             using var images = ImageReader.Read(step.InputPath, from, step.Preset);

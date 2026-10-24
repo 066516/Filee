@@ -28,9 +28,16 @@ public partial class SetupTextsTests
         Assert.Equal(LocalizationService.Languages.Select(l => (l.Code, l.NativeName)), SetupTexts.Languages);
         Assert.Contains(SetupTexts.Languages, l => l.Code == "ja");
         Assert.Contains(("ar", "العربية"), SetupTexts.Languages);
+        Assert.Contains(("tr", "Türkçe"), SetupTexts.Languages);
+        Assert.Equal("Kur", new SetupTexts("tr")["installer.install"]);
     }
 
     [Theory]
+    [InlineData("tr", "en-US", "tr")]
+    [InlineData("TR", "en-US", "tr")]
+    [InlineData("auto", "tr-TR", "tr")]
+    [InlineData(null, "tr-CY", "tr")]
+    [InlineData(null, "tru", "en")]
     [InlineData("ko", "en-US", "ko")]
     [InlineData("ar-IQ", "en-US", "ar")]
     [InlineData("AR_sa", "en-US", "ar")]

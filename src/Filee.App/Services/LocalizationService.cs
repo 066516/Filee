@@ -108,6 +108,8 @@ public sealed class LocalizationService : ILocalizer
         var ui = osLanguage();
         if (AppLanguages.PortugueseVariant(ui) is { } portuguese)
             return portuguese;
+        if (ui.Equals("tr", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("tr-", StringComparison.OrdinalIgnoreCase))
+            return "tr";
         if (ui.StartsWith("ja", StringComparison.OrdinalIgnoreCase))
             return "ja";
         if (ui.StartsWith("ko", StringComparison.OrdinalIgnoreCase))

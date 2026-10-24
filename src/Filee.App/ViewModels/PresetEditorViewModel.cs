@@ -94,6 +94,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         Locations = Enum.GetValues<OutputLocation>().Select(v => new Choice<OutputLocation>(v, loc[$"presets.location.{v}"])).ToList();
         Conflicts = Enum.GetValues<ConflictPolicy>().Select(v => new Choice<ConflictPolicy>(v, loc[$"presets.conflict.{v}"])).ToList();
         TiffCompressions = Enum.GetValues<TiffCompression>().Select(v => new Choice<TiffCompression>(v, v.ToString().ToUpperInvariant())).ToList();
+        FitsTiffModes = Enum.GetValues<FitsTiffMode>().Select(v => new Choice<FitsTiffMode>(v, loc[$"presets.fits_tiff.{v}"])).ToList();
         MediaQualities = Enum.GetValues<MediaQuality>().Select(v => new Choice<MediaQuality>(v, loc[$"presets.media_quality.{v}"])).ToList();
         MaxHeights = Steps(MaxHeightSteps, _edit.Media.MaxHeight, h => h == 0 ? loc["presets.max_height.original"] : $"{h}p");
         AudioBitrates = Steps(BitrateSteps, _edit.Media.AudioBitrateKbps, k => k == 0 ? loc["presets.audio_bitrate.auto"] : $"{k} kbps");
@@ -103,6 +104,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         WavFormats = Enum.GetValues<WavSampleFormat>().Select(v => new Choice<WavSampleFormat>(v, loc[$"presets.wav_format.{v}"])).ToList();
         ArchiveLevels = Enum.GetValues<ArchiveLevel>().Select(v => new Choice<ArchiveLevel>(v, loc[$"presets.archive_level.{v}"])).ToList();
         TraceModes = Enum.GetValues<TracingMode>().Select(v => new Choice<TracingMode>(v, loc[$"presets.trace_mode.{v}"])).ToList();
+        // Version names stay as AutoCAD calls them, in every language.
+        CadVersions = Enum.GetValues<CadVersion>().Select(v => new Choice<CadVersion>(v,
+            v == Core.Presets.CadVersion.SameAsSource ? loc["presets.cad_version.same"] : "AutoCAD " + v.ToString()["AutoCad".Length..])).ToList();
         // A speed set outside the editor (a hand-edited preset file) is offered too, instead of being lost.
         AnimationSpeeds = [.. ImageOptions.AnimationSpeeds.Append(_edit.Image.PlaybackSpeed).Distinct().Order()
             .Select(s => new Choice<double>(s, s == 1 ? loc["presets.animation_speed.original"] : SpeedLabel(s)))];
@@ -123,6 +127,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _location = Locations.First(l => l.Value == _edit.Output.Location);
         _conflict = Conflicts.First(c => c.Value == _edit.Output.Conflict);
         _tiffCompression = TiffCompressions.First(t => t.Value == _edit.Image.TiffCompression);
+        _fitsTiffMode = FitsTiffModes.FirstOrDefault(m => m.Value == _edit.Image.FitsTiff) ?? FitsTiffModes[0];
+        _fitsDebayer = _edit.Image.FitsDebayer;
         _mediaQuality = MediaQualities.First(q => q.Value == _edit.Media.Quality);
         _maxHeight = MaxHeights.First(h => h.Value == _edit.Media.MaxHeight);
         _audioBitrate = AudioBitrates.First(b => b.Value == _edit.Media.AudioBitrateKbps);
@@ -146,6 +152,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _slideSeconds = _edit.Media.SlideDuration;
         _crossfade = _edit.Media.Crossfade;
         _traceMode = TraceModes.First(m => m.Value == _edit.Trace.Mode);
+        _cadVersion = CadVersions.First(v => v.Value == _edit.Cad.Version);
         _animationSpeed = AnimationSpeeds.First(s => s.Value == _edit.Image.PlaybackSpeed);
         _traceColors = Math.Clamp(_edit.Trace.Colors, TracingOptions.MinColors, TracingOptions.MaxColors);
         _traceDetail = Math.Clamp(_edit.Trace.Detail, 0, 100);
@@ -207,6 +214,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public IReadOnlyList<Choice<OutputLocation>> Locations { get; }
     public IReadOnlyList<Choice<ConflictPolicy>> Conflicts { get; }
     public IReadOnlyList<Choice<TiffCompression>> TiffCompressions { get; }
+
+    /// <summary>FITS → TIFF: the data as it is, or stretched (ImageOptions.FitsTiff).</summary>
+    public IReadOnlyList<Choice<FitsTiffMode>> FitsTiffModes { get; }
     public IReadOnlyList<Choice<MediaQuality>> MediaQualities { get; }
     public IReadOnlyList<Choice<int>> MaxHeights { get; }
     public IReadOnlyList<Choice<int>> AudioBitrates { get; }
@@ -216,6 +226,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public IReadOnlyList<Choice<ArchiveLevel>> ArchiveLevels { get; }
     public IReadOnlyList<Choice<TracingMode>> TraceModes { get; }
 
+    /// <summary>The AutoCAD version a DWG or DXF is written in (CadOptions.Version, #489).</summary>
+    public IReadOnlyList<Choice<CadVersion>> CadVersions { get; }
+
     /// <summary>Playback speeds of animations, 0.25× to 4× (ImageOptions.AnimationSpeed).</summary>
     public IReadOnlyList<Choice<double>> AnimationSpeeds { get; }
 
@@ -224,13 +237,14 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowImage), nameof(ShowTurnForPdf), nameof(ShowQuality), nameof(ShowTiff), nameof(ShowMultiPageTiff), nameof(ShowWebp), nameof(ShowIco),
+        nameof(ShowFitsTiff), nameof(ShowFitsDebayer),
         nameof(ShowZipResult), nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowLeaveOutPictures), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
         nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions), nameof(ShowOcr), nameof(ShowPageSize), nameof(ShowPdfTablesNote),
         nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec), nameof(ShowHardwareEncoding),
         nameof(AudioCodecs), nameof(AudioCodecChoice), nameof(ShowAudioCodec),
         nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote),
-        nameof(ShowSaveEveryFrame), nameof(ShowAnimationSpeed), nameof(ShowTrace), nameof(ShowExtractMotionPhoto), nameof(ShowSlideshow),
+        nameof(ShowSaveEveryFrame), nameof(ShowAnimationSpeed), nameof(ShowTrace), nameof(ShowCad), nameof(ShowExtractMotionPhoto), nameof(ShowSlideshow),
         nameof(ShowLivePhotoChoice), nameof(LivePhotoKinds), nameof(LivePhotoChoice), nameof(IsLivePhoto), nameof(LivePhotoHint))]
     private Choice<string> _target;
 
@@ -363,6 +377,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty] private Choice<ConflictPolicy> _conflict;
     [ObservableProperty] private Choice<TiffCompression> _tiffCompression;
+    [ObservableProperty] private Choice<FitsTiffMode> _fitsTiffMode;
+
+    /// <summary>FITS → other pictures: debayer a colour camera's raw frame (ImageOptions.FitsDebayer).</summary>
+    [ObservableProperty] private bool _fitsDebayer;
     [ObservableProperty] private int _quality;
     [ObservableProperty] private int _resizePercent;
     [ObservableProperty] private int _longEdge;
@@ -488,6 +506,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     private Choice<TracingMode> _traceMode;
 
     [ObservableProperty] private int _traceColors;
+    [ObservableProperty] private Choice<CadVersion> _cadVersion;
     [ObservableProperty] private int _traceDetail;
     [ObservableProperty] private Choice<double> _animationSpeed;
 
@@ -501,6 +520,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     partial void OnConflictChanged(Choice<ConflictPolicy>? oldValue, Choice<ConflictPolicy> newValue) => Choices.Restore(oldValue, newValue, v => Conflict = v);
     partial void OnTiffCompressionChanged(Choice<TiffCompression>? oldValue, Choice<TiffCompression> newValue) =>
         Choices.Restore(oldValue, newValue, v => TiffCompression = v);
+    partial void OnFitsTiffModeChanged(Choice<FitsTiffMode>? oldValue, Choice<FitsTiffMode> newValue) =>
+        Choices.Restore(oldValue, newValue, v => FitsTiffMode = v);
     partial void OnMediaQualityChanged(Choice<MediaQuality>? oldValue, Choice<MediaQuality> newValue) => Choices.Restore(oldValue, newValue, v => MediaQuality = v);
     partial void OnMaxHeightChanged(Choice<int>? oldValue, Choice<int> newValue) => Choices.Restore(oldValue, newValue, v => MaxHeight = v);
     partial void OnAudioBitrateChanged(Choice<int>? oldValue, Choice<int> newValue) => Choices.Restore(oldValue, newValue, v => AudioBitrate = v);
@@ -509,6 +530,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     partial void OnWavFormatChanged(Choice<WavSampleFormat>? oldValue, Choice<WavSampleFormat> newValue) => Choices.Restore(oldValue, newValue, v => WavFormat = v);
     partial void OnArchiveLevelChanged(Choice<ArchiveLevel>? oldValue, Choice<ArchiveLevel> newValue) => Choices.Restore(oldValue, newValue, v => ArchiveLevel = v);
     partial void OnTraceModeChanged(Choice<TracingMode>? oldValue, Choice<TracingMode> newValue) => Choices.Restore(oldValue, newValue, v => TraceMode = v);
+    partial void OnCadVersionChanged(Choice<CadVersion>? oldValue, Choice<CadVersion> newValue) => Choices.Restore(oldValue, newValue, v => CadVersion = v);
     partial void OnCompressionLevelChanged(Choice<PdfCompression>? oldValue, Choice<PdfCompression> newValue) =>
         Choices.Restore(oldValue, newValue, v => CompressionLevel = v);
     partial void OnAnimationSpeedChanged(Choice<double>? oldValue, Choice<double> newValue) =>
@@ -539,6 +561,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowTiff => TargetId is "tiff" or BuiltInData.SameAsSource;
     public bool ShowWebp => TargetId is "webp" or BuiltInData.SameAsSource;
     public bool ShowMultiPageTiff => TargetId is "tiff";
+    /// <summary>FITS (astronomy) → TIFF: linear or stretched, at the file's own depth.</summary>
+    public bool ShowFitsTiff => !IsTool && TargetId is "tiff";
+    /// <summary>FITS → any other picture is stretched; a colour camera's raw frame can be debayered or kept mono.</summary>
+    public bool ShowFitsDebayer => !IsTool && TargetCategory == FormatCategory.Image && TargetId != "tiff";
     public bool ShowIco => TargetId == "ico";
     /// <summary>PDF options (also used when a PDF source becomes images) mean nothing for media, archive, font, subtitle, data, e-mail, 3D and geospatial targets.</summary>
     public bool ShowPdf => !IsTool && !IsLivePhoto && TargetCategory is not (FormatCategory.Video or FormatCategory.Audio or FormatCategory.Archive or FormatCategory.Font
@@ -602,6 +628,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     /// drawing, a CAD file) the options are ignored.
     /// </summary>
     public bool ShowTrace => TargetId is "svg" or "svgz" or "dxf" or "dwg";
+
+    /// <summary>The AutoCAD version, for presets that write DWG or DXF.</summary>
+    public bool ShowCad => !IsTool && TargetId is "dxf" or "dwg";
     public bool ShowTraceColors => TraceMode.Value == TracingMode.Color;
     public bool ShowPercent => Resize.Value == ResizeMode.Percent;
     public bool ShowLongEdge => Resize.Value == ResizeMode.LongEdge;
@@ -645,6 +674,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         image.TiffCompression = TiffCompression.Value;
         image.WebpLossless = WebpLossless;
         image.MultiPageTiff = MultiPageTiff;
+        image.FitsTiff = FitsTiffMode.Value;
+        image.FitsDebayer = FitsDebayer;
         image.IcoSizes = IcoSizes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(s => int.TryParse(s, out var v) ? v : 0)
             .Where(v => v is > 0 and <= 256)
@@ -723,6 +754,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _original.Trace.Mode = TraceMode.Value;
         _original.Trace.Colors = Math.Clamp(TraceColors, TracingOptions.MinColors, TracingOptions.MaxColors);
         _original.Trace.Detail = Math.Clamp(TraceDetail, 0, 100);
+        // Only where it is shown: a version chosen for DWG and left behind by a PNG target is not kept.
+        _original.Cad.Version = ShowCad ? CadVersion.Value : default;
 
         var output = _original.Output;
         output.Location = Location.Value;

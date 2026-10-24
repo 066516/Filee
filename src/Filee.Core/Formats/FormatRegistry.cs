@@ -47,6 +47,9 @@ public static class FormatRegistry
         new("pcd", "Photo CD", FormatCategory.Image, ["pcd"], Writable: false),
         new("exr", "OpenEXR", FormatCategory.Image, ["exr"], Writable: false),
         new("hdr", "Radiance HDR", FormatCategory.Image, ["hdr"], Writable: false),
+        // Astronomy pictures from telescope cameras and stacking software, read by Filee itself (issue #460). ".fit" is
+        // left to Garmin's FIT activity files (issue #451).
+        new("fits", "FITS", FormatCategory.Image, ["fits", "fts"], Writable: false),
         // Read on Windows only, with its own codec (HDR screenshots of Windows are JPEG XR).
         new("jxr", "JPEG XR", FormatCategory.Image, ["jxr", "wdp", "hdp"], Writable: false),
         new("xcf", "XCF", FormatCategory.Image, ["xcf"], Writable: false),
@@ -221,6 +224,8 @@ public static class FormatRegistry
         new("swf", "SWF", FormatCategory.Video, ["swf"], Writable: false),
         new("wtv", "WTV", FormatCategory.Video, ["wtv", "dvr-ms", "dvr"], Writable: false),
         new("cavs", "CAVS", FormatCategory.Video, ["cavs"], Writable: false),
+        // CRI Middleware's video for game cutscenes (#485): FFmpeg's usm demuxer reads unencrypted ones.
+        new("usm", "USM", FormatCategory.Video, ["usm"], Writable: false),
         // Raw H.265 / H.264 streams with no container, as security cameras and VMS software export them (issue #301).
         new("h265", "H.265", FormatCategory.Video, ["h265", "265", "hevc"], Writable: false),
         new("h264", "H.264", FormatCategory.Video, ["h264", "264"], Writable: false),
