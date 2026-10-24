@@ -1407,6 +1407,9 @@ streams without a container: FFmpeg reports them as format `hevc` / `h264` (`Med
 encoded, never copied, because their frames carry no timestamps (a copy into MP4 had non-monotonic DTS). A stream
 without timing information is read at FFmpeg's default 25 fps, so a camera that recorded at another rate plays faster
 or slower; its frames are all kept.
+CRI USM (`.usm`, read only, #485), the video of many games' cutscenes, is read by FFmpeg's `usm` demuxer and goes to
+every video and audio target like the other read-only containers. Encrypted USM files (common in recent games) can't
+be read and fail with FFmpeg's error.
 A Video CD's `MPEGAV/AVSEQ01.DAT` (MPEG-1 in a RIFF/CDXA wrapper) counts as MPEG: `.dat` is an extension of that
 format, and FFmpeg reads what the file holds, so a `.dat` with no video in it fails instead of making a file.
 
