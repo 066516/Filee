@@ -323,6 +323,9 @@ public class DonutFlipTests
             Assert.True(triggers.WatchFlipKey);
 
             provider.PostKey(EventType.KeyPressed, KeyCode.VcTab, EventMask.LeftCtrl);
+            // #504: macOS can hand the donut's window the same press as well; it must not flip a second time.
+            window.KeyPress(Key.Tab, RawInputModifiers.Control, PhysicalKey.Tab, null);
+            Dispatcher.UIThread.RunJobs();
             Assert.True(TriggerServiceLifecycleTests.Settle(() => vm.IsBackFace));
             Assert.Equal(ImageBack, vm.Items.Select(i => i.Id));
             provider.PostKey(EventType.KeyReleased, KeyCode.VcTab, EventMask.LeftCtrl);

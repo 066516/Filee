@@ -55,7 +55,7 @@
       Les formats apparaissent là où vous êtes déjà, et seulement ceux qui ont un sens pour les fichiers que vous faites glisser.
     </td>
     <td width="33%" valign="top">
-      <b>255 formats, sans autre logiciel</b><br>
+      <b>256 formats, sans autre logiciel</b><br>
       Images, PDF, Word, Excel, PowerPoint, HWP, livres numériques, archives, polices, CAO, modèles 3D et données géospatiales fonctionnent sans Office, Hancom Office ni LibreOffice.
     </td>
     <td width="33%" valign="top">
@@ -146,7 +146,7 @@ Pour annuler, supprimez ces entrées dans Sécurité Windows → Contrôle des a
 
 | De | Vers |
 |---|---|
-| **Images** : JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, … ;<br>GIMP XCF, RAW d'appareil photo (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, JPEG XR (Windows), Live Photo d'iPhone (LIVP) en lecture | n'importe lequel de ces formats (HEIC⁵), PDF, SVG (vectorisé), redimensionné, niveaux de gris ;<br>Live/Motion Photos (iPhone, Android) → leur vidéo (MP4, MOV⁵), et une vidéo → Live Photo (iPhone) ou Motion Photo (Android)⁵, expérimental |
+| **Images** : JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, … ;<br>GIMP XCF, RAW d'appareil photo (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, FITS, JPEG XR (Windows), Live Photo d'iPhone (LIVP) en lecture | n'importe lequel de ces formats (HEIC⁵), PDF, SVG (vectorisé), redimensionné, niveaux de gris ;<br>Live/Motion Photos (iPhone, Android) → leur vidéo (MP4, MOV⁵), et une vidéo → Live Photo (iPhone) ou Motion Photo (Android)⁵, expérimental |
 | **Vectoriel** : SVG, SVGZ, EMF, WMF, AI<br>EPS, PS¹<br>CDR, VSD, CGM, ODG, FODG² | PDF (vectoriel), PNG et autres images,<br>SVG ↔ SVGZ, SVG → DXF/DWG, PDF → EPS/PS¹, SVG → EMF, WMF, ODG² |
 | **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, PPTX (une image par page), SVG² ;<br>fusionner (dans l'ordre que vous choisissez d'abord), diviser, plages de pages, compresser (PDF plus légers) |
 | **Documents** : DOCX, DOCM, DOTX, EML, Outlook MSG ;<br>OFD (factures électroniques et documents officiels chinois) en lecture<br>DOC, ODT, FODT, OTT, RTF, WPS, WPD, Pages, ClarisWorks, MacWrite, T602, …² | PDF, DOCX, HWPX, EPUB, TXT, HTML ;<br>MSG → EML<br>ODT, FODT, OTT² |
