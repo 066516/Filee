@@ -298,9 +298,9 @@
         <StackPanel Spacing="14">
           <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center"
                       IsHitTestVisible="False" Focusable="False">
-            <Button Classes="accent" Content="{DynamicResource common.save}"
+            <Button x:Name="PreviewPrimaryButton" Classes="accent" Content="{DynamicResource common.save}"
                     Focusable="False" IsTabStop="False" />
-            <Button Content="{DynamicResource common.cancel}"
+            <Button x:Name="PreviewSecondaryButton" Content="{DynamicResource common.cancel}"
                     Focusable="False" IsTabStop="False" />
           </StackPanel>
           <ToggleSwitch x:Name="PreviewToggle"
