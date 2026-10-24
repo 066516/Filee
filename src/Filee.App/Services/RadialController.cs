@@ -497,7 +497,13 @@ public sealed class RadialController(
     /// Has the global hook report the flip key and the wheel only while a drag-mode donut shows files that could flip;
     /// they are left alone otherwise (see <see cref="TriggerService.WatchFlipKey"/>).
     /// </summary>
-    private void WatchFlipKey() => triggers.WatchFlipKey = FlipsFromHook;
+    private void WatchFlipKey()
+    {
+        triggers.WatchFlipKey = FlipsFromHook;
+        // One source per press: the hook in drag mode, the window in click mode (#504).
+        if (_window is not null)
+            _window.DonutControl.FlipKeyFromHook = FlipsFromHook;
+    }
 
     /// <summary>A drag-mode donut shows files and nothing was dropped yet: the hook's flip key and wheel flip it.</summary>
     private bool FlipsFromHook => _visible && !_dropped && !viewModel.IsClickMode && viewModel.HasFiles;

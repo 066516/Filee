@@ -836,12 +836,16 @@ internal static class SettingsMigrations
                 changed = true;
             }
         }
-        // v43: "Cut a clip" (a part of a video as a file of its own), after "Motion Photo (Android)" as in a new library,
+        // v43: FITS astronomy pictures (.fits, .fts) learn the images donut; custom claims stay put. (Schema 43 may be
+        //      renumbered if another change takes it first.)
+        if (from < 43)
+            changed |= LearnExtensions(profiles, out _, ["fits", "fts"]);
+        // v44: "Cut a clip" (a part of a video as a file of its own), after "Motion Photo (Android)" as in a new library,
         //      and first on the back of the video donut in place of FLAC (which stays in the library), when the user
         //      hasn't put it elsewhere on the donut and the face has room.
-        //      Present already but saved since by a Filee before 43: that one dropped the tool's name, which made it a
+        //      Present already but saved since by a Filee before 44: that one dropped the tool's name, which made it a
         //      crop, so it is put back. The user's own changes (name, file name pattern) stay.
-        if (from < 43)
+        if (from < 44)
             changed |= AddClipTool(presets, profiles);
         return changed;
     }

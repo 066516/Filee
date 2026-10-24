@@ -296,6 +296,15 @@ public enum TiffCompression
     Zip,
 }
 
+/// <summary>What a FITS astronomy picture becomes in a TIFF (<see cref="ImageOptions.FitsTiff"/>).</summary>
+public enum FitsTiffMode
+{
+    /// <summary>The data as it is, at the file's own bit depth: for further processing.</summary>
+    Linear,
+    /// <summary>Automatically stretched like a capture program's preview, at the file's own bit depth.</summary>
+    Stretched,
+}
+
 /// <summary>Raster image encoding options.</summary>
 public sealed class ImageOptions
 {
@@ -386,6 +395,19 @@ public sealed class ImageOptions
 
     /// <summary>Use lossless WEBP encoding.</summary>
     public bool WebpLossless { get; set; }
+
+    /// <summary>
+    /// FITS → TIFF: the data as it is (the default) or stretched. Either way the TIFF follows the file's BITPIX: 8 and
+    /// 16 bits stay so, 32-bit integer and floating-point data become 32-bit floating point.
+    /// </summary>
+    [JsonConverter(typeof(LenientEnumJsonConverter<FitsTiffMode>))]
+    public FitsTiffMode FitsTiff { get; set; }
+
+    /// <summary>
+    /// FITS → any other picture (stretched automatically): a raw frame of a colour camera becomes colour with the Bayer
+    /// pattern in its header. Off keeps it mono. Mono cameras and three-plane colour files are not affected.
+    /// </summary>
+    public bool FitsDebayer { get; set; } = true;
 
     /// <summary>Icon sizes embedded in an ICO file.</summary>
     public List<int> IcoSizes { get; set; } = [256, 128, 64, 48, 32, 16];

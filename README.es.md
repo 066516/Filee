@@ -55,7 +55,7 @@
       Los formatos aparecen donde ya estás, y solo los que tienen sentido para los archivos que arrastras.
     </td>
     <td width="33%" valign="top">
-      <b>255 formatos, sin otros programas</b><br>
+      <b>256 formatos, sin otros programas</b><br>
       Imágenes, PDF, Word, Excel, PowerPoint, HWP, libros electrónicos, archivos comprimidos, tipografías, CAD, modelos 3D y datos geoespaciales funcionan sin Office, Hancom Office ni LibreOffice.
     </td>
     <td width="33%" valign="top">
@@ -146,7 +146,7 @@ Para deshacerlo, quita esas entradas en Seguridad de Windows → Control de apli
 
 | De | A |
 |---|---|
-| **Imágenes**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …;<br>GIMP XCF, RAW de cámara (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, JPEG XR (Windows), Live Photo de iPhone (LIVP) solo lectura | cualquiera de ellos (HEIC⁵), PDF, SVG (vectorizado), redimensionar, escala de grises;<br>Live/Motion Photos (iPhone, Android) → su vídeo (MP4, MOV⁵), y un vídeo → Live Photo (iPhone) o Motion Photo (Android)⁵, experimental |
+| **Imágenes**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …;<br>GIMP XCF, RAW de cámara (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, FITS, JPEG XR (Windows), Live Photo de iPhone (LIVP) solo lectura | cualquiera de ellos (HEIC⁵), PDF, SVG (vectorizado), redimensionar, escala de grises;<br>Live/Motion Photos (iPhone, Android) → su vídeo (MP4, MOV⁵), y un vídeo → Live Photo (iPhone) o Motion Photo (Android)⁵, experimental |
 | **Vectorial**: SVG, SVGZ, EMF, WMF, AI<br>EPS, PS¹<br>CDR, VSD, CGM, ODG, FODG² | PDF (vectorial), PNG y otras imágenes,<br>SVG ↔ SVGZ, SVG → DXF/DWG, PDF → EPS/PS¹, SVG → EMF, WMF, ODG² |
 | **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, PPTX (una imagen por página), SVG²;<br>unir (en el orden que elijas antes), dividir, rangos de páginas, comprimir (PDF más ligeros) |
 | **Documentos**: DOCX, DOCM, DOTX, EML, Outlook MSG;<br>OFD (facturas electrónicas y documentos oficiales chinos) solo lectura<br>DOC, ODT, FODT, OTT, RTF, WPS, WPD, Pages, ClarisWorks, MacWrite, T602, …² | PDF, DOCX, HWPX, EPUB, TXT, HTML;<br>MSG → EML<br>ODT, FODT, OTT² |
