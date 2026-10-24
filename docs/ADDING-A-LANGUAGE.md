@@ -25,11 +25,46 @@
 
 Missing keys fall back to English at runtime, but the test suite requires every language to be complete.
 
+Portuguese ships as `pt-PT` and `pt-BR`. Automatic selection uses `pt-BR` for Brazil (including `pt-Latn-BR`),
+and `pt-PT` for neutral `pt` and other Portuguese regions. An explicit selection always wins.
+Only the region subtag counts: a private-use suffix in `pt-PT-x-br` must not select Brazil.
+The UI language changes `CurrentUICulture`; number and date formatting continue to use the user's regional
+`CurrentCulture`. Do not change machine-readable filenames, pattern tokens or command-line switches when translating.
+
+The Windows installer embeds the same JSON files, including the `installer.*` keys. Test the language with
+`Filee.Setup.Tests` as well, and extend `SetupTexts.Resolve` when a region needs a distinct catalog. The CLI
+currently has a separate, English-only text provider.
+
+Native macOS text also needs `<language>.lproj/ServicesMenu.strings` and, for permission explanations,
+`InfoPlist.strings`, plus a `CFBundleLocalizations` entry in `installer/macos/Info.plist`. Keep the English service
+identifier on the left of `ServicesMenu.strings`; translate its value. The packaging loop copies all `.lproj` folders
+and validates their strings files with `plutil`. These system texts follow macOS language preferences.
+Keep technical identifiers such as the KWin `Filee Donut` window title stable.
+
 Optional, but welcome in the same or a later pull request: a translated README. Add `README.<code>.md` with every
 section `README.md` has, link it from the language line at the top of the other READMEs and add the language to
 their list of UI languages. The maintainers add the language to the website (filee.sh).
+
+## Demonstration recordings
+
+A slide may supply `localizedMedia` entries, for example
+`"pt-PT": { "media": "pt-PT/crop.webp", "poster": 57 }`. The code uses the exact UI language, otherwise the shared
+recording; regional variants do not borrow each other's recordings. Poster indices belong to each recording.
+The optional `FILEE_WHATSNEW_LANGUAGE` environment variable makes `WhatsNewMedia.Generate_2_0_0` generate a
+language's recordings and register them in the shared manifest. Rebuild App and Setup after generating them.
+The language-showcase slide intentionally demonstrates several languages and stays shared. Browser and flip
+are desktop recordings made outside the headless generator: retain the shared recordings until localized desktop
+scenes show the full interaction. Do not automatically replace them with abbreviated headless scenes.
+
+Compact action names can use `preset.<name>.donut` when the donut already shows the target format underneath.
+Keep the full action name for the preset editor; custom names always take priority. `.short` is for a group's inner
+choices, whose group supplies additional context (Rotate → Left), and is a separate contract.
 
 ## Adding a UI string
 
 Add the key to **all** language files in the same pull request. In XAML use
 `Text="{DynamicResource my.key}"`; in code use `ILocalizer["my.key"]` or `ILocalizer.Format("my.key", arg)`.
+
+Set `FILEE_LOCALIZATION_SCREENSHOTS=1` for PNG captures in `PortugueseRenderTests`. Geometry assertions
+always run. Dispose directly created `MainWindowViewModel` fixtures: production `WindowService` owns their lifetime,
+but a window constructed directly in a test does not automatically unsubscribe its model.
