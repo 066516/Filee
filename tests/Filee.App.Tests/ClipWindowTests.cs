@@ -352,10 +352,12 @@ public class ClipWindowTests
         });
     }
 
-    [AvaloniaFact]
-    public void A_cut_needs_the_playhead_inside_the_clip()
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("pt-PT")]
+    public void A_cut_needs_the_playhead_inside_the_clip(string language)
     {
-        WithClipWindow("en", false, ["match.mp4"], (window, vm, _, _) =>
+        WithClipWindow(language, false, ["match.mp4"], (window, vm, _, _) =>
         {
             vm.MovePlayhead(100);
             Press(window, Key.C);
