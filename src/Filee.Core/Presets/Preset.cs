@@ -99,6 +99,9 @@ public sealed class Preset
     /// <summary>Options used when a raster image is traced into vector shapes (PNG → SVG, DXF ...).</summary>
     public TracingOptions Trace { get; set; } = new();
 
+    /// <summary>Options used when a DWG or DXF is written.</summary>
+    public CadOptions Cad { get; set; } = new();
+
     /// <summary>Where and how output files are written.</summary>
     public OutputRule Output { get; set; } = new();
 
@@ -243,6 +246,7 @@ public sealed class Preset
         Media = Media.Clone(),
         Archive = Archive.Clone(),
         Trace = Trace.Clone(),
+        Cad = Cad.Clone(),
         Output = Output.Clone(),
         Kind = Kind,
         Tool = Tool,
@@ -869,3 +873,29 @@ public sealed class TracingOptions
 
     public TracingOptions Clone() => (TracingOptions)MemberwiseClone();
 }
+
+/// <summary>The AutoCAD version a DWG or DXF is written in (#489).</summary>
+public enum CadVersion
+{
+    /// <summary>AutoCAD 2018 (AC1032): still current in AutoCAD 2026.</summary>
+    AutoCad2018,
+    AutoCad2013,
+    AutoCad2010,
+    /// <summary>A DWG is written as 2004, which AutoCAD 2007 opens: ACadSharp can't write a 2007 DWG.</summary>
+    AutoCad2007,
+    AutoCad2004,
+    AutoCad2000,
+    /// <summary>The version of the drawing converted, within what can be written (2000–2018).</summary>
+    SameAsSource,
+}
+
+/// <summary>Options for writing DWG and DXF.</summary>
+public sealed class CadOptions
+{
+    /// <summary>A version from a newer Filee reads as <see cref="CadVersion.AutoCad2018"/>.</summary>
+    [JsonConverter(typeof(LenientEnumJsonConverter<CadVersion>))]
+    public CadVersion Version { get; set; }
+
+    public CadOptions Clone() => (CadOptions)MemberwiseClone();
+}
+

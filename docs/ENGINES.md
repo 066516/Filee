@@ -20,6 +20,7 @@ Filee chooses engines automatically. Settings → *Engines* shows their status, 
 | **DOCX writer** | built in | **HWPX (and HWP through rhwp), PDF, OFD, HTML, MHTML, EPUB, MOBI/AZW3, FB2, Markdown, TXT, XLSX, XLS, ODS, CSV, PPTX (+ variants) → DOCX** |
 | PDF text | built in (PdfPig) | **PDF → TXT, Markdown** (reading order, also two columns; Markdown keeps headings, emphasis, links and the pictures; no OCR) |
 | PDF slides | built in (PDFium, PdfPig) | **PDF → PPTX**: a picture of each page on its own slide (looks like the PDF, not editable), the page's text in the speaker notes |
+| PDF tables | built in (PdfPig) | **PDF → XLSX, ODS, CSV** (#267): each table drawn with lines on its own sheet, numbers and dates as real values, merged cells and column widths kept |
 | E-mail | built in (MimeKit, MsgReader) | **EML, Outlook MSG → HTML** (headers + body, inline pictures), **TXT**, **ZIP** (the attachments); **MSG → EML**; **MHTML → HTML** (the saved page in one file, pictures inlined; on to PDF, DOCX, HWPX, TXT, Markdown, EPUB from there) |
 | Data | built in (System.Text.Json, YamlDotNet, Tomlyn, System.Xml) | **JSON, JSON Lines, YAML, TOML, XML, CSV ↔ each other** (CSV for tables); **vCard, iCalendar ↔ CSV**; spreadsheets, contacts and events reach JSON / YAML / TOML / XML through CSV |
 | **E-books** | built in | **EPUB, MOBI/AZW/AZW3/PRC, FB2, HTMLZ, TXTZ → EPUB, HWPX (→ PDF), TXT, HTML, Markdown, FB2, HTMLZ, TXTZ**; HTML, Markdown, TXT, DOCX → EPUB/FB2/HTMLZ/TXTZ; HTML → TXT; comics CBZ/CBR/CB7/CBT/CBC → PDF, EPUB, CBZ; PDF → CBZ; AZW4 → PDF; **EPUB ↔ KEPUB** (Kobo) |
@@ -299,7 +300,7 @@ route they have no SVG target (PDF → SVG, for example, needs LibreOffice). The
 
 ## SVG → DXF / DWG
 
-`Vector/SvgDxfWriter.cs` writes the drawing's outlines with ACadSharp (DXF, AutoCAD 2018 like the CAD engine; DWG is
+`Vector/SvgDxfWriter.cs` writes the drawing's outlines with ACadSharp (DXF in the preset's version like the CAD engine; DWG is
 DXF → DWG by the CAD engine). The SVG is loaded with Svg.Skia as for PDF output, so groups, transforms, `<use>`,
 nested `<svg>`, CSS and text are resolved the same way.
 
@@ -652,6 +653,27 @@ differently inside an exact line (Word and LibreOffice at its foot, 한글 and r
 text sits up to 0.2 sizes higher than on the page. LibreOffice adds cell borders to row heights: the DOCX of a
 full 140 mm invoice opened there puts its last line on a second page (rhwp's PDF keeps it on one).
 
+## PDF → XLSX
+
+`Pdf/PdfTablesConverter.cs` puts the tables of a PDF into a workbook (#267). The tables are the ruled ones PDF → DOCX
+finds (`PdfDocumentReader.Tables.cs`, above): drawn with lines, with their merged cells, column widths and row
+heights. Text outside the tables is left out, as the XLSX preset's hint says; tables aligned by white space only are
+not found.
+
+- **One sheet per table** ("Table 1", "Table 2" …). A table that goes on at the top of the next page with the same
+  columns (widths within 5 %), right after one that ended its page, with no text between them, joins it on one
+  sheet; a header row repeated on the new page is left out.
+- **Numbers and dates** become real values with a number format that shows them as the PDF did: `1,234.50`
+  (`#,##0.00`), `(120)` (negative), `$9.99` / `€1,000.00` / `₩` `£` `¥` `₹` (the symbol in the format), `12.5%`
+  (`0.0%`), and dates with the year first, `2026-10-23`, `2026/1/5`, `2026. 10. 23.` (Korean style). Everything else
+  stays text: a leading zero (codes, phone numbers), more than 15 digits, a decimal comma (`1.234,50`, which can't be
+  told from thousands), day- or month-first dates.
+- Every cell gets thin borders (the table was drawn with lines), its shading, vertical alignment and bold when all
+  its text is bold; text wraps. Merged areas keep their borders on every covered cell.
+- A PDF with no such table, or a scan (no text), fails with `error.pdf_no_tables` instead of writing an empty
+  workbook. The same tables can be written as ODS, or as CSV (one file per sheet). These edges are direct only: an image
+  made into a PDF has no ruled tables, so no picture reaches a spreadsheet through PDF.
+
 ## PDF → PPTX
 
 `Pdf/PdfSlidesConverter.cs` turns a PDF into a PowerPoint deck of pictures: every page is rendered (PDFium, as for
@@ -885,8 +907,20 @@ and writes the files; Filee's own renderer draws them with SkiaSharp (one drawin
   2018, ASCII and binary. DWG R13 and older fail with "version not supported". Korean AutoCAD writes pre-2007 DXF with
   the code page name `ANSI_949`, which ACadSharp 3.8 does not map; Filee rewrites that header in memory so the text
   is decoded as CP949 (`CadFile.OpenDxf`, covered by a test that fails once ACadSharp handles it).
-- **Writing** (DWG ↔ DXF): always **AutoCAD 2018 (AC1032)** — the current DWG format (AutoCAD 2018 and later, DWG
-  TrueView, BricsCAD, ODA tools); 2018 DXF stores text as UTF-8. ACadSharp's DWG writer is younger than its reader
+- **Writing** (DWG ↔ DXF, and DWG → DWG / DXF → DXF in another version): **AutoCAD 2018 (AC1032)** by default — the
+  current DWG format (AutoCAD 2018 and later, DWG TrueView, BricsCAD, ODA tools); 2018 DXF stores text as UTF-8.
+  A preset can choose an older version (#489, `CadOptions.Version`): 2013, 2010, 2007, 2004, 2000, or the source's
+  own version (older than 2000 becomes 2000). ACadSharp 3.8 can't write a 2007 DWG: chosen, it is written as 2004,
+  which AutoCAD 2007 opens; kept from a 2007 source, as 2010. Before 2007, text is stored in the drawing's code page
+  (`$DWGCODEPAGE`), so `CadCodePages` picks the one that holds the most of the drawing's text (its own on a tie;
+  Korean for Hangul, Japanese for Kana, Big5 before GBK for Chinese, East Asian pages only for East Asian text) and
+  writes any character it can't hold as `\U+XXXX` (one `?` for a character outside the BMP). Names count and are
+  escaped too: layers, blocks, text and dimension styles, linetypes, layouts and attribute tags, so a Korean layer in a
+  drawing with only English text gets `ANSI_949`. Text inside table cells (2004 and later) isn't escaped. In a DWG, the
+  header's code page index is ACadSharp's (`KSC5601` / `GB2312`), the DXF says `ANSI_949`; both read back the same. Korean is written as `ANSI_949`, as AutoCAD names it (ACadSharp
+  needs `KCS5601` to encode it, so the DXF header is renamed after writing). Objects the chosen version doesn't
+  have are left out with a note: tables and arc dimensions before 2004, multileaders and PDF underlays before 2007,
+  meshes before 2010. ACadSharp's DWG writer is younger than its reader
   and its DXF writer, so DXF is the safer format to hand on. Objects ACadSharp does not model (proxy and AEC objects,
   some 3D and underlay data) are not written; degenerate dimensions it cannot measure are left out of DWG output
   instead of failing the file.
