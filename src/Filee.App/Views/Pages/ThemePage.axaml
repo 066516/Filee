@@ -294,13 +294,22 @@
           <c:DonutMenu x:Name="PreviewDonut" Items="{Binding PreviewItems}" OuterRadius="120" CenterTitle="JPG × 3" HorizontalAlignment="Center"
                        SliceOpacity="{Binding DonutOpacity, Converter={x:Static vm:ToolbarConverters.Percent}}" />
         </Border>
-        <!-- Samples of the accent on controls: pictures only, so they don't pass for settings. -->
-        <StackPanel Spacing="14" IsHitTestVisible="False">
-          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-            <Button Classes="accent" Content="{DynamicResource common.save}" Focusable="False" />
-            <Button Content="{DynamicResource common.cancel}" Focusable="False" />
+        <!-- Sample buttons are decorative; the switch below is an isolated interactive demo. -->
+        <StackPanel Spacing="14">
+          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center"
+                      IsHitTestVisible="False" Focusable="False">
+            <Button Classes="accent" Content="{DynamicResource common.save}"
+                    Focusable="False" IsTabStop="False" />
+            <Button Content="{DynamicResource common.cancel}"
+                    Focusable="False" IsTabStop="False" />
           </StackPanel>
-          <ToggleSwitch IsChecked="True" HorizontalAlignment="Center" Focusable="False" />
+          <ToggleSwitch x:Name="PreviewToggle"
+                        IsChecked="False"
+                        HorizontalAlignment="Center"
+                        OnContent="On"
+                        OffContent="Off"
+                        AutomationProperties.Name="Sample toggle, preview only, not a setting"
+                        AutomationProperties.HelpText="Demonstrates how switches look in this theme. Does not change any setting." />
         </StackPanel>
       </StackPanel>
     </Border>
