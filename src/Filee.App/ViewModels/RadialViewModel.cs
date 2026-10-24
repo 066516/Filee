@@ -183,7 +183,7 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
     }
 
     /// <summary>
-    /// Shows the other face (the donut is edge-on in its flip). Returns false, changing nothing, when it has no slice
+    /// Shows the other face (at the start of the donut's flip). Returns false, changing nothing, when it has no slice
     /// for these files (<see cref="CanFlip"/>).
     /// </summary>
     public bool ToggleFace()
