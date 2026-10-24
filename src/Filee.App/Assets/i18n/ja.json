@@ -778,6 +778,8 @@
   "theme.window_size_reset": "リセット",
   "theme.window_size_hint": "Filee のウィンドウ内のすべてを大きく、または小さく表示します。どのウィンドウでも {0} + マウスホイール、{0} + プラス / マイナスで同じ操作ができ、{0} + 0 で 100% に戻ります。",
   "theme.preview": "プレビュー",
+  "theme.preview_toggle": "サンプルのスイッチ（プレビュー専用、設定ではありません）",
+  "theme.preview_toggle_hint": "このテーマでスイッチがどう見えるかを示します。設定は変わりません。",
   "engines.title": "変換エンジン",
   "engines.description": "Fileeは変換ごとに、利用可能な最適なエンジンを選びます。\n同じ変換ができるエンジンが複数ある場合は、一覧で上にあるものが優先されます。",
   "engines.available": "利用可能",
