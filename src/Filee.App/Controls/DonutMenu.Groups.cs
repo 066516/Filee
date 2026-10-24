@@ -212,7 +212,8 @@ public sealed partial class DonutMenu
             string.Equals(KeyNames.ToHookName(key), flipKey, StringComparison.OrdinalIgnoreCase))
         {
             // Also when there is nothing to flip to: the key never does something else (Tab: move the focus).
-            Flip();
+            if (!FlipKeyFromHook)
+                Flip();
             return true;
         }
         if (!HandleKeyCore(key))
