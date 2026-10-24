@@ -516,6 +516,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
                 },
             },
         };
+        UiZoom.Track(dialog);
         if (owner is { IsVisible: true })
             return await dialog.ShowDialog<bool>(owner);
 
