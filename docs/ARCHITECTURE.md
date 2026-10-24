@@ -139,11 +139,19 @@ the drag donut shows files and flips on `FlipKeyPressed` / `FlipWheelTurned`: th
 can't hold an event back; Explorer and Finder ignore Tab during a drag) and reports one flip per key press.
 The editor's Front / Back switch (`ToolbarPageViewModel.EditingBack`) edits either list with the same drag and drop.
 
-## Crop overlay
+A group is one slice that opens up to six non-group actions. Its members may be conversions or interactive tools
+(for example the PDF Edit group contains Crop and the page editor); groups cannot contain another group. The group
+editor offers both kinds, and `UserDataStore.EnsureConsistency` removes missing, duplicate, nested or excess members
+without excluding tools.
 
-The Crop tool (`tool-crop`) opens `Views/CropOverlayWindow` instead of running a job: the files one after another,
+## Crop overlay and PDF page editor
+
+The image Crop tool (`tool-crop`) and PDF Crop (`tool-pdf-crop`) open `Views/CropOverlayWindow` instead of running a job:
+the files one after another,
 each cropped by hand and saved by `CropService` (the preset's output rule, the source's quality kept, animated or
-multi-frame pictures refused, the EXIF thumbnail dropped), one history entry for the run.
+multi-frame pictures refused, the EXIF thumbnail dropped), one history entry for the run. A PDF preview is rendered
+with PDFium and the chosen rectangle changes every page's crop box in a copied document opened in modify mode, so
+text, vectors, outlines, forms, page labels and document information remain PDF objects and stay attached.
 
 - `CropOverlayViewModel` walks the queue (Enter saves and opens the next file, Skip, Esc closes), keeps a
   `CropQueueItem` per file for the strip of thumbnails (waiting, current, done, skipped, failed; a thumbnail is a
@@ -165,6 +173,37 @@ multi-frame pictures refused, the EXIF thumbnail dropped), one history entry for
   button, and `CropSummaryRing` the end summary's donut (a slice per file).
 - `Controls/CropMath` holds the arithmetic (ratios and their portrait forms, nudging by whole pixels, the frame in
   pixels, where the size chip goes, where the dial opens) and is unit tested.
+
+`tool-pdf-pages` opens `Views/PdfPageEditorWindow`: it previews, reorders, rotates, deletes, adds and extracts pages.
+Each source PDF's bytes and page sizes are cached once after the window has appeared; thumbnails and the large preview
+render off the UI thread. A whole-document edit keeps the original catalogue and changes `/Rotate` in modify mode.
+An actual reorder, deletion, addition or extraction builds a new PDF from selected page objects. A PDF that opens
+without a password but requires an owner password for modify mode uses the same page-copy fallback as compression;
+its outlines and form fields are not preserved by that fallback. Generated copies are writable even when the source
+has the read-only attribute; the source's bytes and attributes are left alone.
+
+## Clip window
+
+The Cut a clip tool (`tool-clip`, first on the back of the video donut) opens `Views/ClipWindow` instead of running a
+job. The window only chooses the clip; writing it is an ordinary conversion.
+
+- `Core/Presets/ClipCutter` does every edit without the window: the parts of the clip (start, end, speed, volume,
+  mute), gaps left by Delete, the blade, edge trims that take back or cut away, music on A2, fades, Remove silence and
+  undo / redo (one step per drag). The result is a `ClipEdit`, unit tested on its own.
+- `ClipWindowViewModel` holds the window's state: the overview of the whole video (`Controls/ClipTimeline`: 16
+  frames, the loudness, the handles) and the sequence under it (`Controls/ClipSequence`: V1 pictures, A1 the video's
+  sound, A2 music). Both are custom-drawn controls; their pictures and loudness are taken again only when the clip's
+  ends rest.
+- Space plays the clip as it will be written: `Engines/Media/ClipPreview` runs the same filter graph as the output,
+  the pictures as raw BGRA frames over a pipe and the sound through `ffplay` (when it sits next to Filee's FFmpeg;
+  without it the preview is silent). FFmpeg for the window runs below normal priority.
+- Save calls `ClipTool.ConversionOf`, which carries the `ClipEdit` in `MediaOptions.Clip`, so the toast, cancel, the
+  output rules (`{name}_clip` next to the video) and the history work as for any conversion. `FfmpegConverter`
+  copies one plain stretch with `-ss/-to` and `-c copy` (*Fast, no re-encoding*), or encodes the exact cut.
+- Anything else is one filter graph (`MediaEncoding.ClipGraphOf`): the video is read once, `split`/`trim` per piece,
+  `setpts` and chained `atempo` for speed, `volume`, `color`/`anullsrc` for gaps, `concat`, the music as a second
+  input (`atrim`, `volume`, `afade`, `adelay`, `amix`), then `fade`/`afade`. It is encoded with the preset's quality,
+  size and codec.
 
 ## Spreadsheet print studio
 

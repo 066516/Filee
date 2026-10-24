@@ -54,6 +54,37 @@ public static class BuiltInData
             Id = "tool-sheet-studio", NameKey = "preset.sheet_studio", TargetFormat = "pdf",
             Kind = PresetKind.Tool, Output = { FileNamePattern = "{name}_prepared" },
         },
+        new()
+        {
+            Id = "tool-pdf-crop", NameKey = "preset.pdf_crop", TargetFormat = SameAsSource,
+            Kind = PresetKind.Tool, Output = { FileNamePattern = "{name}_cropped" },
+        },
+        new()
+        {
+            Id = "tool-pdf-pages", NameKey = "preset.pdf_pages", TargetFormat = SameAsSource,
+            Kind = PresetKind.Tool, Output = { FileNamePattern = "{name}_edited" },
+        },
+        new()
+        {
+            Id = "tool-pdf-add", NameKey = "preset.pdf_add", TargetFormat = SameAsSource,
+            Kind = PresetKind.Tool, Output = { FileNamePattern = "{name}_merged" },
+        },
+        new()
+        {
+            Id = "pdf-rotate-left", NameKey = "preset.rotate_left", TargetFormat = "pdf",
+            Pdf = { Rotation = PdfRotation.Left90 }, Output = { FileNamePattern = "{name}_left" },
+        },
+        new()
+        {
+            Id = "pdf-rotate-right", NameKey = "preset.rotate_right", TargetFormat = "pdf",
+            Pdf = { Rotation = PdfRotation.Right90 }, Output = { FileNamePattern = "{name}_right" },
+        },
+        new()
+        {
+            Id = "pdf-edit", NameKey = "preset.group_pdf_edit", TargetFormat = Preset.GroupTarget,
+            Kind = PresetKind.Group,
+            SubPresetIds = ["tool-pdf-crop", "pdf-rotate-left", "pdf-rotate-right", "tool-pdf-pages", "pdf-split", "tool-pdf-add"],
+        },
         .. ImageToolPresets(),
         new()
         {
@@ -82,6 +113,7 @@ public static class BuiltInData
         .. FramePresets(),
         .. MotionPhotoPresets(),
         .. LivePhotoPresets(),
+        .. ClipPresets(),
         .. MediaToolPresets(),
         new() { Id = "to-docx", Name = "DOCX", TargetFormat = "docx" },
         new() { Id = "to-hwpx", Name = "HWPX", TargetFormat = "hwpx" },
@@ -117,6 +149,19 @@ public static class BuiltInData
     [
         new() { Id = "live-photo-iphone", NameKey = "preset.live_photo_iphone", TargetFormat = "jpg", Media = { LivePhoto = LivePhotoKind.Apple } },
         new() { Id = "motion-photo-android", NameKey = "preset.motion_photo_android", TargetFormat = "jpg", Media = { LivePhoto = LivePhotoKind.Android } },
+    ];
+
+    /// <summary>
+    /// "Cut a clip" (added in settings schema 45): a part of a video, chosen on a timeline, as a file of its own. First on
+    /// the back of the video donut, as "Crop" is on the images donut.
+    /// </summary>
+    public static List<Preset> ClipPresets() =>
+    [
+        new()
+        {
+            Id = "tool-clip", NameKey = "preset.clip", TargetFormat = SameAsSource,
+            Kind = PresetKind.Tool, Tool = Preset.ClipTool, Output = { FileNamePattern = "{name}_clip" },
+        },
     ];
 
     /// <summary>
@@ -463,7 +508,7 @@ public static class BuiltInData
             Id = "pdf", NameKey = "profile.pdf",
             Extensions = ["pdf"],
             PresetIds = [.. PdfDonut],
-            BackPresetIds = ["compress-pdf", "to-webp", "to-tiff", "to-html", "to-odt", "to-rtf", "to-azw3", "to-cbz", "remove-metadata", "zip-all"],
+            BackPresetIds = ["pdf-edit", "compress-pdf", "to-webp", "to-tiff", "to-html", "to-odt", "to-rtf", "to-azw3", "to-cbz", "remove-metadata", "zip-all"],
         },
         new()
         {
@@ -551,9 +596,10 @@ public static class BuiltInData
             Extensions = ExtensionsOf(FormatCategory.Video),
             PresetIds = ["to-mp4", "mp4-720", "mp4-hevc", "to-webm", "to-mov", "to-gif", "to-mp3", "extract-subtitles", "to-mkv", "to-avi"],
             // Every frame as pictures is on no front (a long video gives thousands of files): behind a flip, a drop that
-            // misses its slice doesn't start it. Live / Motion Photos of a clip are there too.
-            BackPresetIds = ["mp4-av1", "to-webp", "extract-frames-png", "extract-frames-jpg", "live-photo-iphone", "motion-photo-android",
-                "extract-audio", "to-wav", "to-flac", "compress-video", "merge-videos", "zip-all"],
+            // misses its slice doesn't start it. Live / Motion Photos of a clip are there too, and "Cut a clip" first
+            // (in place of FLAC, which stays in the library).
+            BackPresetIds = ["tool-clip", "mp4-av1", "to-webp", "extract-frames-png", "extract-frames-jpg", "live-photo-iphone", "motion-photo-android",
+                "extract-audio", "to-wav", "compress-video", "merge-videos", "zip-all"],
         },
         new()
         {
