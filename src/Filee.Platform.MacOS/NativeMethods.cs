@@ -209,6 +209,104 @@ internal static class NativeMethods
     [return: MarshalAs(UnmanagedType.I1)]
     private static extern bool SendTrash(nint receiver, nint selector, nint url, nint resultingUrl, out nint error);
 
+    /// <summary>
+    /// The existing file or folder the Finder alias at <paramref name="path"/> points to; null for anything that
+    /// isn't an alias (CFURLCreateBookmarkDataFromFile reads no bookmark from it), a broken alias, or one whose
+    /// target is on a volume that isn't mounted: resolving never shows UI or mounts a server, since a drag waits on it.
+    /// </summary>
+    internal static string? AliasTarget(string path)
+    {
+        const nuint withoutUi = 1 << 8, withoutMounting = 1 << 9;
+        var url = FileUrl(path);
+        if (url == 0)
+            return null;
+        nint data = 0, target = 0;
+        try
+        {
+            data = CFURLCreateBookmarkDataFromFile(0, url, out var error);
+            if (data == 0)
+            {
+                Release(error);
+                return null;
+            }
+            target = CFURLCreateByResolvingBookmarkData(0, data, withoutUi | withoutMounting, 0, 0, out _, out error);
+            Release(error);
+            if (target == 0)
+                return null;
+            var buffer = new byte[4096];
+            if (!CFURLGetFileSystemRepresentation(target, true, buffer, buffer.Length))
+                return null;
+            // The file system representation is decomposed (NFD); dropped paths and the names Filee writes are
+            // composed, and APFS and HFS+ find the file either way, so a "보고서" alias and its target match.
+            var resolved = System.Text.Encoding.UTF8.GetString(buffer, 0, Array.IndexOf(buffer, (byte)0))
+                .Normalize(System.Text.NormalizationForm.FormC);
+            return File.Exists(resolved) || Directory.Exists(resolved) ? resolved : null;
+        }
+        finally
+        {
+            Release(target);
+            Release(data);
+            CFRelease(url);
+        }
+    }
+
+    /// <summary>Writes a Finder alias at <paramref name="path"/> to <paramref name="target"/> (for the tests).</summary>
+    internal static void CreateAlias(string path, string target)
+    {
+        const nuint suitableForBookmarkFile = 1 << 10;
+        var targetUrl = FileUrl(target);
+        var aliasUrl = FileUrl(path);
+        nint data = 0;
+        try
+        {
+            data = CFURLCreateBookmarkData(0, targetUrl, suitableForBookmarkFile, 0, 0, out var error);
+            Release(error);
+            if (data == 0 || !CFURLWriteBookmarkDataToFile(data, aliasUrl, 0, out error))
+            {
+                Release(error);
+                throw new IOException($"Could not write an alias at {path}.");
+            }
+        }
+        finally
+        {
+            Release(data);
+            Release(aliasUrl);
+            Release(targetUrl);
+        }
+    }
+
+    private static nint FileUrl(string path)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(Path.GetFullPath(path));
+        return CFURLCreateFromFileSystemRepresentation(0, bytes, bytes.Length, Directory.Exists(path));
+    }
+
+    private static void Release(nint value)
+    {
+        if (value != 0)
+            CFRelease(value);
+    }
+
+    [DllImport(CoreFoundation)]
+    private static extern nint CFURLCreateFromFileSystemRepresentation(nint allocator, byte[] buffer, nint length, [MarshalAs(UnmanagedType.I1)] bool isDirectory);
+
+    [DllImport(CoreFoundation)]
+    [return: MarshalAs(UnmanagedType.I1)]
+    private static extern bool CFURLGetFileSystemRepresentation(nint url, [MarshalAs(UnmanagedType.I1)] bool resolveAgainstBase, byte[] buffer, nint maxLength);
+
+    [DllImport(CoreFoundation)]
+    private static extern nint CFURLCreateBookmarkDataFromFile(nint allocator, nint fileUrl, out nint error);
+
+    [DllImport(CoreFoundation)]
+    private static extern nint CFURLCreateByResolvingBookmarkData(nint allocator, nint bookmark, nuint options, nint relativeToUrl, nint resourcePropertiesToInclude, [MarshalAs(UnmanagedType.I1)] out bool isStale, out nint error);
+
+    [DllImport(CoreFoundation)]
+    private static extern nint CFURLCreateBookmarkData(nint allocator, nint url, nuint options, nint resourcePropertiesToInclude, nint relativeToUrl, out nint error);
+
+    [DllImport(CoreFoundation)]
+    [return: MarshalAs(UnmanagedType.I1)]
+    private static extern bool CFURLWriteBookmarkDataToFile(nint bookmark, nint fileUrl, nuint options, out nint error);
+
     private readonly struct AutoreleasePool : IDisposable
     {
         private readonly nint _pool = Send(Send(objc_getClass("NSAutoreleasePool"), sel_registerName("alloc")), sel_registerName("init"));
