@@ -836,6 +836,10 @@ internal static class SettingsMigrations
                 changed = true;
             }
         }
+        // v43: FITS astronomy pictures (.fits, .fts) learn the images donut; custom claims stay put. (Schema 43 may be
+        //      renumbered if another change takes it first.)
+        if (from < 43)
+            changed |= LearnExtensions(profiles, out _, ["fits", "fts"]);
         return changed;
     }
 
