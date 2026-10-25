@@ -50,8 +50,8 @@ public class FitReaderTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal(5.678, record.Speed);
         Assert.Equal(123.45, record.Distance);
         Assert.Equal(Time(0x10000040), activity.Records[1].Time);
-        Assert.Equal([Time(0x10000035), Time(0x10000030)], activity.Sessions.Select(s => s.StartTime));
-        Assert.Equal(["running", "cycling"], activity.Sessions.Select(s => s.SportName));
+        Assert.Equal(Time(0x10000030), activity.SessionStart);
+        Assert.Equal(["running", "cycling"], activity.Sports);
         Assert.Equal("200", FitFormat.SportName(200));
         Assert.Equal("canoeing", FitFormat.SportName(88));
 
@@ -160,6 +160,23 @@ public class FitReaderTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.True(GC.GetAllocatedBytesForCurrentThread() - before < 1_000_000);
         Assert.Equal("error.fit_damaged", error.ErrorKey);
         Assert.Equal("cut short", error.Detail);
+    }
+
+    [Fact]
+    public void Many_empty_sessions_are_summed_up_without_keeping_each_one()
+    {
+        var builder = new FitBuilder().FileId().Session(0x10000035, 1).Define(0, 18);
+        for (var i = 0; i < 500_000; i++)
+            builder.Message(0, []);
+        var path = FitBuilder.Save(fx.NewFolder(), builder.Session(0x10000030, 2).Session(0x10000040, 1).Build());
+        // Warm the parser so the measurement holds only this file: its bytes, and no object per session.
+        _ = Read(new FitBuilder().FileId().Session(0x10000035, 1));
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var activity = FitFormat.Read(path, CancellationToken.None);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.True(allocated < new FileInfo(path).Length + 1_000_000, $"{allocated} bytes for a {new FileInfo(path).Length}-byte file");
+        Assert.Equal(Time(0x10000030), activity.SessionStart);
+        Assert.Equal(["running", "cycling"], activity.Sports);
     }
 
     [Fact]

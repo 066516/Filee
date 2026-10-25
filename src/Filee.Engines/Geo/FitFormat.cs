@@ -11,15 +11,23 @@ namespace Filee.Engines.Geo;
 internal sealed record FitRecord(DateTime? Time, double? Latitude, double? Longitude, double? Elevation,
     int? HeartRate, int? Cadence, int? Power, double? Speed, double? Distance);
 
-internal sealed record FitSession(DateTime? StartTime, int? Sport)
-{
-    public string? SportName => Sport is { } sport ? FitFormat.SportName(sport) : null;
-}
-
 internal sealed class FitActivity
 {
     public List<FitRecord> Records { get; } = [];
-    public List<FitSession> Sessions { get; } = [];
+
+    /// <summary>The earliest session start. Sessions aren't kept one by one, so their number can't grow memory.</summary>
+    public DateTime? SessionStart { get; private set; }
+
+    /// <summary>The session sports in file order, each once (at most 255).</summary>
+    public List<string> Sports { get; } = [];
+
+    internal void AddSession(DateTime? start, int? sport)
+    {
+        if (start is { } time && (SessionStart is null || time < SessionStart))
+            SessionStart = time;
+        if (sport is { } value && FitFormat.SportName(value) is var name && !Sports.Contains(name))
+            Sports.Add(name);
+    }
 }
 
 internal static class FitFormat
@@ -75,11 +83,10 @@ internal static class FitFormat
             throw new ConversionRefusedException("error.fit_no_positions");
 
         var properties = new List<KeyValuePair<string, object?>>();
-        var sports = activity.Sessions.Select(session => session.SportName).OfType<string>().Distinct().ToArray();
-        if (sports.Length > 0)
-            properties.Add(new("type", string.Join(", ", sports)));
+        if (activity.Sports.Count > 0)
+            properties.Add(new("type", string.Join(", ", activity.Sports)));
         DateTime? start = positioned.Count == 1 ? positioned[0].Time
-            : activity.Sessions.Select(session => session.StartTime).Where(time => time is not null).Order().FirstOrDefault()
+            : activity.SessionStart
                 ?? activity.Records.Select(record => record.Time).FirstOrDefault(time => time is not null);
         if (start is { } time)
             properties.Add(new("time", time.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)));
@@ -218,7 +225,7 @@ internal static class FitFormat
             switch (definition.Message)
             {
                 case 0: fileIdSeen = true; break;
-                case 18: activity.Sessions.Add(new FitSession(ToDate(startTime), sport)); break;
+                case 18: activity.AddSession(ToDate(startTime), sport); break;
                 case 20:
                     if (activity.Records.Count >= maxRecords)
                         throw new ConversionRefusedException("error.fit_too_large", "2000000 records");
@@ -272,8 +279,12 @@ internal static class FitFormat
             _ => bigEndian ? BinaryPrimitives.ReadUInt64BigEndian(bytes) : BinaryPrimitives.ReadUInt64LittleEndian(bytes),
         };
         if (type is 8 or 9)
-            return raw == (width == 4 ? uint.MaxValue : ulong.MaxValue) ? null
-                : type == 8 ? BitConverter.Int32BitsToSingle((int)raw) : BitConverter.Int64BitsToDouble((long)raw);
+        {
+            if (raw == (width == 4 ? uint.MaxValue : ulong.MaxValue))
+                return null;
+            double number = type == 8 ? BitConverter.Int32BitsToSingle((int)raw) : BitConverter.Int64BitsToDouble((long)raw);
+            return double.IsFinite(number) ? number : null; // NaN and infinities pass no range check
+        }
         if (type is 10 or 11 or 12 or 16 && raw == 0)
             return null;
         if (type is 1 or 3 or 5 or 14)

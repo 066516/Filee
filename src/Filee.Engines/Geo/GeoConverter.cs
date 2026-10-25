@@ -59,10 +59,9 @@ public sealed class GeoConverter(ILogger? logger = null) : IConverter
                 _logger.LogDebug("{File}: {Features} features read as {Format}, {Crs}", step.InputPath, dataset.Features.Count, step.From, dataset.Crs.Name);
                 if (dataset.RowsWithoutLocation)
                     notices.Add("notice.geo_rows_without_location");
-                if (activity is not null && step.To == "gpx" && dataset.Features[0].Geometry is GeoLineString line
-                    && dataset.Features[0].FindText("time") is { } summary
-                    && (line.Times is null || line.Times[0] is not { } first
-                        || first.ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture) != summary))
+                // A GPX track has no start time, but its points keep theirs: the start is lost only when none has one.
+                if (activity is not null && step.To == "gpx" && dataset.Features[0].Geometry is GeoLineString { Times: null }
+                    && dataset.Features[0].FindText("time") is not null)
                     notices.Add("notice.geo_gpx_lossy");
             }
             progress?.Report(0.6);

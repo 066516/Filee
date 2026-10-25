@@ -1093,8 +1093,8 @@ attribute: the earliest session start, else the first record time (for a single 
 keeps what it can:
 
 - **GPX**: a track (a waypoint for a single position) with `<time>` and `<ele>` on the points that have them, and the
-  sport as `<type>`. A track has no start time of its own: when the start differs from the first point's time, or the
-  first point has no time, a notice says the start was left out.
+  sport as `<type>`. A track has no start time of its own, but its points keep their times: only when no point has a
+  time and the activity has a start does a notice say the start was left out.
 - **KML / KMZ**: a Point for a single position. A track is a `gx:Track` when every point has a time and a height;
   otherwise a LineString, with the point times in a `coordTimes` `Data` entry when any point has one. `type` and `time`
   are `ExtendedData`.

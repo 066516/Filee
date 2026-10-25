@@ -78,24 +78,59 @@ public class FitFormatTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
-    public async Task Gpx_only_reports_a_different_or_unrepresentable_summary_start()
+    public async Task Gpx_reports_the_start_only_when_no_point_keeps_a_time()
     {
-        var records = Three();
-        foreach (var (start, notice) in new (uint?, string?)[]
+        var firstUntimed = Three();
+        firstUntimed[0].Item1 = null;
+        foreach (var (start, records) in new (uint?, (uint?, int?, int?, ushort?)[])[]
         {
-            (null, null), (First - 10, "notice.geo_gpx_lossy"),
+            (null, Three()), (First - 10, Three()), (First, Three()), (First - 10, firstUntimed),
         })
         {
             var builder = new FitBuilder().FileId();
             if (start is { } t) builder.Session(t, 1);
             var input = Save(Append(builder, records));
             var job = await fx.ConvertAsync(input, "gpx");
-            Assert.Equal(notice, job.Files.Single().NoticeKey);
+            Assert.Null(job.Files.Single().NoticeKey);
         }
         var withoutTimes = Save(Append(new FitBuilder().FileId().Session(First, 1), Three(times: false)));
         Assert.Equal("notice.geo_gpx_lossy", (await fx.ConvertAsync(withoutTimes, "gpx")).Files.Single().NoticeKey);
         var point = (await fx.ConvertOkAsync(Track((First, 0x20000000, 0x40000000, 3000)), "gpx")).Single();
         Assert.Equal(Stamp(First), Child(Assert.Single(Elements(point, "wpt")), "time"));
+    }
+
+    [Fact]
+    public async Task Non_finite_float_values_are_left_out_like_invalid_ones()
+    {
+        static FitBuilder.FitField F32(byte number, float value) => new(number, 0x88, BitConverter.GetBytes(value));
+        static FitBuilder.FitField F64(byte number, double value) => new(number, 0x89, BitConverter.GetBytes(value));
+        FitBuilder.FitField[][] records =
+        [
+            [FitBuilder.U32(253, First), FitBuilder.S32(0, 0x20000000), FitBuilder.S32(1, 0x40000000), FitBuilder.U16(2, 3000)],
+            [FitBuilder.U32(253, First + 1), F32(0, float.NaN), FitBuilder.S32(1, 0x20000000), F64(2, double.PositiveInfinity)],
+            [FitBuilder.U32(253, First + 2), FitBuilder.S32(0, 0x10000000), F64(1, double.NegativeInfinity)],
+            [FitBuilder.U32(253, First + 3), FitBuilder.S32(0, 0x30000000), FitBuilder.S32(1, 0x30000000), F32(2, float.PositiveInfinity)],
+        ];
+        var builder = new FitBuilder().FileId();
+        foreach (var fields in records)
+            builder.Define(0, 20, fields: fields).Message(0, fields);
+        var input = Save(builder);
+
+        var gpx = (await fx.ConvertOkAsync(input, "gpx")).Single();
+        Assert.DoesNotContain("NaN", File.ReadAllText(gpx));
+        Assert.DoesNotContain("Infinity", File.ReadAllText(gpx));
+        var points = Elements(gpx, "trkpt");
+        Assert.Equal(["45", "67.5"], points.Select(p => (string?)p.Attribute("lat")));
+        Assert.Equal(["90", "67.5"], points.Select(p => (string?)p.Attribute("lon")));
+        Assert.Equal(["100", null], points.Select(p => Child(p, "ele")));
+        Assert.Equal(
+        [
+            "time,longitude,latitude,elevation,heart_rate,cadence,power,speed,distance",
+            $"{Stamp(First)},90,45,100,,,,,",
+            $"{Stamp(First + 1)},,,,,,,,",
+            $"{Stamp(First + 2)},,,,,,,,",
+            $"{Stamp(First + 3)},67.5,67.5,,,,,,",
+        ], File.ReadAllLines((await fx.ConvertOkAsync(input, "csv")).Single()));
     }
 
     [Fact]
