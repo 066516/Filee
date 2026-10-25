@@ -16,6 +16,11 @@ public enum OutputLocation
     Subfolder,
     /// <summary>In a fixed folder (see <see cref="OutputRule.CustomFolder"/>).</summary>
     CustomFolder,
+    /// <summary>
+    /// "Ask every time" (#521): a save dialog that starts in the source's folder, once per batch (see
+    /// <see cref="AskedLocation"/>). Where nothing can ask (watch folders, the command line), next to the source.
+    /// </summary>
+    Ask,
 }
 
 /// <summary>What to do when the output file already exists.</summary>

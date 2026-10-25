@@ -346,6 +346,15 @@ public sealed class RadialController(
             return;
         }
 
+        // "Ask every time" (#521): the save dialog first; the toast shows the job, the donut has closed for the dialog.
+        // shortcut: files from a browser aren't asked about, they save into the download folder as "next to the source".
+        if (preset.Output.Location == OutputLocation.Ask && web is null)
+        {
+            Close(animate: false);
+            _ = AskThenConvertAsync(sources, preset, oneResult: sources.Count == 1);
+            return;
+        }
+
         log.LogInformation("Converting {Count} file(s) with preset {Preset}{Web}", sources.Count, preset.Id,
             web is null ? "" : " (from a browser)");
         var job = conversions.Start(sources, preset, showInToast: false, web);
@@ -363,7 +372,9 @@ public sealed class RadialController(
         try
         {
             var ordered = await windows.ChooseMergeOrderAsync(files);
-            if (ordered is not null)
+            if (ordered is not null && preset.Output.Location == OutputLocation.Ask && web is null)
+                await AskThenConvertAsync(ordered, preset, oneResult: true); // the merge is one file
+            else if (ordered is not null)
             {
                 conversions.Start(ordered, preset, web: web);
                 web = null; // the conversion owns the browser drop now
@@ -376,6 +387,22 @@ public sealed class RadialController(
         finally
         {
             web?.Dispose();
+        }
+    }
+
+    private async Task AskThenConvertAsync(IReadOnlyList<string> sources, Preset preset, bool oneResult)
+    {
+        try
+        {
+            if (await windows.AskSaveLocationAsync(sources, preset, oneResult) is { } asked)
+            {
+                log.LogInformation("Converting {Count} file(s) with preset {Preset} where the user chose", sources.Count, preset.Id);
+                conversions.Start(sources, asked);
+            }
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            log.LogError(ex, "Could not ask where to save");
         }
     }
 
