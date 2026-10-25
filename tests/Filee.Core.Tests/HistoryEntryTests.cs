@@ -51,4 +51,46 @@ public class HistoryEntryTests
         Assert.Empty(entry.Failures);
         Assert.Null(entry.Preset);
     }
+
+    [Fact]
+    public async Task A_finished_job_remembers_its_results_as_they_were_for_undo()
+    {
+        using var dir = new TempDir();
+        var photo = dir.File("photo.jpg");
+        await using var queue = new JobQueue(new ConverterCatalog([new FakeConverter("magick", new ConversionEdge("jpg", "png"))]));
+        var job = new ConversionJob([photo], new Preset { TargetFormat = "png" }, "PNG");
+        await queue.RunAsync(job);
+
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.AddHistory(HistoryEntry.From(job));
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        var entry = Assert.Single(reloaded.History);
+
+        var result = Assert.Single(entry.Undoable);
+        Assert.Equal(Assert.Single(job.Outputs), result.Path);
+        Assert.False(entry.OriginalsInTrash);
+        Assert.False(entry.Undone);
+        Assert.True(result.Unchanged());
+
+        // Written again since (another conversion with "Overwrite", an edit): Undo must leave it alone.
+        File.AppendAllText(result.Path, "edited");
+        Assert.False(result.Unchanged());
+        File.Delete(result.Path);
+        Assert.False(result.Unchanged());
+    }
+
+    [Fact]
+    public void An_entry_from_before_undo_has_nothing_to_undo()
+    {
+        using var dir = new TempDir();
+        File.WriteAllText(Path.Combine(dir.Path, "history.json"), """[{"JobId":"a","PresetName":"PNG","Outputs":["photo.png"]}]""");
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        var entry = Assert.Single(store.History);
+        Assert.Empty(entry.Undoable);
+        Assert.False(entry.Undone);
+    }
 }

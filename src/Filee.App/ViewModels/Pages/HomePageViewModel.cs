@@ -18,17 +18,22 @@ namespace Filee.App.ViewModels.Pages;
 public sealed partial class HistoryItemViewModel : ObservableObject
 {
     private readonly HistoryEntry _entry;
+    private readonly ILocalizer _loc;
     private readonly IPlatformServices _platform;
     private readonly ConversionService? _conversions;
+    private readonly UserDataStore? _store;
 
     /// <summary>The first output still on disk (the one the buttons open), or null.</summary>
     private readonly string? _output;
 
-    public HistoryItemViewModel(HistoryEntry entry, ILocalizer loc, IPlatformServices platform, ConversionService? conversions = null)
+    public HistoryItemViewModel(HistoryEntry entry, ILocalizer loc, IPlatformServices platform, ConversionService? conversions = null,
+        UserDataStore? store = null)
     {
         _entry = entry;
+        _loc = loc;
         _platform = platform;
         _conversions = conversions;
+        _store = store;
         Title = entry.PresetName;
         Subtitle = entry.Sources.Count == 1 ? Path.GetFileName(entry.Sources[0]) : loc.Format("home.files", entry.Sources.Count);
         Time = entry.FinishedAt.Date == DateTime.Today ? entry.FinishedAt.ToString("t") : entry.FinishedAt.ToString("d");
@@ -52,6 +57,9 @@ public sealed partial class HistoryItemViewModel : ObservableObject
         ThumbnailSource = picture is not null && HistoryThumbnails.CanShow(picture) ? picture : null;
         // Only entries that remember their preset (Filee 1.8 and later) and still have a failed file to convert.
         CanRetry = conversions is not null && entry.Preset is not null && entry.Failures.Any(f => ConversionService.Exists(f.Source));
+        // Undo (#553): only while every result is still as the job left it, so a file changed since is never moved.
+        CanUndo = store is not null && !entry.Undone && entry.Undoable.Count > 0 && entry.Undoable.All(o => o.Unchanged());
+        UndoneText = entry.Undone ? loc[entry.OriginalsInTrash ? "home.undone_original" : "home.undone"] : "";
     }
 
     public string Title { get; }
@@ -99,6 +107,43 @@ public sealed partial class HistoryItemViewModel : ObservableObject
     {
         if (_conversions is not null && _entry.Preset is not null)
             _conversions.Retry(_entry.Failures.Select(f => f.Source), _entry.Preset, _entry.WatchRuleId);
+    }
+
+    public bool CanUndo { get; }
+
+    /// <summary>"Undone: the results are in the Recycle Bin / Trash", or empty.</summary>
+    public string UndoneText { get; }
+
+    public bool IsUndone => UndoneText.Length > 0;
+
+    /// <summary>Why a result couldn't be moved to the Recycle Bin / Trash, or empty.</summary>
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasUndoError))] private string _undoError = "";
+
+    public bool HasUndoError => UndoError.Length > 0;
+
+    /// <summary>
+    /// Moves the job's results to the Recycle Bin / Trash. A result moved by an earlier try is skipped, one changed
+    /// since is kept. "Replace the original" sent the originals there already: they stay, and the card says so.
+    /// </summary>
+    [RelayCommand]
+    private void Undo()
+    {
+        if (!CanUndo || _store is null)
+            return;
+        UndoError = "";
+        foreach (var output in _entry.Undoable)
+        {
+            if (!File.Exists(output.Path))
+                continue;
+            var refusal = output.Unchanged() ? _platform.MoveToTrash(output.Path) : new TrashRefusal("trash.changed");
+            if (refusal is not null)
+            {
+                UndoError = _loc.Format("home.undo_failed", Path.GetFileName(output.Path), _loc[refusal.ReasonKey]);
+                return;
+            }
+        }
+        _entry.Undone = true;
+        _store.SaveHistory();
     }
 
     [RelayCommand]
@@ -223,7 +268,7 @@ public sealed partial class HomePageViewModel : ObservableObject, IDisposable
             .ToList();
         History.Clear();
         foreach (var entry in entries)
-            History.Add(new HistoryItemViewModel(entry, _loc, _platform, _conversions));
+            History.Add(new HistoryItemViewModel(entry, _loc, _platform, _conversions, _store));
         IsEmpty = _store.History.Count == 0;
         NoMatches = !IsEmpty && History.Count == 0;
         LoadThumbnails();

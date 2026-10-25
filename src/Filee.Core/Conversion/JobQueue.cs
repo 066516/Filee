@@ -1078,7 +1078,9 @@ public sealed class JobQueue : IAsyncDisposable
             return Kept(new Platform.TrashRefusal("trash.cannot_place", ex.Message), output);
         }
 
-        if (_moveToTrash(source) is { } refusal)
+        var refusal = _moveToTrash(source);
+        file.OriginalInTrash = refusal is null;
+        if (refusal is not null)
         {
             // The result goes back to where it was saved.
             try

@@ -32,6 +32,18 @@ public sealed class HistoryEntry
     /// <summary>"file: error" lines written by Filee 1.7 and earlier; read for entries without <see cref="Failures"/>.</summary>
     public List<string> Errors { get; set; } = [];
 
+    /// <summary>
+    /// The results Undo sends to the Recycle Bin / Trash, as they were when the job finished: Undo is offered only while
+    /// each one is still there unchanged (#553). Empty when there is nothing to undo, and in entries from before Undo.
+    /// </summary>
+    public List<HistoryOutput> Undoable { get; set; } = [];
+
+    /// <summary>"Replace the original" sent a source to the Recycle Bin / Trash; Undo says it is still there.</summary>
+    public bool OriginalsInTrash { get; set; }
+
+    /// <summary>Undo moved the results to the Recycle Bin / Trash.</summary>
+    public bool Undone { get; set; }
+
     public static HistoryEntry From(ConversionJob job)
     {
         var failures = job.Files
@@ -50,7 +62,46 @@ public sealed class HistoryEntry
             Failures = failures,
             // history.json isn't the place for a PDF password: a retry takes it from the preset again.
             Preset = failures.Count > 0 ? job.Preset.Clone().WithoutPassword(mark: true) : null,
+            Undoable = UndoableOutputs(job),
+            OriginalsInTrash = job.Files.Any(f => f.OriginalInTrash),
         };
+    }
+
+    private static List<HistoryOutput> UndoableOutputs(ConversionJob job)
+    {
+        var outputs = new List<HistoryOutput>();
+        foreach (var file in job.Files)
+        {
+            foreach (var output in file.Outputs)
+            {
+                // A source left as it was ("Only if smaller" with "Replace the original") is the user's file, not a result.
+                if (!file.OriginalInTrash && string.Equals(Path.GetFullPath(output), Path.GetFullPath(file.SourcePath), Platform.FileSystemPaths.Comparison))
+                    continue;
+                // shortcut: an output folder (Extract) takes Undo away from the whole job; Undo only moves files.
+                if (!File.Exists(output))
+                    return [];
+                if (outputs.Any(o => string.Equals(o.Path, output, Platform.FileSystemPaths.Comparison)))
+                    continue;
+                var info = new FileInfo(output);
+                outputs.Add(new HistoryOutput { Path = output, Length = info.Length, WrittenUtc = info.LastWriteTimeUtc });
+            }
+        }
+        return outputs;
+    }
+}
+
+/// <summary>A result as the job left it, so Undo never moves a file that was changed or replaced since.</summary>
+public sealed class HistoryOutput
+{
+    public string Path { get; set; } = "";
+    public long Length { get; set; }
+    public DateTime WrittenUtc { get; set; }
+
+    /// <summary>Still there, the same size and last written at the same time.</summary>
+    public bool Unchanged()
+    {
+        var info = new FileInfo(Path);
+        return info.Exists && info.Length == Length && info.LastWriteTimeUtc == WrittenUtc;
     }
 }
 

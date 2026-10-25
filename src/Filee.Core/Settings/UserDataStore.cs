@@ -58,7 +58,7 @@ public sealed class UserDataStore
     /// <summary>Raised after presets or profiles were saved.</summary>
     public event EventHandler? LibraryChanged;
 
-    /// <summary>Raised after a history entry was added.</summary>
+    /// <summary>Raised after a history entry was added or changed, or the history cleared.</summary>
     public event EventHandler? HistoryChanged;
 
     private string SettingsPath => Path.Combine(Directory, "settings.json");
@@ -127,6 +127,13 @@ public sealed class UserDataStore
             if (History.Count > limit)
                 History.RemoveRange(limit, History.Count - limit);
         }
+        Write(HistoryPath, History, FileeJsonContext.Default.ListHistoryEntry);
+        HistoryChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Saves a change to an entry already in <see cref="History"/> (Undo marks it undone).</summary>
+    public void SaveHistory()
+    {
         Write(HistoryPath, History, FileeJsonContext.Default.ListHistoryEntry);
         HistoryChanged?.Invoke(this, EventArgs.Empty);
     }

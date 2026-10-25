@@ -1,5 +1,5 @@
 // The Home page's recent conversions: thumbnails of the results (decoded off the UI thread, upright, without holding
-// the files) and the buttons that open a result.
+// the files), the buttons that open a result, and Undo (#553).
 
 using Avalonia;
 using Avalonia.Headless.XUnit;
@@ -251,6 +251,71 @@ public class RecentConversionTests
         }
     }
 
+    [AvaloniaFact]
+    public void Undo_moves_the_results_to_the_trash_while_they_are_as_the_job_left_them()
+    {
+        TestServices.EnsureInitialized("en");
+        var loc = AppHost.Get<ILocalizer>();
+        var store = AppHost.Get<UserDataStore>();
+        var folder = Directory.CreateTempSubdirectory("filee-undo-").FullName;
+        store.ClearHistory();
+        try
+        {
+            var a = Path.Combine(folder, "a.png");
+            var b = Path.Combine(folder, "b.png");
+            File.WriteAllBytes(a, [1]);
+            File.WriteAllBytes(b, [2]);
+            var entry = Entry([a, b]);
+            entry.Undoable = [Stamp(a), Stamp(b)];
+            store.AddHistory(entry);
+            var platform = new OpeningPlatform(false);
+
+            // Only the Home page (with the history to save) offers it.
+            Assert.False(new HistoryItemViewModel(entry, loc, platform).CanUndo);
+
+            // The Trash refuses: the card says why, and the entry isn't marked undone.
+            platform.Refuse = new TrashRefusal("trash.in_use");
+            var item = new HistoryItemViewModel(entry, loc, platform, store: store);
+            Assert.True(item.CanUndo);
+            item.UndoCommand.Execute(null);
+            Assert.Equal("a.png couldn't be moved to the Recycle Bin / Trash: the file is open in another program", item.UndoError);
+            Assert.False(entry.Undone);
+
+            platform.Refuse = null;
+            item.UndoCommand.Execute(null);
+            Assert.Equal([a, b], platform.Trashed);
+            Assert.True(Assert.Single(store.History).Undone);
+            var undone = new HistoryItemViewModel(store.History[0], loc, platform, store: store);
+            Assert.False(undone.CanUndo);
+            Assert.Equal("Undone: the results are in the Recycle Bin / Trash", undone.UndoneText);
+
+            // "Replace the original" sent the originals there first: the card says they're there too.
+            entry.OriginalsInTrash = true;
+            Assert.Equal("Undone: the results are in the Recycle Bin / Trash, and so are the originals they replaced",
+                new HistoryItemViewModel(entry, loc, platform, store: store).UndoneText);
+
+            // A result written again since (an edit, another conversion over it) is never moved.
+            var c = Path.Combine(folder, "c.png");
+            File.WriteAllBytes(c, [3]);
+            var changed = Entry([c]);
+            changed.Undoable = [Stamp(c)];
+            File.AppendAllText(c, "edited");
+            Assert.False(new HistoryItemViewModel(changed, loc, platform, store: store).CanUndo);
+            Assert.True(File.Exists(c));
+        }
+        finally
+        {
+            store.ClearHistory();
+            Directory.Delete(folder, true);
+        }
+    }
+
+    private static HistoryOutput Stamp(string path)
+    {
+        var info = new FileInfo(path);
+        return new HistoryOutput { Path = path, Length = info.Length, WrittenUtc = info.LastWriteTimeUtc };
+    }
+
     [AvaloniaTheory]
     [InlineData("en", false)]
     [InlineData("ru", false)]
@@ -275,7 +340,9 @@ public class RecentConversionTests
             File.WriteAllBytes(report, [0]);
             store.AddHistory(Entry([report], "PDF", [Path.Combine(folder, "Annual report.docx")]));
             store.AddHistory(Entry([sunset], "PNG", [Path.Combine(folder, "sunset.heic")]));
-            store.AddHistory(Entry([photo], "JPG 70%", [Path.Combine(folder, "IMG_0412.heic")]));
+            var newest = Entry([photo], "JPG 70%", [Path.Combine(folder, "IMG_0412.heic")]);
+            newest.Undoable = [Stamp(photo)];
+            store.AddHistory(newest);
 
             var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<ILocalizer>(), AppHost.Get<UpdateService>());
             vm.Navigate("home");
@@ -291,6 +358,7 @@ public class RecentConversionTests
             Assert.False(page.History[2].HasThumbnail);
             Assert.Equal("PDF", page.History[2].FormatBadge);
             Assert.All(page.History, item => Assert.Equal(OperatingSystem.IsWindows(), item.CanOpenWith));
+            Assert.Equal([true, false, false], page.History.Select(item => item.CanUndo));
 
             // A search lists them anew: the thumbnails come from the cache at once.
             page.Search = "sunset";
@@ -379,6 +447,18 @@ public class RecentConversionTests
     {
         public List<string> Opened { get; } = [];
         public List<string> OpenedWith { get; } = [];
+        public List<string> Trashed { get; } = [];
+        public TrashRefusal? Refuse { get; set; }
+
+        public TrashRefusal? MoveToTrash(string path)
+        {
+            if (Refuse is not null)
+                return Refuse;
+            File.Delete(path);
+            Trashed.Add(path);
+            return null;
+        }
+
         public bool SupportsOpenWith => openWith;
         public void OpenFile(string path) => Opened.Add(path);
         public void OpenWith(string path) => OpenedWith.Add(path);
