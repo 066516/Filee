@@ -82,6 +82,34 @@ public class HistoryEntryTests
     }
 
     [Fact]
+    public async Task A_document_whose_pictures_pandoc_put_beside_it_has_no_undo()
+    {
+        using var dir = new TempDir();
+        var doc = dir.File("notes.docx");
+        await using var queue = new JobQueue(new ConverterCatalog([new FakeConverter("pandoc", new ConversionEdge("docx", "md")) { PictureFolder = true }]));
+        var job = new ConversionJob([doc], new Preset { TargetFormat = "md" }, "MD");
+        await queue.RunAsync(job);
+
+        // Undo would move the .md and leave its "_files" folder of pictures behind.
+        Assert.True(Directory.Exists(Path.Combine(dir.Path, "notes_files")));
+        Assert.Empty(HistoryEntry.From(job).Undoable);
+    }
+
+    [Fact]
+    public async Task A_job_with_more_results_than_undo_takes_has_none()
+    {
+        using var dir = new TempDir();
+        var pdf = dir.File("book.pdf");
+        var converter = new FakeConverter("pdfium", new ConversionEdge("pdf", "png")) { OutputsPerInput = HistoryEntry.MaxUndoable + 1 };
+        await using var queue = new JobQueue(new ConverterCatalog([converter]));
+        var job = new ConversionJob([pdf], new Preset { TargetFormat = "png" }, "PNG");
+        await queue.RunAsync(job);
+
+        Assert.Equal(HistoryEntry.MaxUndoable + 1, job.Outputs.Count());
+        Assert.Empty(HistoryEntry.From(job).Undoable);
+    }
+
+    [Fact]
     public void An_entry_from_before_undo_has_nothing_to_undo()
     {
         using var dir = new TempDir();

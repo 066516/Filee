@@ -131,11 +131,15 @@ public sealed class UserDataStore
         HistoryChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Saves a change to an entry already in <see cref="History"/> (Undo marks it undone).</summary>
-    public void SaveHistory()
+    /// <summary>
+    /// Saves a change to an entry already in <see cref="History"/> (Undo marks results moved, and the entry undone).
+    /// <paramref name="notify"/> false leaves the list as it is shown, so the card can say why it stopped.
+    /// </summary>
+    public void SaveHistory(bool notify = true)
     {
         Write(HistoryPath, History, FileeJsonContext.Default.ListHistoryEntry);
-        HistoryChanged?.Invoke(this, EventArgs.Empty);
+        if (notify)
+            HistoryChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void ClearHistory()

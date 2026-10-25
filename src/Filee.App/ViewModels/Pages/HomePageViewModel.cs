@@ -57,10 +57,16 @@ public sealed partial class HistoryItemViewModel : ObservableObject
         ThumbnailSource = picture is not null && HistoryThumbnails.CanShow(picture) ? picture : null;
         // Only entries that remember their preset (Filee 1.8 and later) and still have a failed file to convert.
         CanRetry = conversions is not null && entry.Preset is not null && entry.Failures.Any(f => ConversionService.Exists(f.Source));
-        // Undo (#553): only while every result is still as the job left it, so a file changed since is never moved.
-        CanUndo = store is not null && !entry.Undone && entry.Undoable.Count > 0 && entry.Undoable.All(o => o.Unchanged());
+        CanUndo = store is not null && UndoLeft();
         UndoneText = entry.Undone ? loc[entry.OriginalsInTrash ? "home.undone_original" : "home.undone"] : "";
     }
+
+    /// <summary>
+    /// Undo (#553) is offered while the results not moved yet are all as the job left them, so a file changed since is
+    /// never moved; after an Undo that stopped half-way, for the ones it didn't get to.
+    /// </summary>
+    private bool UndoLeft() =>
+        !_entry.Undone && _entry.Undoable.Where(o => !o.Trashed).ToList() is { Count: > 0 } left && left.All(o => o.Unchanged());
 
     public string Title { get; }
     public string Subtitle { get; }
@@ -109,7 +115,7 @@ public sealed partial class HistoryItemViewModel : ObservableObject
             _conversions.Retry(_entry.Failures.Select(f => f.Source), _entry.Preset, _entry.WatchRuleId);
     }
 
-    public bool CanUndo { get; }
+    [ObservableProperty] private bool _canUndo;
 
     /// <summary>"Undone: the results are in the Recycle Bin / Trash", or empty.</summary>
     public string UndoneText { get; }
@@ -122,28 +128,47 @@ public sealed partial class HistoryItemViewModel : ObservableObject
     public bool HasUndoError => UndoError.Length > 0;
 
     /// <summary>
-    /// Moves the job's results to the Recycle Bin / Trash. A result moved by an earlier try is skipped, one changed
-    /// since is kept. "Replace the original" sent the originals there already: they stay, and the card says so.
+    /// Moves the job's results to the Recycle Bin / Trash, off the UI thread (Windows' Recycle Bin takes a moment per
+    /// file); the button is disabled meanwhile. Every result is checked first, so a changed one stops it with nothing
+    /// moved. Each result moved is saved as such, so an Undo the Trash stops half-way can be tried again for the rest.
+    /// "Replace the original" sent the originals there already: they stay, and the card says so.
     /// </summary>
     [RelayCommand]
-    private void Undo()
+    private async Task UndoAsync()
     {
         if (!CanUndo || _store is null)
             return;
         UndoError = "";
-        foreach (var output in _entry.Undoable)
+        var left = _entry.Undoable.Where(o => !o.Trashed).ToList();
+        if (left.FirstOrDefault(o => !o.Unchanged()) is { } changed)
         {
-            if (!File.Exists(output.Path))
-                continue;
-            var refusal = output.Unchanged() ? _platform.MoveToTrash(output.Path) : new TrashRefusal("trash.changed");
-            if (refusal is not null)
+            Refused(changed, new TrashRefusal("trash.changed"));
+            return;
+        }
+        var refused = await Task.Run(() =>
+        {
+            foreach (var output in left)
             {
-                UndoError = _loc.Format("home.undo_failed", Path.GetFileName(output.Path), _loc[refusal.ReasonKey]);
-                return;
+                if (_platform.MoveToTrash(output.Path) is { } refusal)
+                    return (output, refusal);
+                output.Trashed = true;
             }
+            return default((HistoryOutput, TrashRefusal)?);
+        });
+        if (refused is { } stop)
+        {
+            _store.SaveHistory(notify: false); // the moved ones stay moved; this card says why it stopped
+            Refused(stop.Item1, stop.Item2);
+            return;
         }
         _entry.Undone = true;
         _store.SaveHistory();
+    }
+
+    private void Refused(HistoryOutput output, TrashRefusal refusal)
+    {
+        UndoError = _loc.Format("home.undo_failed", Path.GetFileName(output.Path), _loc[refusal.ReasonKey]);
+        CanUndo = UndoLeft();
     }
 
     [RelayCommand]

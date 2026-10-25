@@ -252,7 +252,7 @@ public class RecentConversionTests
     }
 
     [AvaloniaFact]
-    public void Undo_moves_the_results_to_the_trash_while_they_are_as_the_job_left_them()
+    public async Task Undo_moves_the_results_to_the_trash_while_they_are_as_the_job_left_them()
     {
         TestServices.EnsureInitialized("en");
         var loc = AppHost.Get<ILocalizer>();
@@ -273,17 +273,25 @@ public class RecentConversionTests
             // Only the Home page (with the history to save) offers it.
             Assert.False(new HistoryItemViewModel(entry, loc, platform).CanUndo);
 
-            // The Trash refuses: the card says why, and the entry isn't marked undone.
+            // The Trash refuses the second result: the first stays moved (and saved as such), the card says why and
+            // still offers Undo for the one left, even rebuilt from the saved history.
             platform.Refuse = new TrashRefusal("trash.in_use");
+            platform.RefuseOnly = b;
             var item = new HistoryItemViewModel(entry, loc, platform, store: store);
             Assert.True(item.CanUndo);
-            item.UndoCommand.Execute(null);
-            Assert.Equal("a.png couldn't be moved to the Recycle Bin / Trash: the file is open in another program", item.UndoError);
+            await item.UndoCommand.ExecuteAsync(null);
+            Assert.Equal("b.png couldn't be moved to the Recycle Bin / Trash: the file is open in another program", item.UndoError);
+            Assert.Equal([a], platform.Trashed);
             Assert.False(entry.Undone);
+            Assert.True(item.CanUndo);
+            var reloaded = new UserDataStore(store.Directory);
+            reloaded.Load();
+            Assert.Equal([true, false], Assert.Single(reloaded.History).Undoable.Select(o => o.Trashed));
+            Assert.True(new HistoryItemViewModel(reloaded.History[0], loc, platform, store: store).CanUndo);
 
             platform.Refuse = null;
-            item.UndoCommand.Execute(null);
-            Assert.Equal([a, b], platform.Trashed);
+            await item.UndoCommand.ExecuteAsync(null);
+            Assert.Equal([a, b], platform.Trashed); // the first isn't asked for again
             Assert.True(Assert.Single(store.History).Undone);
             var undone = new HistoryItemViewModel(store.History[0], loc, platform, store: store);
             Assert.False(undone.CanUndo);
@@ -302,6 +310,21 @@ public class RecentConversionTests
             File.AppendAllText(c, "edited");
             Assert.False(new HistoryItemViewModel(changed, loc, platform, store: store).CanUndo);
             Assert.True(File.Exists(c));
+
+            // Every result is checked before any moves: one changed while the card was open stops it with nothing moved.
+            var d = Path.Combine(folder, "d.png");
+            var e = Path.Combine(folder, "e.png");
+            File.WriteAllBytes(d, [4]);
+            File.WriteAllBytes(e, [5]);
+            var pair = Entry([d, e]);
+            pair.Undoable = [Stamp(d), Stamp(e)];
+            var open = new HistoryItemViewModel(pair, loc, platform, store: store);
+            File.AppendAllText(e, "edited");
+            await open.UndoCommand.ExecuteAsync(null);
+            Assert.Equal("e.png couldn't be moved to the Recycle Bin / Trash: it was changed after the conversion", open.UndoError);
+            Assert.True(File.Exists(d));
+            Assert.DoesNotContain(d, platform.Trashed);
+            Assert.False(open.CanUndo);
         }
         finally
         {
@@ -450,9 +473,12 @@ public class RecentConversionTests
         public List<string> Trashed { get; } = [];
         public TrashRefusal? Refuse { get; set; }
 
+        /// <summary>Refuses only this path, when set.</summary>
+        public string? RefuseOnly { get; set; }
+
         public TrashRefusal? MoveToTrash(string path)
         {
-            if (Refuse is not null)
+            if (Refuse is not null && (RefuseOnly is null || RefuseOnly == path))
                 return Refuse;
             File.Delete(path);
             Trashed.Add(path);

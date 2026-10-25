@@ -67,9 +67,16 @@ public sealed class HistoryEntry
         };
     }
 
+    /// <summary>
+    /// More results than this ("Save every frame", a long PDF split into pages) get no Undo, so history.json stays
+    /// small and an Undo never takes minutes.
+    /// </summary>
+    public const int MaxUndoable = 500;
+
     private static List<HistoryOutput> UndoableOutputs(ConversionJob job)
     {
         var outputs = new List<HistoryOutput>();
+        var seen = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         foreach (var file in job.Files)
         {
             foreach (var output in file.Outputs)
@@ -77,11 +84,15 @@ public sealed class HistoryEntry
                 // A source left as it was ("Only if smaller" with "Replace the original") is the user's file, not a result.
                 if (!file.OriginalInTrash && string.Equals(Path.GetFullPath(output), Path.GetFullPath(file.SourcePath), Platform.FileSystemPaths.Comparison))
                     continue;
-                // shortcut: an output folder (Extract) takes Undo away from the whole job; Undo only moves files.
-                if (!File.Exists(output))
+                // An output folder (Extract), or a document whose pictures Pandoc wrote into "<name>_files" beside it
+                // (not one of the outputs): Undo only moves files, so the whole job gets none rather than half of it.
+                if (!File.Exists(output)
+                    || Directory.Exists(Path.Combine(Path.GetDirectoryName(output)!, Path.GetFileNameWithoutExtension(output) + "_files")))
                     return [];
-                if (outputs.Any(o => string.Equals(o.Path, output, Platform.FileSystemPaths.Comparison)))
+                if (!seen.Add(output))
                     continue;
+                if (outputs.Count == MaxUndoable)
+                    return [];
                 var info = new FileInfo(output);
                 outputs.Add(new HistoryOutput { Path = output, Length = info.Length, WrittenUtc = info.LastWriteTimeUtc });
             }
@@ -96,6 +107,9 @@ public sealed class HistoryOutput
     public string Path { get; set; } = "";
     public long Length { get; set; }
     public DateTime WrittenUtc { get; set; }
+
+    /// <summary>Undo moved it to the Recycle Bin / Trash, also when a later result was refused there.</summary>
+    public bool Trashed { get; set; }
 
     /// <summary>Still there, the same size and last written at the same time.</summary>
     public bool Unchanged()
