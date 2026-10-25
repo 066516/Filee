@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Xml.Linq;
+using Filee.Core.Conversion;
 using Filee.Core.Formats;
 using Filee.Engines.Geo;
 
@@ -134,15 +135,29 @@ public class FitFormatTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
-    public async Task Fields_not_in_their_profile_integer_width_are_left_out()
+    public async Task Values_past_their_profile_range_are_left_out_whatever_their_base_type()
     {
-        // Height and heart rate as float32 or a wider integer would carry values far past what the profile allows.
-        FitBuilder.FitField[] fields =
+        // A float or wider integer can carry values far past what the profile allows; those are dropped.
+        FitBuilder.FitField[] wild =
         [
             FitBuilder.U32(253, First), FitBuilder.S32(0, 0x20000000), FitBuilder.S32(1, 0x40000000),
             new(2, 0x88, BitConverter.GetBytes(3e38f)), FitBuilder.U32(3, 4_000_000_000), new(4, 0x88, BitConverter.GetBytes(1e30f)),
         ];
-        var input = Save(new FitBuilder().FileId().Define(0, 20, fields: fields).Message(0, fields));
+        // FIT reads a value in the base type its definition gives, so a uint16 heart rate or a uint32 height is valid.
+        // A negative sint8 cadence is past the uint8 range.
+        FitBuilder.FitField[] wide =
+        [
+            FitBuilder.U32(253, First + 1), FitBuilder.U32(2, 3000), FitBuilder.U16(3, 150), new(4, 0x01, [unchecked((byte)-5)]),
+        ];
+        // A fraction is not a valid integer value, nor is the sint32 invalid longitude written in a wider type; a whole
+        // float cadence and a sint32 power are valid.
+        FitBuilder.FitField[] mixed =
+        [
+            FitBuilder.U32(253, First + 2), FitBuilder.S32(0, 0x20000000), new(1, 0x8E, BitConverter.GetBytes((long)int.MaxValue)),
+            new(3, 0x88, BitConverter.GetBytes(72.5f)), new(4, 0x88, BitConverter.GetBytes(90f)), new(7, 0x85, BitConverter.GetBytes(300)),
+        ];
+        var input = Save(new FitBuilder().FileId().Define(0, 20, fields: wild).Message(0, wild)
+            .Define(1, 20, fields: wide).Message(1, wide).Define(2, 20, fields: mixed).Message(2, mixed));
 
         var gpx = (await fx.ConvertOkAsync(input, "gpx")).Single();
         Assert.Null(Child(Assert.Single(Elements(gpx, "wpt")), "ele"));
@@ -150,7 +165,16 @@ public class FitFormatTests(EngineFixture fx) : IClassFixture<EngineFixture>
         [
             "time,longitude,latitude,elevation,heart_rate,cadence,power,speed,distance",
             $"{Stamp(First)},90,45,,,,,,",
+            $"{Stamp(First + 1)},,,100,150,,,,",
+            $"{Stamp(First + 2)},,,,,90,300,,",
         ], File.ReadAllLines((await fx.ConvertOkAsync(input, "csv")).Single()));
+
+        // A file type of 4.5 is not activity (4) cut short: the file says no valid type.
+        FitBuilder.FitField[] halfType = [new(0, 0x88, BitConverter.GetBytes(4.5f))];
+        var refused = Assert.Throws<ConversionRefusedException>(() => FitFormat.Read(
+            Save(new FitBuilder().Define(15, 0, fields: halfType).Message(15, halfType).Define(0, 20, fields: wide).Message(0, wide)),
+            CancellationToken.None));
+        Assert.Equal("error.fit_no_file_id", refused.ErrorKey);
     }
 
     [Fact]

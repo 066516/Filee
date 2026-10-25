@@ -78,7 +78,8 @@ internal static class CsvFormat
         // Replacing a file needs only the folder's permission on Unix: refuse what writing into the file would refuse.
         if (File.Exists(path))
             using (new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite)) { }
-        var partial = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path))!, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+        var partial = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path))!,
+            $".{Path.GetFileName(path)}.{Guid.NewGuid().ToString("N")[..8]}.filee-tmp");
         try
         {
             using (var writer = new StreamWriter(partial, append: false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true)))
@@ -93,7 +94,14 @@ internal static class CsvFormat
         }
         catch
         {
-            File.Delete(partial);
+            try
+            {
+                File.Delete(partial);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // The partial file stays behind (a scanner may hold it); the row's own error is what reaches the job.
+            }
             throw;
         }
     }

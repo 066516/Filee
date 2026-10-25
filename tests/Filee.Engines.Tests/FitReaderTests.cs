@@ -183,7 +183,9 @@ public class FitReaderTests(EngineFixture fx) : IClassFixture<EngineFixture>
     public void Empty_records_count_toward_the_limit_but_are_not_kept()
     {
         var time = new[] { FitBuilder.U32(253, 0x1000003B) };
-        var builder = new FitBuilder().FileId().Define(1, 20, fields: time).Message(1, time).Define(0, 20);
+        FitBuilder.FitField[] heightOnly = [FitBuilder.U16(2, 2585)];
+        var builder = new FitBuilder().FileId().Define(1, 20, fields: time).Message(1, time)
+            .Define(2, 20, fields: heightOnly).Message(2, heightOnly).Define(0, 20);
         for (var i = 0; i < 500_000; i++)
             builder.Message(0, []);
         var path = FitBuilder.Save(fx.NewFolder(), builder.Build());
@@ -276,10 +278,12 @@ public class FitReaderTests(EngineFixture fx) : IClassFixture<EngineFixture>
             FitBuilder.S32(1, 0x40000000), FitBuilder.U16(2, 3000), FitBuilder.U8(3, 72),
             FitBuilder.U8(4, 88), FitBuilder.U16(7, 210), FitBuilder.U16(6, 4321),
             FitBuilder.U32(5, 12345) };
-        var activity = Read(new FitBuilder().FileId().Define(0, 20, fields: fields).Message(0, fields));
-        activity.Records.Add(new FitRecord(null, null, null, 17, null, null, null, null, null));
-        activity.Records.Add(new FitRecord(null, null, null, null, null, null, null, null, null));
-        activity.Records.Add(new FitRecord(null, null, null, 12, 60, null, null, null, null));
+        // A height alone and an empty record are not kept; a height with a heart rate is.
+        FitBuilder.FitField[] heightOnly = [FitBuilder.U16(2, 2585)], heightAndHeart = [FitBuilder.U16(2, 2560), FitBuilder.U8(3, 60)];
+        var activity = Read(new FitBuilder().FileId().Define(0, 20, fields: fields).Message(0, fields)
+            .Define(1, 20, fields: heightOnly).Message(1, heightOnly).Define(2, 20).Message(2, [])
+            .Define(3, 20, fields: heightAndHeart).Message(3, heightAndHeart));
+        Assert.Equal(2, activity.Records.Count);
         var path = Path.Combine(fx.NewFolder(), "records.csv");
         FitFormat.WriteCsv(activity, path);
         var bytes = File.ReadAllBytes(path);
