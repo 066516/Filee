@@ -192,6 +192,8 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
         {
             await RunWithFallbackAsync(passes, hardware, Plan,
                 planned => RunPassesAsync(ffmpeg, planned, output, duration, progress, cancellationToken), output, _logger, cancellationToken);
+            if (!still && media.MaxSizeMb > 0 && MediaEncoding.VideoTargets.ContainsKey(step.To))
+                await FitToSizeAsync(ffmpeg, step, input, output, info, encoders, cover, cancellationToken);
         }
         catch
         {
@@ -202,6 +204,35 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
 
         progress?.Report(1);
         return [output];
+    }
+
+    /// <summary>
+    /// The size limit (#553): a video over it is encoded again from the source at the bitrate its length allows, in
+    /// software (every encoder takes -b:v) with the sound at 96 kbit/s at most. A bitrate is an average, so a second try
+    /// aims lower by as much as the first one missed. Refuses when it can't fit, rather than hand over a file too large.
+    /// </summary>
+    private static async Task FitToSizeAsync(string ffmpeg, ConversionStep step, string input, string output, MediaInfo info,
+        IReadOnlySet<string>? encoders, CoverExtras? cover, CancellationToken cancellationToken)
+    {
+        var limit = (long)(step.Preset.Media.MaxSizeMb * 1024 * 1024);
+        var size = new FileInfo(output).Length;
+        if (size <= limit)
+            return;
+        var fitting = step.Preset.Clone().Media;
+        fitting.Quality = MediaQuality.Small; // never copies the video stream as it is
+        fitting.HardwareEncoding = false;
+        fitting.AudioBitrateKbps = fitting.AudioBitrateKbps is > 0 and < 96 ? fitting.AudioBitrateKbps : 96;
+        var audio = fitting.RemoveAudio ? 0 : fitting.AudioBitrateKbps * info.AudioTracks.Count;
+        var kbps = info.Duration is { TotalSeconds: > 0 } length ? MediaEncoding.FitBitrateKbps(limit, length.TotalSeconds, audio) : 0;
+        for (var attempt = 0; attempt < 2 && kbps > 0 && size > limit; attempt++)
+        {
+            var passes = MediaEncoding.AtBitrate(MediaEncoding.Plan(input, output, step.To, fitting, info, step.WorkDirectory, cover, encoders, null, 1), kbps);
+            await RunPassesAsync(ffmpeg, passes, output, info.Duration, null, cancellationToken);
+            size = new FileInfo(output).Length;
+            kbps = (int)(kbps * (double)limit / size * 0.95);
+        }
+        if (size > limit)
+            throw new ConversionRefusedException("error.over_size_limit", $"{size / 1048576.0:0.##} MB > {limit / 1048576.0:0.##} MB");
     }
 
     /// <remarks>

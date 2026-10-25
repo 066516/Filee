@@ -415,9 +415,41 @@ internal static class ImageEncoder
             if (path is null)
                 continue;
             frames[i].Write(path, format);
+            // shortcut: only single pictures are fitted to the size limit, not animations or multi-page files written above.
+            if (options is { MaxSizeMb: > 0 })
+                FitToSize(frames[i], path, format, (long)(options.MaxSizeMb * 1024 * 1024));
             written.Add(path);
         }
         return written;
+    }
+
+    /// <summary>
+    /// Saves <paramref name="image"/> again until <paramref name="path"/> is at most <paramref name="limit"/> bytes: a
+    /// lower quality first (down to 50, where a lossy format still looks fine), then fewer pixels. Refuses when even a
+    /// tiny picture is too big, rather than handing over a file that breaks the limit.
+    /// </summary>
+    internal static void FitToSize(IMagickImage<byte> image, string path, MagickFormat format, long limit)
+    {
+        var size = new FileInfo(path).Length;
+        if (size <= limit)
+            return;
+        using var copy = image.Clone();
+        var lossy = format is MagickFormat.Jpeg or MagickFormat.WebP or MagickFormat.Avif or MagickFormat.Jxl or MagickFormat.Jp2;
+        for (var attempt = 0; attempt < 12 && size > limit; attempt++)
+        {
+            if (lossy && copy.Quality > 50)
+                copy.Quality = Math.Max(50, copy.Quality - 10);
+            else
+            {
+                // The file shrinks about as the pixel count does: aim a little under the limit.
+                var scale = Math.Clamp(Math.Sqrt((double)limit / size) * 0.95, 0.3, 0.9);
+                copy.Resize(new MagickGeometry((uint)Math.Max(1, copy.Width * scale), (uint)Math.Max(1, copy.Height * scale)));
+            }
+            copy.Write(path, format);
+            size = new FileInfo(path).Length;
+        }
+        if (size > limit)
+            throw new ConversionRefusedException("error.over_size_limit", $"{size / 1048576.0:0.##} MB > {limit / 1048576.0:0.##} MB");
     }
 
     /// <summary>Writes one image as <paramref name="targetFormat"/> (APNG through <see cref="Apng"/>).</summary>

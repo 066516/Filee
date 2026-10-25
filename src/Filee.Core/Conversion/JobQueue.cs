@@ -773,6 +773,9 @@ public sealed class JobQueue : IAsyncDisposable
                         // engine to another would otherwise change speed in both.
                         if (preset.Image.ChangesSpeed && !(isLast && finalOutput))
                             preset = AtOriginalSpeed(preset);
+                        // Likewise the size limit: only the result has to fit, not a picture passed to the next engine.
+                        if ((preset.Image.MaxSizeMb > 0 || preset.Media.MaxSizeMb > 0) && !(isLast && finalOutput))
+                            preset = WithoutSizeLimit(preset);
                         var stepInfo = new ConversionStep(input, step.From, step.To, preset, allocator, workDir, step.FrameSequence,
                             key => file.NoticeKey = key, step.MotionPhoto, step.LivePhoto, fonts =>
                             {
@@ -856,6 +859,14 @@ public sealed class JobQueue : IAsyncDisposable
         {
             var copy = preset.Clone();
             copy.Image.AnimationSpeed = 1;
+            return copy;
+        }
+
+        static Preset WithoutSizeLimit(Preset preset)
+        {
+            var copy = preset.Clone();
+            copy.Image.MaxSizeMb = 0;
+            copy.Media.MaxSizeMb = 0;
             return copy;
         }
 

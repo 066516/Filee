@@ -455,6 +455,38 @@ internal static partial class MediaEncoding
     /// <summary>PAL (25 fps) for 25/50 fps sources, NTSC (29.97 fps) for everything else.</summary>
     internal static bool IsPal(double fps) => Math.Abs(fps - 25) < 0.5 || Math.Abs(fps - 50) < 1 || Math.Abs(fps - 12.5) < 0.3;
 
+    /// <summary>
+    /// The size limit (#553): the video bitrate in kbit/s that fits <paramref name="limitBytes"/> over
+    /// <paramref name="seconds"/>, less the sound and a margin for the container; 0 when not even 100 kbit/s fits.
+    /// </summary>
+    internal static int FitBitrateKbps(long limitBytes, double seconds, int audioKbps)
+    {
+        var video = (int)(limitBytes * 8 * 0.95 / 1000 / seconds) - audioKbps;
+        return video >= 100 ? video : 0;
+    }
+
+    /// <summary>The passes with the video at <paramref name="kbps"/> instead of a constant quality (CRF or quantizer).</summary>
+    internal static IReadOnlyList<FfmpegPass> AtBitrate(IReadOnlyList<FfmpegPass> passes, int kbps) =>
+        [.. passes.Select(pass => pass with { Arguments = AtBitrate(pass.Arguments, kbps) })];
+
+    private static List<string> AtBitrate(IReadOnlyList<string> args, int kbps)
+    {
+        var result = new List<string>();
+        for (var i = 0; i < args.Count; i++)
+        {
+            if (args[i] is "-crf" or "-q:v" && i + 1 < args.Count)
+            {
+                result.AddRange(["-b:v", $"{kbps}k", "-maxrate", $"{kbps * 3 / 2}k", "-bufsize", $"{kbps * 2}k"]);
+                i++;
+            }
+            else if (args[i] == "-b:v" && i + 1 < args.Count && args[i + 1] == "0")
+                i++; // VP9 / libaom's "constant quality" switch
+            else
+                result.Add(args[i]);
+        }
+        return result;
+    }
+
     internal static IEnumerable<string> VideoCodecArguments(string target, string codec, MediaQuality quality, VideoStreamInfo video, bool pal)
     {
         // Constant quantizer for the MPEG-style codecs: 2 is the best useful value, 4 good, 7 visibly compressed.
