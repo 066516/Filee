@@ -16,6 +16,11 @@ internal static class NativeMethods
     private static readonly nint PidKey = CFStringCreateWithCString(0, "kCGWindowOwnerPID", 0x08000100);
     private static readonly nint AlphaKey = CFStringCreateWithCString(0, "kCGWindowAlpha", 0x08000100);
     private static readonly nint LayerKey = CFStringCreateWithCString(0, "kCGWindowLayer", 0x08000100);
+    private static readonly nint IsAliasFileKey = CoreFoundationConstant("kCFURLIsAliasFileKey");
+    private static readonly nint BooleanTrue = CoreFoundationConstant("kCFBooleanTrue");
+
+    private static nint CoreFoundationConstant(string name) =>
+        Marshal.ReadIntPtr(NativeLibrary.GetExport(NativeLibrary.Load(CoreFoundation), name));
 
     /// <summary>Process names of the app windows on screen (layer 0), front to back.</summary>
     internal static IEnumerable<string> WindowOwnerNames()
@@ -211,8 +216,8 @@ internal static class NativeMethods
 
     /// <summary>
     /// The existing file or folder the Finder alias at <paramref name="path"/> points to; null for anything that
-    /// isn't an alias (CFURLCreateBookmarkDataFromFile reads no bookmark from it), a broken alias, or one whose
-    /// target is on a volume that isn't mounted: resolving never shows UI or mounts a server, since a drag waits on it.
+    /// isn't an alias, a broken alias, one whose target is in a Trash, or one whose target is on a volume that isn't
+    /// mounted: resolving never shows UI or mounts a server, since a drag waits on it.
     /// </summary>
     internal static string? AliasTarget(string path)
     {
@@ -223,6 +228,9 @@ internal static class NativeMethods
         nint data = 0, target = 0;
         try
         {
+            // Every dropped path comes through here, on the UI thread: only an alias (metadata, no read) is opened.
+            if (!IsAliasFile(url))
+                return null;
             data = CFURLCreateBookmarkDataFromFile(0, url, out var error);
             if (data == 0)
             {
@@ -240,7 +248,8 @@ internal static class NativeMethods
             // composed, and APFS and HFS+ find the file either way, so a "보고서" alias and its target match.
             var resolved = System.Text.Encoding.UTF8.GetString(buffer, 0, Array.IndexOf(buffer, (byte)0))
                 .Normalize(System.Text.NormalizationForm.FormC);
-            return File.Exists(resolved) || Directory.Exists(resolved) ? resolved : null;
+            // A bookmark follows its file into the Trash, where a converted copy would be lost: that alias is broken.
+            return !InTrash(resolved) && (File.Exists(resolved) || Directory.Exists(resolved)) ? resolved : null;
         }
         finally
         {
@@ -260,7 +269,6 @@ internal static class NativeMethods
         try
         {
             data = CFURLCreateBookmarkData(0, targetUrl, suitableForBookmarkFile, 0, 0, out var error);
-            Release(error);
             if (data == 0 || !CFURLWriteBookmarkDataToFile(data, aliasUrl, 0, out error))
             {
                 Release(error);
@@ -273,6 +281,24 @@ internal static class NativeMethods
             Release(aliasUrl);
             Release(targetUrl);
         }
+    }
+
+    private static bool IsAliasFile(nint url)
+    {
+        if (!CFURLCopyResourcePropertyForKey(url, IsAliasFileKey, out var value, out var error))
+        {
+            Release(error);
+            return false;
+        }
+        var isAlias = value == BooleanTrue;
+        Release(value);
+        return isAlias;
+    }
+
+    private static bool InTrash(string path)
+    {
+        var trash = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".Trash") + "/";
+        return (path + "/").StartsWith(trash, StringComparison.Ordinal) || path.Contains("/.Trashes/", StringComparison.Ordinal);
     }
 
     private static nint FileUrl(string path)
@@ -293,6 +319,10 @@ internal static class NativeMethods
     [DllImport(CoreFoundation)]
     [return: MarshalAs(UnmanagedType.I1)]
     private static extern bool CFURLGetFileSystemRepresentation(nint url, [MarshalAs(UnmanagedType.I1)] bool resolveAgainstBase, byte[] buffer, nint maxLength);
+
+    [DllImport(CoreFoundation)]
+    [return: MarshalAs(UnmanagedType.I1)]
+    private static extern bool CFURLCopyResourcePropertyForKey(nint url, nint key, out nint value, out nint error);
 
     [DllImport(CoreFoundation)]
     private static extern nint CFURLCreateBookmarkDataFromFile(nint allocator, nint fileUrl, out nint error);

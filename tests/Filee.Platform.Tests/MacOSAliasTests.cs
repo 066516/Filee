@@ -60,6 +60,34 @@ public sealed class MacOSAliasTests : IDisposable
     }
 
     [Fact]
+    public void An_alias_to_a_file_in_a_trash_is_broken()
+    {
+        if (!OperatingSystem.IsMacOS())
+        {
+            Assert.Skip("Finder aliases need macOS.");
+            return;
+        }
+        // The layout of a volume's Trash; the user's ~/.Trash is matched the same way.
+        var trash = Directory.CreateDirectory(Path.Combine(_folder, ".Trashes", "501")).FullName;
+        var trashed = Path.Combine(trash, "report.docx");
+        File.WriteAllText(trashed, "x");
+        var toTrashed = Alias("report alias", trashed);
+
+        Assert.Null(new MacOSPlatformServices().ShortcutTarget(toTrashed));
+    }
+
+    [Fact]
+    public void Writing_an_alias_to_a_missing_file_throws()
+    {
+        if (!OperatingSystem.IsMacOS())
+        {
+            Assert.Skip("Finder aliases need macOS.");
+            return;
+        }
+        Assert.Throws<IOException>(() => Alias("missing alias", Path.Combine(_folder, "missing.pdf")));
+    }
+
+    [Fact]
     public void An_alias_dropped_with_its_target_gives_the_file_once_and_a_broken_one_stays()
     {
         if (!OperatingSystem.IsMacOS())
