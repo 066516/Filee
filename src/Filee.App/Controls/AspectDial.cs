@@ -236,8 +236,11 @@ public sealed class RingSegment : Button, ICustomHitTest
         context.DrawText(text, new Point(labelCenter.X - width / 2, labelCenter.Y + 2));
     }
 
-    /// <summary>The smallest size a long one-word label shrinks to before it breaks: ru's "Произвольные" needs 9.4 with seven slices.</summary>
-    internal const double MinLabelSize = 9;
+    /// <summary>
+    /// The smallest size a long one-word label shrinks to before it breaks. Ru's "Произвольные" needs 9.4 with seven
+    /// slices on a desktop and 8.7 on CI's runners, whose fonts differ, so there's room below that.
+    /// </summary>
+    internal const double MinLabelSize = 8;
 
     /// <summary>As wide as the slice is a little outside its middle; a long word gets a smaller size before it would break.</summary>
     internal static double LabelWidth(double inner, double outer, int count) =>
