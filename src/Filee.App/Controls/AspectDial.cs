@@ -220,8 +220,7 @@ public sealed class RingSegment : Button, ICustomHitTest
         DrawShape(context, ink, new Point(labelCenter.X, labelCenter.Y - 9));
 
         var typeface = new Typeface(GetValue(TextElement.FontFamilyProperty), FontStyle.Normal, FontWeight.SemiBold);
-        // As wide as the slice is a little outside its middle; a long word gets a smaller size before it would break.
-        var width = 2 * ((_inner + _outer) / 2 + 6) * Math.Sin(Math.Min(Math.PI / 2, DonutGeometry.Span(_count) / 2)) - 12;
+        var width = LabelWidth(_inner, _outer, _count);
         var direction = CultureInfo.CurrentUICulture.TextInfo.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
         FormattedText Text(double size) => new(Label, CultureInfo.CurrentUICulture, direction, typeface, size, ink)
         {
@@ -233,9 +232,16 @@ public sealed class RingSegment : Button, ICustomHitTest
         var text = Text(12);
         var longest = Label.Split(' ').Max(word => new FormattedText(word, CultureInfo.CurrentUICulture, direction, typeface, 12, ink).Width);
         if (longest > width)
-            text = Text(Math.Max(9.5, 12 * width / longest));
+            text = Text(Math.Max(MinLabelSize, 12 * width / longest));
         context.DrawText(text, new Point(labelCenter.X - width / 2, labelCenter.Y + 2));
     }
+
+    /// <summary>The smallest size a long one-word label shrinks to before it breaks: ru's "Произвольные" needs 9.4 with seven slices.</summary>
+    internal const double MinLabelSize = 9;
+
+    /// <summary>As wide as the slice is a little outside its middle; a long word gets a smaller size before it would break.</summary>
+    internal static double LabelWidth(double inner, double outer, int count) =>
+        2 * ((inner + outer) / 2 + 6) * Math.Sin(Math.Min(Math.PI / 2, DonutGeometry.Span(count) / 2)) - 12;
 
     /// <summary>A small outline of the ratio over its name; free is a dashed square.</summary>
     private void DrawShape(DrawingContext context, IBrush? ink, Point center)
@@ -258,7 +264,7 @@ public sealed class RingSegment : Button, ICustomHitTest
     }
 }
 
-/// <summary>The dial in miniature (the toolbar button): six slices, the one in use lit.</summary>
+/// <summary>The dial in miniature (the toolbar button): a slice per ratio, the one in use lit.</summary>
 public sealed class AspectGlyph : Control
 {
     public static readonly StyledProperty<int> SelectedIndexProperty =
