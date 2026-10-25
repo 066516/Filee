@@ -10,16 +10,22 @@ public static class CropMath
     /// <summary>The aspect dial's choices, clockwise from the top.</summary>
     public static IReadOnlyList<string> AspectModes => Modes;
 
-    private static readonly string[] Modes = ["free", "original", "1:1", "5:4", "4:3", "3:2", "16:9"];
+    private static readonly string[] Modes = ["free", "original", "1:1", "5:4", "4:3", "3:2", "16:9", "custom"];
 
     /// <summary>Where the mode sits on the dial, -1 for none.</summary>
     public static int AspectIndex(string mode) => Array.IndexOf(Modes, mode);
 
-    /// <summary>A fixed ratio with a portrait and a landscape form (not free, the picture's own or square).</summary>
-    public static bool CanSwap(string mode) => mode is "5:4" or "4:3" or "3:2" or "16:9";
+    /// <summary>
+    /// A ratio with a portrait and a landscape form (not free, the picture's own or square). "custom" turns too: its
+    /// W × H as typed, or H × W.
+    /// </summary>
+    public static bool CanSwap(string mode) => mode is "5:4" or "4:3" or "3:2" or "16:9" or "custom";
 
-    /// <summary>Width / height of the mode, 0 for free. Portrait turns a swappable ratio around (4:3 → 3:4).</summary>
-    public static double Ratio(string mode, bool portrait, int originalWidth, int originalHeight)
+    /// <summary>
+    /// Width / height of the mode, 0 for free. Portrait turns a swappable ratio around (4:3 → 3:4).
+    /// <paramref name="custom"/> is the typed W / H of "custom" (#542).
+    /// </summary>
+    public static double Ratio(string mode, bool portrait, int originalWidth, int originalHeight, double custom = 0)
     {
         var ratio = mode switch
         {
@@ -29,15 +35,29 @@ public static class CropMath
             "4:3" => 4.0 / 3.0,
             "3:2" => 3.0 / 2.0,
             "16:9" => 16.0 / 9.0,
+            "custom" => custom,
             _ => 0,
         };
-        return portrait && CanSwap(mode) ? 1 / ratio : ratio;
+        return portrait && CanSwap(mode) && ratio > 0 ? 1 / ratio : ratio;
     }
 
-    /// <summary>The numbers shown for a mode: "4:3", or "3:4" in portrait. Free and original have none.</summary>
+    /// <summary>
+    /// The custom ratio's numbers as small as they go ("1080 × 1350" → "4:5"), turned around in portrait. Only the ratio
+    /// counts: resizing to exact pixels is a preset's job.
+    /// </summary>
+    public static string CustomNumbers(int width, int height, bool portrait)
+    {
+        var divisor = Gcd(Math.Max(1, width), Math.Max(1, height));
+        var (w, h) = (Math.Max(1, width) / divisor, Math.Max(1, height) / divisor);
+        return portrait ? $"{h}:{w}" : $"{w}:{h}";
+
+        static int Gcd(int a, int b) => b == 0 ? a : Gcd(b, a % b);
+    }
+
+    /// <summary>The numbers shown for a mode: "4:3", or "3:4" in portrait. Free, original and custom have none here.</summary>
     public static string Numbers(string mode, bool portrait)
     {
-        if (!CanSwap(mode) || !portrait)
+        if (!CanSwap(mode) || !portrait || mode == "custom")
             return mode;
         var parts = mode.Split(':');
         return $"{parts[1]}:{parts[0]}";
