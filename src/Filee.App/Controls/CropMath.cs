@@ -43,6 +43,19 @@ public static class CropMath
         return $"{parts[1]}:{parts[0]}";
     }
 
+    /// <summary>
+    /// The largest frame of <paramref name="ratio"/> (width / height in pixels) on a picture, centred, in parts of the
+    /// picture; the whole picture for 0 (free).
+    /// </summary>
+    public static Rect Centered(double ratio, int width, int height)
+    {
+        if (ratio <= 0 || width <= 0 || height <= 0)
+            return new Rect(0, 0, 1, 1);
+        var w = Math.Min(1, ratio * height / width);
+        var h = Math.Min(1, width / (ratio * height));
+        return new Rect((1 - w) / 2, (1 - h) / 2, w, h);
+    }
+
     /// <summary>The frame in pixels of the picture (at least 1 × 1).</summary>
     public static PixelSize PixelSize(Rect normalized, int width, int height) =>
         new(Math.Max(1, (int)Math.Round(normalized.Width * width)), Math.Max(1, (int)Math.Round(normalized.Height * height)));

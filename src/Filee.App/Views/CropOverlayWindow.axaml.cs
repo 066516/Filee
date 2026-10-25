@@ -87,7 +87,7 @@ public partial class CropOverlayWindow : Window
         {
             _vm = vm;
             vm.CloseRequested += Close;
-            vm.ResetRequested += () => Canvas.ResetCrop();
+            vm.ResetRequested += frame => Canvas.ResetCrop(frame);
             vm.AspectRatioChanged += ratio => Canvas.SetAspectRatio(ratio);
             vm.PropertyChanged += OnViewModelChanged;
             Canvas.CropRectChanged += rect => vm.UpdateDimensions(rect);

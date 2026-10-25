@@ -134,8 +134,17 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
     public string OrientationText => _loc[IsPortrait ? "crop.portrait" : "crop.landscape"];
 
     public event Action? CloseRequested;
-    public event Action? ResetRequested;
+
+    /// <summary>The frame starts over: the whole picture, or the frame given (a ratio carried from the last picture).</summary>
+    public event Action<Rect?>? ResetRequested;
     public event Action<double>? AspectRatioChanged;
+
+    /// <summary>
+    /// The ratio the user picked, kept for the next pictures of the batch (#542), and its orientation; null while none
+    /// was picked or after Reset, so the next picture starts free.
+    /// </summary>
+    private string? _batchAspect;
+    private bool _batchPortrait;
 
     public Rect CurrentCropRect { get; set; } = new(0.05, 0.05, 0.9, 0.9);
 
@@ -186,14 +195,17 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
 
             OriginalWidth = origW;
             OriginalHeight = origH;
-            SelectedAspect = "free";
-            IsPortrait = origH > origW;
+            // A ratio picked for an earlier picture carries on (#542): the frame starts as large as it fits, centred,
+            // in the orientation picked for it. Free (nothing picked yet) starts on the whole picture.
+            var mode = _batchAspect ?? "free";
+            SelectedAspect = mode;
+            IsPortrait = CropMath.CanSwap(mode) ? _batchPortrait : origH > origW;
             IsAspectDialOpen = false;
-            AspectRatio = 0;
-            AspectRatioChanged?.Invoke(0);
-            CurrentCropRect = new Rect(0.05, 0.05, 0.9, 0.9);
-            UpdateDimensions(CurrentCropRect);
-            ResetRequested?.Invoke();
+            AspectRatio = CropMath.Ratio(mode, IsPortrait, origW, origH);
+            AspectRatioChanged?.Invoke(AspectRatio);
+            var frame = CropMath.Centered(AspectRatio, origW, origH);
+            UpdateDimensions(frame);
+            ResetRequested?.Invoke(frame);
         }
         catch (Exception ex)
         {
@@ -303,11 +315,12 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void Reset()
     {
+        _batchAspect = null; // the next pictures start free again
         SelectedAspect = "free";
         IsPortrait = OriginalHeight > OriginalWidth;
         AspectRatio = 0;
         AspectRatioChanged?.Invoke(0);
-        ResetRequested?.Invoke();
+        ResetRequested?.Invoke(null);
     }
 
     /// <summary>Cancel, or Close once finished. A crop still saving finishes and goes into the history.</summary>
@@ -353,6 +366,7 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
 
     private void ApplyAspect(string mode)
     {
+        (_batchAspect, _batchPortrait) = (mode == "free" ? null : mode, IsPortrait);
         SelectedAspect = mode;
         AspectRatio = CropMath.Ratio(mode, IsPortrait, OriginalWidth, OriginalHeight);
         AspectRatioChanged?.Invoke(AspectRatio);

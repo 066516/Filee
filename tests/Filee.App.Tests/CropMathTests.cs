@@ -81,6 +81,21 @@ public class CropMathTests
     }
 
     [Fact]
+    public void A_carried_ratio_starts_as_the_largest_centred_frame()
+    {
+        // 4:5 on a landscape 1600 × 1000: the whole height, 800 wide in the middle.
+        Assert.Equal(new Rect(0.25, 0, 0.5, 1), CropMath.Centered(4.0 / 5, 1600, 1000));
+        // 16:9 on an upright 1000 × 1600: the whole width, 562.5 high in the middle.
+        var wide = CropMath.Centered(16.0 / 9, 1000, 1600);
+        Assert.Equal((0, 1), (wide.X, wide.Width));
+        Assert.Equal(562.5 / 1600, wide.Height, 6);
+        Assert.Equal((1 - wide.Height) / 2, wide.Y, 6);
+        // The picture's own ratio, and free, fill it.
+        Assert.Equal(new Rect(0, 0, 1, 1), CropMath.Centered(1.6, 1600, 1000));
+        Assert.Equal(new Rect(0, 0, 1, 1), CropMath.Centered(0, 1600, 1000));
+    }
+
+    [Fact]
     public void The_size_chip_sits_under_the_frame_inside_it_or_above_it()
     {
         var area = new Rect(0, 0, 800, 600);

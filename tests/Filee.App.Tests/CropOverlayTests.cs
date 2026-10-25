@@ -329,25 +329,65 @@ public class CropOverlayTests
     }
 
     [AvaloniaFact]
-    public void The_next_file_starts_free_and_full_in_view_and_canvas_alike()
+    public void The_next_file_keeps_the_chosen_ratio_as_large_as_it_fits_centred_in_view_and_canvas_alike()
     {
+        // #542: a batch for Instagram picks 4:5 once, not for every picture.
         WithOverlay("en", false, ["harbour.jpg", "tall.jpg"], (window, vm, _suffix) =>
         {
             vm.SetAspect("16:9");
-            vm.SwapOrientation();
+            vm.SwapOrientation(); // 9:16
             _ = vm.CropAndSaveAsync();
             WaitFor(() => vm.CurrentIndex == 1 && !vm.IsBusy && vm.PreviewImage is not null);
             Pump();
 
+            Assert.Equal("16:9", vm.SelectedAspect);
+            Assert.True(vm.IsPortrait);
+            Assert.Equal("9:16", vm.AspectLabel);
+            Assert.Equal(9.0 / 16, vm.AspectRatio, 6);
+            Assert.Equal(9.0 / 16, window.CropCanvas.AspectRatio, 6);
+            // 1000 × 1600: the whole height, 900 wide, in the middle.
+            var frame = new Rect(0.05, 0, 0.9, 1);
+            AssertClose(frame, window.CropCanvas.NormalizedCropRect);
+            AssertClose(frame, vm.CurrentCropRect);
+            Assert.Equal("900 × 1600 px", vm.DimensionsText);
+            Assert.Equal(AppHost.Get<ILocalizer>()["crop.save"], vm.SaveText);
+        });
+    }
+
+    [AvaloniaFact]
+    public void A_batch_starts_free_until_a_ratio_is_picked_and_again_after_reset()
+    {
+        WithOverlay("en", false, ["harbour.jpg", "tall.jpg", "two.jpg"], (window, vm, _suffix) =>
+        {
+            // Nothing picked: the next picture starts free, on the whole picture.
+            _ = vm.CropAndSaveAsync();
+            WaitFor(() => vm.CurrentIndex == 1 && !vm.IsBusy && vm.PreviewImage is not null);
+            Pump();
             Assert.Equal("free", vm.SelectedAspect);
-            Assert.Equal(0, vm.AspectRatio);
             Assert.Equal(0, window.CropCanvas.AspectRatio);
             Assert.True(vm.IsPortrait); // the second picture is upright
             Assert.Equal(new Rect(0, 0, 1, 1), window.CropCanvas.NormalizedCropRect);
-            Assert.Equal(new Rect(0, 0, 1, 1), vm.CurrentCropRect);
             Assert.Equal("1000 × 1600 px", vm.DimensionsText);
-            Assert.Equal(AppHost.Get<ILocalizer>()["crop.save"], vm.SaveText);
+
+            // Picked, then R (Reset): back to free for this picture and the next.
+            vm.SetAspect("4:3");
+            vm.Reset();
+            _ = vm.CropAndSaveAsync();
+            WaitFor(() => vm.CurrentIndex == 2 && !vm.IsBusy && vm.PreviewImage is not null);
+            Pump();
+            Assert.Equal("free", vm.SelectedAspect);
+            Assert.False(vm.IsPortrait);
+            Assert.Equal(new Rect(0, 0, 1, 1), window.CropCanvas.NormalizedCropRect);
+            Assert.Equal("1600 × 1000 px", vm.DimensionsText);
         });
+    }
+
+    private static void AssertClose(Rect expected, Rect actual)
+    {
+        Assert.Equal(expected.X, actual.X, 3);
+        Assert.Equal(expected.Y, actual.Y, 3);
+        Assert.Equal(expected.Width, actual.Width, 3);
+        Assert.Equal(expected.Height, actual.Height, 3);
     }
 
     // ───────────────────────── Helpers ─────────────────────────
