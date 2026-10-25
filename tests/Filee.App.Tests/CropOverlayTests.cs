@@ -289,6 +289,46 @@ public class CropOverlayTests
     }
 
     [AvaloniaFact]
+    public void Every_language_fits_its_longest_one_word_ratio_name_on_a_slice_without_breaking_it()
+    {
+        var dial = new AspectDial();
+        var width = RingSegment.LabelWidth(dial.InnerRadius, dial.OuterRadius, CropMath.AspectModes.Count);
+        var i18n = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "Filee.App", "Assets", "i18n");
+        foreach (var language in LocalizationService.Languages.Select(l => l.Code))
+        {
+            var strings = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(i18n, language + ".json")))!;
+            var typeface = new Avalonia.Media.Typeface(SoftPalette.FontFamilyFor(language), Avalonia.Media.FontStyle.Normal, Avalonia.Media.FontWeight.SemiBold);
+            foreach (var key in new[] { "crop.aspect_free", "crop.aspect_original" })
+            {
+                if (!strings.TryGetValue(key, out var label))
+                    continue;
+                var longest = label.Split(' ').Max(word => new Avalonia.Media.FormattedText(word, System.Globalization.CultureInfo.InvariantCulture,
+                    Avalonia.Media.FlowDirection.LeftToRight, typeface, 12, Avalonia.Media.Brushes.Black).Width);
+                Assert.True(12 * width / longest >= RingSegment.MinLabelSize, $"{language} {key} \"{label}\" needs {12 * width / longest:F2}");
+            }
+        }
+    }
+
+    [AvaloniaFact]
+    public void An_upright_picture_crops_at_instagrams_4_to_5_from_the_5_to_4_slice()
+    {
+        WithOverlay("en", false, ["tall.jpg"], (window, vm, _suffix) =>
+        {
+            Settle(window);
+            var slice = window.AspectDial.Segments.Single(s => s.Mode == "5:4");
+            slice.Command!.Execute(slice.CommandParameter);
+            Settle(window);
+            Assert.Equal("4:5", vm.AspectLabel);
+            Assert.Equal(0.8, window.CropCanvas.AspectRatio, 6);
+            var frame = window.CropCanvas.NormalizedCropRect;
+            Assert.Equal(0.8, frame.Width * 1000 / (frame.Height * 1600), 2);
+            vm.ToggleAspectDial();
+            Settle(window);
+            RenderTests.Save(window, "crop-dial-4-5.png");
+        });
+    }
+
+    [AvaloniaFact]
     public void The_next_file_starts_free_and_full_in_view_and_canvas_alike()
     {
         WithOverlay("en", false, ["harbour.jpg", "tall.jpg"], (window, vm, _suffix) =>
