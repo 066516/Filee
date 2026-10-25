@@ -43,6 +43,7 @@
   <b>Русский</b> ·
   <a href="README.ar.md">العربية</a> ·
   <a href="README.pt-BR.md">Português (Brasil)</a> ·
+  <a href="README.pt-PT.md">Português (Portugal)</a> ·
   <a href="README.fr.md">Français</a> ·
   <a href="README.th.md">ไทย</a>
 </p>
