@@ -10,11 +10,12 @@ on:
 permissions:
   contents: read
 
-# A newer push to a pull request cancels the run it replaces. Every push to main runs to the end (its own group), so
-# a docs-only merge can't cancel the run that checks the code merged before it, macOS included.
+# A newer push cancels the run it replaces, on pull requests and on main. Main cancels too because macOS runners are
+# few and queue: when several PRs are merged in a row, the older main runs would keep them busy for hours. Only the
+# last commit on main runs to the end, and since it contains all the commits before it, nothing goes untested.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # Decides what the change needs. The workflow always runs, so the required build check always reports: a job
@@ -68,7 +69,7 @@ jobs:
           while IFS= read -r f; do
             [ -z "$f" ] && continue
             case "$f" in
-              *.md|docs/*|LICENSE|.mailmap|.github/CODEOWNERS|.github/ISSUE_TEMPLATE/*|.github/labeler.yml|.github/FUNDING.yml)
+              *.md|docs/*|LICENSE|.mailmap|.github/CODEOWNERS|.github/ISSUE_TEMPLATE/*|.github/labeler.yml|.github/FUNDING.yml|.github/release.yml|.github/PULL_REQUEST_TEMPLATE*|.github/workflows/label-issue.yml|.github/workflows/label-pr.yml)
                 continue ;;
             esac
             if [ "$code" = false ]; then echo "Needs the build: $f"; fi
