@@ -113,14 +113,14 @@
                 <TextBlock Text="{DynamicResource sheet_studio.paper}" />
                 <ComboBox ItemsSource="{Binding Papers}" SelectedValue="{Binding SelectedSheet.Paper}" SelectedValueBinding="{Binding Value}"
                           AutomationProperties.Name="{DynamicResource sheet_studio.paper}">
-                  <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                  <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
                 </ComboBox>
               </StackPanel>
               <StackPanel Grid.Column="1" Spacing="5">
                 <TextBlock Text="{DynamicResource sheet_studio.orientation}" />
                 <ComboBox ItemsSource="{Binding Orientations}" SelectedValue="{Binding SelectedSheet.Orientation}" SelectedValueBinding="{Binding Value}"
                           AutomationProperties.Name="{DynamicResource sheet_studio.orientation}">
-                  <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                  <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
                 </ComboBox>
               </StackPanel>
             </Grid>
@@ -128,7 +128,7 @@
             <TextBlock Text="{DynamicResource sheet_studio.scaling}" />
             <ComboBox ItemsSource="{Binding ScaleModes}" SelectedValue="{Binding SelectedSheet.ScaleMode}" SelectedValueBinding="{Binding Value}"
                       AutomationProperties.Name="{DynamicResource sheet_studio.scaling}">
-              <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+              <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
             </ComboBox>
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
               <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Spacing="4">
@@ -137,12 +137,12 @@
                                AutomationProperties.Name="{DynamicResource sheet_studio.percent}" />
               </StackPanel>
               <StackPanel Grid.Row="1" Grid.Column="0" Spacing="4">
-                <TextBlock Classes="caption" Text="{DynamicResource sheet_studio.pages_wide}" />
+                <TextBlock Classes="caption" Text="{DynamicResource sheet_studio.pages_wide}" TextWrapping="Wrap" />
                 <NumericUpDown Minimum="1" Maximum="100" Value="{Binding SelectedSheet.FitWidth}"
                                AutomationProperties.Name="{DynamicResource sheet_studio.pages_wide}" />
               </StackPanel>
               <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4">
-                <TextBlock Classes="caption" Text="{DynamicResource sheet_studio.pages_tall}" />
+                <TextBlock Classes="caption" Text="{DynamicResource sheet_studio.pages_tall}" TextWrapping="Wrap" />
                 <NumericUpDown Minimum="0" Maximum="100" Value="{Binding SelectedSheet.FitHeight}"
                                AutomationProperties.Name="{DynamicResource sheet_studio.pages_tall}" />
               </StackPanel>
@@ -175,7 +175,7 @@
             <TextBlock Text="{DynamicResource sheet_studio.page_order}" />
             <ComboBox ItemsSource="{Binding PageOrders}" SelectedValue="{Binding SelectedSheet.Order}" SelectedValueBinding="{Binding Value}"
                       AutomationProperties.Name="{DynamicResource sheet_studio.page_order}">
-              <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+              <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
             </ComboBox>
             <CheckBox Content="{DynamicResource sheet_studio.include_hidden}" IsChecked="{Binding SelectedSheet.IncludeHidden}" />
             <CheckBox Content="{DynamicResource sheet_studio.keep_breaks}" IsChecked="{Binding SelectedSheet.KeepManualBreaks}" />

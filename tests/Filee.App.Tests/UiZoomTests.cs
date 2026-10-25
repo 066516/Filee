@@ -281,10 +281,13 @@ public class UiZoomTests
         }
     }
 
-    [AvaloniaFact]
-    public void Theme_page_shows_the_window_size_and_resets_it()
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
+    public void Theme_page_shows_the_window_size_and_resets_it(string language)
     {
-        TestServices.EnsureInitialized("en");
+        TestServices.EnsureInitialized(language);
         var directory = Directory.CreateTempSubdirectory("filee-zoom-theme-").FullName;
         var store = new UserDataStore(directory);
         store.Load();
@@ -314,7 +317,7 @@ public class UiZoomTests
             RenderTests.Pump();
             Assert.Equal("180%", text.Text);
             Assert.False(zoomIn.IsEffectivelyEnabled);
-            RenderTests.Save(window, "page-theme-window-size-en.png");
+            RenderTests.Save(window, $"page-theme-window-size-{language}.png");
 
             reset.Command!.Execute(null);
             RenderTests.Pump();

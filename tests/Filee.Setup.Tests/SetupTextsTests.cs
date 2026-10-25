@@ -54,7 +54,7 @@ public partial class SetupTextsTests
     [InlineData(null, "zh-Hans-TW", "zh-CN")] // an explicit script wins over the region
     [InlineData(null, "es-MX", "es")]
     [InlineData(null, "pt-BR", "pt-BR")]
-    [InlineData(null, "pt-PT", "pt-BR")]
+    [InlineData(null, "pt-PT", "pt-PT")]
     [InlineData("pt-BR", "en-US", "pt-BR")]
     [InlineData(null, "fr-FR", "fr")]
     [InlineData(null, "fr-CA", "fr")]
@@ -70,6 +70,24 @@ public partial class SetupTextsTests
     [InlineData("auto", "de-CH", "de")]
     [InlineData("xx", "it-IT", "en")]
     [InlineData("klingon", "pl-PL", "pl")]
+    [InlineData("auto", "pt-BR", "pt-BR")]
+    [InlineData("auto", "pt-PT", "pt-PT")]
+    [InlineData("auto", "pt-Latn-BR", "pt-BR")]
+    [InlineData("auto", "pt_BR", "pt-BR")]
+    [InlineData("auto", "pt-PT-x-br", "pt-PT")]
+    [InlineData("auto", "pt-x-br", "pt-PT")]
+    [InlineData("auto", "pt-Latn-PT-x-br", "pt-PT")]
+    [InlineData("auto", "pt-PT-u-ca-gregory-x-br", "pt-PT")]
+    [InlineData("auto", "pt-BR-x-pt", "pt-BR")]
+    [InlineData("auto", "pt-Latn-BR-u-ca-gregory", "pt-BR")]
+    [InlineData("auto", "pt-u-rg-brzzzz", "pt-PT")]
+    [InlineData("auto", "pt", "pt-PT")]
+    [InlineData("auto", "pt-AO", "pt-PT")]
+    [InlineData("pt-PT", "pt-BR", "pt-PT")]
+    [InlineData("PT-br", "pt-PT", "pt-BR")]
+    [InlineData("pt_BR", "en-US", "pt-BR")]
+    [InlineData("ptbr", "en-US", "pt-BR")]
+    [InlineData("ptpt", "en-US", "pt-PT")]
     public void Languages_resolve_like_the_app_and_like_inno_setup(string? setting, string windows, string expected) =>
         Assert.Equal(expected, SetupTexts.Resolve(setting, () => windows));
 
@@ -119,6 +137,7 @@ public partial class SetupTextsTests
     [Fact]
     public void Setup_looks_for_downloaded_engines_where_the_app_puts_them()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The installer uses Windows settings and engine paths.");
         Assert.Equal(EngineEnvironment.DownloadRoot, SetupPaths.Real().EnginesFolder);
         Assert.Equal(Filee.Core.Settings.UserDataStore.DefaultDirectory, SetupPaths.Real().SettingsFolder);
     }

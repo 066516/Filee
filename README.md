@@ -43,6 +43,7 @@
   <a href="README.ru.md">Русский</a> ·
   <a href="README.ar.md">العربية</a> ·
   <a href="README.pt-BR.md">Português (Brasil)</a> ·
+  <a href="README.pt-PT.md">Português (Portugal)</a> ·
   <a href="README.fr.md">Français</a> ·
   <a href="README.th.md">ไทย</a>
 </p>
@@ -55,7 +56,7 @@
       The formats appear where you already are, only the ones that make sense for the files you drag.
     </td>
     <td width="33%" valign="top">
-      <b>256 formats, no other software</b><br>
+      <b>263 formats, no other software</b><br>
       Images, PDF, Word, Excel, PowerPoint, HWP, e-books, archives, fonts, CAD, 3D models and geospatial data work without Office, Hancom Office or LibreOffice.
     </td>
     <td width="33%" valign="top">
@@ -127,7 +128,7 @@ To undo it, remove the entries in Windows Security → App & browser control →
 - **Watch folders** convert every file that lands in them.
 - **Recent conversions** on Home, each with a thumbnail: open the result, or open it with another app.
 - **Other ways in**: the right-click menu, a keyboard shortcut, the drop zone and the [`filee` command](#command-line).
-- Light and dark themes with your own accent colour and donut opacity, in English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (right to left), Português (Brasil), Français, नेपाली and ไทย.
+- Light and dark themes with your own accent colour and donut opacity, in English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (right to left), Português (Brasil), Français, नेपाली, ไทย, Türkçe and Português (Portugal).
 
 ## Screenshots
 

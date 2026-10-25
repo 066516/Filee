@@ -43,6 +43,17 @@ public partial class LocalizationTests
 
     [Theory]
     [MemberData(nameof(Languages))]
+    public void Catalogs_have_no_duplicate_keys_or_empty_translations(string code)
+    {
+        using var json = JsonDocument.Parse(File.ReadAllText(Path.Combine(I18nDirectory, code + ".json")));
+        var entries = json.RootElement.EnumerateObject().ToList();
+        Assert.Equal(entries.Count, entries.Select(e => e.Name).Distinct().Count());
+        Assert.All(entries, e => Assert.False(string.IsNullOrWhiteSpace(e.Value.GetString()), $"{code}:{e.Name}"));
+    }
+
+
+    [Theory]
+    [MemberData(nameof(Languages))]
     public void Every_language_has_exactly_the_english_keys(string code)
     {
         var english = Load("en").Keys.ToHashSet();
@@ -122,7 +133,7 @@ public partial class LocalizationTests
     [InlineData("pl-PL", "pl")]
     [InlineData("ar-EG", "ar")]
     [InlineData("pt-BR", "pt-BR")]
-    [InlineData("pt-PT", "pt-BR")]
+    [InlineData("pt-PT", "pt-PT")]
     [InlineData("zh-CN", "zh-CN")]
     [InlineData("zh-Hans-CN", "zh-CN")]
     [InlineData("zh-SG", "zh-CN")]
@@ -156,6 +167,8 @@ public partial class LocalizationTests
     [InlineData("ar")]
     [InlineData("ne")]
     [InlineData("en")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
     public void A_chosen_language_is_kept_whatever_the_os_is_in(string chosen) =>
         // The OS isn't even asked: the user picked the language in Settings.
         Assert.Equal(chosen, LocalizationService.Resolve(chosen, () => throw new InvalidOperationException("asked the OS")));
