@@ -7,8 +7,19 @@ namespace Filee.Core.Presets;
 public static class AskedLocation
 {
     /// <summary>
+    /// The batch makes one file, so the dialog asks for its name: one source, or several that become one (a merged
+    /// PDF, a multi-page TIFF, one archive, joined videos). Otherwise it asks for a folder.
+    /// </summary>
+    public static bool MakesOneResult(Preset preset, int sources) =>
+        sources == 1
+        || preset.TargetFormat == "pdf" && preset.Pdf.MergeIntoSingle
+        || preset.Image.MultiPageTiff && preset.TargetFormat == "tiff"
+        || preset.PacksIntoOneArchive
+        || preset.JoinsIntoOneMedia;
+
+    /// <summary>
     /// The name the save dialog suggests for <paramref name="source"/>: the preset's name pattern and renames, and the
-    /// target's extension (the source's own for "same as source").
+    /// extension the result gets.
     /// </summary>
     public static string SuggestedName(Preset preset, string presetName, string source)
     {
@@ -20,15 +31,19 @@ public static class AskedLocation
         return extension.Length == 0 ? name : $"{name}.{extension}";
     }
 
-    /// <summary>The extension the result gets, without the dot; empty for a folder ("Extract").</summary>
+    /// <summary>
+    /// The extension the result gets, without the dot: "zip" when it's saved as a ZIP, the source's own for "same as
+    /// source", empty for a folder ("Extract"). The preset is the one that runs, with Settings › General applied.
+    /// </summary>
     public static string Extension(Preset preset, string source) =>
-        preset.TargetFormat == BuiltInData.SameAsSource
-            ? FormatRegistry.ExtensionOf(source)
-            : FormatRegistry.FindById(preset.TargetFormat)?.Extensions.FirstOrDefault() ?? "";
+        preset.Output.ZipResult ? "zip"
+        : preset.TargetFormat == BuiltInData.SameAsSource ? FormatRegistry.ExtensionOf(source)
+        : FormatRegistry.FindById(preset.TargetFormat)?.Extensions.FirstOrDefault() ?? "";
 
     /// <summary>
     /// One result, saved as <paramref name="chosenPath"/>: that folder and that name, without the pattern or renames
-    /// on top. The dialog has already asked about replacing a file there, so it is replaced.
+    /// on top. Only that exact path, which the dialog asked about, may replace a file there; pages or a result with
+    /// another extension keep the preset's own conflict policy.
     /// </summary>
     public static Preset ForFile(Preset preset, string chosenPath)
     {
@@ -36,7 +51,7 @@ public static class AskedLocation
         // shortcut: a chosen name with a pattern token in it ("{date}") is expanded, there is no escape; rare enough.
         copy.Output.FileNamePattern = Path.GetFileNameWithoutExtension(chosenPath);
         copy.Output.Renames = [];
-        copy.Output.Conflict = ConflictPolicy.Overwrite;
+        copy.Output.ConfirmedPath = Path.GetFullPath(chosenPath);
         return copy;
     }
 
@@ -46,10 +61,13 @@ public static class AskedLocation
     private static Preset InFolder(Preset preset, string folder)
     {
         var copy = preset.Clone();
+        copy.Output.AskEveryTime = false;
         copy.Output.Location = OutputLocation.CustomFolder;
         copy.Output.CustomFolder = folder;
         copy.Output.KeepFoldersFrom = "";
         copy.Output.SubfolderOnlyForSeveralFiles = false;
+        // The place the user picked is where the result goes, not back over the original.
+        copy.Output.ReplaceOriginal = false;
         return copy;
     }
 }
