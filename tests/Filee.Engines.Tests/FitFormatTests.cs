@@ -134,6 +134,26 @@ public class FitFormatTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public async Task Fields_not_in_their_profile_integer_width_are_left_out()
+    {
+        // Height and heart rate as float32 or a wider integer would carry values far past what the profile allows.
+        FitBuilder.FitField[] fields =
+        [
+            FitBuilder.U32(253, First), FitBuilder.S32(0, 0x20000000), FitBuilder.S32(1, 0x40000000),
+            new(2, 0x88, BitConverter.GetBytes(3e38f)), FitBuilder.U32(3, 4_000_000_000), new(4, 0x88, BitConverter.GetBytes(1e30f)),
+        ];
+        var input = Save(new FitBuilder().FileId().Define(0, 20, fields: fields).Message(0, fields));
+
+        var gpx = (await fx.ConvertOkAsync(input, "gpx")).Single();
+        Assert.Null(Child(Assert.Single(Elements(gpx, "wpt")), "ele"));
+        Assert.Equal(
+        [
+            "time,longitude,latitude,elevation,heart_rate,cadence,power,speed,distance",
+            $"{Stamp(First)},90,45,,,,,,",
+        ], File.ReadAllLines((await fx.ConvertOkAsync(input, "csv")).Single()));
+    }
+
+    [Fact]
     public async Task Single_position_is_a_point_in_each_spatial_format()
     {
         foreach (var height in new ushort?[] { 3000, null })

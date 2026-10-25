@@ -136,6 +136,7 @@ internal static class FitFormat
         uint? lastTime = null;
         int? fileType = null;
         var fileIdSeen = false;
+        var recordCount = 0;
         while (position < limit)
         {
             ct.ThrowIfCancellationRequested();
@@ -194,7 +195,9 @@ internal static class FitFormat
                 Require(field.Size);
                 var value = ReadNumber(bytes.AsSpan(position, field.Size), field.Type, definition.BigEndian);
                 position += field.Size;
-                if (value is null)
+                // A field read is taken only in its profile width as an integer: a float or wider type could carry
+                // any size of value past the range the profile allows.
+                if (value is null || ProfileWidth(definition.Message, field.Number) is { } width && IntegerWidth(field.Type) != width)
                     continue;
                 if (field.Number == 253 && value is >= 0x10000000 and < 0xFFFFFFFF)
                 {
@@ -227,12 +230,18 @@ internal static class FitFormat
                 case 0: fileIdSeen = true; break;
                 case 18: activity.AddSession(ToDate(startTime), sport); break;
                 case 20:
-                    if (activity.Records.Count >= maxRecords)
+                    if (recordCount++ >= maxRecords)
                         throw new ConversionRefusedException("error.fit_too_large", "2000000 records");
                     if (lat is < -90 or > 90 || lon is < -180 or > 180 || lat is null || lon is null)
                         lat = lon = null;
-                    activity.Records.Add(new FitRecord(ToDate(time), lat, lon, enhancedHeight ?? height,
-                        heartRate, cadence, power, enhancedSpeed ?? speed, distance));
+                    var elevation = enhancedHeight ?? height;
+                    var recordSpeed = enhancedSpeed ?? speed;
+                    // A record without a single value adds nothing to any output, so it is counted but not kept.
+                    if (time is null && lat is null && elevation is null && heartRate is null && cadence is null
+                        && power is null && recordSpeed is null && distance is null)
+                        break;
+                    activity.Records.Add(new FitRecord(ToDate(time), lat, lon, elevation,
+                        heartRate, cadence, power, recordSpeed, distance));
                     break;
             }
         }
@@ -250,6 +259,25 @@ internal static class FitFormat
                 throw Damaged("cut short");
         }
     }
+
+    /// <summary>The integer width the FIT Profile gives each field read here; other fields aren't width-checked.</summary>
+    private static int? ProfileWidth(int message, int number) => (message, number) switch
+    {
+        (_, 253) or (18, 2) or (20, 0) or (20, 1) or (20, 5) or (20, 73) or (20, 78) => 4,
+        (20, 2) or (20, 6) or (20, 7) => 2,
+        (0, 0) or (18, 5) or (20, 3) or (20, 4) => 1,
+        _ => null,
+    };
+
+    /// <summary>The width of an integer base type (enum, signed, unsigned and their invalid-zero kinds); 0 otherwise.</summary>
+    private static int IntegerWidth(byte baseType) => (baseType & 0x1F) switch
+    {
+        0 or 1 or 2 or 10 => 1,
+        3 or 4 or 11 => 2,
+        5 or 6 or 12 => 4,
+        14 or 15 or 16 => 8,
+        _ => 0,
+    };
 
     private static DateTime? ToDate(uint? seconds) =>
         seconds is { } value ? DateTime.UnixEpoch.AddSeconds(value + FitEpochOffset) : null;
@@ -306,17 +334,19 @@ internal static class FitFormat
     /// <summary>Writes one nonempty record per CSV row, keeping file order and empty sensor cells.</summary>
     public static void WriteCsv(FitActivity activity, string path)
     {
-        var rows = new List<List<string>>
-        {
-            new() { "time", "longitude", "latitude", "elevation", "heart_rate", "cadence", "power", "speed", "distance" },
-        };
-        foreach (var record in activity.Records)
-        {
-            if (record.Time is null && record.Latitude is null && record.Longitude is null
-                && record.HeartRate is null && record.Cadence is null && record.Power is null
-                && record.Speed is null && record.Distance is null)
-                continue;
-            rows.Add([
+        if (!activity.Records.Any(HasRow))
+            throw new ConversionRefusedException("error.fit_no_records");
+        string[] header = ["time", "longitude", "latitude", "elevation", "heart_rate", "cadence", "power", "speed", "distance"];
+        // Rows are made as they are written, so a long activity never holds its whole CSV as text.
+        CsvFormat.WriteRows(activity.Records.Where(HasRow).Select(Row).Prepend(header), path);
+
+        static bool HasRow(FitRecord record) =>
+            record.Time is not null || record.Latitude is not null || record.Longitude is not null
+            || record.HeartRate is not null || record.Cadence is not null || record.Power is not null
+            || record.Speed is not null || record.Distance is not null;
+
+        static string[] Row(FitRecord record) =>
+            [
                 record.Time?.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture) ?? "",
                 record.Longitude is { } lon ? GeoText.Degrees(lon) : "",
                 record.Latitude is { } lat ? GeoText.Degrees(lat) : "",
@@ -326,11 +356,7 @@ internal static class FitFormat
                 record.Power?.ToString(CultureInfo.InvariantCulture) ?? "",
                 record.Speed is { } speed ? GeoText.Number(speed) : "",
                 record.Distance is { } distance ? GeoText.Number(distance) : "",
-            ]);
-        }
-        if (rows.Count == 1)
-            throw new ConversionRefusedException("error.fit_no_records");
-        CsvFormat.WriteRows(rows, path);
+            ];
     }
 
     private static ConversionRefusedException Damaged(string detail) => new("error.fit_damaged", detail);

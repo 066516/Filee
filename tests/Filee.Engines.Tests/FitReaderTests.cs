@@ -180,6 +180,25 @@ public class FitReaderTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public void Empty_records_count_toward_the_limit_but_are_not_kept()
+    {
+        var time = new[] { FitBuilder.U32(253, 0x1000003B) };
+        var builder = new FitBuilder().FileId().Define(1, 20, fields: time).Message(1, time).Define(0, 20);
+        for (var i = 0; i < 500_000; i++)
+            builder.Message(0, []);
+        var path = FitBuilder.Save(fx.NewFolder(), builder.Build());
+        // Warm the parser so the measurement holds only this file: its bytes, and no object per empty record.
+        _ = Read(new FitBuilder().FileId().Define(1, 20, fields: time).Message(1, time));
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var activity = FitFormat.Read(path, CancellationToken.None);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.True(allocated < new FileInfo(path).Length + 1_000_000, $"{allocated} bytes for a {new FileInfo(path).Length}-byte file");
+        Assert.Equal(Time(0x1000003B), Assert.Single(activity.Records).Time);
+        var error = Assert.Throws<ConversionRefusedException>(() => FitFormat.Read(path, CancellationToken.None, maxRecords: 500_000));
+        Assert.Equal("error.fit_too_large", error.ErrorKey);
+    }
+
+    [Fact]
     public void Configurable_file_and_record_limits_refuse_only_excess()
     {
         var fields = new[] { FitBuilder.U32(253, 0x1000003B), new FitBuilder.FitField(90, 0x02, new byte[100]) };
@@ -246,8 +265,8 @@ public class FitReaderTests(EngineFixture fx) : IClassFixture<EngineFixture>
             .Define(0, 20, fields: fields).Message(0, fields)
             .Define(1, 20, fields: empty).Compressed(1, 0, empty).Compressed(1, 1, empty)
             .Message(0, absolute).Message(0, fields).Compressed(1, 0x1D, empty));
-        Assert.Equal([null, null, null, Time(0x1000003B), null, Time(0x1000003D)],
-            activity.Records.Select(r => r.Time));
+        // Records left without any value aren't kept, so a relative timestamp that became absolute would show up here.
+        Assert.Equal([Time(0x1000003B), Time(0x1000003D)], activity.Records.Select(r => r.Time));
     }
 
     [Fact]
