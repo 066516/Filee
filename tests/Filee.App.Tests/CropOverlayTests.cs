@@ -27,7 +27,7 @@ public class CropOverlayTests
     public static TheoryData<string, bool> Looks => new()
     {
         { "en", false }, { "en", true }, { "ko", false }, { "ko", true }, { "ru", false }, { "hi", true }, { "ar", false }, { "ar", true },
-        { "pt-BR", false },
+        { "pt-PT", false }, { "pt-PT", true }, { "pt-BR", false }, { "pt-BR", true },
         { "fr", false },
     };
 

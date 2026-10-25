@@ -500,7 +500,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     /// <summary>How many pictures a minute of 30 fps video gives at the chosen interval, and the limit per video.</summary>
     public string FrameEstimate => _loc.Format("presets.frame_estimate",
-        (int)Math.Ceiling(1800.0 / Math.Clamp(FrameInterval, 1, 1000)), MediaOptions.MaxFrames.ToString("N0", System.Globalization.CultureInfo.InvariantCulture));
+        (int)Math.Ceiling(1800.0 / Math.Clamp(FrameInterval, 1, 1000)), MediaOptions.MaxFrames.ToString("N0", System.Globalization.CultureInfo.CurrentCulture));
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowTraceColors))]
     private Choice<TracingMode> _traceMode;
@@ -773,8 +773,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         return true;
     }
 
-    /// <summary>"0.25×", "1.5×", "2×": the same in every language.</summary>
-    private static string SpeedLabel(double speed) => speed.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "×";
+    /// <summary>Playback multipliers using the user's regional decimal separator.</summary>
+    private static string SpeedLabel(double speed) => speed.ToString("0.##", System.Globalization.CultureInfo.CurrentCulture) + "×";
 
     /// <summary>Fixed choices plus the preset's own value if it isn't one of them (e.g. edited by hand).</summary>
     private static List<Choice<int>> Steps(int[] steps, int current, Func<int, string> label) =>

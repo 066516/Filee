@@ -1,8 +1,11 @@
 using System.IO.Compression;
 using System.Text;
+using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.VisualTree;
 using Filee.App.Services;
 using Filee.App.ViewModels;
+using Filee.App.Views;
 using Filee.Core.Conversion;
 using Filee.Core.Localization;
 using Filee.Core.Settings;
@@ -11,6 +14,46 @@ namespace Filee.App.Tests;
 
 public class SpreadsheetPrintStudioTests
 {
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
+    public async Task Translated_print_settings_fit_at_the_minimum_window_width(string language)
+    {
+        TestServices.EnsureInitialized(language);
+        var folder = Directory.CreateTempSubdirectory("filee-studio-layout-").FullName;
+        SpreadsheetPrintStudioWindow? window = null;
+        SpreadsheetPrintStudioViewModel? vm = null;
+        try
+        {
+            var source = Path.Combine(folder, "sample.xlsx");
+            WriteWorkbook(source);
+            vm = new SpreadsheetPrintStudioViewModel(source, AppHost.Get<SpreadsheetPrintService>(),
+                AppHost.Get<ILocalizer>(), AppHost.Get<UserDataStore>());
+            await vm.Initialization;
+            Assert.Single(vm.Sheets);
+            vm.SelectedSheet!.Order = vm.PageOrders.Last().Value;
+            window = new SpreadsheetPrintStudioWindow { DataContext = vm, Width = 1040, Height = 860 };
+            window.Show();
+            RenderTests.Pump();
+            if (Environment.GetEnvironmentVariable("FILEE_LOCALIZATION_SCREENSHOTS") == "1")
+                RenderTests.Save(window, $"spreadsheet-studio-{language}-1040.png");
+            var labels = window.GetVisualDescendants().OfType<TextBlock>()
+                .Where(text => text.IsEffectivelyVisible && !string.IsNullOrWhiteSpace(text.Text));
+            Assert.NotEmpty(labels);
+            var clipped = labels.Where(text => text.TextLayout.Width > text.Bounds.Width + 1)
+                .Select(text => $"'{text.Text}' ({text.TextLayout.Width} > {text.Bounds.Width})").ToArray();
+            Assert.True(clipped.Length == 0, $"{language}: clipped text: {string.Join("; ", clipped)}");
+        }
+        finally
+        {
+            // The window owns its view model and disposes it when closed.
+            if (window is not null) window.Close();
+            else vm?.Dispose();
+            try { Directory.Delete(folder, recursive: true); } catch (IOException) { }
+        }
+    }
+
     [AvaloniaFact]
     public void Multiple_workbooks_keep_independent_studio_windows()
     {

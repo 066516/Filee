@@ -106,6 +106,10 @@ public sealed class LocalizationService : ILocalizer
             return Languages.First(l => l.Code.Equals(setting, StringComparison.OrdinalIgnoreCase)).Code;
 
         var ui = osLanguage();
+        if (ui.Equals("de", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("de-", StringComparison.OrdinalIgnoreCase))
+            return "de";
+        if (AppLanguages.PortugueseVariant(ui) is { } portuguese)
+            return portuguese;
         if (ui.Equals("tr", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("tr-", StringComparison.OrdinalIgnoreCase))
             return "tr";
         if (ui.StartsWith("ja", StringComparison.OrdinalIgnoreCase))
@@ -125,9 +129,6 @@ public sealed class LocalizationService : ILocalizer
         // "ar" and every region ("ar-SA", "ar-EG", …), but not other codes starting with "ar".
         if (ui.Equals("ar", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("ar-", StringComparison.OrdinalIgnoreCase))
             return "ar";
-        // Brazilian Portuguese is the only Portuguese, so Portugal's "pt-PT" gets it too.
-        if (ui.StartsWith("pt", StringComparison.OrdinalIgnoreCase))
-            return "pt-BR";
         // "fr" and every region ("fr-FR", "fr-CA", …), but not North Frisian "frr".
         if (ui.Equals("fr", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("fr-", StringComparison.OrdinalIgnoreCase))
             return "fr";

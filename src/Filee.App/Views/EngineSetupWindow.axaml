@@ -34,12 +34,12 @@
                 <PathIcon DockPanel.Dock="Left" VerticalAlignment="Top" Margin="2,3,14,0" Width="14" Height="14"
                           Data="{StaticResource Icon.Check}" Foreground="{DynamicResource SuccessBrush}" IsVisible="{Binding IsInstalled}" />
                 <StackPanel Spacing="4">
-                  <StackPanel Orientation="Horizontal" Spacing="10">
-                    <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                    <Border Classes="badge">
-                      <TextBlock Classes="caption" Text="{Binding StatusText}" />
+                  <WrapPanel Orientation="Horizontal">
+                    <TextBlock FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding Name}" Margin="0,0,10,2" />
+                    <Border Classes="badge" Margin="0,0,0,2">
+                      <TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding StatusText}" />
                     </Border>
-                  </StackPanel>
+                  </WrapPanel>
                   <TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding Description}" />
                   <TextBlock Classes="caption" Text="{Binding Sizes}" />
                   <TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding InstallGuidance}"

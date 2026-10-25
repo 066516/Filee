@@ -25,6 +25,8 @@ public class RenderTests
 {
     public static TheoryData<string, string> Pages => new()
     {
+        { "home", "de" }, { "general", "de" }, { "triggers", "de" }, { "toolbar", "de" },
+        { "presets", "de" }, { "theme", "de" }, { "engines", "de" }, { "about", "de" }, { "watch", "de" },
         { "home", "tr" }, { "general", "tr" }, { "triggers", "tr" }, { "toolbar", "tr" },
         { "presets", "tr" }, { "theme", "tr" }, { "engines", "tr" }, { "about", "tr" }, { "watch", "tr" },
         { "home", "ar" }, { "general", "ar" }, { "triggers", "ar" }, { "toolbar", "ar" },
@@ -39,13 +41,16 @@ public class RenderTests
         { "triggers", "zh-TW" }, { "engines", "zh-TW" }, { "watch", "zh-TW" },
         { "general", "pl" }, { "toolbar", "pl" }, { "presets", "pl" }, { "home", "pl" },
         { "home", "es" }, { "general", "es" }, { "toolbar", "es" }, { "presets", "es" }, { "engines", "es" },
-        { "home", "pt-BR" }, { "general", "pt-BR" }, { "toolbar", "pt-BR" }, { "presets", "pt-BR" }, { "engines", "pt-BR" },
         { "home", "fr" }, { "general", "fr" }, { "toolbar", "fr" }, { "presets", "fr" }, { "engines", "fr" },
         { "home", "hi" }, { "general", "hi" }, { "toolbar", "hi" }, { "presets", "hi" }, { "engines", "hi" },
         { "home", "ja" }, { "general", "ja" }, { "triggers", "ja" }, { "toolbar", "ja" },
         { "presets", "ja" }, { "theme", "ja" }, { "engines", "ja" }, { "about", "ja" }, { "watch", "ja" },
         { "home", "ru" }, { "general", "ru" }, { "triggers", "ru" }, { "toolbar", "ru" }, { "presets", "ru" },
         { "theme", "ru" }, { "engines", "ru" }, { "about", "ru" }, { "watch", "ru" },
+        { "home", "pt-PT" }, { "general", "pt-PT" }, { "triggers", "pt-PT" }, { "toolbar", "pt-PT" },
+        { "presets", "pt-PT" }, { "theme", "pt-PT" }, { "engines", "pt-PT" }, { "about", "pt-PT" }, { "watch", "pt-PT" },
+        { "home", "pt-BR" }, { "general", "pt-BR" }, { "triggers", "pt-BR" }, { "toolbar", "pt-BR" },
+        { "presets", "pt-BR" }, { "theme", "pt-BR" }, { "engines", "pt-BR" }, { "about", "pt-BR" }, { "watch", "pt-BR" },
         { "home", "ne" }, { "general", "ne" }, { "toolbar", "ne" }, { "presets", "ne" }, { "engines", "ne" },
     };
 
@@ -124,7 +129,7 @@ public class RenderTests
         store.Settings.WatchFolders.Add(rule);
         try
         {
-            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
             vm.Navigate("watch");
             var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
             window.Show();
@@ -177,7 +182,7 @@ public class RenderTests
         };
         try
         {
-            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
             vm.Navigate("watch");
             var window = new MainWindow { DataContext = vm, Width = 1080, Height = 1000 };
             window.Show();
@@ -214,6 +219,8 @@ public class RenderTests
     [InlineData("ko")]
     [InlineData("ru")]
     [InlineData("ar")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
     public void Watch_folder_options_rename_and_filter_with_a_preview(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -232,7 +239,7 @@ public class RenderTests
         store.Settings.WatchFolders.Add(rule);
         try
         {
-            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
             vm.Navigate("watch");
             var window = new MainWindow { DataContext = vm, Width = 1080, Height = 1500 };
             window.Show();
@@ -328,7 +335,7 @@ public class RenderTests
         store.AddHistory(entry);
         try
         {
-            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
             vm.Navigate("home");
             var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
             window.Show();
@@ -376,7 +383,7 @@ public class RenderTests
         store.History.AddRange(entries);
         try
         {
-            var vm = new MainWindowViewModel(AppHost.Services, loc, AppHost.Get<UpdateService>());
+            using var vm = new MainWindowViewModel(AppHost.Services, loc, AppHost.Get<UpdateService>());
             vm.Navigate("home");
             var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
             window.Show();
@@ -421,7 +428,7 @@ public class RenderTests
     {
         TestServices.EnsureInitialized("en");
         var store = AppHost.Get<Filee.Core.Settings.UserDataStore>();
-        var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+        using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
         vm.Navigate("presets");
         var page = (PresetsPageViewModel)vm.CurrentPage;
         page.Search = "zzz";
@@ -448,7 +455,7 @@ public class RenderTests
         var before = store.Settings.HistoryLimit;
         try
         {
-            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
             vm.Navigate("general");
             var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
             window.Show();
@@ -489,7 +496,7 @@ public class RenderTests
         package.ProgressDetail = "176 MB / 422 MB · 8.4 MB/s · 30초 남음";
         try
         {
-            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
             vm.Navigate("engines");
             var window = new MainWindow { DataContext = vm, Width = 1080, Height = 1400 };
             window.Show();
@@ -869,6 +876,8 @@ public class RenderTests
     [InlineData("ko")]
     [InlineData("ru")]
     [InlineData("ar")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
     public void Sponsor_window_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -879,10 +888,13 @@ public class RenderTests
         window.Close();
     }
 
-    [AvaloniaFact]
-    public void Sponsor_window_with_supporters_renders()
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
+    public void Sponsor_window_with_supporters_renders(string language)
     {
-        TestServices.EnsureInitialized("en");
+        TestServices.EnsureInitialized(language);
         var window = Filee.App.Views.SponsorWindow.Create(AppHost.Get<Filee.Core.Localization.ILocalizer>());
         var view = window.Supporters;
         view.Show(new SupporterList(
@@ -890,10 +902,11 @@ public class RenderTests
             [new("Kim"), new("Lee"), new("Park")]), _ => Logo());
         window.Show();
         Pump();
-        Save(window, "window-sponsor-supporters-en.png");
+        CheckAcknowledgement(window);
+        Save(window, $"window-sponsor-supporters-{language}.png");
         window.Close();
 
-        var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+        using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
         vm.Navigate("about");
         var main = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
         main.Show();
@@ -903,8 +916,20 @@ public class RenderTests
             [new Supporter("Acme", "https://acme.example", "acme.png"), new Supporter("Globex", "https://globex.example")],
             [new("Kim"), new("Lee"), new("Park")]), _ => Logo());
         Pump();
-        Save(main, "page-about-supporters-en.png");
+        CheckAcknowledgement(main);
+        Save(main, $"page-about-supporters-{language}.png");
         main.Close();
+
+        static void CheckAcknowledgement(Window target)
+        {
+            var thanks = AppHost.Get<Filee.Core.Localization.ILocalizer>()["sponsor.thanks"];
+            var labels = target.GetVisualDescendants().OfType<TextBlock>()
+                .Where(t => t.IsEffectivelyVisible && t.Text == thanks).ToArray();
+            Assert.NotEmpty(labels);
+            Assert.All(labels, text => Assert.True(text.TextLayout.Width <= text.Bounds.Width + 1 &&
+                                                    text.TextLayout.Height <= text.Bounds.Height + 1,
+                $"Acknowledgement is clipped: {thanks}"));
+        }
 
         // A stand-in logo: a wide coloured mark like a company's.
         static Avalonia.Media.Imaging.Bitmap Logo()
@@ -925,6 +950,8 @@ public class RenderTests
     [InlineData("ko")]
     [InlineData("ru")]
     [InlineData("ar")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
     public void First_run_engine_setup_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -944,10 +971,13 @@ public class RenderTests
         window.Close();
     }
 
-    [AvaloniaFact]
-    public void Engine_setup_on_a_short_screen_scrolls_the_list_and_keeps_its_buttons()
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
+    public void Engine_setup_on_a_short_screen_scrolls_the_list_and_keeps_its_buttons(string language)
     {
-        TestServices.EnsureInitialized("en");
+        TestServices.EnsureInitialized(language);
         var vm = new EngineSetupViewModel(AppHost.Get<EngineDownloadService>(), AppHost.Get<Filee.Core.Localization.ILocalizer>());
         var window = new EngineSetupWindow { DataContext = vm };
         var closed = false;
@@ -975,7 +1005,7 @@ public class RenderTests
             var bottom = Avalonia.VisualExtensions.TranslatePoint(button, new Avalonia.Point(0, button.Bounds.Height), window)!.Value.Y;
             Assert.InRange(bottom, 0, window.ClientSize.Height);
         }
-        Save(window, "engine-setup-short-screen.png");
+        Save(window, $"engine-setup-short-screen-{language}.png");
 
         // Esc closes it like Cancel / Close in the other dialogs.
         window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
@@ -1032,7 +1062,7 @@ public class RenderTests
         try
         {
             service.Apply(dark, "en", custom);
-            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
+            using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
             vm.Navigate("theme");
             var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
             window.Show();
@@ -1163,6 +1193,8 @@ public class RenderTests
     [AvaloniaTheory]
     [InlineData("en")]
     [InlineData("ko")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
     public void Preset_editor_shows_and_saves_watermark_page_numbers_and_password(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1256,6 +1288,8 @@ public class RenderTests
     [AvaloniaTheory]
     [InlineData("en")]
     [InlineData("ko")]
+    [InlineData("pt-PT")]
+    [InlineData("pt-BR")]
     public void Preset_editor_shows_and_saves_the_fits_options(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1485,7 +1519,7 @@ public class RenderTests
     {
         TestServices.EnsureInitialized(language);
         var updates = AppHost.Get<UpdateService>();
-        var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), updates);
+        using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), updates);
         var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
         window.Show();
         Pump();
@@ -2322,6 +2356,7 @@ public class RenderTests
     [InlineData("zh-CN")]
     [InlineData("ru")]
     [InlineData("ar")]
+    [InlineData("pt-PT")]
     [InlineData("pt-BR")]
     [InlineData("fr")]
     public void Live_photo_options_render_for_jpg_and_heic_and_save_only_there(string language)
@@ -2363,6 +2398,7 @@ public class RenderTests
     public static TheoryData<string, bool> ClipLooks => new()
     {
         { "en", false }, { "en", true }, { "ru", false }, { "ru", true }, { "ar", false }, { "ar", true }, { "ja", false }, { "hi", true },
+        { "pt-PT", false }, { "pt-PT", true }, { "pt-BR", false }, { "pt-BR", true },
     };
 
     /// <summary>
