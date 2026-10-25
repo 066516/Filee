@@ -460,6 +460,7 @@ public sealed class JobQueue : IAsyncDisposable
         try
         {
             await _mediaJoiner!.JoinAsync(inputs, output, target.Id, job.Preset, workDir, progress, job.CancellationToken);
+            SizeLimit.Check(job.Preset, [output]); // joins aren't fitted: one over the limit is refused (#553)
             first.Outputs.Add(output);
             foreach (var f in joined)
             {
@@ -802,6 +803,9 @@ public sealed class JobQueue : IAsyncDisposable
             // Watermark, page numbers, password: on every PDF this file became, from whichever engine.
             if (finalOutput && job.Preset.TargetFormat == "pdf")
                 await FinishPdfsAsync(job.Preset, inputs, ct);
+            // The size limit (#553): a result the engine couldn't fit (HEIC, a render, an animation) isn't handed over.
+            if (finalOutput)
+                SizeLimit.Check(job.Preset, inputs);
 
             if (zipResult && inputs.Count > 0)
                 inputs = PackZip(job, file, index, inputs, ct);

@@ -71,12 +71,63 @@ public class SizeLimitTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public void A_picture_is_never_made_a_thumbnail_to_fit()
+    {
+        // A tight limit for a big photo: it stops at a long edge of 640 px and refuses, instead of shrinking on.
+        var path = Path.Combine(fx.NewFolder(), "noise.jpg");
+        using var image = Noisy(2400, 1600);
+        image.Quality = 95;
+        image.Write(path, MagickFormat.Jpeg);
+
+        Assert.Throws<ConversionRefusedException>(() => ImageEncoder.FitToSize(image, path, MagickFormat.Jpeg, 20_000));
+        using var last = new MagickImage(path);
+        Assert.Equal((uint)ImageEncoder.MinFittedLongEdge, Math.Max(last.Width, last.Height));
+    }
+
+    [Fact]
+    public void Megabytes_are_a_million_bytes_as_the_services_count_them()
+    {
+        Assert.Equal(18_000_000, SizeLimit.Bytes(18));
+        Assert.Equal("18.87 MB > 18 MB", SizeLimit.Describe(18_874_368, 18_000_000));
+    }
+
+    [Fact]
     public void The_bitrate_that_fits_leaves_room_for_the_sound_and_the_container()
     {
-        // 16 MB over 60 s with 96 kbit/s of sound: 16 × 1024² × 8 × 0.95 / 1000 / 60 = 2125 kbit/s, less 96.
-        Assert.Equal(2029, MediaEncoding.FitBitrateKbps(16L * 1024 * 1024, 60, 96));
+        // 16 MB over 60 s with 96 kbit/s of sound: 16,000,000 × 8 × 0.95 / 1000 / 60 = 2026 kbit/s, less 96.
+        Assert.Equal(1930, MediaEncoding.FitBitrateKbps(SizeLimit.Bytes(16), 60, 96));
         // An hour in 10 MB would be a smear: refused instead.
-        Assert.Equal(0, MediaEncoding.FitBitrateKbps(10L * 1024 * 1024, 3600, 96));
+        Assert.Equal(0, MediaEncoding.FitBitrateKbps(SizeLimit.Bytes(10), 3600, 96));
+    }
+
+    [Fact]
+    public void The_first_encode_caps_the_bitrate_next_to_the_constant_quality()
+    {
+        FfmpegPass[] passes = [new(["-c:v", "libx264", "-crf", "23", "-c:a", "aac", "out.mp4"], 1),
+                               new(["-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "32", "out.webm"], 1)];
+
+        var capped = MediaEncoding.WithMaxRate(passes, 800);
+
+        Assert.Equal(["-c:v", "libx264", "-crf", "23", "-maxrate", "800k", "-bufsize", "1600k", "-c:a", "aac", "out.mp4"], capped[0].Arguments);
+        // VP9's constrained quality: CRF with the cap as its bitrate.
+        Assert.Equal(["-c:v", "libvpx-vp9", "-b:v", "800k", "-crf", "32", "-maxrate", "800k", "-bufsize", "1600k", "out.webm"], capped[1].Arguments);
+    }
+
+    [Fact]
+    public void A_size_limit_never_copies_the_video_or_uses_the_graphics_chip()
+    {
+        var video = new VideoStreamInfo(1920, 1080, 1, 0, 30, "h264", "yuv420p");
+        var info = new MediaInfo(TimeSpan.FromSeconds(60), video, new AudioStreamInfo(2, 48000, "aac"), null);
+        var media = new MediaOptions { MaxSizeMb = 16, HardwareEncoding = true };
+
+        var (fitting, kbps) = MediaEncoding.ForSizeLimit(media, info, SizeLimit.Bytes(16));
+
+        Assert.False(MediaEncoding.CanCopyVideo("mp4", video, fitting));
+        Assert.True(MediaEncoding.CanCopyVideo("mp4", video, new MediaOptions()));
+        Assert.False(fitting.HardwareEncoding);
+        Assert.Equal(96, fitting.AudioBitrateKbps);
+        Assert.Equal(1930, kbps);
+        Assert.True(media.HardwareEncoding); // the preset's own options are left alone
     }
 
     [Fact]
@@ -117,7 +168,7 @@ public class SizeLimitTests(EngineFixture fx) : IClassFixture<EngineFixture>
         var job = await fx.ConvertAsync([source], new Preset { TargetFormat = "mp4", Media = { MaxSizeMb = 1 }, Output = { FileNamePattern = "{name}_fit" } });
 
         Assert.True(job.State == JobState.Completed, string.Join("; ", job.Files.Select(f => $"{f.ErrorKey} {f.ErrorDetail}")));
-        Assert.InRange(new FileInfo(Assert.Single(job.Outputs)).Length, 1, 1024 * 1024);
+        Assert.InRange(new FileInfo(Assert.Single(job.Outputs)).Length, 1, 1_000_000);
     }
 
     [Fact]
@@ -128,7 +179,10 @@ public class SizeLimitTests(EngineFixture fx) : IClassFixture<EngineFixture>
 
         var job = await fx.ConvertAsync([source], new Preset { TargetFormat = "mp4", Media = { MaxSizeMb = 0.05 }, Output = { FileNamePattern = "{name}_fit" } });
 
-        Assert.Equal("error.over_size_limit", Assert.Single(job.Files).ErrorKey);
+        // Refused before encoding: 8 s in 50 KB leaves no bitrate for the picture.
+        var file = Assert.Single(job.Files);
+        Assert.Equal("error.over_size_limit", file.ErrorKey);
+        Assert.Equal("8 s in 0.05 MB", file.ErrorDetail);
         Assert.Empty(job.Outputs);
     }
 }

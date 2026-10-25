@@ -168,6 +168,17 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
             return [output];
         }
 
+        // The size limit (#553): refused before anything is encoded when not even a low bitrate fits, else one encode with
+        // the bitrate capped at what fits (MediaEncoding.ForSizeLimit), and another at that bitrate only if it missed.
+        var limit = !still && media.MaxSizeMb > 0 && MediaEncoding.VideoTargets.ContainsKey(step.To) ? SizeLimit.Bytes(media.MaxSizeMb) : 0;
+        var kbps = 0;
+        if (limit > 0)
+        {
+            (media, kbps) = MediaEncoding.ForSizeLimit(media, info, limit);
+            if (kbps == 0 && info.Duration is { TotalSeconds: > 0 })
+                throw new ConversionRefusedException("error.over_size_limit", $"{info.Duration.Value.TotalSeconds:0} s in {media.MaxSizeMb:0.##} MB");
+        }
+
         var encoders = still ? null : EncodersOf(ffmpeg);
         // Hardware encoding (preset option): the first GPU encoder that passes its test encode, if any.
         HardwareEncoder? hardware = null;
@@ -185,15 +196,17 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
             ? MediaEncoding.PlanStill(input, output, step.To, media, info)
             : MediaEncoding.Plan(input, output, step.To, media, info, step.WorkDirectory, cover, encoders, encoder, speed);
         // Throws for a missing stream before anything is written (an existing file of that name stays untouched).
-        var passes = Plan(hardware);
+        var passes = kbps > 0 ? MediaEncoding.WithMaxRate(Plan(hardware), kbps) : Plan(hardware);
         // FFmpeg reports the position in the output, which a speed change makes longer or shorter.
         var duration = still ? MediaEncoding.StillDuration : info.Duration / speed;
+        // With a size limit the first encode takes most of the bar, a second one (if needed) the rest.
+        var encoding = limit > 0 && progress is not null ? new Progress<double>(p => progress.Report(p * 0.9)) : progress;
         try
         {
             await RunWithFallbackAsync(passes, hardware, Plan,
-                planned => RunPassesAsync(ffmpeg, planned, output, duration, progress, cancellationToken), output, _logger, cancellationToken);
-            if (!still && media.MaxSizeMb > 0 && MediaEncoding.VideoTargets.ContainsKey(step.To))
-                await FitToSizeAsync(ffmpeg, step, input, output, info, encoders, cover, cancellationToken);
+                planned => RunPassesAsync(ffmpeg, planned, output, duration, encoding, cancellationToken), output, _logger, cancellationToken);
+            if (limit > 0)
+                await FitAgainAsync(ffmpeg, step, input, output, media, info, encoders, cover, limit, kbps, progress, cancellationToken);
         }
         catch
         {
@@ -207,32 +220,25 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
     }
 
     /// <summary>
-    /// The size limit (#553): a video over it is encoded again from the source at the bitrate its length allows, in
-    /// software (every encoder takes -b:v) with the sound at 96 kbit/s at most. A bitrate is an average, so a second try
-    /// aims lower by as much as the first one missed. Refuses when it can't fit, rather than hand over a file too large.
+    /// The size limit (#553), after the capped encode: usually it fits. A bitrate is an average, so when it missed, the
+    /// video is encoded once more at a bitrate as much lower as it missed by, on the rest of the progress bar. Refuses
+    /// when that still doesn't fit (or the length is unknown), rather than hand over a file too large.
     /// </summary>
-    private static async Task FitToSizeAsync(string ffmpeg, ConversionStep step, string input, string output, MediaInfo info,
-        IReadOnlySet<string>? encoders, CoverExtras? cover, CancellationToken cancellationToken)
+    private static async Task FitAgainAsync(string ffmpeg, ConversionStep step, string input, string output, MediaOptions fitting,
+        MediaInfo info, IReadOnlySet<string>? encoders, CoverExtras? cover, long limit, int kbps, IProgress<double>? progress,
+        CancellationToken cancellationToken)
     {
-        var limit = (long)(step.Preset.Media.MaxSizeMb * 1024 * 1024);
         var size = new FileInfo(output).Length;
-        if (size <= limit)
-            return;
-        var fitting = step.Preset.Clone().Media;
-        fitting.Quality = MediaQuality.Small; // never copies the video stream as it is
-        fitting.HardwareEncoding = false;
-        fitting.AudioBitrateKbps = fitting.AudioBitrateKbps is > 0 and < 96 ? fitting.AudioBitrateKbps : 96;
-        var audio = fitting.RemoveAudio ? 0 : fitting.AudioBitrateKbps * info.AudioTracks.Count;
-        var kbps = info.Duration is { TotalSeconds: > 0 } length ? MediaEncoding.FitBitrateKbps(limit, length.TotalSeconds, audio) : 0;
-        for (var attempt = 0; attempt < 2 && kbps > 0 && size > limit; attempt++)
+        if (size > limit && kbps > 0)
         {
-            var passes = MediaEncoding.AtBitrate(MediaEncoding.Plan(input, output, step.To, fitting, info, step.WorkDirectory, cover, encoders, null, 1), kbps);
-            await RunPassesAsync(ffmpeg, passes, output, info.Duration, null, cancellationToken);
-            size = new FileInfo(output).Length;
             kbps = (int)(kbps * (double)limit / size * 0.95);
+            var again = progress is null ? null : new Progress<double>(p => progress.Report(0.9 + p * 0.1));
+            var passes = MediaEncoding.AtBitrate(MediaEncoding.Plan(input, output, step.To, fitting, info, step.WorkDirectory, cover, encoders, null, 1), kbps);
+            await RunPassesAsync(ffmpeg, passes, output, info.Duration, again, cancellationToken);
+            size = new FileInfo(output).Length;
         }
         if (size > limit)
-            throw new ConversionRefusedException("error.over_size_limit", $"{size / 1048576.0:0.##} MB > {limit / 1048576.0:0.##} MB");
+            throw new ConversionRefusedException("error.over_size_limit", SizeLimit.Describe(size, limit));
     }
 
     /// <remarks>

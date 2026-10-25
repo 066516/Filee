@@ -19,14 +19,11 @@
               <TextBlock Text="{DynamicResource presets.add}" />
             </StackPanel>
             <Button.Flyout>
+              <!-- The ready-made presets are added below the heading from PlacePresets (code-behind). -->
               <MenuFlyout Placement="BottomEdgeAlignedLeft">
                 <MenuItem Header="{DynamicResource presets.add_empty}" Command="{Binding AddCommand}" />
                 <Separator />
                 <MenuItem Header="{DynamicResource presets.add_ready}" IsEnabled="False" />
-                <MenuItem Header="{Binding PlacePresets[0].Name}" Command="{Binding AddPlaceCommand}" CommandParameter="{Binding PlacePresets[0].Preset}" />
-                <MenuItem Header="{Binding PlacePresets[1].Name}" Command="{Binding AddPlaceCommand}" CommandParameter="{Binding PlacePresets[1].Preset}" />
-                <MenuItem Header="{Binding PlacePresets[2].Name}" Command="{Binding AddPlaceCommand}" CommandParameter="{Binding PlacePresets[2].Preset}" />
-                <MenuItem Header="{Binding PlacePresets[3].Name}" Command="{Binding AddPlaceCommand}" CommandParameter="{Binding PlacePresets[3].Preset}" />
               </MenuFlyout>
             </Button.Flyout>
           </Button>

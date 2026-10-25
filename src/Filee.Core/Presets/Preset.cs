@@ -312,8 +312,8 @@ public sealed class ImageOptions
     public int Quality { get; set; } = 90;
 
     /// <summary>
-    /// Keep each picture under this many MB (e.g. for email); 0 = no limit. A larger one is saved again at a lower
-    /// quality, then smaller, until it fits (#553).
+    /// Keep each picture under this many MB of 1,000,000 bytes; 0 = no limit. A larger one is saved again at a lower
+    /// quality, then smaller (down to a long edge of 640 px), until it fits (#553).
     /// </summary>
     public double MaxSizeMb { get; set; }
 
@@ -610,8 +610,8 @@ public sealed class MediaOptions
     public int MaxHeight { get; set; }
 
     /// <summary>
-    /// Keep each video under this many MB (WhatsApp 16, Discord 10, email 20 …); 0 = no limit. A larger one is
-    /// encoded again at the bitrate its length allows (#553).
+    /// Keep each video under this many MB of 1,000,000 bytes (WhatsApp 16, Discord 10, email 18 …); 0 = no limit. Its
+    /// bitrate is capped at what its length allows, and it is encoded once more if it still misses (#553).
     /// </summary>
     public double MaxSizeMb { get; set; }
 

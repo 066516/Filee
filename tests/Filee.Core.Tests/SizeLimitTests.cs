@@ -28,6 +28,41 @@ public class SizeLimitTests
     }
 
     [Fact]
+    public async Task A_result_no_engine_fitted_is_refused_rather_than_handed_over_too_large()
+    {
+        // The fake engine writes its result as it is (like HEIC, a CAD render or an animation): the queue checks it.
+        using var dir = new TempDir();
+        var photo = dir.File("photo.jpg");
+        await using var queue = new JobQueue(new ConverterCatalog([new FakeConverter("magick", new ConversionEdge("jpg", "png"))]));
+        var job = new ConversionJob([photo], new Preset { TargetFormat = "png", Image = { MaxSizeMb = 0.000001 } }, "PNG");
+
+        await queue.RunAsync(job);
+
+        var file = Assert.Single(job.Files);
+        Assert.Equal(FileState.Failed, file.State);
+        Assert.Equal("error.over_size_limit", file.ErrorKey);
+        Assert.Empty(job.Outputs);
+        Assert.Equal([photo], Directory.GetFiles(dir.Path)); // nothing too large is left behind
+    }
+
+    [Fact]
+    public async Task A_result_within_the_limit_or_without_one_is_kept()
+    {
+        using var dir = new TempDir();
+        var photo = dir.File("photo.jpg");
+        await using var queue = new JobQueue(new ConverterCatalog([new FakeConverter("magick", new ConversionEdge("jpg", "png"))]));
+
+        var fits = new ConversionJob([photo], new Preset { TargetFormat = "png", Image = { MaxSizeMb = 1 } }, "PNG");
+        await queue.RunAsync(fits);
+        // A video limit says nothing about a picture.
+        var other = new ConversionJob([photo], new Preset { TargetFormat = "png", Media = { MaxSizeMb = 0.000001 }, Output = { FileNamePattern = "{name}_2" } }, "PNG");
+        await queue.RunAsync(other);
+
+        Assert.Equal(JobState.Completed, fits.State);
+        Assert.Equal(JobState.Completed, other.State);
+    }
+
+    [Fact]
     public void The_presets_for_where_a_file_goes_are_offered_but_not_installed()
     {
         var places = BuiltInData.PlacePresets();

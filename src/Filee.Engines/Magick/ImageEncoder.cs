@@ -415,18 +415,22 @@ internal static class ImageEncoder
             if (path is null)
                 continue;
             frames[i].Write(path, format);
-            // shortcut: only single pictures are fitted to the size limit, not animations or multi-page files written above.
+            // Animations and multi-page files written above aren't fitted: the queue refuses them when they're too large.
             if (options is { MaxSizeMb: > 0 })
-                FitToSize(frames[i], path, format, (long)(options.MaxSizeMb * 1024 * 1024));
+                FitToSize(frames[i], path, format, SizeLimit.Bytes(options.MaxSizeMb));
             written.Add(path);
         }
         return written;
     }
 
+    /// <summary>A fitted picture is never made smaller than this long edge (nor than its own): below it, it's a thumbnail.</summary>
+    internal const int MinFittedLongEdge = 640;
+
     /// <summary>
     /// Saves <paramref name="image"/> again until <paramref name="path"/> is at most <paramref name="limit"/> bytes: a
-    /// lower quality first (down to 50, where a lossy format still looks fine), then fewer pixels. Refuses when even a
-    /// tiny picture is too big, rather than handing over a file that breaks the limit.
+    /// lower quality first (down to 50, where a lossy format still looks fine), then fewer pixels, but never below a
+    /// long edge of <see cref="MinFittedLongEdge"/>. Refuses when it still doesn't fit, rather than hand over a file
+    /// that breaks the limit or a thumbnail.
     /// </summary>
     internal static void FitToSize(IMagickImage<byte> image, string path, MagickFormat format, long limit)
     {
@@ -435,21 +439,25 @@ internal static class ImageEncoder
             return;
         using var copy = image.Clone();
         var lossy = format is MagickFormat.Jpeg or MagickFormat.WebP or MagickFormat.Avif or MagickFormat.Jxl or MagickFormat.Jp2;
-        for (var attempt = 0; attempt < 12 && size > limit; attempt++)
+        var floor = Math.Min(MinFittedLongEdge, Math.Max(copy.Width, copy.Height));
+        while (size > limit)
         {
             if (lossy && copy.Quality > 50)
                 copy.Quality = Math.Max(50, copy.Quality - 10);
             else
             {
-                // The file shrinks about as the pixel count does: aim a little under the limit.
-                var scale = Math.Clamp(Math.Sqrt((double)limit / size) * 0.95, 0.3, 0.9);
-                copy.Resize(new MagickGeometry((uint)Math.Max(1, copy.Width * scale), (uint)Math.Max(1, copy.Height * scale)));
+                var longEdge = Math.Max(copy.Width, copy.Height);
+                if (longEdge <= floor)
+                    break;
+                // The file shrinks about as the pixel count does: aim a little under the limit, but not below the floor.
+                var scale = Math.Max(Math.Clamp(Math.Sqrt((double)limit / size) * 0.95, 0.3, 0.9), (double)floor / longEdge);
+                copy.Resize(new MagickGeometry((uint)Math.Max(1, Math.Round(copy.Width * scale)), (uint)Math.Max(1, Math.Round(copy.Height * scale))));
             }
             copy.Write(path, format);
             size = new FileInfo(path).Length;
         }
         if (size > limit)
-            throw new ConversionRefusedException("error.over_size_limit", $"{size / 1048576.0:0.##} MB > {limit / 1048576.0:0.##} MB");
+            throw new ConversionRefusedException("error.over_size_limit", SizeLimit.Describe(size, limit));
     }
 
     /// <summary>Writes one image as <paramref name="targetFormat"/> (APNG through <see cref="Apng"/>).</summary>

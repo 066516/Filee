@@ -614,7 +614,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowMediaQuality => TargetIsLossyMedia;
     public bool ShowMaxHeight => TargetIsVideo;
     /// <summary>A size limit for a converted video; a clip is cut, not fitted.</summary>
-    public bool ShowVideoMaxSize => TargetCategory == FormatCategory.Video && !_original.IsClipTool;
+    public bool ShowVideoMaxSize => TargetCategory == FormatCategory.Video && !_original.IsClipTool
+        // Not where nothing fits it: a join or slideshow, or VOB and DV, which have a fixed bitrate.
+        && !_original.Media.JoinIntoOne && !_isSlideshow && TargetId is not ("vob" or "dv");
     public bool ShowAudioBitrate => TargetIsLossyMedia;
     public bool ShowRemoveAudio => TargetIsVideo;
     public bool ShowArchive => TargetCategory == FormatCategory.Archive;

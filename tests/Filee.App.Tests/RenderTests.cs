@@ -481,6 +481,13 @@ public class RenderTests
             Assert.Equal(25, added[^1].Media.MaxSizeMb);
             Assert.Equal(16, whatsapp.Media.MaxSizeMb);
 
+            // Not where nothing could fit it: VOB and DV have a fixed bitrate.
+            editor.Target = editor.Targets.Single(t => t.Value == "vob");
+            Assert.False(editor.ShowVideoMaxSize);
+            editor.Target = editor.Targets.Single(t => t.Value == "mp4");
+            Assert.True(editor.ShowVideoMaxSize);
+            Assert.False(new PresetEditorViewModel(Filee.Core.Presets.BuiltInData.CreatePresets().First(p => p.JoinsIntoOneMedia), loc).ShowVideoMaxSize);
+
             // A cleared box is no limit; a JPG target shows its own box, and a limit left behind by MP4 isn't kept.
             editor.VideoMaxSizeMb = null;
             editor.Target = editor.Targets.Single(t => t.Value == "jpg");
