@@ -83,6 +83,7 @@
   "format_request.notice_text": "İhtiyacınız olan biçimi bize bildirin.\nFilee'nin sırada hangi biçimleri destekleyeceğini talepler belirler.\nŞifreli veya kopya korumalı (DRM) dosyalar, biçimi ne olursa olsun dönüştürülemez.",
   "error.no_route": "Bu dönüştürmeyi yapabilen bir motor yok",
   "error.cannot_turn": "Döndürme ve çevirme yalnızca görsellerde çalışır",
+  "error.images_only": "Yalnızca görsellerde çalışır",
   "error.no_transparency": "Bu biçim saydamlık içermediği için kırpılacak alan yok",
   "error.ocr_language_download": "OCR dili indirilemedi",
   "error.ocr_needs_tesseract": "Apple Vision bu dili okuyamıyor. Ayarlar → Dönüştürme motorları bölümünden Tesseract kurun",

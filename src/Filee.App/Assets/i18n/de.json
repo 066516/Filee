@@ -83,6 +83,7 @@
   "format_request.notice_text": "Sag uns, welches Format du brauchst.\nDie Anfragen bestimmen, welche Formate Filee als Nächstes unterstützt.\nVerschlüsselte oder kopiergeschützte Dateien (DRM) lassen sich unabhängig vom Format nicht konvertieren.",
   "error.no_route": "Kein Modul kann diese Konvertierung ausführen",
   "error.cannot_turn": "Drehen und Spiegeln ist nur bei Bildern möglich",
+  "error.images_only": "Nur bei Bildern möglich",
   "error.no_transparency": "Dieses Format unterstützt keine Transparenz. Es gibt daher keine transparenten Ränder zum Abschneiden",
   "error.ocr_language_download": "Die OCR-Sprache konnte nicht heruntergeladen werden",
   "error.ocr_needs_tesseract": "Apple Vision kann diese Sprache nicht lesen. Installiere Tesseract unter Einstellungen → Module",
