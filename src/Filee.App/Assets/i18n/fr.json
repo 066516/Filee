@@ -89,6 +89,7 @@
   "format_request.notice_text": "Dites-nous de quel format vous avez besoin.\nLes demandes décident de ce que Filee prendra en charge ensuite.\nLes fichiers chiffrés ou protégés contre la copie (DRM) ne peuvent pas être convertis, quel que soit le format.",
   "error.no_route": "Aucun moteur ne peut effectuer cette conversion",
   "error.cannot_turn": "La rotation et le retournement ne s'appliquent qu'aux images",
+  "error.images_only": "Ne s'applique qu'aux images",
   "error.no_transparency": "Ce format n'a pas de transparence : il n'y a rien à rogner",
   "error.ocr_language_download": "Impossible de télécharger la langue de l'OCR",
   "error.ocr_needs_tesseract": "Apple Vision ne lit pas cette langue. Installez Tesseract dans Paramètres → Moteurs",
