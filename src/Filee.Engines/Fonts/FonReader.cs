@@ -6,7 +6,7 @@ using Filee.Core.Conversion;
 namespace Filee.Engines.Fonts;
 
 /// <summary>A validated raster glyph; pixels are indexed by row, then column.</summary>
-internal sealed record FonGlyph(byte ByteValue, int Width, bool[,] Pixels);
+internal sealed record FonGlyph(byte ByteValue, int Width, bool[,] Pixels, long BitmapOffset);
 
 /// <summary>One RT_FONT resource, independent of its NE container.</summary>
 internal sealed record FonStrike(
@@ -190,7 +190,7 @@ internal static class FonReader
             for (var y = 0; y < height; y++)
                 for (var x = 0; x < width; x++)
                     pixels[y, x] = (fnt[(int)(offset + (long)(x / 8) * height + y)] & (0x80 >> (x % 8))) != 0;
-            glyphs!.Add(new FonGlyph((byte)(first + i), width, pixels));
+            glyphs!.Add(new FonGlyph((byte)(first + i), width, pixels, offset));
         }
         if (glyphs is null)
             return null;

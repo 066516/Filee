@@ -41,6 +41,7 @@ internal static class FonOutlineBuilder
         var glyphs = new List<TrueTypeGlyph?> { null };
         var widths = new List<int> { 0 };
         var cmap = new SortedDictionary<int, int>();
+        var outlines = new Dictionary<(long Offset, int Width), TrueTypeGlyph?>();
         var encoding = FonReader.CharSetEncoding(strike.CharSet);
         foreach (var source in strike.Glyphs)
         {
@@ -48,7 +49,13 @@ internal static class FonOutlineBuilder
             var advance = checked(source.Width * scale);
             if (advance > ushort.MaxValue)
                 throw new ConversionRefusedException("error.fon_too_large", "65535");
-            glyphs.Add(Outline(source, strike.Ascent, scale, cancellationToken));
+            var key = (source.BitmapOffset, source.Width);
+            if (!outlines.TryGetValue(key, out var outline))
+            {
+                outline = Outline(source, strike.Ascent, scale, cancellationToken);
+                outlines.Add(key, outline);
+            }
+            glyphs.Add(outline);
             widths.Add(advance);
             try
             {
@@ -68,11 +75,16 @@ internal static class FonOutlineBuilder
         }
         glyphs[0] = glyphs[strike.DefaultChar + 1];
         widths[0] = widths[strike.DefaultChar + 1];
+        var serialized = new Dictionary<TrueTypeGlyph, byte[]>(ReferenceEqualityComparer.Instance);
         var (glyf, loca, longLoca) = GlyfTable.Build(
             [.. glyphs.Select(g =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                return g?.Serialize() ?? [];
+                if (g is null)
+                    return [];
+                if (!serialized.TryGetValue(g, out var bytes))
+                    serialized.Add(g, bytes = g.Serialize());
+                return bytes;
             })], longFormat: false, alignment: 2);
         cancellationToken.ThrowIfCancellationRequested();
         var leftBearings = glyphs.Select(g => g?.XMin ?? (short)0).ToArray();
@@ -129,6 +141,8 @@ internal static class FonOutlineBuilder
             throw new ConversionRefusedException("error.fon_damaged");
         if (source.Width == 0)
             return null;
+        if (CountPoints(source.Pixels, source.Width, ushort.MaxValue, cancellationToken) > ushort.MaxValue)
+            throw new ConversionRefusedException("error.fon_too_large", "65535");
         // Extend identical horizontal runs into maximal rectangles, then cancel each shared unit edge.
         var active = new Dictionary<(int, int), (int Start, int End)>();
         var rectangles = new List<(int X0, int X1, int Y0, int Y1)>();
@@ -157,10 +171,15 @@ internal static class FonOutlineBuilder
         if (rectangles.Count == 0)
             return null;
         var edges = new HashSet<Edge>();
+        var order = new List<Edge>();
         void Add(Corner from, Corner to)
         {
             if (!edges.Remove(new Edge(to, from)))
-                edges.Add(new Edge(from, to));
+            {
+                var edge = new Edge(from, to);
+                edges.Add(edge);
+                order.Add(edge);
+            }
         }
         var work = 0;
         foreach (var (x0, x1, y0, y1) in rectangles)
@@ -192,10 +211,13 @@ internal static class FonOutlineBuilder
         }
         var points = new List<GlyphPoint>();
         var ends = new List<ushort>();
+        var cursor = 0;
         while (edges.Count != 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var start = edges.First();
+            while (!edges.Contains(order[cursor]))
+                cursor++;
+            var start = order[cursor++];
             var edge = start;
             var loop = new List<Corner>();
             do
@@ -242,6 +264,31 @@ internal static class FonOutlineBuilder
         };
         (result.XMin, result.YMin, result.XMax, result.YMax) = result.ComputeBounds();
         return result;
+    }
+
+    internal static int CountPoints(bool[,] pixels, int width, int limit, CancellationToken cancellationToken)
+    {
+        var height = pixels.GetLength(0);
+        var points = 0;
+        for (var y = 0; y <= height; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            for (var x = 0; x <= width; x++)
+            {
+                var a = x > 0 && y > 0 && pixels[y - 1, x - 1];
+                var b = x < width && y > 0 && pixels[y - 1, x];
+                var c = x > 0 && y < height && pixels[y, x - 1];
+                var d = x < width && y < height && pixels[y, x];
+                var on = (a ? 1 : 0) + (b ? 1 : 0) + (c ? 1 : 0) + (d ? 1 : 0);
+                if (on is 1 or 3)
+                    points++;
+                else if (on == 2 && ((a && d) || (b && c)))
+                    points += 2;
+                if (points > limit)
+                    return points;
+            }
+        }
+        return points;
     }
 
     private static byte[] Head(int upem, int xMin, int yMin, int xMax, int yMax, bool longLoca, int style)

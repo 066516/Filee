@@ -341,7 +341,7 @@ public class FonTests(EngineFixture fx) : IClassFixture<EngineFixture>
         pixels[0, 2] = true;
         var high = strike with
         {
-            Glyphs = [.. Enumerable.Range(0x7E, 0xA0 - 0x7E + 1).Select(b => new FonGlyph((byte)b, 8, pixels))],
+            Glyphs = [.. Enumerable.Range(0x7E, 0xA0 - 0x7E + 1).Select(b => new FonGlyph((byte)b, 8, pixels, 0))],
             DefaultChar = 0,
         };
         font = FonOutlineBuilder.Build(high, TestContext.Current.CancellationToken);
@@ -383,7 +383,7 @@ public class FonTests(EngineFixture fx) : IClassFixture<EngineFixture>
         var strike = Assert.Single(FonReader.Read(Data("Fon-v2-fixed.fon"), TestContext.Current.CancellationToken));
         var pixels = new bool[13, 8];
         pixels[1, 3] = true;
-        var glyphs = Enumerable.Range(0xA1, 0xFE - 0xA1 + 1).Select(b => new FonGlyph((byte)b, 8, pixels)).ToList();
+        var glyphs = Enumerable.Range(0xA1, 0xFE - 0xA1 + 1).Select(b => new FonGlyph((byte)b, 8, pixels, 0)).ToList();
         var culture = CultureInfo.CurrentCulture;
         try
         {
@@ -443,7 +443,7 @@ public class FonTests(EngineFixture fx) : IClassFixture<EngineFixture>
         var strike = Assert.Single(FonReader.Read(Data("Fon-v2-fixed.fon"), TestContext.Current.CancellationToken));
         var pixels = new bool[13, 8];
         pixels[1, 3] = true;
-        var glyphs = Enumerable.Range(0x80, 0x80).Select(b => new FonGlyph((byte)b, 8, pixels)).ToList();
+        var glyphs = Enumerable.Range(0x80, 0x80).Select(b => new FonGlyph((byte)b, 8, pixels, 0)).ToList();
         var font = FonOutlineBuilder.Build(strike with { CharSet = (byte)charset, Glyphs = glyphs, DefaultChar = 0 }, TestContext.Current.CancellationToken);
         var cmap = Cmap(font);
         var outlines = GlyfTable.ReadAll(font);
@@ -972,6 +972,118 @@ public class FonTests(EngineFixture fx) : IClassFixture<EngineFixture>
     }
 
     [Fact]
+    public void Checkerboard_glyph_over_point_limit_is_refused_before_tracing()
+    {
+        var pixels = new bool[2048, 2048];
+        for (var y = 0; y < 2048; y++)
+            for (var x = 0; x < 2048; x++)
+                pixels[y, x] = ((x + y) & 1) == 0;
+        var strike = Assert.Single(FonReader.Read(Data("Fon-v2-fixed.fon"), TestContext.Current.CancellationToken)) with
+        {
+            PixelHeight = 2048,
+            Ascent = 2048,
+            Glyphs = [new FonGlyph(32, 2048, pixels, 0)],
+            DefaultChar = 0
+        };
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        AssertRefused(() => FonOutlineBuilder.Build(strike, TestContext.Current.CancellationToken), "error.fon_too_large", "65535");
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.True(allocated < 1_000_000, $"Builder allocated {allocated:N0} bytes.");
+    }
+
+    [Fact]
+    public void Glyphs_sharing_a_bitmap_build_one_outline()
+    {
+        var pixels = new bool[64, 64];
+        for (var y = 0; y < 64; y++)
+            for (var x = 0; x < 64; x++)
+                pixels[y, x] = ((x + y) & 1) == 0;
+        var strike = Assert.Single(FonReader.Read(Data("Fon-v2-fixed.fon"), TestContext.Current.CancellationToken)) with
+        {
+            PixelHeight = 64,
+            Ascent = 64,
+            Glyphs = [new FonGlyph(32, 64, pixels, 100)],
+            DefaultChar = 0
+        };
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var single = FonOutlineBuilder.Build(strike, TestContext.Current.CancellationToken);
+        var singleAllocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        strike = strike with
+        {
+            Glyphs = [.. Enumerable.Range(32, 64).Select(code => new FonGlyph((byte)code, 64, pixels, 100))]
+        };
+        before = GC.GetAllocatedBytesForCurrentThread();
+        var shared = FonOutlineBuilder.Build(strike, TestContext.Current.CancellationToken);
+        var sharedAllocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(sharedAllocated < singleAllocated * 4,
+            $"Shared build allocated {sharedAllocated:N0} bytes versus {singleAllocated:N0} for one glyph.");
+        var glyphs = GlyfTable.ReadAll(shared);
+        var expected = GlyfTable.ReadAll(single)[1]!.Serialize();
+        Assert.All(glyphs.Skip(1), glyph => Assert.Equal(expected, glyph!.Serialize()));
+    }
+
+    [Fact]
+    public void Glyphs_with_one_offset_but_different_widths_keep_their_own_outlines()
+    {
+        var narrow = new bool[8, 8];
+        var wide = new bool[8, 12];
+        narrow[0, 7] = true;
+        wide[0, 11] = true;
+        var strike = Assert.Single(FonReader.Read(Data("Fon-v2-fixed.fon"), TestContext.Current.CancellationToken)) with
+        {
+            PixelHeight = 8,
+            Ascent = 8,
+            DefaultChar = 0,
+            Glyphs = [new FonGlyph(32, 8, narrow, 100), new FonGlyph(33, 12, wide, 100)]
+        };
+        var glyphs = GlyfTable.ReadAll(FonOutlineBuilder.Build(strike, TestContext.Current.CancellationToken));
+
+        Assert.Equal(8 * 128, glyphs[1]!.XMax);
+        Assert.Equal(12 * 128, glyphs[2]!.XMax);
+    }
+
+    [Fact]
+    public void Point_count_before_tracing_matches_the_outline()
+    {
+        var template = Assert.Single(FonReader.Read(Data("Fon-v2-fixed.fon"), TestContext.Current.CancellationToken));
+        var random = new Random(561);
+        foreach (var (height, width, threshold) in new[] { (8, 8, 2), (13, 17, 4), (32, 32, 7), (32, 32, 10) })
+        {
+            var pixels = new bool[height, width];
+            for (var y = 0; y < height; y++)
+                for (var x = 0; x < width; x++)
+                    pixels[y, x] = random.Next(12) < threshold;
+            AssertPoints(pixels);
+        }
+        var checkerboard = new bool[32, 32];
+        for (var y = 0; y < 32; y++)
+            for (var x = 0; x < 32; x++)
+                checkerboard[y, x] = ((x + y) & 1) == 0;
+        AssertPoints(checkerboard);
+        AssertPoints(new bool[8, 8]);
+
+        void AssertPoints(bool[,] pixels)
+        {
+            var height = pixels.GetLength(0);
+            var width = pixels.GetLength(1);
+            var strike = template with
+            {
+                PixelHeight = height,
+                Ascent = height,
+                DefaultChar = 0,
+                Glyphs = [new FonGlyph(32, width, pixels, 0)]
+            };
+            var counted = FonOutlineBuilder.CountPoints(pixels, width, 65535, TestContext.Current.CancellationToken);
+            var glyph = GlyfTable.ReadAll(FonOutlineBuilder.Build(strike, TestContext.Current.CancellationToken))[1];
+            Assert.Equal(counted, glyph?.Points.Length ?? 0);
+            if (counted == 0)
+                Assert.Null(glyph);
+        }
+    }
+
+    [Fact]
     public void Aliased_glyphs_at_filewide_pixel_limit_are_accepted()
     {
         var data = Container(AliasedFnt(16, 1024), AliasedFnt(16, 1024));
@@ -1121,12 +1233,12 @@ public class FonTests(EngineFixture fx) : IClassFixture<EngineFixture>
         // x=32 at 1024 units per pixel is 32768: past signed 16-bit, an explicit error, never a wrapped coordinate.
         var pixels = new bool[1, 33];
         pixels[0, 32] = true;
-        var overflowing = strikes[0] with { Glyphs = [new FonGlyph(32, 33, pixels)], DefaultChar = 0 };
+        var overflowing = strikes[0] with { Glyphs = [new FonGlyph(32, 33, pixels, 0)], DefaultChar = 0 };
         AssertRefused(() => FonOutlineBuilder.Build(overflowing, TestContext.Current.CancellationToken), "error.fon_too_large", "32767");
         // 31 pixels wide, x=30 lit: every coordinate and advance ends at 31 * 1024 = 31744 and fits.
         pixels = new bool[1, 31];
         pixels[0, 30] = true;
-        var fits = FonOutlineBuilder.Build(strikes[0] with { Glyphs = [new FonGlyph(32, 31, pixels)], DefaultChar = 0 }, TestContext.Current.CancellationToken);
+        var fits = FonOutlineBuilder.Build(strikes[0] with { Glyphs = [new FonGlyph(32, 31, pixels, 0)], DefaultChar = 0 }, TestContext.Current.CancellationToken);
         Assert.Equal(31 * 1024, GlyfTable.ReadAll(fits)[1]!.XMax);
 
         // A bitmap that ends exactly at the end of the resource is read; one byte further is a clear error.
