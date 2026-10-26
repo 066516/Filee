@@ -127,6 +127,7 @@
   "error.fit_not_activity": "This FIT file isn't an activity (only activities are converted)",
   "error.fit_no_positions": "The activity has no recorded positions: convert it to CSV, XLSX or JSON",
   "error.fit_no_records": "The activity has no recorded data",
+  "error.m4s_needs_init": "This .m4s is one piece of a streamed video: it can't be read without its separate start (init) segment",
   "notice.pdf_not_smaller": "Couldn't make it smaller, so it was copied as it is",
   "notice.cad_newer_left_out": "Objects the chosen AutoCAD version doesn't have (multileaders, meshes …) were left out",
   "notice.original_kept": "The original was kept, the result was saved as a copy",

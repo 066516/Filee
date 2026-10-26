@@ -127,6 +127,7 @@
   "error.fit_not_activity": "Ten plik FIT nie jest aktywnością (konwertowane są tylko aktywności)",
   "error.fit_no_positions": "Aktywność nie zawiera zapisanych położeń: przekonwertuj ją do CSV, XLSX lub JSON",
   "error.fit_no_records": "Aktywność nie zawiera zapisanych danych",
+  "error.m4s_needs_init": "Ten plik .m4s to fragment wideo strumieniowego i nie da się go odczytać bez osobnego segmentu początkowego (init)",
   "notice.pdf_not_smaller": "Nie udało się zmniejszyć pliku, więc skopiowano go bez zmian",
   "notice.cad_newer_left_out": "Pominięto obiekty, których wybrana wersja AutoCAD nie ma (multiodnośniki, siatki…)",
   "notice.original_kept": "Oryginał został zachowany, wynik zapisano jako kopię",

@@ -121,6 +121,7 @@
   "error.fit_not_activity": "Este archivo FIT no es una actividad (solo se convierten actividades)",
   "error.fit_no_positions": "La actividad no tiene posiciones registradas: conviértela a CSV, XLSX o JSON",
   "error.fit_no_records": "La actividad no tiene datos registrados",
+  "error.m4s_needs_init": "Este .m4s es un fragmento de un vídeo en streaming y no se puede leer sin su segmento de inicio (init) aparte",
   "notice.pdf_not_smaller": "No se pudo reducir su tamaño, por lo que se copió tal cual",
   "notice.cad_newer_left_out": "Se omitieron objetos que la versión de AutoCAD elegida no tiene (directrices múltiples, mallas…)",
   "notice.original_kept": "Se conservó el original, el resultado se guardó como copia",
