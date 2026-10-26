@@ -91,7 +91,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
             .Select(l => new Choice<string>(l.Code, l.NativeName,
                 OcrLanguages.IsInstalled(l.Code) || vision.Reads(l.Code) ? null
                     : loc.Format("presets.ocr_language_size", $"{l.Size / 1_000_000.0:0.#} MB")))];
-        Locations = Enum.GetValues<OutputLocation>().Select(v => new Choice<OutputLocation>(v, loc[$"presets.location.{v}"])).ToList();
+        // "Ask every time" (#521) is a bool of its own on the preset (OutputRule.AskEveryTime): its choice has no location.
+        Locations = [.. Enum.GetValues<OutputLocation>().Select(v => new Choice<OutputLocation?>(v, loc[$"presets.location.{v}"])),
+            new Choice<OutputLocation?>(null, loc["presets.location.Ask"])];
         Conflicts = Enum.GetValues<ConflictPolicy>().Select(v => new Choice<ConflictPolicy>(v, loc[$"presets.conflict.{v}"])).ToList();
         TiffCompressions = Enum.GetValues<TiffCompression>().Select(v => new Choice<TiffCompression>(v, v.ToString().ToUpperInvariant())).ToList();
         FitsTiffModes = Enum.GetValues<FitsTiffMode>().Select(v => new Choice<FitsTiffMode>(v, loc[$"presets.fits_tiff.{v}"])).ToList();
@@ -124,7 +126,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _pdfPassword = _edit.Pdf.Password;
         _ocr = _edit.Pdf.Ocr;
         _ocrLanguage = OcrLanguageChoices.FirstOrDefault(l => l.Value == _edit.Pdf.OcrLanguage) ?? OcrLanguageChoices[0];
-        _location = Locations.First(l => l.Value == _edit.Output.Location);
+        _location = _edit.Output.AskEveryTime ? Locations[^1] : Locations.First(l => l.Value == _edit.Output.Location);
         _conflict = Conflicts.First(c => c.Value == _edit.Output.Conflict);
         _tiffCompression = TiffCompressions.First(t => t.Value == _edit.Image.TiffCompression);
         _fitsTiffMode = FitsTiffModes.FirstOrDefault(m => m.Value == _edit.Image.FitsTiff) ?? FitsTiffModes[0];
@@ -211,7 +213,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     /// <summary>PDF → PDF: don't compress, or the level (pictures at 72, 150 or 300 dpi).</summary>
     public IReadOnlyList<Choice<PdfCompression>> CompressionLevels { get; }
-    public IReadOnlyList<Choice<OutputLocation>> Locations { get; }
+    public IReadOnlyList<Choice<OutputLocation?>> Locations { get; }
     public IReadOnlyList<Choice<ConflictPolicy>> Conflicts { get; }
     public IReadOnlyList<Choice<TiffCompression>> TiffCompressions { get; }
 
@@ -373,7 +375,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     private Choice<PdfPageSize> _pageSize;
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowSubfolder), nameof(ShowCustomFolder))]
-    private Choice<OutputLocation> _location;
+    private Choice<OutputLocation?> _location;
 
     [ObservableProperty] private Choice<ConflictPolicy> _conflict;
     [ObservableProperty] private Choice<TiffCompression> _tiffCompression;
@@ -516,7 +518,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     partial void OnRotationChanged(Choice<ImageRotation>? oldValue, Choice<ImageRotation> newValue) => Choices.Restore(oldValue, newValue, v => Rotation = v);
     partial void OnFlipChanged(Choice<ImageFlip>? oldValue, Choice<ImageFlip> newValue) => Choices.Restore(oldValue, newValue, v => Flip = v);
     partial void OnPageSizeChanged(Choice<PdfPageSize>? oldValue, Choice<PdfPageSize> newValue) => Choices.Restore(oldValue, newValue, v => PageSize = v);
-    partial void OnLocationChanged(Choice<OutputLocation>? oldValue, Choice<OutputLocation> newValue) => Choices.Restore(oldValue, newValue, v => Location = v);
+    partial void OnLocationChanged(Choice<OutputLocation?>? oldValue, Choice<OutputLocation?> newValue) => Choices.Restore(oldValue, newValue, v => Location = v);
     partial void OnConflictChanged(Choice<ConflictPolicy>? oldValue, Choice<ConflictPolicy> newValue) => Choices.Restore(oldValue, newValue, v => Conflict = v);
     partial void OnTiffCompressionChanged(Choice<TiffCompression>? oldValue, Choice<TiffCompression> newValue) =>
         Choices.Restore(oldValue, newValue, v => TiffCompression = v);
@@ -759,7 +761,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _original.Cad.Version = ShowCad ? CadVersion.Value : default;
 
         var output = _original.Output;
-        output.Location = Location.Value;
+        // Asking keeps the location it had: a Filee that can't ask (or one from before it) saves there.
+        output.AskEveryTime = Location.Value is null;
+        if (Location.Value is { } location)
+            output.Location = location;
         output.SubfolderName = string.IsNullOrWhiteSpace(SubfolderName) ? "converted" : SubfolderName.Trim();
         // Only with a subfolder, where it is offered: a box ticked there must not stay on hidden behind another location.
         output.SubfolderOnlyForSeveralFiles = ShowSubfolder && SubfolderOnlyForSeveralFiles;
