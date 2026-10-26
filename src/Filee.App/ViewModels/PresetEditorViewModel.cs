@@ -159,6 +159,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _traceColors = Math.Clamp(_edit.Trace.Colors, TracingOptions.MinColors, TracingOptions.MaxColors);
         _traceDetail = Math.Clamp(_edit.Trace.Detail, 0, 100);
         _quality = _edit.Image.Quality;
+        _imageMaxSizeMb = (decimal)_edit.Image.MaxSizeMb;
+        _videoMaxSizeMb = (decimal)_edit.Media.MaxSizeMb;
         _resizePercent = _edit.Image.ResizePercent;
         _longEdge = _edit.Image.LongEdge;
         _width = _edit.Image.Width;
@@ -242,7 +244,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         nameof(ShowFitsTiff), nameof(ShowFitsDebayer),
         nameof(ShowZipResult), nameof(ShowPdf), nameof(ShowPdfBuild), nameof(ShowDocument), nameof(ShowLeaveOutPictures), nameof(ShowPdfSplit), nameof(ShowPdfCombine),
         nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions), nameof(ShowOcr), nameof(ShowPageSize), nameof(ShowPdfTablesNote),
-        nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
+        nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowVideoMaxSize), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec), nameof(ShowHardwareEncoding),
         nameof(AudioCodecs), nameof(AudioCodecChoice), nameof(ShowAudioCodec),
         nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote),
@@ -384,6 +386,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     /// <summary>FITS → other pictures: debayer a colour camera's raw frame (ImageOptions.FitsDebayer).</summary>
     [ObservableProperty] private bool _fitsDebayer;
     [ObservableProperty] private int _quality;
+
+    /// <summary>"Size limit (MB)" for a picture or a video (0 = none, #553).</summary>
+    [ObservableProperty] private decimal? _imageMaxSizeMb;
+    [ObservableProperty] private decimal? _videoMaxSizeMb;
     [ObservableProperty] private int _resizePercent;
     [ObservableProperty] private int _longEdge;
     [ObservableProperty] private int _width;
@@ -609,6 +615,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowAudioCodec => AudioCodecs.Count > 1;
     public bool ShowMediaQuality => TargetIsLossyMedia;
     public bool ShowMaxHeight => TargetIsVideo;
+    /// <summary>A size limit for a converted video; a clip is cut, not fitted.</summary>
+    public bool ShowVideoMaxSize => TargetCategory == FormatCategory.Video && !_original.IsClipTool
+        // Not where nothing fits it: a join or slideshow, or VOB and DV, which have a fixed bitrate.
+        && !_original.Media.JoinIntoOne && !_isSlideshow && TargetId is not ("vob" or "dv");
     public bool ShowAudioBitrate => TargetIsLossyMedia;
     public bool ShowRemoveAudio => TargetIsVideo;
     public bool ShowArchive => TargetCategory == FormatCategory.Archive;
@@ -642,6 +652,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowSubfolder => Location.Value == OutputLocation.Subfolder;
     public bool ShowCustomFolder => Location.Value == OutputLocation.CustomFolder;
 
+    /// <summary>An emptied box is no limit; at most 4 GB, the largest file FAT32 (and many sites) take.</summary>
+    private static double SizeLimit(decimal? megabytes) => (double)Math.Clamp(megabytes ?? 0, 0, 4096);
+
     public string? NameError => string.IsNullOrWhiteSpace(Name) ? _loc["presets.name_required"] : null;
     public bool IsValid => NameError is null;
 
@@ -658,6 +671,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _original.TargetFormat = TargetId;
         var image = _original.Image;
         image.Quality = Math.Clamp(Quality, 1, 100);
+        // Only where the field is shown, as with SaveEveryFrame below: a limit left behind by a JPG target fits nothing.
+        image.MaxSizeMb = ShowQuality ? SizeLimit(ImageMaxSizeMb) : 0;
         image.Resize = Resize.Value;
         // Only images and PDFs are turned; for any other target a rotation left over from an earlier target would make
         // every file fail ("can only turn images") with nothing on screen to turn it off.
@@ -726,6 +741,7 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         var media = _original.Media;
         media.Quality = MediaQuality.Value;
         media.MaxHeight = MaxHeight.Value;
+        media.MaxSizeMb = ShowVideoMaxSize ? SizeLimit(VideoMaxSizeMb) : 0;
         media.AudioBitrateKbps = AudioBitrate.Value;
         media.RemoveAudio = RemoveAudio;
         media.AudioChannels = AudioChannels.Value;
