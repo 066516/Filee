@@ -122,6 +122,7 @@
   "error.fit_not_activity": "このFITファイルはアクティビティではありません（アクティビティのみ変換できます）",
   "error.fit_no_positions": "アクティビティに位置情報が記録されていません。CSV、XLSX、JSONに変換してください",
   "error.fit_no_records": "アクティビティに記録データがありません",
+  "error.m4s_needs_init": "この .m4s はストリーミング動画の一部で、別にある開始（init）セグメントがないと読み込めません",
   "notice.pdf_not_smaller": "サイズを小さくできなかったため、元のままコピーしました",
   "notice.cad_newer_left_out": "選んだ AutoCAD のバージョンにないオブジェクト（マルチ引出線、メッシュ …）を省きました",
   "notice.original_kept": "元のファイルを残し、結果をコピーとして保存しました",

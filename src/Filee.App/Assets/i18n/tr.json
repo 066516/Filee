@@ -122,6 +122,7 @@
   "error.fit_not_activity": "Bu FIT dosyası bir etkinlik değil (yalnızca etkinlikler dönüştürülür)",
   "error.fit_no_positions": "Etkinlikte kaydedilmiş konum yok: CSV, XLSX veya JSON'a dönüştürün",
   "error.fit_no_records": "Etkinlikte kaydedilmiş veri yok",
+  "error.m4s_needs_init": "Bu .m4s, akışla gelen bir videonun bir parçası: ayrı başlangıç (init) segmenti olmadan okunamaz",
   "notice.pdf_not_smaller": "Küçültülemediği için olduğu gibi kopyalandı",
   "notice.cad_newer_left_out": "Seçilen AutoCAD sürümünün desteklemediği nesneler (çoklu kılavuzlar, ağlar…) çıkarıldı",
   "notice.original_kept": "Özgün dosya korundu, sonuç kopya olarak kaydedildi",
