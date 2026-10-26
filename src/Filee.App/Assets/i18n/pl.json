@@ -1008,6 +1008,7 @@
   "installer.error.uninstall_title": "Nie usunięto Filee całkowicie",
   "installer.error.space": "Za mało miejsca na {0}: Filee potrzebuje {1}, a wolne jest tylko {2}.",
   "installer.error.damaged": "Plik instalacyjny jest uszkodzony. Pobierz go ponownie z filee.sh.",
+  "installer.error.incomplete": "Plik instalacyjny jest niekompletny, prawdopodobnie pobieranie się nie zakończyło. Pobierz go ponownie z filee.sh.",
   "installer.error.files": "Instalator nie mógł zapisać plików Filee: {0}",
   "installer.error.unexpected": "Coś poszło nie tak: {0}",
   "installer.error.windows": "Filee wymaga 64-bitowego systemu Windows 10 w wersji 1809 lub nowszej.",

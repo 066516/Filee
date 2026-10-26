@@ -988,6 +988,7 @@
   "installer.error.uninstall_title": "لم تكتمل إزالة Filee",
   "installer.error.space": "لا توجد مساحة كافية على {0}: يحتاج Filee إلى {1}، لكن المتاح {2} فقط.",
   "installer.error.damaged": "ملف الإعداد هذا تالف. نزّله مجددًا من filee.sh.",
+  "installer.error.incomplete": "ملف الإعداد هذا غير مكتمل، على الأرجح لأن التنزيل لم ينتهِ. نزّله مجددًا من filee.sh.",
   "installer.error.files": "تعذّر على الإعداد كتابة ملفات Filee: {0}",
   "installer.error.unexpected": "حدث خطأ: {0}",
   "installer.error.windows": "يحتاج Filee إلى Windows 10 بإصدار 64 بت، الإصدار 1809 أو أحدث.",

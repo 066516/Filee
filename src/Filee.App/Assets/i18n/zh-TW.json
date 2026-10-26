@@ -1008,6 +1008,7 @@
   "installer.error.uninstall_title": "Filee 未能完全移除",
   "installer.error.space": "{0} 上的可用空間不足。Filee 需要 {1}，但只剩 {2}。",
   "installer.error.damaged": "安裝檔案已損壞。請從 filee.sh 重新下載。",
+  "installer.error.incomplete": "安裝檔案不完整，可能是下載沒有完成。請從 filee.sh 重新下載。",
   "installer.error.files": "安裝程式無法寫入 Filee 的檔案。{0}",
   "installer.error.unexpected": "出現了問題。{0}",
   "installer.error.windows": "Filee 需要 64 位 Windows 10 1809 或更高版本。",

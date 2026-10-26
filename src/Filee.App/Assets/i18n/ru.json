@@ -1008,6 +1008,7 @@
   "installer.error.uninstall_title": "Filee удалён не полностью",
   "installer.error.space": "На {0} недостаточно места: Filee нужно {1}, а свободно только {2}.",
   "installer.error.damaged": "Файл установки повреждён. Скачайте его заново с filee.sh.",
+  "installer.error.incomplete": "Файл установки неполный — вероятно, загрузка не завершилась. Скачайте его заново с filee.sh.",
   "installer.error.files": "Не удалось записать файлы Filee: {0}",
   "installer.error.unexpected": "Что-то пошло не так: {0}",
   "installer.error.windows": "Для Filee нужна 64-разрядная Windows 10 версии 1809 или новее.",

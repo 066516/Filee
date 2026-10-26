@@ -1008,6 +1008,7 @@
   "installer.error.uninstall_title": "O Filee não foi totalmente removido",
   "installer.error.space": "Não há espaço livre suficiente em {0}: o Filee precisa de {1}, mas só há {2} disponíveis.",
   "installer.error.damaged": "Este instalador está danificado. Volta a descarregá-lo em filee.sh.",
+  "installer.error.incomplete": "Este instalador está incompleto, provavelmente porque a transferência não terminou. Volta a descarregá-lo em filee.sh.",
   "installer.error.files": "O instalador não conseguiu escrever os ficheiros do Filee: {0}",
   "installer.error.unexpected": "Ocorreu um problema: {0}",
   "installer.error.windows": "O Filee requer o Windows 10 de 64 bits, versão 1809 ou posterior.",
