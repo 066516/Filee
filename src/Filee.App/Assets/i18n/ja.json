@@ -984,6 +984,7 @@
   "installer.error.uninstall_title": "Fileeを完全には削除できませんでした",
   "installer.error.space": "{0}の空き容量が足りません。Fileeには{1}が必要ですが、空きは{2}だけです。",
   "installer.error.damaged": "このセットアップファイルは破損しています。filee.shからもう一度ダウンロードしてください。",
+  "installer.error.incomplete": "このセットアップファイルは不完全です。ダウンロードが最後まで終わっていない可能性があります。filee.shからもう一度ダウンロードしてください。",
   "installer.error.files": "Fileeのファイルを書き込めませんでした：{0}",
   "installer.error.unexpected": "問題が発生しました：{0}",
   "installer.error.windows": "Fileeには64ビット版のWindows 10 バージョン1809以降が必要です。",

@@ -984,6 +984,7 @@
   "installer.error.uninstall_title": "Filee tamamen kaldırılamadı",
   "installer.error.space": "{0} üzerinde yeterli boş alan yok: Filee için {1} gerekli, ancak yalnızca {2} boş.",
   "installer.error.damaged": "Bu kurulum dosyası bozuk. filee.sh adresinden yeniden indirin.",
+  "installer.error.incomplete": "Bu kurulum dosyası eksik, büyük olasılıkla indirme tamamlanmadı. filee.sh adresinden yeniden indirin.",
   "installer.error.files": "Kurulum Filee dosyalarını yazamadı: {0}",
   "installer.error.unexpected": "Bir sorun oluştu: {0}",
   "installer.error.windows": "Filee için 64 bit Windows 10 sürüm 1809 veya üstü gereklidir.",

@@ -984,6 +984,7 @@
   "installer.error.uninstall_title": "Filee पूर्ण रूपमा हटाइएन",
   "installer.error.space": "{0} मा पर्याप्त खाली ठाउँ छैन: Filee लाई {1} चाहिन्छ, तर {2} मात्र खाली छ।",
   "installer.error.damaged": "यो सेटअप फाइल बिग्रिएको छ। यसलाई filee.sh बाट पुन: डाउनलोड गर्नुहोस्।",
+  "installer.error.incomplete": "यो सेटअप फाइल अपूर्ण छ, सायद डाउनलोड पूरा भएन। यसलाई filee.sh बाट पुन: डाउनलोड गर्नुहोस्।",
   "installer.error.files": "सेटअपले Filee का फाइलहरू लेख्न सकेन: {0}",
   "installer.error.unexpected": "केही गलत भयो: {0}",
   "installer.error.windows": "Filee लाई ६४-बिट Windows 10 संस्करण १८०९ वा नयाँ चाहिन्छ।",

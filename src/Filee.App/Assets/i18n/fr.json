@@ -1004,6 +1004,7 @@
   "installer.error.uninstall_title": "Filee n'a pas été entièrement supprimé",
   "installer.error.space": "Espace libre insuffisant sur {0} : Filee nécessite {1}, mais seulement {2} sont disponibles.",
   "installer.error.damaged": "Ce fichier d'installation est endommagé. Téléchargez-le de nouveau sur filee.sh.",
+  "installer.error.incomplete": "Ce fichier d'installation est incomplet, sans doute parce que le téléchargement ne s'est pas terminé. Téléchargez-le de nouveau sur filee.sh.",
   "installer.error.files": "Le programme d'installation n'a pas pu écrire les fichiers de Filee : {0}",
   "installer.error.unexpected": "Une erreur s'est produite : {0}",
   "installer.error.windows": "Filee nécessite Windows 10 64 bits version 1809 ou ultérieure.",

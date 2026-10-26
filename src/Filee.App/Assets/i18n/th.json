@@ -984,6 +984,7 @@
   "installer.error.uninstall_title": "ไม่สามารถลบ Filee ออกได้ทั้งหมด",
   "installer.error.space": "พื้นที่ว่างบน {0} ไม่เพียงพอ: Filee ต้องการ {1} แต่มีพื้นที่ว่างเหลือเพียง {2}",
   "installer.error.damaged": "ไฟล์ติดตั้งนี้เสียหาย โปรดดาวน์โหลดใหม่อีกครั้งจาก filee.sh",
+  "installer.error.incomplete": "ไฟล์ติดตั้งนี้ไม่สมบูรณ์ อาจเป็นเพราะดาวน์โหลดไม่เสร็จ โปรดดาวน์โหลดใหม่อีกครั้งจาก filee.sh",
   "installer.error.files": "ตัวติดตั้งไม่สามารถเขียนไฟล์ของ Filee ได้: {0}",
   "installer.error.unexpected": "เกิดข้อผิดพลาด: {0}",
   "installer.error.windows": "Filee ต้องการ Windows 10 64 บิต เวอร์ชัน 1809 ขึ้นไป",

@@ -984,6 +984,7 @@
   "installer.error.uninstall_title": "Filee wurde nicht vollständig entfernt",
   "installer.error.space": "Auf {0} ist nicht genug Speicherplatz frei: Filee benötigt {1}, verfügbar sind nur {2}.",
   "installer.error.damaged": "Diese Installationsdatei ist beschädigt. Lade sie erneut von filee.sh herunter.",
+  "installer.error.incomplete": "Diese Installationsdatei ist unvollständig, wahrscheinlich wurde der Download nicht abgeschlossen. Lade sie erneut von filee.sh herunter.",
   "installer.error.files": "Die Filee-Dateien konnten nicht geschrieben werden: {0}",
   "installer.error.unexpected": "Ein Fehler ist aufgetreten: {0}",
   "installer.error.windows": "Filee benötigt Windows 10, Version 1809 oder neuer (64 Bit).",

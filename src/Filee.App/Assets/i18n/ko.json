@@ -1004,6 +1004,7 @@
   "installer.error.uninstall_title": "Filee를 모두 제거하지 못했어요",
   "installer.error.space": "{0}에 빈 공간이 부족해요. Filee에 {1}이(가) 필요한데 {2}만 남아 있어요.",
   "installer.error.damaged": "설치 파일이 손상됐어요. filee.sh에서 다시 내려받아 주세요.",
+  "installer.error.incomplete": "설치 파일이 완전하지 않아요. 내려받기가 끝나지 않았을 수 있어요. filee.sh에서 다시 내려받아 주세요.",
   "installer.error.files": "Filee 파일을 쓰지 못했어요: {0}",
   "installer.error.unexpected": "문제가 생겼어요: {0}",
   "installer.error.windows": "Filee는 64비트 Windows 10 버전 1809 이상이 필요해요.",

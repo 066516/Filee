@@ -1004,6 +1004,7 @@
   "installer.error.uninstall_title": "Filee was not removed completely",
   "installer.error.space": "There isn't enough free space on {0}: Filee needs {1}, but only {2} is free.",
   "installer.error.damaged": "This setup file is damaged. Download it again from filee.sh.",
+  "installer.error.incomplete": "This setup file is incomplete, probably because the download didn't finish. Download it again from filee.sh.",
   "installer.error.files": "Setup couldn't write Filee's files: {0}",
   "installer.error.unexpected": "Something went wrong: {0}",
   "installer.error.windows": "Filee needs 64-bit Windows 10 version 1809 or later.",
