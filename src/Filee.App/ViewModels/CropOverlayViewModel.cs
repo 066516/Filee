@@ -60,14 +60,51 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(SelectedAspectIndex))]
     [NotifyPropertyChangedFor(nameof(CanSwapOrientation))]
     [NotifyPropertyChangedFor(nameof(IsAspectFree))]
+    [NotifyPropertyChangedFor(nameof(IsCustomAspect))]
     private string _selectedAspect = "free";
 
-    /// <summary>The fixed ratios (5:4, 4:3, 3:2, 16:9) turned upright: 4:5, 3:4, 2:3, 9:16.</summary>
+    /// <summary>The fixed ratios (5:4, 4:3, 3:2, 16:9) turned upright: 4:5, 3:4, 2:3, 9:16; the custom one as H × W.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AspectLabel))]
     [NotifyPropertyChangedFor(nameof(AspectToolTip))]
     [NotifyPropertyChangedFor(nameof(OrientationText))]
+    [NotifyPropertyChangedFor(nameof(CustomLabel))]
     private bool _isPortrait;
+
+    /// <summary>
+    /// The custom ratio's W and H (#542), typed beside the ratio button: 4 × 5 or 1080 × 1350, only the ratio counts.
+    /// Kept while the crop window is open, for the whole batch; no setting.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CustomRatio), nameof(CustomLabel), nameof(AspectLabel), nameof(AspectToolTip))]
+    private int _customWidth = 2; // a ratio no other slice has, so the slice reads as its own
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CustomRatio), nameof(CustomLabel), nameof(AspectLabel), nameof(AspectToolTip))]
+    private int _customHeight = 1;
+
+    public double CustomRatio => (double)Math.Max(1, CustomWidth) / Math.Max(1, CustomHeight);
+
+    /// <summary>The custom slice's name: its ratio as small as it goes ("4:5"), as the other ratio slices show theirs.</summary>
+    public string CustomLabel => CropMath.CustomNumbers(CustomWidth, CustomHeight, IsPortrait && IsCustomAspect);
+
+    public bool IsCustomAspect => SelectedAspect == "custom";
+
+    partial void OnCustomWidthChanged(int value) => CustomChanged();
+
+    partial void OnCustomHeightChanged(int value) => CustomChanged();
+
+    private void CustomChanged()
+    {
+        if (!IsCustomAspect)
+            return;
+        ApplyAspect("custom");
+        // Typed a digit at a time, the ratio passes through odd shapes (1080 × 5): the frame starts over as large as
+        // the new ratio fits, rather than shrinking along with each of them.
+        var frame = CropMath.Centered(AspectRatio, OriginalWidth, OriginalHeight);
+        UpdateDimensions(frame);
+        ResetRequested?.Invoke(frame);
+    }
 
     [ObservableProperty] private bool _isAspectDialOpen;
 
@@ -126,6 +163,7 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
     {
         "free" => _loc["crop.aspect_free"],
         "original" => _loc["crop.aspect_original"],
+        "custom" => CustomLabel,
         _ => CropMath.Numbers(SelectedAspect, IsPortrait),
     };
 
@@ -201,7 +239,7 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
             SelectedAspect = mode;
             IsPortrait = CropMath.CanSwap(mode) ? _batchPortrait : origH > origW;
             IsAspectDialOpen = false;
-            AspectRatio = CropMath.Ratio(mode, IsPortrait, origW, origH);
+            AspectRatio = CropMath.Ratio(mode, IsPortrait, origW, origH, CustomRatio);
             AspectRatioChanged?.Invoke(AspectRatio);
             var frame = CropMath.Centered(AspectRatio, origW, origH);
             UpdateDimensions(frame);
@@ -336,6 +374,9 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
     public void SetAspect(string mode)
     {
         IsAspectDialOpen = false;
+        // The custom ratio is W × H as typed, whatever way the picture stands; the hub turns it.
+        if (mode == "custom" && !IsCustomAspect)
+            IsPortrait = false;
         ApplyAspect(mode);
     }
 
@@ -354,6 +395,8 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
     {
         var modes = CropMath.AspectModes;
         var next = ((SelectedAspectIndex + step) % modes.Count + modes.Count) % modes.Count;
+        if (modes[next] == "custom")
+            IsPortrait = false; // as typed, see SetAspect
         ApplyAspect(modes[next]);
     }
 
@@ -368,8 +411,9 @@ public sealed partial class CropOverlayViewModel : ObservableObject, IDisposable
     {
         (_batchAspect, _batchPortrait) = (mode == "free" ? null : mode, IsPortrait);
         SelectedAspect = mode;
-        AspectRatio = CropMath.Ratio(mode, IsPortrait, OriginalWidth, OriginalHeight);
+        AspectRatio = CropMath.Ratio(mode, IsPortrait, OriginalWidth, OriginalHeight, CustomRatio);
         AspectRatioChanged?.Invoke(AspectRatio);
+        OnPropertyChanged(nameof(CustomLabel));
     }
 
     private void AddFailure(string path, string errorKey, string? detail)

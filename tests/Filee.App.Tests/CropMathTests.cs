@@ -45,7 +45,7 @@ public class CropMathTests
     [Fact]
     public void Only_fixed_ratios_that_arent_square_swap()
     {
-        Assert.Equal(["5:4", "4:3", "3:2", "16:9"], CropMath.AspectModes.Where(CropMath.CanSwap));
+        Assert.Equal(["5:4", "4:3", "3:2", "16:9", "custom"], CropMath.AspectModes.Where(CropMath.CanSwap));
         Assert.Equal("4:5", CropMath.Numbers("5:4", portrait: true));
         Assert.Equal("9:16", CropMath.Numbers("16:9", portrait: true));
         Assert.Equal("16:9", CropMath.Numbers("16:9", portrait: false));
@@ -53,6 +53,20 @@ public class CropMathTests
         Assert.Equal(0, CropMath.Ratio("original", false, 0, 0));
         Assert.Equal(4, CropMath.AspectIndex("4:3"));
         Assert.Equal(-1, CropMath.AspectIndex("21:9"));
+    }
+
+    [Fact]
+    public void A_custom_ratio_is_the_typed_w_over_h_shown_as_small_as_it_goes()
+    {
+        // 1080 × 1350 is 4:5 (#542); the hub turns it to 5:4.
+        Assert.Equal(1080.0 / 1350, CropMath.Ratio("custom", false, 1600, 1000, 1080.0 / 1350), 6);
+        Assert.Equal(1350.0 / 1080, CropMath.Ratio("custom", true, 1600, 1000, 1080.0 / 1350), 6);
+        Assert.Equal("4:5", CropMath.CustomNumbers(1080, 1350, portrait: false));
+        Assert.Equal("5:4", CropMath.CustomNumbers(1080, 1350, portrait: true));
+        Assert.Equal("7:3", CropMath.CustomNumbers(7, 3, portrait: false));
+        Assert.Equal("1:1", CropMath.CustomNumbers(0, 0, portrait: false)); // an emptied box counts as 1
+        Assert.Equal(0, CropMath.Ratio("custom", true, 1600, 1000)); // no ratio yet: free, never 1 / 0
+        Assert.Equal(7, CropMath.AspectIndex("custom")); // the last slice
     }
 
     [Fact]
