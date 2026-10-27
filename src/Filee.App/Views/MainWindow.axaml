@@ -15,11 +15,11 @@
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="8,0,0,20">
           <Image Source="avares://Takaconv/Assets/Icons/takaconv.png" Width="30" Height="30" />
           <StackPanel VerticalAlignment="Center">
-            <TextBlock Text="EL Djazair Takaful" FontSize="16" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="Takaconv" FontSize="18" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
             <TextBlock Classes="caption" Text="{DynamicResource app.tagline}" />
           </StackPanel>
         </StackPanel>
-        <!-- Bottom: the running version, and a download button when a newer release is out. -->
+        <!-- Bottom: the company, with the running version on its tooltip, and a download button when a newer release is out. -->
         <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="4,12,4,0">
           <!-- Accent for required and recommended updates, plain for optional ones; a pill says which -->
           <Button x:Name="UpdateButton" Classes.accent="{Binding !Updates.IsOptional}" HorizontalAlignment="Stretch"
@@ -41,7 +41,8 @@
               </StackPanel>
             </DockPanel>
           </Button>
-          <TextBlock x:Name="VersionLabel" Classes="caption" Margin="8,0,0,0" Text="{Binding VersionText}" />
+          <TextBlock x:Name="CompanyLabel" Classes="caption" Margin="8,0,0,0" Text="EL Djazair Takaful"
+                     ToolTip.Tip="{Binding VersionText}" />
         </StackPanel>
         <ListBox Classes="nav" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">
           <ListBox.ItemTemplate>

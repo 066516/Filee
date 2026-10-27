@@ -1466,7 +1466,7 @@ public class RenderTests
     [InlineData("en")]
     [InlineData("fr")]
     [InlineData("ar")]
-    public void Sidebar_shows_the_version_and_a_new_release(string language)
+    public void Sidebar_shows_the_company_name_and_a_new_release(string language)
     {
         TestServices.EnsureInitialized(language);
         var updates = AppHost.Get<UpdateService>();
@@ -1475,9 +1475,11 @@ public class RenderTests
         window.Show();
         Pump();
         var button = window.FindControl<Button>("UpdateButton")!;
-        var version = window.FindControl<TextBlock>("VersionLabel")!;
+        // The company sits at the foot of the sidebar; the running version is its tooltip.
+        var company = window.FindControl<TextBlock>("CompanyLabel")!;
         Assert.False(button.IsVisible);
-        Assert.Contains(UpdateService.CurrentVersion, version.Text);
+        Assert.Equal("EL Djazair Takaful", company.Text);
+        Assert.Contains(UpdateService.CurrentVersion, ToolTip.GetTip(company) as string);
 
         try
         {
