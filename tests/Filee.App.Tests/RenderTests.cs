@@ -25,33 +25,12 @@ public class RenderTests
 {
     public static TheoryData<string, string> Pages => new()
     {
-        { "home", "de" }, { "general", "de" }, { "triggers", "de" }, { "toolbar", "de" },
-        { "presets", "de" }, { "theme", "de" }, { "engines", "de" }, { "watch", "de" },
-        { "home", "tr" }, { "general", "tr" }, { "triggers", "tr" }, { "toolbar", "tr" },
-        { "presets", "tr" }, { "theme", "tr" }, { "engines", "tr" }, { "watch", "tr" },
+        { "home", "en" }, { "general", "en" }, { "triggers", "en" }, { "toolbar", "en" },
+        { "presets", "en" }, { "theme", "en" }, { "engines", "en" }, { "watch", "en" },
         { "home", "ar" }, { "general", "ar" }, { "triggers", "ar" }, { "toolbar", "ar" },
         { "presets", "ar" }, { "theme", "ar" }, { "engines", "ar" }, { "watch", "ar" },
-        { "home", "th" }, { "general", "th" }, { "triggers", "th" }, { "toolbar", "th" },
-        { "presets", "th" }, { "theme", "th" }, { "engines", "th" }, { "watch", "th" },
-        { "home", "en" }, { "general", "en" }, { "triggers", "en" }, { "toolbar", "en" },
-        { "presets", "en" }, { "theme", "en" }, { "engines", "en" },
-        { "general", "ko" }, { "toolbar", "ko" }, { "home", "ko" },
-        { "general", "zh-CN" }, { "presets", "zh-CN" }, { "toolbar", "zh-CN" }, { "home", "zh-CN" },
-        { "general", "zh-TW" }, { "presets", "zh-TW" }, { "toolbar", "zh-TW" }, { "home", "zh-TW" },
-        { "triggers", "zh-TW" }, { "engines", "zh-TW" }, { "watch", "zh-TW" },
-        { "general", "pl" }, { "toolbar", "pl" }, { "presets", "pl" }, { "home", "pl" },
-        { "home", "es" }, { "general", "es" }, { "toolbar", "es" }, { "presets", "es" }, { "engines", "es" },
-        { "home", "fr" }, { "general", "fr" }, { "toolbar", "fr" }, { "presets", "fr" }, { "engines", "fr" },
-        { "home", "hi" }, { "general", "hi" }, { "toolbar", "hi" }, { "presets", "hi" }, { "engines", "hi" },
-        { "home", "ja" }, { "general", "ja" }, { "triggers", "ja" }, { "toolbar", "ja" },
-        { "presets", "ja" }, { "theme", "ja" }, { "engines", "ja" }, { "watch", "ja" },
-        { "home", "ru" }, { "general", "ru" }, { "triggers", "ru" }, { "toolbar", "ru" }, { "presets", "ru" },
-        { "theme", "ru" }, { "engines", "ru" }, { "watch", "ru" },
-        { "home", "pt-PT" }, { "general", "pt-PT" }, { "triggers", "pt-PT" }, { "toolbar", "pt-PT" },
-        { "presets", "pt-PT" }, { "theme", "pt-PT" }, { "engines", "pt-PT" }, { "watch", "pt-PT" },
-        { "home", "pt-BR" }, { "general", "pt-BR" }, { "triggers", "pt-BR" }, { "toolbar", "pt-BR" },
-        { "presets", "pt-BR" }, { "theme", "pt-BR" }, { "engines", "pt-BR" }, { "watch", "pt-BR" },
-        { "home", "ne" }, { "general", "ne" }, { "toolbar", "ne" }, { "presets", "ne" }, { "engines", "ne" },
+        { "home", "fr" }, { "general", "fr" }, { "triggers", "fr" }, { "toolbar", "fr" },
+        { "presets", "fr" }, { "theme", "fr" }, { "engines", "fr" }, { "watch", "fr" },
     };
 
     [AvaloniaTheory]
@@ -117,9 +96,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ja")]
-    [InlineData("ko")]
-    [InlineData("ru")]
+    [InlineData("fr")]
     [InlineData("ar")]
     public void Watch_folders_page_renders_a_rule(string language)
     {
@@ -153,8 +130,8 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ja")]
-    [InlineData("ko")]
+    [InlineData("ar")]
+    [InlineData("fr")]
     public void Watch_folder_card_shows_recent_results_and_retries_in_the_folder(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -215,12 +192,8 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ja")]
-    [InlineData("ko")]
-    [InlineData("ru")]
+    [InlineData("fr")]
     [InlineData("ar")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
     public void Watch_folder_options_rename_and_filter_with_a_preview(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -308,9 +281,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ja")]
-    [InlineData("ko")]
-    [InlineData("ru")]
+    [InlineData("fr")]
     [InlineData("ar")]
     public void Home_page_lists_failed_files_with_a_retry_button(string language)
     {
@@ -357,14 +328,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("es")]
-    [InlineData("ko")]
-    [InlineData("zh-CN")]
-    [InlineData("pl")]
-    [InlineData("hi")]
-    [InlineData("ru")]
     [InlineData("ar")]
-    [InlineData("pt-BR")]
     [InlineData("fr")]
     public void Home_page_search_finds_old_conversions_in_a_long_history(string language)
     {
@@ -449,7 +413,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ru")]
+    [InlineData("ar")]
     public void Add_offers_presets_for_where_a_file_goes_and_the_editor_keeps_their_size_limit(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -554,13 +518,13 @@ public class RenderTests
     [AvaloniaFact]
     public void Engines_page_shows_versions_descriptions_and_download_speed()
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized("ar");
         var downloads = AppHost.Get<EngineDownloadService>();
         var package = downloads.Packages[0];
         var before = (package.Status, package.Progress, package.ProgressDetail);
         package.Status = EnginePackageStatus.Downloading;
         package.Progress = 42;
-        package.ProgressDetail = "176 MB / 422 MB · 8.4 MB/s · 30초 남음";
+        package.ProgressDetail = "176 MB / 422 MB · 8.4 MB/s · 30 s left";
         try
         {
             using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
@@ -583,10 +547,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("es")]
-    [InlineData("ko")]
-    [InlineData("hi")]
-    [InlineData("ru")]
+    [InlineData("fr")]
     [InlineData("ar")]
     public void Reset_to_default_sits_beside_delete_for_a_built_in_profile_only(string language)
     {
@@ -638,7 +599,7 @@ public class RenderTests
     [AvaloniaFact]
     public void Dragging_a_preset_opens_a_gap_with_a_preview_slice()
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized("ar");
         using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
         vm.Navigate("toolbar");
         var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
@@ -673,11 +634,8 @@ public class RenderTests
     /// default): their presets' names fit their ring slices, in every language.
     /// </summary>
     [AvaloniaTheory]
-    [InlineData("ja")]
-    [InlineData("ko")]
+    [InlineData("fr")]
     [InlineData("en")]
-    [InlineData("zh-CN")]
-    [InlineData("ru")]
     [InlineData("ar")]
     public void The_rotate_and_flip_groups_fan_out_names_that_fit(string language)
     {
@@ -723,10 +681,8 @@ public class RenderTests
     /// under the pointer there is what a drop or click converts with.
     /// </summary>
     [AvaloniaTheory]
-    [InlineData("ja")]
-    [InlineData("ko")]
+    [InlineData("fr")]
     [InlineData("en")]
-    [InlineData("ru")]
     [InlineData("ar")]
     public void A_group_slice_fans_out_its_presets(string language)
     {
@@ -737,7 +693,7 @@ public class RenderTests
         var group = new Filee.Core.Presets.Preset
         {
             Id = "render-group",
-            Name = language == "ko" ? "형식" : "Formats",
+            Name = "Formats",
             Kind = Filee.Core.Presets.PresetKind.Group,
             SubPresetIds = ["to-png", "to-jpg", "to-webp"],
         };
@@ -904,8 +860,7 @@ public class RenderTests
     }
 
     [AvaloniaTheory]
-    [InlineData("ko", "JPG 3개")]
-    [InlineData("ru", "3 × JPG")]
+    [InlineData("fr", "3 × JPG")]
     [InlineData("ar", "3 × JPG")]
     public void Donut_toolbar_renders_for_images(string language, string title)
     {
@@ -927,7 +882,7 @@ public class RenderTests
     [AvaloniaFact]
     public void LibreOffice_options_window_renders()
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized("ar");
         using var vm = new Filee.App.ViewModels.Pages.EnginesPageViewModel(AppHost.Get<Filee.Core.Settings.UserDataStore>(),
             AppHost.Get<Filee.Core.Conversion.ConverterCatalog>(), AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<EngineDownloadService>());
         var window = new Filee.App.Views.LibreOfficeOptionsWindow { DataContext = vm };
@@ -939,12 +894,8 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ja")]
-    [InlineData("ko")]
-    [InlineData("ru")]
+    [InlineData("fr")]
     [InlineData("ar")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
     public void First_run_engine_setup_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -966,8 +917,8 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
+    [InlineData("ar")]
+    [InlineData("fr")]
     public void Engine_setup_on_a_short_screen_scrolls_the_list_and_keeps_its_buttons(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1106,7 +1057,7 @@ public class RenderTests
     [AvaloniaFact]
     public void Preset_popup_renders()
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized("ar");
         var preset = AppHost.Get<UserDataStore>().FindPreset("jpg-70")!;
         var window = new PresetEditorWindow { DataContext = new PresetEditorViewModel(preset, AppHost.Get<Filee.Core.Localization.ILocalizer>()) };
         window.Show();
@@ -1119,7 +1070,7 @@ public class RenderTests
     [AvaloniaFact]
     public void Preset_editor_shows_and_saves_rotation_and_flip()
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized("ar");
         var preset = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "rotate-left");
         var vm = new PresetEditorViewModel(preset, AppHost.Get<Filee.Core.Localization.ILocalizer>());
         Assert.Equal(Filee.Core.Presets.ImageRotation.Left90, vm.Rotation.Value); // not a hidden option any more
@@ -1142,7 +1093,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en", false)]
-    [InlineData("ru", false)]
+    [InlineData("fr", false)]
     [InlineData("ar", true)]
     public void Preset_editor_offers_the_subfolder_only_for_several_files_with_a_subfolder(string language, bool dark)
     {
@@ -1185,9 +1136,8 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ko")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
+    [InlineData("ar")]
+    [InlineData("fr")]
     public void Preset_editor_shows_and_saves_watermark_page_numbers_and_password(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1240,7 +1190,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ko")]
+    [InlineData("ar")]
     public void Preset_editor_shows_and_saves_text_recognition(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1280,9 +1230,8 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ko")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
+    [InlineData("ar")]
+    [InlineData("fr")]
     public void Preset_editor_shows_and_saves_the_fits_options(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1406,13 +1355,13 @@ public class RenderTests
     [AvaloniaFact]
     public void Preset_editor_shows_playback_speed_only_for_targets_that_keep_animations()
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized("ar");
         var loc = AppHost.Get<Filee.Core.Localization.ILocalizer>();
         var preset = new Filee.Core.Presets.Preset { TargetFormat = "gif", Name = "Slow GIF" };
         var vm = new PresetEditorViewModel(preset, loc);
         Assert.True(vm.ShowAnimationSpeed);
         Assert.Equal(1, vm.AnimationSpeed.Value);
-        Assert.Equal(["0.25×", "0.5×", "0.75×", "1× (원본)", "1.5×", "2×", "4×"], vm.AnimationSpeeds.Select(s => s.Label));
+        Assert.Equal(["0.25×", "0.5×", "0.75×", "1× (original)", "1.5×", "2×", "4×"], vm.AnimationSpeeds.Select(s => s.Label));
         vm.AnimationSpeed = vm.AnimationSpeeds.Single(s => s.Value == 0.5);
         var window = new PresetEditorWindow { DataContext = vm, Height = 900 };
         window.Show();
@@ -1451,7 +1400,7 @@ public class RenderTests
     [AvaloniaFact]
     public void Preset_editor_shows_and_saves_background_removal()
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized("ar");
         var preset = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "remove-background");
         var vm = new PresetEditorViewModel(preset, AppHost.Get<Filee.Core.Localization.ILocalizer>());
         Assert.True(vm.RemoveBackground);
@@ -1474,7 +1423,7 @@ public class RenderTests
     [AvaloniaFact]
     public void Preset_editor_shows_and_saves_pdf_compression()
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized("ar");
         var preset = Filee.Core.Presets.BuiltInData.CreatePresets().Single(p => p.Id == "compress-pdf");
         var vm = new PresetEditorViewModel(preset, AppHost.Get<Filee.Core.Localization.ILocalizer>());
         Assert.True(vm.ShowPdfCompression);
@@ -1504,9 +1453,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ja")]
-    [InlineData("ko")]
-    [InlineData("ru")]
+    [InlineData("fr")]
     [InlineData("ar")]
     public void Sidebar_shows_the_version_and_a_new_release(string language)
     {
@@ -1587,18 +1534,15 @@ public class RenderTests
     /// </summary>
     [AvaloniaTheory]
     [InlineData("en", false)]
-    [InlineData("ko", false)]
-    [InlineData("zh-CN", false)]
+    [InlineData("fr", false)]
     [InlineData("en", true)]
-    [InlineData("ko", true)]
-    [InlineData("ru", false)]
     [InlineData("ar", true)]
     public void Toolbar_extension_editor_renders(string language, bool dark)
     {
         var photos = new ToolbarProfile
         {
             Id = "render-photos",
-            Name = language == "ko" ? "사진" : "Photos",
+            Name = "Photos",
             Extensions = ["jpg", "png", "heic", "dng", "webp", "xyz"],
             PresetIds = ["to-jpg", "to-webp", "half-size", "to-pdf"],
         };
@@ -1632,9 +1576,8 @@ public class RenderTests
     /// <summary>A second mixed-selection donut limited to images and PDF, two groups expanded.</summary>
     [AvaloniaTheory]
     [InlineData("en", false, "render-scans")]
-    [InlineData("ko", false, "render-scans")]
-    [InlineData("zh-CN", false, "render-scans")]
-    [InlineData("ko", true, "render-scans")]
+    [InlineData("ar", false, "render-scans")]
+    [InlineData("fr", false, "render-scans")]
     [InlineData("en", false, "mixed")]
     [InlineData("en", true, "mixed")]
     public void Toolbar_mixed_selection_editor_renders(string language, bool dark, string profileId)
@@ -1642,7 +1585,7 @@ public class RenderTests
         var scans = new ToolbarProfile
         {
             Id = "render-scans",
-            Name = language == "ko" ? "스캔 모음" : "Scans",
+            Name = "Scans",
             IsFallback = true,
             Extensions = ["jpg", "png", "tiff", "pdf"],
             PresetIds = ["to-pdf", "merge-pdf", "zip-all"],
@@ -1668,12 +1611,7 @@ public class RenderTests
     /// <summary>The preset popup with the video/audio and archive sections, and the target list.</summary>
     [AvaloniaTheory]
     [InlineData("en", false)]
-    [InlineData("ko", false)]
-    [InlineData("zh-CN", false)]
-    [InlineData("ko", true)]
-    [InlineData("ru", false)]
     [InlineData("ar", true)]
-    [InlineData("pt-BR", false)]
     [InlineData("fr", false)]
     public void Preset_editor_shows_media_and_archive_options(string language, bool dark)
     {
@@ -1754,10 +1692,7 @@ public class RenderTests
     /// <summary>The preset popup of "Trace to SVG": mode, colours and detail; colours only in colour mode.</summary>
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ja")]
-    [InlineData("ko")]
-    [InlineData("zh-CN")]
-    [InlineData("ru")]
+    [InlineData("fr")]
     [InlineData("ar")]
     public void Preset_editor_shows_tracing_options(string language)
     {
@@ -1800,10 +1735,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ja")]
-    [InlineData("ko")]
-    [InlineData("zh-CN")]
-    [InlineData("ru")]
+    [InlineData("fr")]
     [InlineData("ar")]
     public void Preset_editor_offers_markdown_without_pictures(string language)
     {
@@ -2008,7 +1940,7 @@ public class RenderTests
     /// <summary>The geospatial donut in the toolbar editor: GeoJSON, Shapefile, KML, CSV, GPX and KMZ for geo files.</summary>
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ko")]
+    [InlineData("ar")]
     public void Toolbar_geospatial_donut_renders(string language)
     {
         WithProfiles(language, false, 1240, _ => { }, (window, vm) =>
@@ -2028,12 +1960,8 @@ public class RenderTests
     [AvaloniaTheory]
     [InlineData("en", false)]
     [InlineData("en", true)]
-    [InlineData("ko", false)]
-    [InlineData("ko", true)]
-    [InlineData("es", false)]
-    [InlineData("es", true)]
-    [InlineData("ru", false)]
-    [InlineData("ru", true)]
+    [InlineData("ar", false)]
+    [InlineData("fr", true)]
     public void Palette_tabs_fit_narrow_column(string language, bool dark)
     {
         WithProfiles(language, dark, 820, _ => { }, (window, vm) =>
@@ -2161,7 +2089,7 @@ public class RenderTests
     /// <summary>A search shows a preset this donut can't run: dimmed, with its reason, under its own tab.</summary>
     [AvaloniaTheory]
     [InlineData("en", false)]
-    [InlineData("ko", true)]
+    [InlineData("ar", true)]
     public void Palette_search_reveals_unusable(string language, bool dark)
     {
         using var f = new PresetAvailabilityTests.Fixture();
@@ -2244,9 +2172,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ja")]
-    [InlineData("ko")]
-    [InlineData("ru")]
+    [InlineData("fr")]
     [InlineData("ar")]
     public void Excluded_apps_render_as_tags(string language)
     {
@@ -2274,10 +2200,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ja")]
-    [InlineData("ko")]
-    [InlineData("zh-CN")]
-    [InlineData("ru")]
+    [InlineData("fr")]
     [InlineData("ar")]
     public void Close_dialog_renders(string language)
     {
@@ -2291,8 +2214,8 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ko")]
-    [InlineData("zh-CN")]
+    [InlineData("ar")]
+    [InlineData("fr")]
     public void Extract_live_photo_video_option_renders_and_saves_for_mp4_and_mov_only(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -2320,13 +2243,7 @@ public class RenderTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ko")]
-    [InlineData("ja")]
-    [InlineData("zh-CN")]
-    [InlineData("ru")]
     [InlineData("ar")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
     [InlineData("fr")]
     public void Live_photo_options_render_for_jpg_and_heic_and_save_only_there(string language)
     {
@@ -2366,8 +2283,7 @@ public class RenderTests
 
     public static TheoryData<string, bool> ClipLooks => new()
     {
-        { "en", false }, { "en", true }, { "ru", false }, { "ru", true }, { "ar", false }, { "ar", true }, { "ja", false }, { "hi", true },
-        { "pt-PT", false }, { "pt-PT", true }, { "pt-BR", false }, { "pt-BR", true },
+        { "en", false }, { "en", true }, { "ar", false }, { "ar", true }, { "fr", false }, { "fr", true },
     };
 
     /// <summary>

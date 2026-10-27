@@ -101,8 +101,9 @@ public sealed class LocalizationService : ILocalizer
     /// <summary>Maps "auto" (the OS language <paramref name="osLanguage"/> gives) / a culture name to a shipped language.</summary>
     internal static string Resolve(string setting, Func<string> osLanguage)
     {
-        if (!string.Equals(setting, "auto", StringComparison.OrdinalIgnoreCase) &&
-            Languages.FirstOrDefault(l => l.Code.Equals(setting, StringComparison.OrdinalIgnoreCase)) is { Code: var chosen })
+        // "is { Code: var chosen }" would match the default tuple as well (its Code is null); "is { } chosen" does not.
+        var picked = Languages.FirstOrDefault(l => l.Code.Equals(setting, StringComparison.OrdinalIgnoreCase));
+        if (!string.Equals(setting, "auto", StringComparison.OrdinalIgnoreCase) && picked.Code is { } chosen)
             return chosen;
 
         return Match(osLanguage()) ?? "en";
@@ -114,7 +115,7 @@ public sealed class LocalizationService : ILocalizer
     /// </summary>
     private static string? Match(string culture) =>
         // "fr" and every region, but not North Frisian "frr"; "ar" and "ar-EG", but not other codes starting with "ar".
-        Languages.Select(l => l.Code).FirstOrDefault(code =>
+        string.IsNullOrEmpty(culture) ? null : Languages.Select(l => l.Code).FirstOrDefault(code =>
             culture.Equals(code, StringComparison.OrdinalIgnoreCase) ||
             culture.StartsWith(code + "-", StringComparison.OrdinalIgnoreCase));
 

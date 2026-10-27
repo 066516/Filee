@@ -354,7 +354,7 @@ public class ClipWindowTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("pt-PT")]
+    [InlineData("ar")]
     public void A_cut_needs_the_playhead_inside_the_clip(string language)
     {
         WithClipWindow(language, false, ["match.mp4"], (window, vm, _, _) =>

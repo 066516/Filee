@@ -10,7 +10,7 @@ public sealed class MacOSIntegrationTests
     [Fact]
     public void LaunchAgentKeepsExecutableAndArgumentsSeparate()
     {
-        const string executable = "/Users/a & b/도구 '$(touch nope)'/Filee.app/Contents/MacOS/Filee";
+        const string executable = "/Users/a & b/도구 '$(touch nope)'/Takaconv.app/Contents/MacOS/Takaconv";
         var root = ReadPlist(MacOSIntegrationFiles.LaunchAgent(executable));
         Assert.Equal([executable, "--background"], Property(root, "ProgramArguments").Elements().Select(x => x.Value));
         Assert.Equal("true", Property(root, "RunAtLoad").Name.LocalName);
@@ -21,7 +21,7 @@ public sealed class MacOSIntegrationTests
     [Fact]
     public void ServiceSwitchWritesTheEntrySystemSettingsUses()
     {
-        Assert.Equal("\"com.filee.app - Convert with Filee - convertFiles\"", MacOSIntegrationFiles.ServiceStatusKey);
+        Assert.Equal("\"com.takaful.takaconv - Convert with Takaconv - convertFiles\"", MacOSIntegrationFiles.ServiceStatusKey);
         Assert.Contains("\"enabled_context_menu\" = 0;", MacOSIntegrationFiles.ServiceStatus(false));
         Assert.Contains("\"ContextMenu\" = 1;", MacOSIntegrationFiles.ServiceStatus(true));
     }
@@ -34,7 +34,7 @@ public sealed class MacOSIntegrationTests
         var service = Property(root, "NSServices").Element("dict")!;
         Assert.Equal(MacOSServicesProvider.MenuItem, Property(Property(service, "NSMenuItem"), "default").Value);
         Assert.Equal(MacOSServicesProvider.Message, Property(service, "NSMessage").Value);
-        Assert.Equal("Filee", Property(service, "NSPortName").Value);
+        Assert.Equal("Takaconv", Property(service, "NSPortName").Value);
         Assert.Equal("public.item", Property(service, "NSSendFileTypes").Element("string")!.Value);
         // Each translation names the same menu title.
         foreach (var strings in Directory.GetFiles(installer, "ServicesMenu.strings", SearchOption.AllDirectories))
@@ -46,9 +46,9 @@ public sealed class MacOSIntegrationTests
     }
 
     [Theory]
-    [InlineData("pt-PT", "ficheiros", "deteta", "arquivos")]
-    [InlineData("pt-BR", "arquivos", "detecta", "ficheiros")]
-    public void PortugueseNativeTextsKeepTheirVariantAndMatchTheApp(string language, string files, string detects, string otherFiles)
+    [InlineData("ar")]
+    [InlineData("fr")]
+    public void NativeTextsMatchTheAppAndNameTakaconv(string language)
     {
         var repository = RepositoryRoot();
         var installer = Path.Combine(repository, "installer", "macos");
@@ -64,12 +64,9 @@ public sealed class MacOSIntegrationTests
         foreach (var (key, value) in permissions)
         {
             Assert.NotEqual(Property(root, key).Value, value);
-            Assert.StartsWith("O Filee ", value);
+            Assert.Contains("Takaconv", value);
             Assert.True(value.IsNormalized(), $"{language}: {key} is not NFC");
         }
-        Assert.Contains(files, permissions["NSAppleEventsUsageDescription"]);
-        Assert.DoesNotContain(otherFiles, permissions["NSAppleEventsUsageDescription"]);
-        Assert.Contains(detects, permissions["NSInputMonitoringUsageDescription"]);
     }
 
     private static Dictionary<string, string> ReadStrings(string path) =>

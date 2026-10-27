@@ -5,8 +5,8 @@ namespace Filee.Platform.MacOS;
 internal static class MacOSIntegrationFiles
 {
     internal static string LaunchAgent(string executablePath) => Plist(Dict(
-        ("Label", "com.filee.app"),
-        ("AssociatedBundleIdentifiers", Array("com.filee.app")),
+        ("Label", "com.takaful.takaconv"),
+        ("AssociatedBundleIdentifiers", Array("com.takaful.takaconv")),
         ("ProgramArguments", Array(executablePath, "--background")),
         ("LimitLoadToSessionType", "Aqua"),
         ("RunAtLoad", true),
@@ -17,7 +17,7 @@ internal static class MacOSIntegrationFiles
     /// defaults, which reads the key as a property list string.
     /// </summary>
     internal static string ServiceStatusKey =>
-        $"\"com.filee.app - {MacOSServicesProvider.MenuItem} - {MacOSServicesProvider.Message}\"";
+        $"\"com.takaful.takaconv - {MacOSServicesProvider.MenuItem} - {MacOSServicesProvider.Message}\"";
 
     /// <summary>On or off in the right-click menu and the Services menu, as System Settings writes it.</summary>
     internal static string ServiceStatus(bool enabled)

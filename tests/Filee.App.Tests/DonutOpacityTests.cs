@@ -19,7 +19,7 @@ public class DonutOpacityTests
 {
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("ru")]
+    [InlineData("ar")]
     public void The_theme_page_slider_moves_the_preview_and_is_the_toolbar_pages_setting(string language)
     {
         TestServices.EnsureInitialized(language);

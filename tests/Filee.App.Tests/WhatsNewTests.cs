@@ -91,34 +91,16 @@ public class WhatsNewTests
         Assert.Equal(new SlideMedia(new Uri(folder, path), poster), slide.MediaFor(language));
     }
 
-    [AvaloniaTheory]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
-    public void Portuguese_recordings_preserve_the_desktop_context_and_localize_the_other_slides(string language)
-    {
-        TestServices.EnsureInitialized(language);
-        var deck = Assert.Single(SlideDeck.LoadAll("Takaconv"), d => d.Version == V2);
-        foreach (var slide in deck.Slides)
-        {
-            var media = slide.MediaFor(language);
-            Assert.True(AssetLoader.Exists(media.Source), $"{media.Source} is missing");
-            if (slide.Id is "languages" or "browser" or "flip")
-                Assert.Equal(slide.Media, media.Source);
-            else
-                Assert.Contains($"/{language}/", media.Source.AbsolutePath);
-        }
-    }
-
     [AvaloniaFact]
     public void Changing_language_refreshes_the_current_recording_without_resetting_the_slide()
     {
-        var window = Open("pt-PT");
+        var window = Open("en");
         var loc = AppHost.Get<LocalizationService>();
         try
         {
             var slides = window.SlideShow;
             slides.GoTo(3);
-            foreach (var language in new[] { "pt-PT", "pt-BR", "en", "pt-PT" })
+            foreach (var language in new[] { "ar", "fr", "en", "ar" })
             {
                 loc.SetLanguage(language);
                 Pump();
@@ -384,8 +366,8 @@ public class WhatsNewTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
+    [InlineData("ar")]
+    [InlineData("fr")]
     public void Arrow_keys_move_and_escape_closes(string language)
     {
         var window = Open(language);
@@ -449,8 +431,8 @@ public class WhatsNewTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
+    [InlineData("ar")]
+    [InlineData("fr")]
     public void Reduced_motion_shows_each_slides_poster_frame(string language)
     {
         var before = Motion.Enabled;
@@ -505,7 +487,7 @@ public class WhatsNewTests
     [AvaloniaFact]
     public void The_slides_keep_one_height_and_let_go_of_their_pictures_when_closed()
     {
-        var window = Open("es");
+        var window = Open("fr");
         var heights = new HashSet<double>();
         for (var i = 0; i < window.SlideShow.Slides.Count; i++)
         {
@@ -528,20 +510,8 @@ public class WhatsNewTests
     [InlineData("en", true)]
     [InlineData("ar", false)]
     [InlineData("ar", true)]
-    [InlineData("es", false)]
-    [InlineData("es", true)]
-    [InlineData("hi", false)]
-    [InlineData("ko", true)]
-    [InlineData("ja", false)]
-    [InlineData("zh-CN", false)]
-    [InlineData("pl", false)]
-    [InlineData("ru", false)]
-    [InlineData("ru", true)]
-    [InlineData("pt-BR", false)]
-    [InlineData("pt-BR", true)]
-    [InlineData("pt-PT", false)]
-    [InlineData("pt-PT", true)]
     [InlineData("fr", false)]
+    [InlineData("fr", true)]
     public void Window_renders(string language, bool dark)
     {
         TestServices.EnsureInitialized(language);

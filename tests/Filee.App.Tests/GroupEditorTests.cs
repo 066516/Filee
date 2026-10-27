@@ -167,13 +167,13 @@ public class GroupEditorTests
     }
 
     [AvaloniaTheory]
-    [InlineData("ko")]
+    [InlineData("ar")]
     [InlineData("en")]
     public void The_group_editor_renders(string language)
     {
         TestServices.EnsureInitialized(language);
         var vm = new GroupEditorViewModel(
-            new Preset { Name = language == "ko" ? "이미지 도구" : "Image tools", Kind = PresetKind.Group, SubPresetIds = ["half-size", "grayscale", "remove-background"] },
+            new Preset { Name = language == "ar" ? "أدوات الصور" : "Image tools", Kind = PresetKind.Group, SubPresetIds = ["half-size", "grayscale", "remove-background"] },
             AppHost.Get<UserDataStore>(), AppHost.Get<ILocalizer>());
         var window = new GroupEditorWindow { DataContext = vm };
         window.Show();

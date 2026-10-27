@@ -303,9 +303,9 @@ public class InstallerTests
     }
 
     [Theory]
-    [InlineData("ko")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
+    [InlineData("ar")]
+    [InlineData("fr")]
+    [InlineData("en")]
     public void What_setup_hands_to_filee_is_what_filee_reads(string language)
     {
         var fresh = new InstallChoices(@"C:\Program Files\Filee", InstallScope.Machine, SetupTasks.Defaults with { Startup = false },

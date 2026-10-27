@@ -120,15 +120,6 @@ public class MergeOrderTests
     [AvaloniaTheory]
     [InlineData("en")]
     [InlineData("ar")]
-    [InlineData("es")]
-    [InlineData("ja")]
-    [InlineData("ko")]
-    [InlineData("zh-CN")]
-    [InlineData("pl")]
-    [InlineData("hi")]
-    [InlineData("ru")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
     [InlineData("fr")]
     public void Chooser_fits_long_paths_at_its_minimum_width(string language)
     {

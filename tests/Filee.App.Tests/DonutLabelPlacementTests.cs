@@ -108,15 +108,15 @@ public class DonutLabelPlacementTests
     }
 
     [AvaloniaTheory]
-    [InlineData("pt-PT", "preset.half_size")]
-    [InlineData("pt-BR", "preset.half_size")]
-    [InlineData("pt-PT", "preset.trace_line_art")]
-    [InlineData("pt-BR", "preset.trace_line_art")]
-    [InlineData("pt-PT", "preset.trace_svg")]
-    [InlineData("pt-BR", "preset.trace_svg")]
-    [InlineData("pt-PT", "preset.extract_motion")]
-    [InlineData("pt-BR", "preset.extract_motion")]
-    public void Portuguese_image_actions_fit_the_two_line_slice_label(string language, string key)
+    [InlineData("ar", "preset.half_size")]
+    [InlineData("fr", "preset.half_size")]
+    [InlineData("ar", "preset.trace_line_art")]
+    [InlineData("fr", "preset.trace_line_art")]
+    [InlineData("ar", "preset.trace_svg")]
+    [InlineData("fr", "preset.trace_svg")]
+    [InlineData("ar", "preset.extract_motion")]
+    [InlineData("fr", "preset.extract_motion")]
+    public void Long_image_action_names_fit_the_two_line_slice_label(string language, string key)
     {
         TestServices.EnsureInitialized(language);
         var loc = AppHost.Get<LocalizationService>();

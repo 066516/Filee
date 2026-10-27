@@ -341,9 +341,8 @@ public class RecentConversionTests
 
     [AvaloniaTheory]
     [InlineData("en", false)]
-    [InlineData("ru", false)]
-    [InlineData("hi", true)]
-    [InlineData("es", true)]
+    [InlineData("ar", false)]
+    [InlineData("fr", true)]
     public void Recent_conversions_show_their_results(string language, bool dark)
     {
         TestServices.EnsureInitialized(language);

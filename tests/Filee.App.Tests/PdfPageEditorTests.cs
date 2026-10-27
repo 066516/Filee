@@ -80,8 +80,8 @@ public class PdfPageEditorTests
 
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
+    [InlineData("ar")]
+    [InlineData("fr")]
     public async Task Editor_window_renders_previews_and_all_actions_without_clipping(string language)
     {
         TestServices.EnsureInitialized(language);

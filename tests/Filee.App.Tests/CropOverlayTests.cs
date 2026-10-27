@@ -26,11 +26,8 @@ public class CropOverlayTests
 {
     public static TheoryData<string, bool> Looks => new()
     {
-        { "en", false }, { "en", true }, { "ko", false }, { "ko", true }, { "ru", false }, { "hi", true }, { "ar", false }, { "ar", true },
-        { "pt-PT", false }, { "pt-PT", true }, { "pt-BR", false }, { "pt-BR", true },
-        { "fr", false },
-        // Long one-word ratio names on eight slices (#542): "Oryginalne", "स्वतन्त्र", "Original".
-        { "pl", false }, { "ne", false }, { "de", false },
+        { "en", false }, { "en", true }, { "ar", false }, { "ar", true },
+        { "fr", false }, { "fr", true },
     };
 
     [AvaloniaTheory]

@@ -16,8 +16,8 @@ public class SpreadsheetPrintStudioTests
 {
     [AvaloniaTheory]
     [InlineData("en")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
+    [InlineData("ar")]
+    [InlineData("fr")]
     public async Task Translated_print_settings_fit_at_the_minimum_window_width(string language)
     {
         TestServices.EnsureInitialized(language);

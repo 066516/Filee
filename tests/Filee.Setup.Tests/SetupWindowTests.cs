@@ -115,15 +115,6 @@ public class SetupWindowTests
         Assert.Equal(model.Deck!.Slides.Count, slides.Slides.Count);
         Assert.Equal(model.Deck.Slides[0].MediaFor(language).Source, slides.Media.Source);
         Assert.True(slides.Media.HasPicture);
-        if (language is "pt-PT" or "pt-BR")
-        {
-            // Browser and flip keep the complete shared desktop interaction; crop uses its own Portuguese media.
-            Assert.Equal(model.Deck.Slides[0].Media, slides.Media.Source);
-            slides.GoTo(3);
-            Pump();
-            Assert.Contains($"/{language}/crop.webp", slides.Media.Source!.AbsolutePath);
-            Assert.Equal(model.Deck.Slides[3].MediaFor(language).PosterFrame, slides.Media.PosterFrame);
-        }
         Check(window, $"setup-3-installing-{language}.png");
 
         runner.Result = new InstallResult(new LaunchRequest(@"C:\Program Files\Filee\Takaconv.exe", "--install-engines=pandoc"),
@@ -143,7 +134,7 @@ public class SetupWindowTests
         try
         {
             app.RequestedThemeVariant = ThemeVariant.Dark;
-            foreach (var language in new[] { "en", "ko", "ru", "ar", "pt-PT", "pt-BR" })
+            foreach (var language in new[] { "en", "ar", "fr" })
             {
                 var (model, _, runner) = Model(language);
                 var window = Show(model);
@@ -160,9 +151,9 @@ public class SetupWindowTests
                 Check(window, $"setup-dark-4-done-{language}.png");
                 window.Close();
             }
-            var (uninstall, _, _) = Model("ko", uninstall: true);
+            var (uninstall, _, _) = Model("ar", uninstall: true);
             var card = Show(uninstall);
-            Check(card, "uninstall-dark-1-confirm-ko.png");
+            Check(card, "uninstall-dark-1-confirm-ar.png");
             card.Close();
         }
         finally
@@ -174,7 +165,7 @@ public class SetupWindowTests
     [AvaloniaFact]
     public async Task Updates_and_failures_render()
     {
-        foreach (var language in new[] { "en", "ko", "ru", "ar", "pt-PT", "pt-BR" })
+        foreach (var language in new[] { "en", "ar", "fr" })
         {
             var (model, texts, runner) = Model(language, update: true);
             var window = Show(model);
@@ -195,7 +186,7 @@ public class SetupWindowTests
     [AvaloniaFact]
     public async Task Uninstall_renders_and_keeps_the_settings_by_default()
     {
-        foreach (var language in new[] { "en", "ko", "ru", "zh-CN", "ar", "pt-PT", "pt-BR" })
+        foreach (var language in new[] { "en", "ar", "fr" })
         {
             var (model, _, runner) = Model(language, uninstall: true);
             var window = Show(model);
@@ -276,8 +267,8 @@ public class SetupWindowTests
     }
 
     [AvaloniaTheory]
-    [InlineData("ko")]
     [InlineData("ar")]
+    [InlineData("fr")]
     public void Picking_a_language_changes_every_text_and_is_handed_to_filee(string language)
     {
         var (model, texts, _) = Model("en");

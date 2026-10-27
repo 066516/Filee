@@ -13,11 +13,11 @@ public class InstallerTests
     [Fact]
     public void Installer_choices_are_parsed()
     {
-        var options = CommandLine.Parse(["--install-engines=pandoc, FFmpeg,pandoc", "--start-with-windows=off", "--context-menu=on", "--language=ko"]);
+        var options = CommandLine.Parse(["--install-engines=pandoc, FFmpeg,pandoc", "--start-with-windows=off", "--context-menu=on", "--language=fr"]);
         Assert.Equal(["pandoc", "ffmpeg"], options.InstallEngines);
         Assert.False(options.StartWithWindows);
         Assert.True(options.ContextMenu);
-        Assert.Equal("ko", options.Language);
+        Assert.Equal("fr", options.Language);
         Assert.False(options.Background);
         Assert.Empty(options.ConvertFiles);
 

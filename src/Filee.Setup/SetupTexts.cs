@@ -75,6 +75,8 @@ public sealed class SetupTexts
 
     private static string? Match(string name)
     {
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
         var normalized = name.Trim().Replace('_', '-');
         // "fr" and "fr-CA", "ar" and "ar-EG"; any other language is not shipped and resolves to English (Resolve).
         foreach (var (code, _) in Languages)

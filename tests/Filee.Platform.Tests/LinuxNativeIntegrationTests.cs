@@ -31,7 +31,7 @@ public sealed class LinuxNativeIntegrationTests
             }
             var data = Path.Combine(root, "data");
             new LinuxDesktopIntegration(Path.Combine(root, "config"), data).SetContextMenu(true, target, "Convert");
-            var processInfo = new ProcessStartInfo(Path.Combine(data, "nautilus", "scripts", "Filee"))
+            var processInfo = new ProcessStartInfo(Path.Combine(data, "nautilus", "scripts", "Takaconv"))
             {
                 UseShellExecute = false,
                 WorkingDirectory = root,

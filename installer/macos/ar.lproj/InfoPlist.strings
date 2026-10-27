@@ -1,0 +1,3 @@
+/* macOS permission explanations; the operating system chooses the bundle localization. */
+"NSAppleEventsUsageDescription" = "يقرأ Takaconv الملفات المحددة في Finder عند استخدام اختصار التحويل.";
+"NSInputMonitoringUsageDescription" = "يكتشف Takaconv اختصار التحويل وإيماءة السحب لإظهار قائمة التحويل.";
