@@ -26,15 +26,15 @@ public class RenderTests
     public static TheoryData<string, string> Pages => new()
     {
         { "home", "de" }, { "general", "de" }, { "triggers", "de" }, { "toolbar", "de" },
-        { "presets", "de" }, { "theme", "de" }, { "engines", "de" }, { "about", "de" }, { "watch", "de" },
+        { "presets", "de" }, { "theme", "de" }, { "engines", "de" }, { "watch", "de" },
         { "home", "tr" }, { "general", "tr" }, { "triggers", "tr" }, { "toolbar", "tr" },
-        { "presets", "tr" }, { "theme", "tr" }, { "engines", "tr" }, { "about", "tr" }, { "watch", "tr" },
+        { "presets", "tr" }, { "theme", "tr" }, { "engines", "tr" }, { "watch", "tr" },
         { "home", "ar" }, { "general", "ar" }, { "triggers", "ar" }, { "toolbar", "ar" },
-        { "presets", "ar" }, { "theme", "ar" }, { "engines", "ar" }, { "about", "ar" }, { "watch", "ar" },
+        { "presets", "ar" }, { "theme", "ar" }, { "engines", "ar" }, { "watch", "ar" },
         { "home", "th" }, { "general", "th" }, { "triggers", "th" }, { "toolbar", "th" },
-        { "presets", "th" }, { "theme", "th" }, { "engines", "th" }, { "about", "th" }, { "watch", "th" },
+        { "presets", "th" }, { "theme", "th" }, { "engines", "th" }, { "watch", "th" },
         { "home", "en" }, { "general", "en" }, { "triggers", "en" }, { "toolbar", "en" },
-        { "presets", "en" }, { "theme", "en" }, { "engines", "en" }, { "about", "en" },
+        { "presets", "en" }, { "theme", "en" }, { "engines", "en" },
         { "general", "ko" }, { "toolbar", "ko" }, { "home", "ko" },
         { "general", "zh-CN" }, { "presets", "zh-CN" }, { "toolbar", "zh-CN" }, { "home", "zh-CN" },
         { "general", "zh-TW" }, { "presets", "zh-TW" }, { "toolbar", "zh-TW" }, { "home", "zh-TW" },
@@ -44,13 +44,13 @@ public class RenderTests
         { "home", "fr" }, { "general", "fr" }, { "toolbar", "fr" }, { "presets", "fr" }, { "engines", "fr" },
         { "home", "hi" }, { "general", "hi" }, { "toolbar", "hi" }, { "presets", "hi" }, { "engines", "hi" },
         { "home", "ja" }, { "general", "ja" }, { "triggers", "ja" }, { "toolbar", "ja" },
-        { "presets", "ja" }, { "theme", "ja" }, { "engines", "ja" }, { "about", "ja" }, { "watch", "ja" },
+        { "presets", "ja" }, { "theme", "ja" }, { "engines", "ja" }, { "watch", "ja" },
         { "home", "ru" }, { "general", "ru" }, { "triggers", "ru" }, { "toolbar", "ru" }, { "presets", "ru" },
-        { "theme", "ru" }, { "engines", "ru" }, { "about", "ru" }, { "watch", "ru" },
+        { "theme", "ru" }, { "engines", "ru" }, { "watch", "ru" },
         { "home", "pt-PT" }, { "general", "pt-PT" }, { "triggers", "pt-PT" }, { "toolbar", "pt-PT" },
-        { "presets", "pt-PT" }, { "theme", "pt-PT" }, { "engines", "pt-PT" }, { "about", "pt-PT" }, { "watch", "pt-PT" },
+        { "presets", "pt-PT" }, { "theme", "pt-PT" }, { "engines", "pt-PT" }, { "watch", "pt-PT" },
         { "home", "pt-BR" }, { "general", "pt-BR" }, { "triggers", "pt-BR" }, { "toolbar", "pt-BR" },
-        { "presets", "pt-BR" }, { "theme", "pt-BR" }, { "engines", "pt-BR" }, { "about", "pt-BR" }, { "watch", "pt-BR" },
+        { "presets", "pt-BR" }, { "theme", "pt-BR" }, { "engines", "pt-BR" }, { "watch", "pt-BR" },
         { "home", "ne" }, { "general", "ne" }, { "toolbar", "ne" }, { "presets", "ne" }, { "engines", "ne" },
     };
 
@@ -945,80 +945,6 @@ public class RenderTests
     [InlineData("ar")]
     [InlineData("pt-PT")]
     [InlineData("pt-BR")]
-    public void Sponsor_window_renders(string language)
-    {
-        TestServices.EnsureInitialized(language);
-        var window = Filee.App.Views.SponsorWindow.Create(AppHost.Get<Filee.Core.Localization.ILocalizer>());
-        window.Show();
-        Pump();
-        Save(window, $"window-sponsor-{language}.png");
-        window.Close();
-    }
-
-    [AvaloniaTheory]
-    [InlineData("en")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
-    public void Sponsor_window_with_supporters_renders(string language)
-    {
-        TestServices.EnsureInitialized(language);
-        var window = Filee.App.Views.SponsorWindow.Create(AppHost.Get<Filee.Core.Localization.ILocalizer>());
-        var view = window.Supporters;
-        view.Show(new SupporterList(
-            [new Supporter("Acme", "https://acme.example", "acme.png"), new Supporter("Globex", "https://globex.example")],
-            [new("Kim"), new("Lee"), new("Park")]), _ => Logo());
-        window.Show();
-        Pump();
-        CheckAcknowledgement(window);
-        Save(window, $"window-sponsor-supporters-{language}.png");
-        window.Close();
-
-        using var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<Filee.Core.Localization.ILocalizer>(), AppHost.Get<UpdateService>());
-        vm.Navigate("about");
-        var main = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
-        main.Show();
-        Pump();
-        var about = main.GetVisualDescendants().OfType<Filee.App.Views.Pages.AboutPage>().Single();
-        about.Supporters.Show(new SupporterList(
-            [new Supporter("Acme", "https://acme.example", "acme.png"), new Supporter("Globex", "https://globex.example")],
-            [new("Kim"), new("Lee"), new("Park")]), _ => Logo());
-        Pump();
-        CheckAcknowledgement(main);
-        Save(main, $"page-about-supporters-{language}.png");
-        main.Close();
-
-        static void CheckAcknowledgement(Window target)
-        {
-            var thanks = AppHost.Get<Filee.Core.Localization.ILocalizer>()["sponsor.thanks"];
-            var labels = target.GetVisualDescendants().OfType<TextBlock>()
-                .Where(t => t.IsEffectivelyVisible && t.Text == thanks).ToArray();
-            Assert.NotEmpty(labels);
-            Assert.All(labels, text => Assert.True(text.TextLayout.Width <= text.Bounds.Width + 1 &&
-                                                    text.TextLayout.Height <= text.Bounds.Height + 1,
-                $"Acknowledgement is clipped: {thanks}"));
-        }
-
-        // A stand-in logo: a wide coloured mark like a company's.
-        static Avalonia.Media.Imaging.Bitmap Logo()
-        {
-            var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new Avalonia.PixelSize(120, 32));
-            using (var context = bitmap.CreateDrawingContext())
-            {
-                context.DrawRectangle(new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#3B6FD8")), null, new Avalonia.Rect(0, 4, 24, 24), 6, 6);
-                context.DrawRectangle(new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#7A8699")), null, new Avalonia.Rect(32, 10, 84, 12), 3, 3);
-            }
-            return bitmap;
-        }
-    }
-
-    [AvaloniaTheory]
-    [InlineData("en")]
-    [InlineData("ja")]
-    [InlineData("ko")]
-    [InlineData("ru")]
-    [InlineData("ar")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
     public void First_run_engine_setup_renders(string language)
     {
         TestServices.EnsureInitialized(language);
@@ -1645,12 +1571,6 @@ public class RenderTests
             Save(window, $"sidebar-update-downloading-{language}.png");
             updates.Step = UpdateStep.Idle;
             notice.Close();
-
-            var feedback = new FeedbackNoticeWindow();
-            feedback.Show();
-            Pump();
-            Save(feedback, $"feedback-notice-{language}.png");
-            feedback.Close();
         }
         finally
         {
@@ -2367,24 +2287,6 @@ public class RenderTests
         Pump();
         Save(dialog, $"window-close-{language}.png");
         dialog.Close();
-    }
-
-    [AvaloniaTheory]
-    [InlineData("en")]
-    [InlineData("ja")]
-    [InlineData("ko")]
-    [InlineData("zh-CN")]
-    [InlineData("ru")]
-    [InlineData("ar")]
-    public void Format_request_notice_renders(string language)
-    {
-        TestServices.EnsureInitialized(language);
-        var loc = AppHost.Get<ILocalizer>();
-        var notice = new FormatRequestNoticeWindow([".ncm"], loc.Format("format_request.notice_title", ".ncm"));
-        notice.Show();
-        Pump();
-        Save(notice, $"window-format-request-{language}.png");
-        notice.Close();
     }
 
     [AvaloniaTheory]

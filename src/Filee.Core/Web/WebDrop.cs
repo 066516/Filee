@@ -111,7 +111,7 @@ public sealed class WebDrop : IDisposable
     }
 
     /// <summary>%TEMP%\Filee\web: originals that aren't kept are saved here and deleted after their conversion.</summary>
-    public static string DefaultWorkRoot => Path.Combine(Path.GetTempPath(), "Filee", "web");
+    public static string DefaultWorkRoot => Path.Combine(Path.GetTempPath(), "Takaconv", "web");
 
     /// <summary>This drop's own folder inside the work root.</summary>
     public string WorkFolder { get; }

@@ -1,8 +1,8 @@
 // What this program is when it starts. With a payload it is Setup. Without one it is the uninstaller only under the
-// uninstaller's name (uninstall.exe: what Setup writes next to Filee.exe, and the copy it runs from %TEMP%), under the
-// build output's name (Filee.Setup.exe, a development build) or with /UNINSTALL. Any other program without a payload is
+// uninstaller's name (uninstall.exe: what Setup writes next to Takaconv.exe, and the copy it runs from %TEMP%), under the
+// build output's name (Takaconv.Setup.exe, a development build) or with /UNINSTALL. Any other program without a payload is
 // a Setup.exe whose download didn't finish: the payload's trailer is the last part of the file (only the signature
-// comes after it), so a cut file has none. Run as the uninstaller, it said Filee isn't installed in the Downloads
+// comes after it), so a cut file has none. Run as the uninstaller, it said Takaconv isn't installed in the Downloads
 // folder (#599).
 
 using Filee.Setup.Installation;
@@ -25,8 +25,8 @@ internal enum StartMode
 /// <param name="Problem">What is wrong, for the log (<see cref="StartMode.Damaged"/>, <see cref="StartMode.Incomplete"/>).</param>
 internal sealed record SetupStart(StartMode Mode, SetupPayload? Payload = null, string? Problem = null)
 {
-    /// <summary>The build output's name. Releases rename it (Filee-&lt;version&gt;-win-Setup.exe, uninstall.exe).</summary>
-    public const string DevelopmentExe = "Filee.Setup.exe";
+    /// <summary>The build output's name. Releases rename it (Takaconv-&lt;version&gt;-win-Setup.exe, uninstall.exe).</summary>
+    public const string DevelopmentExe = "Takaconv.Setup.exe";
 
     /// <param name="uninstall">/UNINSTALL: uninstall whatever the program carries.</param>
     public static SetupStart Of(string exe, bool uninstall)

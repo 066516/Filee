@@ -16,10 +16,10 @@ public class ReleaseNotesTests
 
         <!-- update
         level: required
-        ko: 엑셀 페이지 나누기가 PDF에 반영돼요
-        ko: 한글 수식이 제대로 나와요
+        ar: تم نقل فواصل صفحات Excel إلى PDF
+        ar: معادلات هانغل تظهر كما هي
         en: Excel page breaks carry over to PDF
-        zh: Excel 分页符会保留到 PDF 中
+        fr: Les sauts de page Excel passent dans le PDF
         -->
 
         ### Fixed
@@ -31,26 +31,28 @@ public class ReleaseNotesTests
         var note = ReleaseNotes.Parse("1.10.3", Body);
 
         Assert.Equal(UpdateLevel.Required, note.Level);
-        Assert.Equal(["엑셀 페이지 나누기가 PDF에 반영돼요", "한글 수식이 제대로 나와요"], note.In("ko"));
-        Assert.Equal(["Excel 分页符会保留到 PDF 中"], note.In("zh-CN"));
-        Assert.Equal(["Excel page breaks carry over to PDF"], note.In("ja")); // no Japanese: English
+        Assert.Equal(["تم نقل فواصل صفحات Excel إلى PDF", "معادلات هانغل تظهر كما هي"], note.In("ar"));
+        Assert.Equal(["Les sauts de page Excel passent dans le PDF"], note.In("fr"));
+        Assert.Equal(["Excel page breaks carry over to PDF"], note.In("ko")); // not a language Takaconv ships: English
     }
 
     [Fact]
-    public void Every_language_filee_ships_has_its_lines_and_unknown_ones_are_skipped()
+    public void Every_language_takaconv_ships_keeps_its_lines_and_the_others_read_english()
     {
         var note = ReleaseNotes.Parse("1.12.0", """
             <!-- update
-            en: Polish translation
+            en: Arabic translation
+            ar: الترجمة العربية
+            fr: Traduction française
             pl: Język polski
-            pt-BR: Português do Brasil
             xx: from a newer Filee
             -->
             """);
 
-        Assert.Equal(["Język polski"], note.In("pl"));
-        Assert.Equal(["Português do Brasil"], note.In("pt-BR"));
-        Assert.Equal(["Polish translation"], note.In("xx")); // not a Filee language: English
+        Assert.Equal(["الترجمة العربية"], note.In("ar"));
+        Assert.Equal(["Traduction française"], note.In("fr"));
+        Assert.Equal(["Arabic translation"], note.In("pl")); // no longer a shipped language: English
+        Assert.Equal(["Arabic translation"], note.In("xx")); // not a Takaconv language: English
     }
 
     [Fact]
@@ -59,7 +61,7 @@ public class ReleaseNotesTests
         var note = ReleaseNotes.Parse("1.9.0", "### New\n\n- Something");
 
         Assert.Equal(UpdateLevel.Recommended, note.Level);
-        Assert.Empty(note.In("ko"));
+        Assert.Empty(note.In("ar"));
     }
 
     [Fact]
@@ -68,8 +70,8 @@ public class ReleaseNotesTests
         var notes = ReleaseNotes.Between(
         [
             ("v9.9.12", "<!-- update\nlevel: optional\n-->"),   // newer than the latest the check found: not yet
-            ("v9.9.11", "<!-- update\nlevel: optional\nko: 새 기능\n-->"),
-            ("v9.9.10", "<!-- update\nlevel: required\nko: 중요한 수정\n-->"),
+            ("v9.9.11", "<!-- update\nlevel: optional\nar: ميزة جديدة\n-->"),
+            ("v9.9.10", "<!-- update\nlevel: required\nar: إصلاح مهم\n-->"),
             ("v9.9.9", "no block"),
             ("v1.0.0", "<!-- update\nlevel: required\n-->"),    // older than this version
         ], current: "9.9.9", latest: "9.9.11");
@@ -90,12 +92,12 @@ public class ReleaseNotesTests
         Assert.Equal("9.9.11", updates.LatestVersion);
         Assert.Equal(["9.9.11", "9.9.10"], updates.Notes.Select(n => n.Version));
         Assert.True(updates.IsRequired);
-        Assert.Contains("• 중요한 수정", UpdateTexts.Changes(updates, new KoreanOnly()));
+        Assert.Contains("• إصلاح مهم", UpdateTexts.Changes(updates, new ArabicOnly()));
     }
 
-    private sealed class KoreanOnly : Filee.Core.Localization.ILocalizer
+    private sealed class ArabicOnly : Filee.Core.Localization.ILocalizer
     {
-        public string Language => "ko";
+        public string Language => "ar";
         public string this[string key] => key;
         public string Format(string key, params object[] args) => key;
         public event EventHandler? LanguageChanged { add { } remove { } }
@@ -111,13 +113,13 @@ public class ReleaseNotesTests
         {
             var path = request.RequestUri!.AbsolutePath;
             object? answer = path.EndsWith("/releases/latest", StringComparison.Ordinal)
-                ? Release("v9.9.11", "<!-- update\nlevel: optional\nko: 새 기능\n-->")
+                ? Release("v9.9.11", "<!-- update\nlevel: optional\nar: ميزة جديدة\n-->")
                 : path.EndsWith("/releases", StringComparison.Ordinal)
                     ? new[]
                     {
                         Release("v9.9.12", "<!-- update\nlevel: optional\n-->", draft: true),
-                        Release("v9.9.11", "<!-- update\nlevel: optional\nko: 새 기능\n-->"),
-                        Release("v9.9.10", "<!-- update\nlevel: required\nko: 중요한 수정\n-->"),
+                        Release("v9.9.11", "<!-- update\nlevel: optional\nar: ميزة جديدة\n-->"),
+                        Release("v9.9.10", "<!-- update\nlevel: required\nar: إصلاح مهم\n-->"),
                         Release("v1.0.0", "old"),
                     }
                     : null;

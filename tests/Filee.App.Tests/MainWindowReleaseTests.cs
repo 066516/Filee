@@ -85,7 +85,7 @@ public class MainWindowReleaseTests
         main.Close(); // again, e.g. a test cleaning up: harmless
         Pump();
         // The old view model no longer follows the language (it would rebuild its page).
-        AppHost.Get<LocalizationService>().SetLanguage("ko");
+        AppHost.Get<LocalizationService>().SetLanguage("fr");
         Assert.Same(page, model.CurrentPage);
         AppHost.Get<LocalizationService>().SetLanguage("en");
         return (new(main), new(model), new(page));

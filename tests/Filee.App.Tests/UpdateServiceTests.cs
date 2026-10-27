@@ -377,7 +377,11 @@ public class UpdateServiceTests
     public async Task Update_installs_the_release_that_is_latest_now_not_the_one_found_earlier()
     {
         // An earlier check found 9.9.9; 9.9.10 came out before Update was pressed.
-        var updates = new UpdateService(NullLogger<UpdateService>.Instance, new LatestRelease("v9.9.10")) { TargetPlatform = "win" };
+        var updates = new UpdateService(NullLogger<UpdateService>.Instance, new LatestRelease("v9.9.10"))
+        {
+            TargetPlatform = "win",
+            Repository = "https://github.com/example/example", // this build names none (see A_private_build_names_no_repository)
+        };
         updates.UseRelease(new UpdateService.ReleaseFile("Filee-9.9.9-win-Setup.exe", Base + "Filee-9.9.9-win-Setup.exe", 1),
             new UpdateService.ReleaseFile("Filee-9.9.9-SHA256SUMS.txt", Base + "Filee-9.9.9-SHA256SUMS.txt", 1));
         var announced = 0;
@@ -407,11 +411,12 @@ public class UpdateServiceTests
         }
     }
 
+    /// <summary>Takaconv ships without FileeRepositoryUrl: nothing to check, and nothing upstream to install.</summary>
     [Fact]
-    public void Download_page_is_the_latest_release()
+    public void A_private_build_names_no_repository()
     {
-        Assert.EndsWith("/releases/latest", UpdateService.LatestReleaseUrl);
-        Assert.StartsWith(UpdateService.RepositoryUrl.TrimEnd('/'), UpdateService.LatestReleaseUrl);
+        Assert.False(UpdateService.HasRepository);
+        Assert.Equal("", UpdateService.RepositoryUrl);
     }
 
     [Theory]
@@ -434,7 +439,7 @@ public class UpdateServiceTests
         Assert.False(UpdateService.IsLinuxInstalled(folder));
 
         var marker = Path.Combine(folder, ".filee-package");
-        File.WriteAllText(marker, "com.filee.app\n");
+        File.WriteAllText(marker, "com.takaful.takaconv\n");
         Assert.True(UpdateService.IsLinuxInstalled(folder));
 
         File.WriteAllText(marker, "org.other.app");
@@ -494,17 +499,17 @@ public class UpdateServiceTests
 
         var tarBytes = CreateTarGz(writer =>
         {
-            AddFileEntry(writer, "Filee-1.0.0-linux-x64/Filee", "#!/bin/sh\necho app\n");
-            AddFileEntry(writer, "Filee-1.0.0-linux-x64/install.sh", "#!/bin/sh\necho installer\n");
-            AddFileEntry(writer, "Filee-1.0.0-linux-x64/filee.png", "fake png data");
+            AddFileEntry(writer, "Takaconv-1.0.0-linux-x64/Takaconv", "#!/bin/sh\necho app\n");
+            AddFileEntry(writer, "Takaconv-1.0.0-linux-x64/install.sh", "#!/bin/sh\necho installer\n");
+            AddFileEntry(writer, "Takaconv-1.0.0-linux-x64/takaconv.png", "fake png data");
         });
         File.WriteAllBytes(archiveFile, tarBytes);
 
         var payloadDir = UpdateService.ExtractLinuxArchive(archiveFile, destFolder);
 
-        Assert.Equal(Path.Combine(destFolder, "Filee-1.0.0-linux-x64"), payloadDir);
+        Assert.Equal(Path.Combine(destFolder, "Takaconv-1.0.0-linux-x64"), payloadDir);
         var installSh = Path.Combine(payloadDir, "install.sh");
-        var fileeExe = Path.Combine(payloadDir, "Filee");
+        var fileeExe = Path.Combine(payloadDir, "Takaconv");
         Assert.True(File.Exists(installSh));
         Assert.True(File.Exists(fileeExe));
 
@@ -558,7 +563,7 @@ public class UpdateServiceTests
 
         var tarBytes = CreateTarGz(writer =>
         {
-            AddSymlinkEntry(writer, "Filee-1.0.0/escape_link", "/etc/passwd");
+            AddSymlinkEntry(writer, "Takaconv-1.0.0/escape_link", "/etc/passwd");
         });
         File.WriteAllBytes(archiveFile, tarBytes);
 
@@ -574,7 +579,7 @@ public class UpdateServiceTests
 
         var tarBytes = CreateTarGz(writer =>
         {
-            AddFileEntry(writer, "Filee-1.0.0/filee.png", "png data");
+            AddFileEntry(writer, "Takaconv-1.0.0/takaconv.png", "png data");
         });
         File.WriteAllBytes(archiveFile, tarBytes);
 
@@ -586,9 +591,9 @@ public class UpdateServiceTests
     {
         var tarBytes = CreateTarGz(writer =>
         {
-            AddFileEntry(writer, "Filee-9.9.9-linux-x64/Filee", "#!/bin/sh\nexit 0\n");
-            AddFileEntry(writer, "Filee-9.9.9-linux-x64/install.sh", "#!/bin/sh\nexit 0\n");
-            AddFileEntry(writer, "Filee-9.9.9-linux-x64/filee.png", "png data");
+            AddFileEntry(writer, "Takaconv-9.9.9-linux-x64/Takaconv", "#!/bin/sh\nexit 0\n");
+            AddFileEntry(writer, "Takaconv-9.9.9-linux-x64/install.sh", "#!/bin/sh\nexit 0\n");
+            AddFileEntry(writer, "Takaconv-9.9.9-linux-x64/takaconv.png", "png data");
         });
         var hash = Sha256(tarBytes);
         var network = new FakeLinuxRelease(tarBytes, hash, "Filee-9.9.9-linux-x64.tar.gz", "9.9.9");
@@ -630,7 +635,7 @@ public class UpdateServiceTests
         Assert.Contains("rm -rf \"$5\"", helperPsi.ArgumentList[1]);
         Assert.Equal(Environment.ProcessId.ToString(), helperPsi.ArgumentList[3]);
         Assert.EndsWith("install.sh", helperPsi.ArgumentList[4]);
-        Assert.Equal(Path.Combine(mockInstallDir, "Filee"), helperPsi.ArgumentList[5]);
+        Assert.Equal(Path.Combine(mockInstallDir, "Takaconv"), helperPsi.ArgumentList[5]);
         Assert.EndsWith(".log", helperPsi.ArgumentList[6]);
         Assert.EndsWith(".update-failed", helperPsi.ArgumentList[8]);
 
@@ -642,9 +647,9 @@ public class UpdateServiceTests
     {
         var tarBytes = CreateTarGz(writer =>
         {
-            AddFileEntry(writer, "Filee-9.9.9-linux-x64/Filee", "#!/bin/sh\nexit 0\n");
-            AddFileEntry(writer, "Filee-9.9.9-linux-x64/install.sh", "#!/bin/sh\nexit 0\n");
-            AddFileEntry(writer, "Filee-9.9.9-linux-x64/filee.png", "png data");
+            AddFileEntry(writer, "Takaconv-9.9.9-linux-x64/Takaconv", "#!/bin/sh\nexit 0\n");
+            AddFileEntry(writer, "Takaconv-9.9.9-linux-x64/install.sh", "#!/bin/sh\nexit 0\n");
+            AddFileEntry(writer, "Takaconv-9.9.9-linux-x64/takaconv.png", "png data");
         });
         var hash = Sha256(tarBytes);
         var network = new FakeLinuxRelease(tarBytes, hash, "Filee-9.9.9-linux-x64.tar.gz", "9.9.9");
@@ -810,8 +815,8 @@ public class UpdateServiceTests
                              | UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
             var setgidMode = UnixFileMode.SetGroup | UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
                              | UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
-            AddFileEntry(writer, "Filee-9.9.9-linux-x64/Filee", "#!/bin/sh\nexit 0\n", setuidMode);
-            AddFileEntry(writer, "Filee-9.9.9-linux-x64/install.sh", "#!/bin/sh\nexit 0\n", setgidMode);
+            AddFileEntry(writer, "Takaconv-9.9.9-linux-x64/Takaconv", "#!/bin/sh\nexit 0\n", setuidMode);
+            AddFileEntry(writer, "Takaconv-9.9.9-linux-x64/install.sh", "#!/bin/sh\nexit 0\n", setgidMode);
         });
         var archiveFile = Path.Combine(TempFolder(), "payload.tar.gz");
         File.WriteAllBytes(archiveFile, tarBytes);
@@ -821,7 +826,7 @@ public class UpdateServiceTests
 
         if (OperatingSystem.IsLinux())
         {
-            var fileeMode = File.GetUnixFileMode(Path.Combine(payloadDir, "Filee"));
+            var fileeMode = File.GetUnixFileMode(Path.Combine(payloadDir, "Takaconv"));
             var installMode = File.GetUnixFileMode(Path.Combine(payloadDir, "install.sh"));
 
             Assert.False(fileeMode.HasFlag(UnixFileMode.SetUser), "setuid bit must be stripped");

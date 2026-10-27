@@ -6,9 +6,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <AssemblyName>filee-cli</AssemblyName>
+    <AssemblyName>takaconv-cli</AssemblyName>
     <RootNamespace>Filee.Cli</RootNamespace>
-    <ApplicationIcon>..\Filee.App\Assets\Icons\filee.ico</ApplicationIcon>
+    <ApplicationIcon>..\Filee.App\Assets\Icons\takaconv.ico</ApplicationIcon>
     <!-- The Recycle Bin is IFileOperation, a COM interface (Filee.Platform.Windows). -->
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
   </PropertyGroup>

@@ -28,11 +28,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     private UpdateProgressWindow? _updateProgress;
     internal UpdateProgressWindow? UpdateProgress => _updateProgress;
     private EngineUpdateNoticeWindow? _engineNotice;
-    private FeedbackNoticeWindow? _feedbackNotice;
-    private FormatRequestNoticeWindow? _formatRequestNotice;
     private WhatsNewWindow? _whatsNew;
-
-    internal FormatRequestNoticeWindow? FormatRequestNotice => _formatRequestNotice;
 
     private CropOverlayWindow? _cropOverlay;
     private ClipWindow? _clipWindow;
@@ -84,7 +80,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
             ShowInTaskbar = false,
             WindowDecorations = WindowDecorations.None,
             WindowStartupLocation = WindowStartupLocation.CenterScreen,
-            Title = "Filee",
+            Title = "Takaconv",
         };
         host.Show();
         try
@@ -490,17 +486,6 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         notice.Show();
     }
 
-    /// <summary>Shows the one-time "Is Filee helping you?" card in the bottom-right corner.</summary>
-    public void ShowFeedbackNotice()
-    {
-        if (_feedbackNotice is not null)
-            return;
-        _feedbackNotice = new FeedbackNoticeWindow();
-        PrepareWindow(_feedbackNotice);
-        _feedbackNotice.Closed += (_, _) => _feedbackNotice = null;
-        _feedbackNotice.Show();
-    }
-
     /// <summary>Shows the "Filee is running as administrator" card in the bottom-right corner (once per run).</summary>
     public void ShowElevationNotice()
     {
@@ -513,23 +498,6 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     }
 
     private bool _elevationNoticeShown;
-
-    /// <summary>
-    /// Shows the "Filee can't convert .ncm files yet" card with "Request this format", replacing an earlier one.
-    /// </summary>
-    public void ShowFormatRequestNotice(IReadOnlyList<string> extensions)
-    {
-        _formatRequestNotice?.Close();
-        var notice = new FormatRequestNoticeWindow(extensions, loc.Format("format_request.notice_title", FormatRequest.Label(extensions)));
-        PrepareWindow(notice);
-        notice.Closed += (_, _) =>
-        {
-            if (_formatRequestNotice == notice)
-                _formatRequestNotice = null;
-        };
-        _formatRequestNotice = notice;
-        notice.Show();
-    }
 
     /// <summary>Opens the preset popup. Returns true when the user saved (the preset object was updated).</summary>
     public async Task<bool> EditPresetAsync(Preset preset, Window? owner)

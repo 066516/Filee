@@ -102,44 +102,21 @@ public sealed class LocalizationService : ILocalizer
     internal static string Resolve(string setting, Func<string> osLanguage)
     {
         if (!string.Equals(setting, "auto", StringComparison.OrdinalIgnoreCase) &&
-            Languages.Any(l => l.Code.Equals(setting, StringComparison.OrdinalIgnoreCase)))
-            return Languages.First(l => l.Code.Equals(setting, StringComparison.OrdinalIgnoreCase)).Code;
+            Languages.FirstOrDefault(l => l.Code.Equals(setting, StringComparison.OrdinalIgnoreCase)) is { Code: var chosen })
+            return chosen;
 
-        var ui = osLanguage();
-        if (ui.Equals("de", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("de-", StringComparison.OrdinalIgnoreCase))
-            return "de";
-        if (AppLanguages.PortugueseVariant(ui) is { } portuguese)
-            return portuguese;
-        if (ui.Equals("tr", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("tr-", StringComparison.OrdinalIgnoreCase))
-            return "tr";
-        if (ui.StartsWith("ja", StringComparison.OrdinalIgnoreCase))
-            return "ja";
-        if (ui.StartsWith("ko", StringComparison.OrdinalIgnoreCase))
-            return "ko";
-        if (ui.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-            return AppLanguages.IsTraditionalChinese(ui) ? "zh-TW" : "zh-CN";
-        if (ui.StartsWith("pl", StringComparison.OrdinalIgnoreCase))
-            return "pl";
-        if (ui.StartsWith("es", StringComparison.OrdinalIgnoreCase))
-            return "es";
-        if (ui.StartsWith("hi", StringComparison.OrdinalIgnoreCase))
-            return "hi";
-        if (ui.StartsWith("ru", StringComparison.OrdinalIgnoreCase))
-            return "ru";
-        // "ar" and every region ("ar-SA", "ar-EG", …), but not other codes starting with "ar".
-        if (ui.Equals("ar", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("ar-", StringComparison.OrdinalIgnoreCase))
-            return "ar";
-        // "fr" and every region ("fr-FR", "fr-CA", …), but not North Frisian "frr".
-        if (ui.Equals("fr", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("fr-", StringComparison.OrdinalIgnoreCase))
-            return "fr";
-        // "ne" and "ne-NP", but not Newari "new".
-        if (ui.Equals("ne", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("ne-", StringComparison.OrdinalIgnoreCase))
-            return "ne";
-        // "th" and "th-TH", but not Tharu "thl".
-        if (ui.Equals("th", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("th-", StringComparison.OrdinalIgnoreCase))
-            return "th";
-        return "en";
+        return Match(osLanguage()) ?? "en";
     }
+
+    /// <summary>
+    /// The shipped language a culture name speaks: "ar-SA" → "ar", "fr-CA" → "fr". Only the three Takaconv ships, so any
+    /// other system language (German, Japanese, Portuguese, …) has no match and the caller falls back to English.
+    /// </summary>
+    private static string? Match(string culture) =>
+        // "fr" and every region, but not North Frisian "frr"; "ar" and "ar-EG", but not other codes starting with "ar".
+        Languages.Select(l => l.Code).FirstOrDefault(code =>
+            culture.Equals(code, StringComparison.OrdinalIgnoreCase) ||
+            culture.StartsWith(code + "-", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Reads a translation file. Missing files yield an empty dictionary (English is used instead).
@@ -147,7 +124,7 @@ public sealed class LocalizationService : ILocalizer
     /// </summary>
     internal static Dictionary<string, string> LoadStrings(string code, IAssetLoader? loader = null)
     {
-        var uri = new Uri($"avares://Filee/Assets/i18n/{code}.json");
+        var uri = new Uri($"avares://Takaconv/Assets/i18n/{code}.json");
         if (!(loader?.Exists(uri) ?? AssetLoader.Exists(uri)))
             return [];
         using var stream = loader?.Open(uri) ?? AssetLoader.Open(uri);

@@ -137,13 +137,13 @@ public sealed class SetupBench : IDisposable
 
     public string InstallFolder => Paths.DefaultInstallFolder(InstallScope.Machine);
 
-    /// <summary>The published app: Filee.exe, the "filee" command, an engine and a few more files.</summary>
+    /// <summary>The published app: Takaconv.exe, the "filee" command, an engine and a few more files.</summary>
     private void WriteApp(Action<TempFolder, string>? app)
     {
-        _temp.Write(@"app\Filee.exe", "Filee 2");
-        _temp.Write(@"app\Filee.dll", new string('a', 20_000));
-        _temp.Write(@"app\cli\filee.cmd", "@\"%~dp0..\\filee-cli.exe\" %*");
-        _temp.Write(@"app\filee-cli.exe", "cli");
+        _temp.Write(@"app\Takaconv.exe", "Filee 2");
+        _temp.Write(@"app\Takaconv.dll", new string('a', 20_000));
+        _temp.Write(@"app\cli\takaconv.cmd", "@\"%~dp0..\\takaconv-cli.exe\" %*");
+        _temp.Write(@"app\takaconv-cli.exe", "cli");
         _temp.Write(@"app\engines\rhwp\rhwp.exe", "rhwp");
         _temp.Write(@"app\FileeExplorerMenu.dll", "menu");
         _temp.Write(@"app\FileeExplorerMenu.msix", "package");

@@ -1,5 +1,5 @@
-// Theme: light/dark, accent colour, softness (corner radius), the donut's opacity, reduce animations, and the window
-// size (UiZoom). Changes apply live.
+// Theme: light/dark, softness (corner radius), the donut's opacity, reduce animations, and the window size (UiZoom).
+// Changes apply live. Takaconv's colours are fixed by the company theme, so there is nothing here to recolour.
 
 using Avalonia;
 using Avalonia.Media;
@@ -19,7 +19,6 @@ public sealed partial class ThemePageViewModel : ObservableObject, IDisposable
     private readonly UserDataStore _store;
     private readonly ILocalizer _loc;
     private readonly bool _loading;
-    private bool _settingPresetOrMode;
 
     public ThemePageViewModel(UserDataStore store, ILocalizer loc, IPlatformServices platform)
     {
@@ -31,18 +30,7 @@ public sealed partial class ThemePageViewModel : ObservableObject, IDisposable
         Style = Styles.FirstOrDefault(s => s.Value == theme.Style) ?? Styles[0];
         Modes = Enum.GetValues<ThemeMode>().Select(m => new Choice<ThemeMode>(m, loc[$"theme.mode.{m}"])).ToList();
         Mode = Modes.First(m => m.Value == theme.Mode);
-        if (!string.IsNullOrEmpty(theme.PresetKey) &&
-            ThemeService.Presets.FirstOrDefault(p => string.Equals(p.Key, theme.PresetKey, StringComparison.OrdinalIgnoreCase)) is { } initialPreset)
-        {
-            var isDark = theme.Mode == ThemeMode.Dark ||
-                         (theme.Mode == ThemeMode.System && Application.Current?.ActualThemeVariant == ThemeVariant.Dark);
-            Accent = initialPreset.ActiveColor(isDark);
-        }
-        else
-        {
-            Accent = Color.TryParse(theme.Accent, out var c) ? c : Colors.MediumPurple;
-        }
-        AccentHex = $"#{Accent.R:X2}{Accent.G:X2}{Accent.B:X2}";
+        Accent = Color.Parse(SoftPalette.DefaultAccent);
         CornerRadius = theme.CornerRadius;
         DonutOpacity = Math.Round(Math.Clamp(store.Settings.Donut.Opacity, DonutSettings.MinOpacity, 1) * 100);
         ReduceMotion = theme.ReduceMotion ?? platform.PrefersReducedMotion;
@@ -62,27 +50,15 @@ public sealed partial class ThemePageViewModel : ObservableObject, IDisposable
 
     public IReadOnlyList<Choice<ThemeStyle>> Styles { get; }
     public IReadOnlyList<Choice<ThemeMode>> Modes { get; }
-    public IReadOnlyList<Color> Swatches { get; } = ThemeService.Swatches.Select(Color.Parse).ToList();
     public IReadOnlyList<DonutItem> PreviewItems { get; }
-
-    public sealed record PresetItem(string Key, string Name, Color Color);
-
-    public IReadOnlyList<PresetItem> PastelPresets =>
-        ThemeService.Presets.Select(p => new PresetItem(
-            p.Key,
-            _loc[$"theme.preset.{p.Key}"],
-            p.ActiveColor(IsDarkNow))).ToList();
-
-    private bool IsDarkNow =>
-        Mode?.Value == ThemeMode.Dark ||
-        (Mode?.Value == ThemeMode.System && Application.Current?.ActualThemeVariant == ThemeVariant.Dark);
 
     public bool IsMaterialYou => Style?.Value == ThemeStyle.MaterialYou;
 
     [ObservableProperty] private Choice<ThemeStyle> _style = null!;
     [ObservableProperty] private Choice<ThemeMode> _mode = null!;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(AccentBrush), nameof(PreviewBackdrop))] private Color _accent;
-    [ObservableProperty] private string _accentHex = "";
+
+    /// <summary>The fixed company accent, used by the preview donut.</summary>
+    [ObservableProperty] private Color _accent;
 
     public IBrush AccentBrush => new SolidColorBrush(Accent);
 
@@ -155,52 +131,8 @@ public sealed partial class ThemePageViewModel : ObservableObject, IDisposable
 
     partial void OnModeChanged(Choice<ThemeMode>? oldValue, Choice<ThemeMode> newValue)
     {
-        OnPropertyChanged(nameof(PastelPresets));
         if (!Choices.Restore(oldValue, newValue, v => Mode = v))
-        {
-            _settingPresetOrMode = true;
-            try
-            {
-                Save(t =>
-                {
-                    t.Mode = newValue.Value;
-                    if (!string.IsNullOrEmpty(t.PresetKey) &&
-                        ThemeService.Presets.FirstOrDefault(p => string.Equals(p.Key, t.PresetKey, StringComparison.OrdinalIgnoreCase)) is { } preset)
-                    {
-                        var isDark = newValue.Value == ThemeMode.Dark ||
-                                     (newValue.Value == ThemeMode.System && Application.Current?.ActualThemeVariant == ThemeVariant.Dark);
-                        var newColor = preset.ActiveColor(isDark);
-                        t.Accent = $"#{newColor.R:X2}{newColor.G:X2}{newColor.B:X2}";
-                        Accent = newColor;
-                    }
-                });
-            }
-            finally
-            {
-                _settingPresetOrMode = false;
-            }
-        }
-    }
-
-    [RelayCommand]
-    private void PickPreset(PresetItem preset)
-    {
-        _settingPresetOrMode = true;
-        try
-        {
-            Save(t => t.PresetKey = preset.Key);
-            Accent = preset.Color;
-        }
-        finally
-        {
-            _settingPresetOrMode = false;
-        }
-    }
-
-    [RelayCommand]
-    private void PickSwatch(Color color)
-    {
-        Accent = color;
+            Save(t => t.Mode = newValue.Value);
     }
 
     [RelayCommand]
@@ -211,34 +143,6 @@ public sealed partial class ThemePageViewModel : ObservableObject, IDisposable
             Style = match;
     }
 
-    partial void OnAccentChanged(Color value)
-    {
-        var hex = $"#{value.R:X2}{value.G:X2}{value.B:X2}";
-        if (!string.Equals(AccentHex, hex, StringComparison.OrdinalIgnoreCase))
-            AccentHex = hex;
-        if (!_loading && !_settingPresetOrMode)
-        {
-            Save(t =>
-            {
-                t.PresetKey = null;
-                t.Accent = hex;
-            });
-        }
-        else
-        {
-            Save(t => t.Accent = hex);
-        }
-    }
-
-    // Custom colour typed as #RRGGBB; ignored until it parses.
-    partial void OnAccentHexChanged(string value)
-    {
-        if (Color.TryParse(value.Trim(), out var color) && color != Accent)
-        {
-            Save(t => t.PresetKey = null);
-            Accent = Color.FromRgb(color.R, color.G, color.B);
-        }
-    }
     partial void OnCornerRadiusChanged(double value) => Save(t => t.CornerRadius = Math.Round(value));
     partial void OnReduceMotionChanged(bool value) => Save(t => t.ReduceMotion = value);
 

@@ -28,11 +28,11 @@ public class UninstallerTests
 
         Assert.Empty(later);
         // Filee cleaned up after itself for the user first (Explorer menu, startup entry, downloaded engines).
-        Assert.Equal("run Filee.exe --uninstall-cleanup", bench.System.Calls.First(c => c.StartsWith("run ", StringComparison.Ordinal)));
+        Assert.Equal("run Takaconv.exe --uninstall-cleanup", bench.System.Calls.First(c => c.StartsWith("run ", StringComparison.Ordinal)));
         Assert.Contains("unregister-menu", bench.System.Calls);
         Assert.False(Directory.Exists(bench.InstallFolder));
-        Assert.False(File.Exists(Path.Combine(bench.Paths.CommonStartMenu, "Filee.lnk")));
-        Assert.False(File.Exists(Path.Combine(bench.Paths.CommonDesktop, "Filee.lnk")));
+        Assert.False(File.Exists(Path.Combine(bench.Paths.CommonStartMenu, "Takaconv.lnk")));
+        Assert.False(File.Exists(Path.Combine(bench.Paths.CommonDesktop, "Takaconv.lnk")));
         Assert.False(bench.Registry.KeyExists(Hive.LocalMachine, SetupNames.UninstallKey));
         var path = bench.Registry.Get(Hive.LocalMachine, SetupNames.MachineEnvironmentKey, "Path")!;
         Assert.Equal(@"%SystemRoot%\system32;C:\Tools", path.Text);
@@ -113,7 +113,7 @@ public class UninstallerTests
     {
         var (bench, record) = Installed();
         using var _ = bench;
-        bench.System.Running.Add(new RunningProgram(11, Path.Combine(bench.InstallFolder, "filee-cli.exe")));
+        bench.System.Running.Add(new RunningProgram(11, Path.Combine(bench.InstallFolder, "takaconv-cli.exe")));
         bench.System.Running.Add(new RunningProgram(12, Path.Combine(bench.InstallFolder, "uninstall.exe")));
         new Uninstaller(bench.Context).Run(bench.InstallFolder, record, deleteSettings: false, bench.Temp.Sub("trash"));
         Assert.Contains("kill 11", bench.System.Calls);
@@ -124,7 +124,7 @@ public class UninstallerTests
     public void Install_record_round_trip_and_bad_records()
     {
         using var temp = new TempFolder();
-        var record = new InstallRecord("2.0.0", InstallScope.User, ["Filee.exe", @"cli\filee.cmd"]);
+        var record = new InstallRecord("2.0.0", InstallScope.User, ["Takaconv.exe", @"cli\takaconv.cmd"]);
         File.WriteAllBytes(InstallRecord.PathIn(temp.Path), record.ToJson());
         var read = InstallRecord.Read(temp.Path)!;
         Assert.Equal(record.Version, read.Version);
@@ -156,7 +156,7 @@ public class PreviousInstallTests
     public void Inno_setups_app_path_is_enough_and_the_scope_is_kept_apart()
     {
         using var temp = new TempFolder();
-        temp.Write(@"Filee\Filee.exe");
+        temp.Write(@"Filee\Takaconv.exe");
         temp.Write(@"Filee\unins000.exe");
         var registry = new MemoryRegistry();
         registry.SetString(Hive.LocalMachine, SetupNames.UninstallKey, "Inno Setup: App Path", temp.Sub("Filee"));
@@ -173,7 +173,7 @@ public class PreviousInstallTests
     {
         using var temp = new TempFolder();
         var paths = SetupPaths.Sandbox(temp.Sub("pc"));
-        var folder = Path.GetDirectoryName(temp.Write(@"pc\Program Files\Filee\Filee.exe"))!;
+        var folder = Path.GetDirectoryName(temp.Write(@"pc\Program Files\Filee\Takaconv.exe"))!;
         var registry = new MemoryRegistry();
         registry.SetString(Hive.LocalMachine, SetupNames.UninstallKey, "InstallLocation", folder);
         // 1.x recorded the desktop icon and PATH, but the user deleted the shortcut since.

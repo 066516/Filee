@@ -18,24 +18,24 @@ public static class SetupNames
     public const string MachineEnvironmentKey = @"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
     public const string UserEnvironmentKey = "Environment";
 
-    public const string AppName = "Filee";
-    public const string Publisher = "Filee contributors";
-    public const string AppExe = "Filee.exe";
+    public const string AppName = "Takaconv";
+    public const string Publisher = "EL Djazair Takaful";
+    public const string AppExe = "Takaconv.exe";
 
-    /// <summary>The uninstaller next to Filee.exe (UpdateService.IsInstalled looks for it).</summary>
+    /// <summary>The uninstaller next to Takaconv.exe (UpdateService.IsInstalled looks for it).</summary>
     public const string UninstallerExe = "uninstall.exe";
 
-    /// <summary>The list of installed files next to Filee.exe: what the uninstaller removes and an update replaces.</summary>
+    /// <summary>The list of installed files next to Takaconv.exe: what the uninstaller removes and an update replaces.</summary>
     public const string InstallRecordFile = "uninstall.json";
 
-    /// <summary>The "filee" command (cli\filee.cmd), the folder Setup puts on PATH.</summary>
+    /// <summary>The "takaconv" command (cli\takaconv.cmd), the folder Setup puts on PATH.</summary>
     public const string CliFolder = "cli";
 
     /// <summary>Inno Setup's uninstaller files, removed when Setup takes over a 1.x installation.</summary>
     public static readonly IReadOnlyList<string> InnoUninstallerFiles = ["unins000.exe", "unins000.dat", "unins000.msg"];
 
     /// <summary>Start menu and desktop shortcut name.</summary>
-    public const string ShortcutName = "Filee.lnk";
+    public const string ShortcutName = "Takaconv.lnk";
 
     /// <summary>Registry values Setup adds to the uninstall key (Inno Setup kept the same in "Inno Setup: …").</summary>
     public const string TasksValue = "Filee Setup: Tasks";

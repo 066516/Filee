@@ -37,7 +37,7 @@ public class SetupWindowTests
     {
         public InstallChoices? Installed { get; private set; }
         public bool? DeletedSettings { get; private set; }
-        public InstallResult Result { get; set; } = new(new LaunchRequest(@"C:\Program Files\Filee\Filee.exe", "--background"), []);
+        public InstallResult Result { get; set; } = new(new LaunchRequest(@"C:\Program Files\Filee\Takaconv.exe", "--background"), []);
         public TaskCompletionSource? Hold { get; set; }
 
         public InstallResult Install(InstallChoices choices, IProgress<SetupProgress> progress)
@@ -126,7 +126,7 @@ public class SetupWindowTests
         }
         Check(window, $"setup-3-installing-{language}.png");
 
-        runner.Result = new InstallResult(new LaunchRequest(@"C:\Program Files\Filee\Filee.exe", "--install-engines=pandoc"),
+        runner.Result = new InstallResult(new LaunchRequest(@"C:\Program Files\Filee\Takaconv.exe", "--install-engines=pandoc"),
             [new RuntimeWarning([new MissingRuntime(@"engines\rhwp\rhwp.exe", "vcruntime140.dll")])]);
         runner.Hold.SetResult();
         await install;

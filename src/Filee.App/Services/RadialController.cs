@@ -62,8 +62,6 @@ public sealed class RadialController(
 
     /// <summary>A gesture over something that isn't a file drag (a rubber-band selection) is common: a line now and then.</summary>
     private static readonly LogThrottle Throttle = new(TimeSpan.FromMinutes(1));
-    private bool _converted;   // a conversion started from the files on the donut now
-    private readonly HashSet<string> _formatRequestsOffered = new(StringComparer.OrdinalIgnoreCase);
     private WebDrop? _web;      // the browser drop the click-mode donut's files stand for, until a conversion takes it
 
     /// <summary>
@@ -91,7 +89,6 @@ public sealed class RadialController(
         window.DonutControl.LeaveProgressMode();
         _dropped = false;
         _dragReachedDonut = false;
-        _converted = false;
         viewModel.ResetForDrag();
         window.DonutControl.AllowContextEdit = false;
         PlaceAndShow(window, x, y, activate: false);
@@ -128,7 +125,6 @@ public sealed class RadialController(
             _grace.Cancel();
         var window = EnsureWindow();
         _dropped = false;
-        _converted = false;
         viewModel.Load(files, clickMode: true);
         viewModel.FitToThisDonut();
         window.DonutControl.AllowContextEdit = true;
@@ -194,22 +190,6 @@ public sealed class RadialController(
             });
         else
             window.Hide();
-        OfferFormatRequest();
-    }
-
-    /// <summary>
-    /// The donut closed on files Filee can't read at all (".ncm"): offer to request the format, once per extension
-    /// while Filee runs. Files it reads, even mixed with unknown ones, get a conversion and the toast instead.
-    /// </summary>
-    private void OfferFormatRequest()
-    {
-        if (_converted || viewModel.Files.Count == 0 || ProfileSelector.DetectFormats(viewModel.Files).Count > 0)
-            return;
-        var extensions = FormatRequest.UnknownExtensions(viewModel.Files).Where(_formatRequestsOffered.Add).ToList();
-        if (extensions.Count == 0)
-            return;
-        log.LogInformation("Donut closed on files Filee can't read: {Extensions}", FormatRequest.Label(extensions));
-        windows.ShowFormatRequestNotice(extensions);
     }
 
     private RadialWindow EnsureWindow()
@@ -363,7 +343,6 @@ public sealed class RadialController(
             Close();
             return;
         }
-        _converted = true;
         ShowProgress(job);
     }
 

@@ -265,13 +265,13 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
         {
             if (!File.Exists(startMenu))
                 undo.Push(("Start menu shortcut", () => File.Delete(startMenu)));
-            System.CreateShortcut(startMenu, exe, folder, "Filee");
+            System.CreateShortcut(startMenu, exe, folder, "Takaconv");
         }
         if (choices.Tasks.DesktopIcon && !choices.NoIcons)
         {
             if (!File.Exists(desktop))
                 undo.Push(("desktop shortcut", () => File.Delete(desktop)));
-            System.CreateShortcut(desktop, exe, folder, "Filee");
+            System.CreateShortcut(desktop, exe, folder, "Takaconv");
         }
         else if (update && File.Exists(desktop))
         {
@@ -309,9 +309,13 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
         Registry.SetString(hive, key, "InstallLocation", folder + Path.DirectorySeparatorChar);
         Registry.SetString(hive, key, "UninstallString", SetupOptions.Quote(uninstaller));
         Registry.SetString(hive, key, "QuietUninstallString", SetupOptions.Quote(uninstaller) + " /VERYSILENT /SUPPRESSMSGBOXES /NORESTART");
-        Registry.SetString(hive, key, "URLInfoAbout", repository);
-        Registry.SetString(hive, key, "HelpLink", repository + "/issues");
-        Registry.SetString(hive, key, "URLUpdateInfo", repository + "/releases");
+        // A private build has no repository, so it writes no web links (they would all point at the upstream project).
+        if (repository.Length > 0)
+        {
+            Registry.SetString(hive, key, "URLInfoAbout", repository);
+            Registry.SetString(hive, key, "HelpLink", repository + "/issues");
+            Registry.SetString(hive, key, "URLUpdateInfo", repository + "/releases");
+        }
         Registry.SetString(hive, key, "InstallDate", DateTime.Now.ToString("yyyyMMdd", global::System.Globalization.CultureInfo.InvariantCulture));
         Registry.SetNumber(hive, key, "NoModify", 1);
         Registry.SetNumber(hive, key, "NoRepair", 1);

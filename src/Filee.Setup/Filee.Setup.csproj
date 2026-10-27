@@ -1,18 +1,18 @@
 <!--
-  Filee.Setup: Filee's own Windows installer and uninstaller (Filee-<version>-win-Setup.exe, uninstall.exe).
+  Filee.Setup: Takaconv's own Windows installer and uninstaller (Takaconv-<version>-win-Setup.exe, uninstall.exe).
   build/build-installer.ps1 publishes it as one self-contained, trimmed file (no .NET needed on the PC) and appends
   the published app to it as a compressed payload (build/tools/make-setup.cs). The same program without a payload,
-  copied next to Filee.exe as uninstall.exe, is the uninstaller.
+  copied next to Takaconv.exe as uninstall.exe, is the uninstaller.
   It shares the app's look (Styles/Soft.axaml, SoftPalette) and translations (Assets/i18n). It uses Windows' own UI
   fonts instead of the app's embedded Noto fonts (37 MB): Setup is downloaded on every update.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <AssemblyName>Filee.Setup</AssemblyName>
+    <AssemblyName>Takaconv.Setup</AssemblyName>
     <RootNamespace>Filee.Setup</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>..\Filee.App\Assets\Icons\filee.ico</ApplicationIcon>
+    <ApplicationIcon>..\Filee.App\Assets\Icons\takaconv.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Kept trim- and AOT-safe (no reflection, compiled bindings, source-generated COM), so the publish can be
@@ -20,7 +20,7 @@
     <IsAotCompatible>true</IsAotCompatible>
     <InvariantGlobalization>true</InvariantGlobalization>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <Product>Filee Setup</Product>
+    <Product>Takaconv Setup</Product>
   </PropertyGroup>
 
   <!-- build/build-installer.ps1: dotnet publish -c Release -r win-x64 -p:FileeSetupPublish=true -->
@@ -61,8 +61,8 @@
     <Compile Include="..\Filee.App\Controls\SlideShow.cs" Link="Shared\SlideShow.cs" />
     <AvaloniaResource Include="..\Filee.App\Assets\WhatsNew\**" Link="Assets\WhatsNew\%(RecursiveDir)%(Filename)%(Extension)" />
     <AvaloniaResource Include="..\Filee.App\Styles\Soft.axaml" Link="Styles\Soft.axaml" />
-    <AvaloniaResource Include="..\Filee.App\Assets\Icons\filee.ico" Link="Assets\Icons\filee.ico" />
-    <AvaloniaResource Include="..\Filee.App\Assets\Icons\filee.png" Link="Assets\Icons\filee.png" />
+    <AvaloniaResource Include="..\Filee.App\Assets\Icons\takaconv.ico" Link="Assets\Icons\takaconv.ico" />
+    <AvaloniaResource Include="..\Filee.App\Assets\Icons\takaconv.png" Link="Assets\Icons\takaconv.png" />
     <EmbeddedResource Include="..\Filee.App\Assets\i18n\*.json" Link="i18n\%(Filename)%(Extension)" LogicalName="i18n.%(Filename)%(Extension)" />
   </ItemGroup>
 

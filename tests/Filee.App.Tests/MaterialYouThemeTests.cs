@@ -49,7 +49,7 @@ public class MaterialYouThemeTests
     [Fact]
     public void Palette_generates_distinct_tonal_roles_for_light_and_dark()
     {
-        var seed = Color.Parse("#7F77DD");
+        var seed = Color.Parse(SoftPalette.DefaultAccent);
         var light = MaterialYouPalette.Generate(seed, isDark: false);
         var dark = MaterialYouPalette.Generate(seed, isDark: true);
 
@@ -235,7 +235,7 @@ public class MaterialYouThemeTests
     }
 
     [AvaloniaFact]
-    public void ThemePageViewModel_switches_styles_and_presets()
+    public void ThemePageViewModel_switches_styles()
     {
         TestServices.EnsureInitialized("en");
         var directory = Directory.CreateTempSubdirectory("filee-vm-test-").FullName;
@@ -253,18 +253,7 @@ public class MaterialYouThemeTests
             vm.SetStyleCommand.Execute(ThemeStyle.MaterialYou);
             Assert.True(vm.IsMaterialYou);
             Assert.Equal(ThemeStyle.MaterialYou, store.Settings.Theme.Style);
-
-            // Switch preset
-            var preset = vm.PastelPresets.First(p => p.Key == "lavender");
-            vm.PickPresetCommand.Execute(preset);
-            Assert.Equal("lavender", store.Settings.Theme.PresetKey);
-            Assert.Equal(preset.Color, vm.Accent);
-            Assert.Equal(store.Settings.Theme.Accent, vm.AccentHex);
-
-            // Picking a custom swatch clears PresetKey
-            vm.PickSwatchCommand.Execute(Colors.Teal);
-            Assert.Null(store.Settings.Theme.PresetKey);
-            Assert.Equal(Colors.Teal, vm.Accent);
+            vm.Dispose();
         }
         finally
         {
@@ -272,58 +261,23 @@ public class MaterialYouThemeTests
         }
     }
 
+    /// <summary>Takaconv locks the company green: an accent stored in settings changes nothing.</summary>
     [AvaloniaFact]
-    public void Changing_accent_after_preset_clears_preset_key_and_applies_swatch()
-    {
-        TestServices.EnsureInitialized("en");
-        var directory = Directory.CreateTempSubdirectory("filee-preset-swatch-test-").FullName;
-        try
-        {
-            var store = new UserDataStore(directory);
-            store.Load();
-            var loc = AppHost.Get<ILocalizer>();
-            var platform = AppHost.Get<IPlatformServices>();
-            var themeService = AppHost.Get<ThemeService>();
-            var vm = new ThemePageViewModel(store, loc, platform);
-
-            // 1. Pick a preset
-            var preset = vm.PastelPresets.First(p => p.Key == "lavender");
-            vm.PickPresetCommand.Execute(preset);
-            Assert.Equal("lavender", store.Settings.Theme.PresetKey);
-            Assert.Equal(preset.Color, vm.Accent);
-
-            // 2. Direct swatch selection by binding Accent (as Swatch ListBox and ColorPicker do)
-            var teal = Color.Parse("#008080");
-            vm.Accent = teal;
-            Assert.Null(store.Settings.Theme.PresetKey);
-            Assert.Equal(teal, vm.Accent);
-            Assert.Equal("#008080", store.Settings.Theme.Accent);
-
-            // 3. ThemeService applying the settings must use the swatch accent, not preset
-            themeService.Apply(store.Settings.Theme, "en");
-            var res = Application.Current!.Resources;
-            Assert.Equal(teal, ((SolidColorBrush)res["AccentBrush"]!).Color);
-        }
-        finally
-        {
-            Directory.Delete(directory, true);
-        }
-    }
-
-    [AvaloniaFact]
-    public void Soft_style_preserves_custom_grey_swatch_without_monochrome_conversion()
+    public void Locked_palette_ignores_the_accent_stored_in_settings()
     {
         TestServices.EnsureInitialized("en");
         var themeService = AppHost.Get<ThemeService>();
-        var grey = Color.Parse("#5F5E5A");
+        var company = Color.Parse(SoftPalette.DefaultAccent);
 
         try
         {
-            themeService.Apply(new ThemeSettings { Style = ThemeStyle.Soft, Accent = "#5F5E5A" }, "en");
-            var res = Application.Current!.Resources;
-
-            // In Soft style without monochrome preset, accent must stay #5F5E5A exactly as on main
-            Assert.Equal(grey, ((SolidColorBrush)res["AccentBrush"]!).Color);
+            foreach (var style in new[] { ThemeStyle.Soft, ThemeStyle.MaterialYou })
+            {
+                themeService.Apply(new ThemeSettings { Style = style, Accent = "#5F5E5A" }, "en");
+                Assert.Equal(company, ResolveBrush("AccentBrush", ThemeVariant.Light).Color);
+                if (style == ThemeStyle.Soft)
+                    Assert.Equal(company, ((SolidColorBrush)Application.Current!.Resources["AccentBrush"]!).Color);
+            }
         }
         finally
         {
@@ -336,11 +290,11 @@ public class MaterialYouThemeTests
     {
         TestServices.EnsureInitialized("en");
         var themeService = AppHost.Get<ThemeService>();
-        var seed = Color.Parse("#7F77DD");
+        var seed = Color.Parse(SoftPalette.DefaultAccent);
 
         try
         {
-            themeService.Apply(new ThemeSettings { Style = ThemeStyle.MaterialYou, Accent = "#7F77DD" }, "en");
+            themeService.Apply(new ThemeSettings { Style = ThemeStyle.MaterialYou }, "en");
 
             var darkWindow = new Window();
             var found = darkWindow.TryFindResource("AccentStrongBrush", ThemeVariant.Dark, out var strongResource);
@@ -351,7 +305,7 @@ public class MaterialYouThemeTests
             Assert.True(foundSoft, "TryFindResource AccentSoftBrush failed");
             var softBrush = Assert.IsType<SolidColorBrush>(softResource);
 
-            // Old SoftPalette.ApplyAccent wrote Shade(#7F77DD, -0.25) which is #5F59A6 (luminance ~0.11)
+            // Old SoftPalette.ApplyAccent wrote Shade(accent, -0.25), a dimmed accent (luminance ~0.11)
             var oldShadowedColor = SoftPalette.Shade(seed, -0.25);
             Assert.NotEqual(oldShadowedColor, strongBrush.Color);
 
@@ -362,67 +316,6 @@ public class MaterialYouThemeTests
             // Material You Dark AccentSoft is primaryContainer (opaque tonal background, not 18% alpha)
             Assert.Equal(255, softBrush.Color.A);
             Assert.True(MaterialYouPalette.Luminance(softBrush.Color) < 0.35);
-        }
-        finally
-        {
-            themeService.Apply(new ThemeSettings(), "en");
-        }
-    }
-
-    [AvaloniaFact]
-    public void Controls_resolve_monochrome_contrast_in_dark_mode()
-    {
-        TestServices.EnsureInitialized("en");
-        var themeService = AppHost.Get<ThemeService>();
-
-        try
-        {
-            // Apply monochrome in both Soft and Material You styles
-            foreach (var style in new[] { ThemeStyle.Soft, ThemeStyle.MaterialYou })
-            {
-                themeService.Apply(new ThemeSettings { Style = style, Accent = "#1F1E1D", PresetKey = "monochrome" }, "en");
-
-                var accentBrush = ResolveBrush("AccentBrush", ThemeVariant.Dark);
-                var onAccentBrush = ResolveBrush("OnAccentBrush", ThemeVariant.Dark);
-
-                // In dark mode, monochrome accent must resolve to silvery white (#F1EFE8), NOT dark charcoal (#1F1E1D)
-                Assert.True(MaterialYouPalette.Luminance(accentBrush.Color) > 0.80,
-                    $"{style}: Expected silvery white in dark mode, got {accentBrush.Color}");
-                Assert.True(MaterialYouPalette.Luminance(onAccentBrush.Color) < 0.20,
-                    $"{style}: Expected dark text on accent in dark mode, got {onAccentBrush.Color}");
-
-                var lightAccentBrush = ResolveBrush("AccentBrush", ThemeVariant.Light);
-                var lightOnAccentBrush = ResolveBrush("OnAccentBrush", ThemeVariant.Light);
-
-                // In light mode, monochrome accent must resolve to dark charcoal (#1F1E1D)
-                Assert.True(MaterialYouPalette.Luminance(lightAccentBrush.Color) < 0.20,
-                    $"{style}: Expected dark charcoal in light mode, got {lightAccentBrush.Color}");
-                Assert.Equal(Colors.White, lightOnAccentBrush.Color);
-            }
-        }
-        finally
-        {
-            themeService.Apply(new ThemeSettings(), "en");
-        }
-    }
-
-    [AvaloniaFact]
-    public void Preset_pair_switches_between_light_and_dark_under_system_mode()
-    {
-        TestServices.EnsureInitialized("en");
-        var themeService = AppHost.Get<ThemeService>();
-
-        try
-        {
-            // Apply mint preset under System mode
-            themeService.Apply(new ThemeSettings { Mode = ThemeMode.System, PresetKey = "mint" }, "en");
-
-            var lightBrush = ResolveBrush("AccentBrush", ThemeVariant.Light);
-            var darkBrush = ResolveBrush("AccentBrush", ThemeVariant.Dark);
-
-            var mintPreset = ThemeService.Presets.First(p => p.Key == "mint");
-            Assert.Equal(mintPreset.LightColor, lightBrush.Color);
-            Assert.Equal(mintPreset.DarkColor, darkBrush.Color);
         }
         finally
         {

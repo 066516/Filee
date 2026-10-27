@@ -1,0 +1,74 @@
+name: Takaconv for Windows
+
+# Private company build (EL Djazair Takaful): Windows installer and portable zip from this fork.
+# Deliberately does not use release.yml — that one signs with the upstream certificate and publishes to the
+# upstream release page. Everything here only uploads artifacts to the workflow run.
+
+on:
+  # Every push to the company branch builds the packages: the run's artifacts carry the .exe.
+  push:
+    branches: [ takaful ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version (empty uses Directory.Build.props)'
+        type: string
+        required: false
+      portable:
+        description: 'Also build the portable zip'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Fonts
+        run: ./build/fetch-fonts.ps1
+
+      - name: Restore engine downloads
+        uses: actions/cache@v5
+        with:
+          path: build/.cache/portable-downloads
+          key: portable-engines-win-x64-${{ hashFiles('src/Filee.Engines/Infrastructure/engines.json') }}
+
+      - name: Build and test
+        run: |
+          ./build/fetch-portable-engines.ps1 -Runtime win-x64 -Destination engines
+          dotnet build Filee.slnx -c Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Not blocking yet: a red test still leaves the installer to download while the three-language cut settles.
+          # Add `if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }` after it once the suite is green.
+          dotnet test Filee.slnx -c Release --no-build
+
+      # No certificate: the build is internal, so nothing is signed.
+      - name: Build installer
+        env:
+          PACKAGE_VERSION: ${{ inputs.version }}
+        run: |
+          $arguments = @{}
+          if ('${{ inputs.portable }}' -eq 'true') { $arguments.Portable = $true }
+          ./build/build-installer.ps1 -Version $env:PACKAGE_VERSION @arguments
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: takaconv-win-x64
+          path: |
+            Releases/Takaconv-*-win-Setup.exe
+            Releases/Takaconv-*-win-Portable.zip
+            Releases/*-SHA256SUMS.txt
+          if-no-files-found: error

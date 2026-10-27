@@ -15,7 +15,7 @@ public class DonutHighlightTests
     [AvaloniaFact]
     public void A_lost_animation_frame_does_not_keep_the_slice_dark()
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized("en");
         var donut = new DonutMenu
         {
             Items = new[] { "PNG", "JPG", "WEBP", "PDF" }.Select(l => new DonutItem { Id = l, Label = l }).ToList(),
@@ -42,7 +42,7 @@ public class DonutHighlightTests
     [AvaloniaFact]
     public void An_opening_donut_appears_even_when_no_frame_ever_comes()
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized("en");
         var donut = new DonutMenu
         {
             Items = new[] { "PNG", "JPG", "WEBP", "PDF" }.Select(l => new DonutItem { Id = l, Label = l }).ToList(),
@@ -70,7 +70,7 @@ public class DonutHighlightTests
     [AvaloniaFact]
     public void A_highlight_settles_without_dipping_below_zero()
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized("en");
         var donut = new DonutMenu
         {
             Items = new[] { "PNG", "JPG", "WEBP" }.Select(l => new DonutItem { Id = l, Label = l }).ToList(),
@@ -94,7 +94,7 @@ public class DonutHighlightTests
     [AvaloniaFact]
     public void Highlights_settle_when_frames_come_late()
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized("en");
         Filee.App.Services.Motion.Configure(false, () => false);
         var donut = new DonutMenu
         {

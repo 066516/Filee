@@ -23,13 +23,13 @@ static const IID kIidClassFactory = {0x00000001, 0x0000, 0x0000, {0xc0, 0x00, 0x
 static const IID kIidExplorerCommand = {0xa08ce4d0, 0xfa25, 0x44ab, {0xb5, 0x7c, 0xc7, 0xb1, 0xc3, 0x23, 0xe0, 0xb9}};
 static const KNOWNFOLDERID kFolderRoamingAppData = {0x3eb685db, 0x65f9, 0x4cf6, {0xa0, 0x3a, 0xe3, 0xef, 0x65, 0x72, 0x9f, 0x3d}};
 
-#define DEFAULT_TITLE L"Convert with Filee"
-// Written by the app into its data folder (%APPDATA%\Filee, which survives app updates) while the Explorer menu
+#define DEFAULT_TITLE L"Convert with Takaconv"
+// Written by the app into its data folder (%APPDATA%\Takaconv, which survives app updates) while the Explorer menu
 // setting is on; first line = the title in the UI language. No file = the entry is hidden, so the setting can switch
 // the entry off and on again without re-registering the package (which needs administrator rights).
 // Must match ExplorerMenuPackage.TitleFileName.
-#define TITLE_FILE L"Filee\\explorer-menu.txt"
-#define APP_EXE L"Filee.exe"
+#define TITLE_FILE L"Takaconv\\explorer-menu.txt"
+#define APP_EXE L"Takaconv.exe"
 #define LIST_PREFIX L"Filee-convert-"       // CommandLine.ListFilePrefix in the app
 // CreateProcess accepts at most 32767 characters; longer selections go through a list file.
 #define MAX_COMMAND_LINE 32000

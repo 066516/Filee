@@ -39,7 +39,7 @@ Native macOS text also needs `<language>.lproj/ServicesMenu.strings` and, for pe
 `InfoPlist.strings`, plus a `CFBundleLocalizations` entry in `installer/macos/Info.plist`. Keep the English service
 identifier on the left of `ServicesMenu.strings`; translate its value. The packaging loop copies all `.lproj` folders
 and validates their strings files with `plutil`. These system texts follow macOS language preferences.
-Keep technical identifiers such as the KWin `Filee Donut` window title stable.
+Keep technical identifiers such as the KWin `Filee Donut` script name stable.
 
 Optional, but welcome in the same or a later pull request: a translated README. Add `README.<code>.md` with every
 section `README.md` has, link it from the language line at the top of the other READMEs and add the language to

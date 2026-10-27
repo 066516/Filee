@@ -17,7 +17,7 @@ public class DonutProgressTests
 
     private static (Window Window, DonutMenu Donut) Create()
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized("fr");
         var donut = new DonutMenu
         {
             Items = new[] { "PNG", "JPG", "WEBP", "PDF", "TIFF", "BMP" }.Select(l => new DonutItem { Id = l, Label = l }).ToList(),

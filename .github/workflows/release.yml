@@ -97,7 +97,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path unsigned | Out-Null
           Move-Item publish/win-x64 unsigned/app
-          Copy-Item build/.cache/setup/Filee.Setup.exe unsigned/
+          Copy-Item build/.cache/setup/Takaconv.Setup.exe unsigned/
 
       - uses: actions/upload-artifact@v7
         with:

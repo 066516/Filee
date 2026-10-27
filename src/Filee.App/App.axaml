@@ -13,8 +13,8 @@
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
-        <ResourceInclude Source="avares://Filee/Styles/Icons.axaml" />
-        <ResourceInclude Source="avares://Filee/Styles/Brands.axaml" />
+        <ResourceInclude Source="avares://Takaconv/Styles/Icons.axaml" />
+        <ResourceInclude Source="avares://Takaconv/Styles/Brands.axaml" />
       </ResourceDictionary.MergedDictionaries>
       <!-- The Theme page's colour picker shows only the spectrum: no empty tab strip above it. Set here because its
            flyout looks resources up outside the page. -->
@@ -36,8 +36,8 @@
     <Style Selector="FlyoutPresenter.nopadding Border#ContentBackgroundBorder">
       <Setter Property="Margin" Value="0" />
     </Style>
-    <StyleInclude Source="avares://Filee/Styles/Soft.axaml" />
-    <StyleInclude Source="avares://Filee/Styles/Controls.axaml" />
-    <StyleInclude Source="avares://Filee/Styles/TagEditor.axaml" />
+    <StyleInclude Source="avares://Takaconv/Styles/Soft.axaml" />
+    <StyleInclude Source="avares://Takaconv/Styles/Controls.axaml" />
+    <StyleInclude Source="avares://Takaconv/Styles/TagEditor.axaml" />
   </Application.Styles>
 </Application>

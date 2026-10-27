@@ -15,12 +15,13 @@
     <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
 
     <Version>2.1.0</Version>
-    <Product>Filee</Product>
-    <Authors>Filee contributors</Authors>
-    <Copyright>Copyright (c) Filee contributors</Copyright>
+    <Product>Takaconv</Product>
+    <Authors>EL Djazair Takaful</Authors>
+    <Copyright>Copyright (c) Filee contributors. Takaconv is an internal build by EL Djazair Takaful.</Copyright>
 
-    <!-- Single source of truth for the GitHub repository (used by the updater and the About page). -->
-    <FileeRepositoryUrl>https://github.com/KnifeLemon/Filee</FileeRepositoryUrl>
+    <!-- Reserved for the upstream project's issue links. Takaconv is a private build and has no public repository, so
+         this stays empty: a blank value keeps the updater from contacting KnifeLemon/Filee. -->
+    <FileeRepositoryUrl></FileeRepositoryUrl>
     <RepositoryUrl>$(FileeRepositoryUrl)</RepositoryUrl>
   </PropertyGroup>
 

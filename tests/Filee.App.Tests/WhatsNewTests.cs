@@ -29,7 +29,7 @@ public class WhatsNewTests
     private static readonly Version V2 = new(2, 0, 0);
 
     private static SlideDeck Deck(string version) =>
-        new(SlideDeck.TryParseVersion(version)!, [new Slide("a", new Uri("avares://Filee/a.webp"), "t", "x")]);
+        new(SlideDeck.TryParseVersion(version)!, [new Slide("a", new Uri("avares://Takaconv/a.webp"), "t", "x")]);
 
     // ───────────────────────── Manifests ─────────────────────────
 
@@ -37,7 +37,7 @@ public class WhatsNewTests
     public void The_2_0_0_deck_ships_with_its_media_and_texts()
     {
         TestServices.EnsureInitialized("en");
-        var decks = SlideDeck.LoadAll("Filee");
+        var decks = SlideDeck.LoadAll("Takaconv");
         var deck = Assert.Single(decks, d => d.Version == V2);
         Assert.InRange(deck.Slides.Count, 5, 7);
         Assert.Equal(deck.Slides.Count, deck.Slides.Select(s => s.Id).Distinct().Count());
@@ -45,7 +45,7 @@ public class WhatsNewTests
         foreach (var slide in deck.Slides)
         {
             Assert.True(AssetLoader.Exists(slide.Media), $"{slide.Media} is missing");
-            Assert.StartsWith("avares://Filee/Assets/WhatsNew/2.0.0/", slide.Media.ToString(), StringComparison.Ordinal);
+            Assert.StartsWith("avares://Takaconv/Assets/WhatsNew/2.0.0/", slide.Media.ToString(), StringComparison.Ordinal);
             Assert.Contains(slide.TitleKey, english.Keys);
             Assert.Contains(slide.TextKey, english.Keys);
         }
@@ -73,7 +73,7 @@ public class WhatsNewTests
     [InlineData(null, "crop.webp", 2)]
     public void Localized_media_use_an_exact_variant_and_their_own_poster(string? language, string path, int poster)
     {
-        var folder = new Uri("avares://Filee/Assets/WhatsNew/2.0.0/");
+        var folder = new Uri("avares://Takaconv/Assets/WhatsNew/2.0.0/");
         var deck = SlideDeck.Parse("""
             { "version": "2.0.0", "slides": [
               { "id": "crop", "media": "crop.webp", "poster": 2, "title": "t", "text": "x",
@@ -97,7 +97,7 @@ public class WhatsNewTests
     public void Portuguese_recordings_preserve_the_desktop_context_and_localize_the_other_slides(string language)
     {
         TestServices.EnsureInitialized(language);
-        var deck = Assert.Single(SlideDeck.LoadAll("Filee"), d => d.Version == V2);
+        var deck = Assert.Single(SlideDeck.LoadAll("Takaconv"), d => d.Version == V2);
         foreach (var slide in deck.Slides)
         {
             var media = slide.MediaFor(language);
@@ -138,7 +138,7 @@ public class WhatsNewTests
     [Fact]
     public void A_manifest_is_read_leniently_and_safely()
     {
-        var folder = new Uri("avares://Filee/Assets/WhatsNew/3.1.0/");
+        var folder = new Uri("avares://Takaconv/Assets/WhatsNew/3.1.0/");
         var deck = SlideDeck.Parse("""
             {
               // comments and trailing commas are fine
@@ -158,7 +158,7 @@ public class WhatsNewTests
         Assert.Equal(new Version(3, 1, 0), deck.Version);
         Assert.Equal("3.1", deck.DisplayVersion);
         var slide = Assert.Single(deck.Slides);
-        Assert.Equal(new Uri("avares://Filee/Assets/WhatsNew/3.1.0/one.webp"), slide.Media);
+        Assert.Equal(new Uri("avares://Takaconv/Assets/WhatsNew/3.1.0/one.webp"), slide.Media);
         Assert.Equal(("a.title", "a.text"), (slide.TitleKey, slide.TextKey));
         Assert.Equal(12, slide.PosterFrame);
 
@@ -322,7 +322,7 @@ public class WhatsNewTests
     {
         TestServices.EnsureInitialized(language);
         beforeOpening?.Invoke();
-        var deck = SlideDeck.LoadAll("Filee").Single(d => d.Version == V2);
+        var deck = SlideDeck.LoadAll("Takaconv").Single(d => d.Version == V2);
         var window = new WhatsNewWindow(deck, AppHost.Get<ILocalizer>());
         window.Show();
         window.Activate();
@@ -519,45 +519,6 @@ public class WhatsNewTests
         window.Close();
         Pump();
         Assert.False(media.HasPicture);
-    }
-
-    [AvaloniaFact]
-    public void About_offers_the_slides_again()
-    {
-        TestServices.EnsureInitialized("en");
-        var service = AppHost.Get<WhatsNewService>();
-        var store = AppHost.Get<UserDataStore>();
-        var (version, seen) = (service.CurrentVersion, store.Settings.WhatsNewSeenVersion);
-        try
-        {
-            service.CurrentVersion = new Version(2, 0, 3);
-            var vm = new MainWindowViewModel(AppHost.Services, AppHost.Get<ILocalizer>(), AppHost.Get<UpdateService>());
-            vm.Navigate("about");
-            var window = new MainWindow { DataContext = vm, Width = 1080, Height = 820 };
-            window.Show();
-            Pump();
-            var about = (AboutPageViewModel)vm.CurrentPage!;
-            Assert.Equal(AppHost.Get<ILocalizer>().Format("whats_new.about_link", "2.0"), about.WhatsNewText);
-            var link = Named(window, "WhatsNewLink");
-            Assert.True(link.IsEffectivelyVisible);
-            Save(window, "page-about-whats-new-en.png");
-
-            link.Command!.Execute(null);
-            Pump();
-            Assert.IsType<WhatsNewWindow>(AppHost.Get<WindowService>().WhatsNew);
-            Assert.Equal("2.0.3", store.Settings.WhatsNewSeenVersion);
-            AppHost.Get<WindowService>().WhatsNew!.Close();
-            window.Close();
-
-            // A version older than every deck has nothing to offer.
-            service.CurrentVersion = new Version(1, 12, 0);
-            using var older = new AboutPageViewModel(AppHost.Get<ILocalizer>(), store, AppHost.Get<UpdateService>(), service);
-            Assert.False(older.HasWhatsNew);
-        }
-        finally
-        {
-            (service.CurrentVersion, store.Settings.WhatsNewSeenVersion) = (version, seen);
-        }
     }
 
     // ───────────────────────── Screenshots ─────────────────────────

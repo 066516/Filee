@@ -96,7 +96,7 @@ public static class Elevation
     public static void ShowWarning(string text)
     {
         if (OperatingSystem.IsWindows())
-            NativeMethods.MessageBox(0, text, "Filee",
+            NativeMethods.MessageBox(0, text, "Takaconv",
                 NativeMethods.MB_OK | NativeMethods.MB_ICONWARNING | NativeMethods.MB_SETFOREGROUND | NativeMethods.MB_TOPMOST);
     }
 

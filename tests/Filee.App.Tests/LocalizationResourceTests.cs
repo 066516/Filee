@@ -102,9 +102,9 @@ public class LocalizationResourceTests
     [AvaloniaFact]
     public void Strings_are_available_as_application_resources()
     {
-        TestServices.EnsureInitialized("ko");
+        TestServices.EnsureInitialized("fr");
         Assert.True(Application.Current!.TryGetResource("home.title", null, out var value));
-        Assert.Equal("홈", value);
+        Assert.Equal("Accueil", value);
     }
 
     [AvaloniaFact]
@@ -118,16 +118,14 @@ public class LocalizationResourceTests
         window.Show();
         Assert.Equal("Home", text.Text);
 
-        TestServices.EnsureInitialized("ko");
-        Assert.Equal("홈", text.Text);
-        TestServices.EnsureInitialized("ja");
-        Assert.Equal("ホーム", text.Text);
-        Assert.Equal("オン", toggle.OnContent);
-        Assert.Equal("オフ", toggle.OffContent);
-        TestServices.EnsureInitialized("de");
-        Assert.Equal("Start", text.Text);
-        Assert.Equal("Ein", toggle.OnContent);
-        Assert.Equal("Aus", toggle.OffContent);
+        TestServices.EnsureInitialized("ar");
+        Assert.Equal("الرئيسية", text.Text);
+        Assert.Equal("مفعّل", toggle.OnContent);
+        Assert.Equal("معطّل", toggle.OffContent);
+        TestServices.EnsureInitialized("fr");
+        Assert.Equal("Accueil", text.Text);
+        Assert.Equal("Activé", toggle.OnContent);
+        Assert.Equal("Désactivé", toggle.OffContent);
         window.Close();
     }
 }

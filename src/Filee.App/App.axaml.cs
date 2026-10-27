@@ -147,7 +147,6 @@ public partial class App : Application
 
         AppHost.Get<TrayService>().Create(this);
         AppHost.Get<WindowService>().EnsureToast();
-        AppHost.Get<ConversionService>().FeedbackDue += (_, _) => AppHost.Get<WindowService>().ShowFeedbackNotice();
         AppHost.Get<WatchFolderService>().Start();
         // Originals of files from a browser that a crash kept from being deleted ("Save only the converted file").
         _ = Task.Run(() => Filee.Core.Web.WebDrop.DeleteStale(Filee.Core.Web.WebDrop.DefaultWorkRoot, TimeSpan.FromDays(1)));
@@ -279,8 +278,8 @@ public partial class App : Application
         if (loc.NeedsUpdate(settings.Language))
             loc.SetLanguage(settings.Language);
 
-        var custom = CustomTheme.Load(AppHost.Get<UserDataStore>().Directory, AppHost.Get<ILogger<App>>());
-        AppHost.Get<ThemeService>().Apply(settings.Theme, loc.Language, custom);
+        // Takaconv's colours are fixed by the company theme: theme.json is not read.
+        AppHost.Get<ThemeService>().Apply(settings.Theme, loc.Language, custom: null);
         AppHost.Get<TriggerService>().Apply(settings);
         AppHost.Get<ConverterCatalog>().Priority = settings.EnginePriority;
         if (ownCopiesChanged || routesChanged)

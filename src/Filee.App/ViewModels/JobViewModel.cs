@@ -87,12 +87,6 @@ public sealed partial class JobViewModel : ObservableObject
     [ObservableProperty] private string? _missingFontsText;
     public bool HasMissingFonts => MissingFonts.Count > 0;
     public bool CanGetFonts => MissingFonts.Any(family => FontSources.Url(family) is not null);
-    /// <summary>Extensions of failed files Filee can't read (".ncm"), for "Request this format".</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanRequestFormat))]
-    private IReadOnlyList<string> _unknownExtensions = [];
-
-    public bool CanRequestFormat => UnknownExtensions.Count > 0;
 
     /// <summary>Source files that failed.</summary>
     public IEnumerable<string> FailedSources => Job.Files.Where(f => f.State == FileState.Failed).Select(f => f.SourcePath);
@@ -115,10 +109,6 @@ public sealed partial class JobViewModel : ObservableObject
         // A file from a browser that couldn't be saved, or whose original wasn't kept, is gone: nothing to retry with.
         CanRetry = _retry is not null && !IsRunning && failed.Count > 0
                    && (Job.Fetcher is null || failed.Any(f => File.Exists(f.SourcePath)));
-        IReadOnlyList<string> unknown = IsRunning ? [] : FormatRequest.UnknownExtensions(
-            failed.Where(f => f.ErrorKey == "error.unsupported_source").Select(f => f.SourcePath));
-        if (!unknown.SequenceEqual(UnknownExtensions))
-            UnknownExtensions = unknown;
 
         var noted = Job.Files.Where(f => f.State == FileState.Done && f.NoticeKey is not null).ToList();
         HasNotices = noted.Count > 0;

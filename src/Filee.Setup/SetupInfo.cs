@@ -5,10 +5,13 @@ namespace Filee.Setup;
 /// <summary>Facts about this Setup program.</summary>
 public static class SetupInfo
 {
-    /// <summary>GitHub repository from Directory.Build.props (FileeRepositoryUrl).</summary>
+    /// <summary>
+    /// GitHub repository from Directory.Build.props (FileeRepositoryUrl); empty in a private build such as Takaconv,
+    /// which then writes no web links into the uninstall entry.
+    /// </summary>
     public static string RepositoryUrl =>
         typeof(SetupInfo).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-            .FirstOrDefault(a => a.Key == "RepositoryUrl")?.Value ?? "https://github.com/KnifeLemon/Filee";
+            .FirstOrDefault(a => a.Key == "RepositoryUrl")?.Value ?? "";
 
     /// <summary>The website: one big download button.</summary>
     public const string WebsiteUrl = "https://filee.sh/";

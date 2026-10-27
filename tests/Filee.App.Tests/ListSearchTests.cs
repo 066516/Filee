@@ -108,25 +108,4 @@ public class ListSearchTests
         var own = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
         Assert.Equal(["a", "B"], IPlatformServices.AppNames(["B", own, "a", "", null, "b"]));
     }
-
-    [AvaloniaFact]
-    public void Updates_are_set_on_the_about_page()
-    {
-        TestServices.EnsureInitialized("en");
-        var store = AppHost.Get<UserDataStore>();
-        var before = store.Settings.CheckForUpdates;
-        try
-        {
-            using var about = new AboutPageViewModel(AppHost.Get<Filee.Core.Localization.ILocalizer>(), store, AppHost.Get<UpdateService>());
-            Assert.Equal(before, about.CheckForUpdates);
-            about.CheckForUpdates = !before;
-            Assert.Equal(!before, store.Settings.CheckForUpdates);
-            Assert.True(about.CheckNowCommand.CanExecute(null));
-        }
-        finally
-        {
-            store.Settings.CheckForUpdates = before;
-            store.SaveSettings();
-        }
-    }
 }

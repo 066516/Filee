@@ -20,7 +20,7 @@ public sealed class WhatsNewService(UserDataStore store, WindowService windows, 
     private IReadOnlyList<SlideDeck>? _decks;
 
     /// <summary>The assembly whose resources hold the decks.</summary>
-    internal const string Assembly = "Filee";
+    internal const string Assembly = "Takaconv";
 
     /// <summary>Every deck Filee ships, oldest first.</summary>
     public IReadOnlyList<SlideDeck> Decks => _decks ??= SlideDeck.LoadAll(Assembly);
@@ -31,7 +31,7 @@ public sealed class WhatsNewService(UserDataStore store, WindowService windows, 
     /// <summary>The deck waiting for the user to open Filee (it started in the background).</summary>
     public SlideDeck? Pending { get; private set; }
 
-    /// <summary>The newest deck up to this version: what About → "What's new" shows. Null when there is none.</summary>
+    /// <summary>The newest deck up to this version: what an update shows. Null when there is none.</summary>
     public SlideDeck? Latest => SlideDeck.Newest(Decks, seen: null, CurrentVersion);
 
     /// <summary>What a start should do about the slides.</summary>

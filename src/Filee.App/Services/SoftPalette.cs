@@ -11,25 +11,25 @@ namespace Filee.App.Services;
 
 internal static class SoftPalette
 {
-    /// <summary>The default accent colour (the first swatch of the Theme page).</summary>
-    public const string DefaultAccent = "#7F77DD";
+    /// <summary>Takaconv's fixed accent colour (EL Djazair Takaful green).</summary>
+    public const string DefaultAccent = "#22C55E";
 
     /// <summary>The default corner radius (ThemeSettings.CornerRadius).</summary>
     public const double DefaultCornerRadius = 16;
 
     /// <summary>Embedded Noto fonts (see build/fetch-fonts.ps1). Missing files fall back to system fonts.</summary>
-    private const string Latin = "fonts:Filee#Noto Sans";
-    private const string Arabic = "fonts:Filee#Noto Sans Arabic";
-    private const string Devanagari = "fonts:Filee#Noto Sans Devanagari";
-    private const string Thai = "fonts:Filee#Noto Sans Thai";
+    private const string Latin = "fonts:Takaconv#Noto Sans";
+    private const string Arabic = "fonts:Takaconv#Noto Sans Arabic";
+    private const string Devanagari = "fonts:Takaconv#Noto Sans Devanagari";
+    private const string Thai = "fonts:Takaconv#Noto Sans Thai";
 
     /// <summary>Each CJK region's embedded font and its system fonts (Windows, then macOS).</summary>
     private static readonly (string Embedded, string System) Japanese =
-        ("fonts:Filee#Noto Sans JP", "Yu Gothic UI, Meiryo, Hiragino Sans");
+        ("fonts:Takaconv#Noto Sans JP", "Yu Gothic UI, Meiryo, Hiragino Sans");
     private static readonly (string Embedded, string System) Korean =
-        ("fonts:Filee#Noto Sans KR", "Malgun Gothic, Apple SD Gothic Neo");
+        ("fonts:Takaconv#Noto Sans KR", "Malgun Gothic, Apple SD Gothic Neo");
     private static readonly (string Embedded, string System) Chinese =
-        ("fonts:Filee#Noto Sans SC", "Microsoft YaHei, PingFang SC");
+        ("fonts:Takaconv#Noto Sans SC", "Microsoft YaHei, PingFang SC");
 
     /// <summary>
     /// Traditional Chinese has no embedded font (two more Noto CJK files would add 11 MB): Windows and macOS always carry
@@ -78,29 +78,6 @@ internal static class SoftPalette
         res["SystemAccentColorDark1"] = Shade(accent, -0.15);
         res["SystemAccentColorDark2"] = Shade(accent, -0.30);
         res["SystemAccentColorDark3"] = Shade(accent, -0.45);
-    }
-
-    /// <summary>
-    /// Applies variant-specific monochrome accent resources into a theme dictionary so selection
-    /// maintains high contrast in both light (dark charcoal) and dark (silvery white) modes.
-    /// </summary>
-    public static void ApplyMonochromeAccent(IResourceDictionary dict, bool isDark)
-    {
-        var accent = isDark ? Color.Parse("#F1EFE8") : Color.Parse("#1F1E1D");
-        var onAccent = isDark ? Color.Parse("#1F1E1D") : Colors.White;
-        dict["AccentColor"] = accent;
-        dict["AccentBrush"] = new SolidColorBrush(accent);
-        dict["AccentSoftBrush"] = new SolidColorBrush(accent, isDark ? 0.18 : 0.12);
-        dict["AccentFaintBrush"] = new SolidColorBrush(accent, isDark ? 0.08 : 0.05);
-        dict["AccentStrongBrush"] = new SolidColorBrush(accent);
-        dict["OnAccentBrush"] = new SolidColorBrush(onAccent);
-        dict["SystemAccentColor"] = accent;
-        dict["SystemAccentColorLight1"] = Shade(accent, 0.15);
-        dict["SystemAccentColorLight2"] = Shade(accent, 0.30);
-        dict["SystemAccentColorLight3"] = Shade(accent, 0.45);
-        dict["SystemAccentColorDark1"] = Shade(accent, -0.15);
-        dict["SystemAccentColorDark2"] = Shade(accent, -0.30);
-        dict["SystemAccentColorDark3"] = Shade(accent, -0.45);
     }
 
     /// <summary>"Softness": one radius drives every control.</summary>

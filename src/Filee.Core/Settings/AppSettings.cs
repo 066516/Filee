@@ -40,7 +40,7 @@ public sealed class ThemeSettings
     public ThemeMode Mode { get; set; } = ThemeMode.System;
 
     /// <summary>Accent colour as <c>#RRGGBB</c>.</summary>
-    public string Accent { get; set; } = "#7F77DD";
+    public string Accent { get; set; } = "#22C55E";
 
     /// <summary>Active curated preset key (e.g. "mint", "peach") when a coordinated light/dark pair is used; null for custom choices.</summary>
     public string? PresetKey { get; set; }
@@ -127,7 +127,7 @@ public sealed class AppSettings
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
-    /// <summary><c>"auto"</c>, <c>"en"</c>, <c>"ko"</c> or <c>"zh-CN"</c>.</summary>
+    /// <summary><c>"auto"</c>, <c>"en"</c>, <c>"ar"</c> or <c>"fr"</c>: the languages Takaconv ships.</summary>
     public string Language { get; set; } = "auto";
 
     public bool StartWithSystem { get; set; } = true;
@@ -135,7 +135,7 @@ public sealed class AppSettings
     /// <summary>Show the Explorer "Convert with Filee" context menu entry.</summary>
     public bool ContextMenuEnabled { get; set; } = true;
 
-    public bool CheckForUpdates { get; set; } = true;
+    public bool CheckForUpdates { get; set; } = false;
 
     /// <summary>What closing the main window does. A value from a newer Filee reads as <see cref="CloseAction.Ask"/>.</summary>
     [JsonConverter(typeof(LenientEnumJsonConverter<CloseAction>))]

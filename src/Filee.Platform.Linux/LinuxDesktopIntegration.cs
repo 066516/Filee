@@ -105,7 +105,7 @@ internal sealed class LinuxDesktopIntegration(string configHome, string dataHome
         var menuPaths = new[]
         {
             Path.Combine(dataHome, "Thunar", "sendto", "filee.desktop"),
-            Path.Combine(dataHome, "nautilus", "scripts", "Filee"),
+            Path.Combine(dataHome, "nautilus", "scripts", "Takaconv"),
             Path.Combine(dataHome, "nemo", "actions", "filee.nemo_action"),
             Path.Combine(dataHome, "kio", "servicemenus", "filee.desktop"),
         };

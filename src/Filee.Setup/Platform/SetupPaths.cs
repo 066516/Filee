@@ -26,17 +26,17 @@ public sealed record SetupPaths(
     string SystemFolder)
 {
     /// <summary>Filee's settings folder (UserDataStore.DefaultDirectory without FILEE_DATA_DIR).</summary>
-    public string SettingsFolder => Path.Combine(AppData, "Filee");
+    public string SettingsFolder => Path.Combine(AppData, "Takaconv");
 
     /// <summary>Downloaded engines (EngineEnvironment.DownloadRoot).</summary>
-    public string EnginesFolder => Path.Combine(LocalAppData, "Filee", "engines");
+    public string EnginesFolder => Path.Combine(LocalAppData, "Takaconv", "engines");
 
     public string StartMenu(InstallScope scope) => scope == InstallScope.Machine ? CommonStartMenu : UserStartMenu;
 
     public string Desktop(InstallScope scope) => scope == InstallScope.Machine ? CommonDesktop : UserDesktop;
 
     public string DefaultInstallFolder(InstallScope scope) =>
-        Path.Combine(scope == InstallScope.Machine ? ProgramFiles : UserPrograms, "Filee");
+        Path.Combine(scope == InstallScope.Machine ? ProgramFiles : UserPrograms, "Takaconv");
 
     /// <summary>This PC's folders.</summary>
     public static SetupPaths Real()

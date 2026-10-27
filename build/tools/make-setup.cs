@@ -1,8 +1,8 @@
-// Makes Filee-<version>-win-Setup.exe: appends the published app (an LZMA payload with a SHA-256 manifest, see
+// Makes Takaconv-<version>-win-Setup.exe: appends the published app (an LZMA payload with a SHA-256 manifest, see
 // src/Filee.Setup/Payload/SetupPayload.cs) to the published Setup program. The engines Setup offers on a fresh install
 // come from EngineDownloads (engines.json), so Setup offers exactly what Settings → Engines offers.
 // Run by build/build-installer.ps1:
-//   dotnet run build/tools/make-setup.cs -- <Filee.Setup.exe> <publish folder> <version> <output .exe> [--fast]
+//   dotnet run build/tools/make-setup.cs -- <Takaconv.Setup.exe> <publish folder> <version> <output .exe> [--fast]
 // LZMA with a 48 MB dictionary, programs through the x86 branch filter; --fast uses a small dictionary, for checks.
 #:project ../../src/Filee.Setup/Filee.Setup.csproj
 #:project ../../src/Filee.Engines/Filee.Engines.csproj
@@ -17,13 +17,13 @@ var fast = args.Contains("--fast");
 var positional = args.Where(a => a != "--fast").ToArray();
 if (positional.Length != 4)
 {
-    Console.Error.WriteLine("usage: dotnet run build/tools/make-setup.cs -- <Filee.Setup.exe> <publish folder> <version> <output .exe> [--fast]");
+    Console.Error.WriteLine("usage: dotnet run build/tools/make-setup.cs -- <Takaconv.Setup.exe> <publish folder> <version> <output .exe> [--fast]");
     return 2;
 }
 var (program, app, version, output) = (positional[0], positional[1], positional[2], positional[3]);
-if (!File.Exists(Path.Combine(app, "Filee.exe")))
+if (!File.Exists(Path.Combine(app, "Takaconv.exe")))
 {
-    Console.Error.WriteLine($"Filee.exe is missing in {app}");
+    Console.Error.WriteLine($"Takaconv.exe is missing in {app}");
     return 1;
 }
 

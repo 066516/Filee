@@ -5,7 +5,7 @@
         xmlns:s="using:Filee.App.Services"
         x:Class="Filee.App.Views.ToastWindow"
         x:DataType="s:ConversionService"
-        Title="Filee"
+        Title="Takaconv"
         Width="360"
         SizeToContent="Height"
         WindowDecorations="None"
@@ -126,9 +126,6 @@
               <TextBlock Classes="caption" Text="{Binding MissingFontsText}" TextWrapping="Wrap" MaxLines="3"
                          Margin="0,0,8,0" VerticalAlignment="Center" />
             </DockPanel>
-            <!-- Files of a type Filee doesn't know: open the GitHub "Format request" form (FormatRequest). -->
-            <Button HorizontalAlignment="Left" Padding="10,4" Click="OnRequestFormat"
-                    IsVisible="{Binding CanRequestFormat}" Content="{DynamicResource format_request.request}" />
           </StackPanel>
         </Border>
       </DataTemplate>

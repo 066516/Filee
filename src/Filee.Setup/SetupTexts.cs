@@ -60,8 +60,8 @@ public sealed class SetupTexts
     }
 
     /// <summary>
-    /// A language code for <paramref name="setting"/>: one of <see cref="Languages"/> ("zh-CN", Inno Setup's "zhcn",
-    /// "ko-KR" …) or, for "auto" and anything unknown, Windows' display language, falling back to English.
+    /// A language code for <paramref name="setting"/>: one of <see cref="Languages"/> ("ar-IQ", "fr-CA" …) or, for
+    /// "auto" and anything unknown, Windows' display language, falling back to English.
     /// </summary>
     public static string Resolve(string? setting, Func<string> uiLanguage)
     {
@@ -76,23 +76,11 @@ public sealed class SetupTexts
     private static string? Match(string name)
     {
         var normalized = name.Trim().Replace('_', '-');
-        if (normalized.Equals("zhcn", StringComparison.OrdinalIgnoreCase))
-            normalized = "zh-CN";
+        // "fr" and "fr-CA", "ar" and "ar-EG"; any other language is not shipped and resolves to English (Resolve).
         foreach (var (code, _) in Languages)
         {
-            if (normalized.Equals(code, StringComparison.OrdinalIgnoreCase))
-                return code;
-        }
-        if (Filee.App.Services.AppLanguages.PortugueseVariant(normalized) is { } portuguese)
-            return portuguese;
-        // "zh-Hant-HK" / "zh-HK" → zh-TW; the primary-language fallback below gives the other Chinese names zh-CN.
-        if (Filee.App.Services.AppLanguages.IsTraditionalChinese(normalized))
-            return "zh-TW";
-        // "ko-KR" → ko, "zh-Hans-CN" → zh-CN, "es-MX" → es.
-        var primary = normalized.Split('-')[0];
-        foreach (var (code, _) in Languages)
-        {
-            if (code.Split('-')[0].Equals(primary, StringComparison.OrdinalIgnoreCase))
+            if (normalized.Equals(code, StringComparison.OrdinalIgnoreCase) ||
+                normalized.StartsWith(code + "-", StringComparison.OrdinalIgnoreCase))
                 return code;
         }
         return null;

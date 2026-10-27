@@ -22,12 +22,6 @@ public partial class ToastWindow : Window
 
     private ConversionService? _service;
 
-    private async void OnRequestFormat(object? sender, RoutedEventArgs e)
-    {
-        if ((sender as Control)?.DataContext is JobViewModel { CanRequestFormat: true } job)
-            await Launcher.LaunchUriAsync(FormatRequest.Url(job.UnknownExtensions));
-    }
-
     private async void OnGetFonts(object? sender, RoutedEventArgs e)
     {
         if ((sender as Control)?.DataContext is not JobViewModel { CanGetFonts: true } job)

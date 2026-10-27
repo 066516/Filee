@@ -7,7 +7,7 @@
         x:Class="Filee.Setup.Views.SetupWindow"
         x:DataType="vm:SetupViewModel"
         Title="{DynamicResource installer.title}"
-        Icon="avares://Filee.Setup/Assets/Icons/filee.ico"
+        Icon="avares://Takaconv.Setup/Assets/Icons/takaconv.ico"
         Width="664" Height="444"
         CanResize="False"
         WindowDecorations="None"

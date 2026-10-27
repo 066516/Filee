@@ -106,7 +106,7 @@ internal static class Program
         if (!options.Portable && sandbox is null && scope == InstallScope.Machine && !NativeMethods.IsElevated())
         {
             payload.Dispose();
-            return RunElevated(exe, args, log, launchFile: Path.Combine(Path.GetTempPath(), $"Filee-Setup-{Guid.NewGuid():N}.launch"));
+            return RunElevated(exe, args, log, launchFile: Path.Combine(Path.GetTempPath(), $"Takaconv-Setup-{Guid.NewGuid():N}.launch"));
         }
 
         var context = CreateContext(sandbox, paths, log);
@@ -115,7 +115,7 @@ internal static class Program
             texts.SetLanguage(recorded);
         var folder = previous?.Folder
                      ?? (options.Directory is { } dir ? Path.GetFullPath(Environment.ExpandEnvironmentVariables(dir)) : null)
-                     ?? (options.Portable ? Path.Combine(Path.GetDirectoryName(exe)!, "Filee") : paths.DefaultInstallFolder(scope));
+                     ?? (options.Portable ? Path.Combine(Path.GetDirectoryName(exe)!, "Takaconv") : paths.DefaultInstallFolder(scope));
         if (previous is not null && options.Directory is { } asked
             && !Path.GetFullPath(Environment.ExpandEnvironmentVariables(asked)).TrimEnd('\\').Equals(previous.Folder, StringComparison.OrdinalIgnoreCase))
             log.Warn($"/DIR={asked} ignored: Filee is installed in {previous.Folder}, which an update keeps");
@@ -475,7 +475,7 @@ internal static class Program
     private static void Tell(SetupOptions options, string text, uint icon)
     {
         if (options.CanShowMessages)
-            NativeMethods.MessageBox(0, text, "Filee Setup", NativeMethods.MB_OK | icon | NativeMethods.MB_SETFOREGROUND);
+            NativeMethods.MessageBox(0, text, "Takaconv Setup", NativeMethods.MB_OK | icon | NativeMethods.MB_SETFOREGROUND);
     }
 }
 

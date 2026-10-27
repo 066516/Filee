@@ -36,7 +36,7 @@ public partial class LocalizationTests
     {
         Assert.Contains(("ar", "العربية"), LocalizationService.Languages);
         Assert.Equal("ar", LocalizationService.Resolve("AR"));
-        Assert.Contains("fonts:Filee#Noto Sans Arabic", ThemeService.FontFamilies("ar"));
+        Assert.Contains("fonts:Takaconv#Noto Sans Arabic", ThemeService.FontFamilies("ar"));
         Assert.True(SoftPalette.IsRightToLeft("ar"));
         Assert.All(LocalizationService.Languages.Where(l => l.Code != "ar"), l => Assert.False(SoftPalette.IsRightToLeft(l.Code)));
     }
@@ -132,69 +132,37 @@ public partial class LocalizationTests
         Assert.Empty(missing);
     }
 
-    [Fact]
-    public void Russian_is_offered_under_its_own_name()
-    {
-        Assert.Contains(("ru", "Русский"), LocalizationService.Languages);
-        Assert.Equal("ru", LocalizationService.Resolve("RU"));
-    }
-
     [Theory]
-    [InlineData("tr", "tr")]
-    [InlineData("tr-TR", "tr")]
-    [InlineData("TR-cy", "tr")]
-    [InlineData("tru", "en")]
-    [InlineData("ru-RU", "ru")]
-    [InlineData("en-US", "en")]
-    [InlineData("pl-PL", "pl")]
+    [InlineData("ar", "ar")]
     [InlineData("ar-EG", "ar")]
-    [InlineData("pt-BR", "pt-BR")]
-    [InlineData("pt-PT", "pt-PT")]
-    [InlineData("zh-CN", "zh-CN")]
-    [InlineData("zh-Hans-CN", "zh-CN")]
-    [InlineData("zh-SG", "zh-CN")]
-    [InlineData("zh", "zh-CN")]
-    [InlineData("zh-Hans-TW", "zh-CN")] // macOS: Simplified script in the Taiwan region
-    [InlineData("zh-TW", "zh-TW")]
-    [InlineData("zh-Hant-TW", "zh-TW")]
-    [InlineData("zh-HK", "zh-TW")]
-    [InlineData("zh-Hant-HK", "zh-TW")]
-    [InlineData("zh-MO", "zh-TW")]
+    [InlineData("ar-SA", "ar")]
     [InlineData("fr-FR", "fr")]
     [InlineData("fr-CA", "fr")]
-    [InlineData("frr-DE", "en")]
-    [InlineData("ne-NP", "ne")]
-    [InlineData("new-NP", "en")]
-    [InlineData("th-TH", "th")]
-    [InlineData("thl-NP", "en")]
-    [InlineData("de-DE", "de")]
-    [InlineData("de-AT", "de")]
-    [InlineData("de-CH", "de")]
-    [InlineData("de", "de")]
-    [InlineData("den-CA", "en")]
+    [InlineData("frr-DE", "en")] // North Frisian is not French
+    [InlineData("en-US", "en")]
+    [InlineData("de-DE", "en")] // not a language Takaconv ships: English
+    [InlineData("ja-JP", "en")]
+    [InlineData("pt-BR", "en")]
+    [InlineData("zh-TW", "en")]
     [InlineData("it-IT", "en")]
     [InlineData("", "en")] // Linux without LANG: the invariant culture
-    public void Auto_follows_the_language_the_user_reads_the_os_in(string os, string expected) =>
+    public void Auto_follows_the_os_language_and_falls_back_to_english(string os, string expected) =>
         Assert.Equal(expected, LocalizationService.Resolve("auto", () => os));
 
     [Theory]
-    [InlineData("ko")]
-    [InlineData("de")]
     [InlineData("ar")]
-    [InlineData("ne")]
     [InlineData("en")]
-    [InlineData("pt-PT")]
-    [InlineData("pt-BR")]
+    [InlineData("fr")]
     public void A_chosen_language_is_kept_whatever_the_os_is_in(string chosen) =>
         // The OS isn't even asked: the user picked the language in Settings.
         Assert.Equal(chosen, LocalizationService.Resolve(chosen, () => throw new InvalidOperationException("asked the OS")));
 
     [Fact]
-    public void Auto_is_not_the_language_filee_switched_to()
+    public void Auto_is_not_the_language_takaconv_switched_to()
     {
-        // Filee sets the current UI culture to the language it shows; "auto" must still mean the user's own.
+        // Takaconv sets the current UI culture to the language it shows; "auto" must still mean the user's own.
         var before = LocalizationService.Resolve("auto");
-        var shown = before == "ko" ? "ja" : "ko";
+        var shown = before == "fr" ? "ar" : "fr";
         var culture = System.Globalization.CultureInfo.CurrentUICulture;
         try
         {
@@ -208,54 +176,10 @@ public partial class LocalizationTests
     }
 
     [Fact]
-    public void Nepali_is_offered_under_its_own_name()
-    {
-        Assert.Contains(("ne", "नेपाली"), LocalizationService.Languages);
-        Assert.Equal("ne", LocalizationService.Resolve("NE"));
-    }
-
-    [Fact]
-    public void Turkish_is_offered_under_its_own_name()
-    {
-        Assert.Contains(("tr", "Türkçe"), LocalizationService.Languages);
-        Assert.Equal("tr", LocalizationService.Resolve("TR"));
-    }
-
-    [Fact]
-    public void Japanese_is_offered_under_its_own_name()
-    {
-        Assert.Contains(("ja", "日本語"), LocalizationService.Languages);
-        Assert.Equal("ja", LocalizationService.Resolve("JA"));
-    }
-
-    [Fact]
-    public void German_is_offered_under_its_own_name()
-    {
-        Assert.Contains(("de", "Deutsch"), LocalizationService.Languages);
-        Assert.Equal("de", LocalizationService.Resolve("DE"));
-    }
-
-    [Fact]
-    public void Portuguese_is_offered_under_its_own_name()
-    {
-        Assert.Contains(("pt-BR", "Português (Brasil)"), LocalizationService.Languages);
-        Assert.Equal("pt-BR", LocalizationService.Resolve("pt-BR"));
-        Assert.Equal("pt-BR", LocalizationService.Resolve("PT-br"));
-    }
-
-    [Fact]
     public void French_is_offered_under_its_own_name()
     {
         Assert.Contains(("fr", "Français"), LocalizationService.Languages);
         Assert.Equal("fr", LocalizationService.Resolve("FR"));
-    }
-
-    [Fact]
-    public void Thai_is_offered_under_its_own_name()
-    {
-        Assert.Contains(("th", "ไทย"), LocalizationService.Languages);
-        Assert.Equal("th", LocalizationService.Resolve("TH"));
-        Assert.Contains("fonts:Filee#Noto Sans Thai", ThemeService.FontFamilies("th"));
     }
 
     /// <summary>Han characters look different in Japanese, Korean and Chinese fonts: the UI language's come first.</summary>
@@ -266,7 +190,7 @@ public partial class LocalizationTests
     [InlineData("en", "Noto Sans KR", "Malgun Gothic")]
     public void The_ui_languages_cjk_fonts_come_first(string language, string embedded, string system)
     {
-        var families = ThemeService.FontFamilies(language).Split(", ").Select(f => f.Replace("fonts:Filee#", "")).ToList();
+        var families = ThemeService.FontFamilies(language).Split(", ").Select(f => f.Replace("fonts:Takaconv#", "")).ToList();
         string[] embeddedCjk = ["Noto Sans JP", "Noto Sans KR", "Noto Sans SC"];
         string[] systemCjk = ["Yu Gothic UI", "Malgun Gothic", "Microsoft YaHei"];
 
@@ -275,19 +199,11 @@ public partial class LocalizationTests
         Assert.True(embeddedCjk.Max(families.IndexOf) < systemCjk.Min(families.IndexOf), "embedded fonts before system ones");
     }
 
-    [Fact]
-    public void Traditional_chinese_is_offered_under_its_own_name()
-    {
-        Assert.Contains(("zh-TW", "繁體中文"), LocalizationService.Languages);
-        Assert.Equal("zh-TW", LocalizationService.Resolve("zh-TW"));
-        Assert.Equal("zh-CN", LocalizationService.Resolve("zh-CN"));
-    }
-
     /// <summary>The embedded Noto Sans SC has Simplified Han shapes: zh-TW lists the system Traditional fonts before it.</summary>
     [Fact]
     public void Traditional_chinese_takes_the_system_traditional_fonts_before_the_embedded_simplified_one()
     {
-        var families = ThemeService.FontFamilies("zh-TW").Split(", ").Select(f => f.Replace("fonts:Filee#", "")).ToList();
+        var families = ThemeService.FontFamilies("zh-TW").Split(", ").Select(f => f.Replace("fonts:Takaconv#", "")).ToList();
 
         Assert.True(families.IndexOf("Microsoft JhengHei UI") is >= 0 and var windows && windows < families.IndexOf("Noto Sans SC"));
         Assert.True(families.IndexOf("PingFang TC") is >= 0 and var mac && mac < families.IndexOf("Noto Sans SC"));

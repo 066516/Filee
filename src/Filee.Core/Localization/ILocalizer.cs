@@ -9,7 +9,7 @@ namespace Filee.Core.Localization;
 /// <summary>Looks up translated UI strings by key.</summary>
 public interface ILocalizer
 {
-    /// <summary>Current language code, e.g. <c>"ko"</c>.</summary>
+    /// <summary>Current language code, e.g. <c>"fr"</c>.</summary>
     string Language { get; }
 
     /// <summary>Returns the translation for <paramref name="key"/>, falling back to English, then to the key itself.</summary>

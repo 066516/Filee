@@ -128,7 +128,7 @@ public sealed partial class SetupViewModel : ObservableObject
         get
         {
             if (!_deckRead && !IsUninstall)
-                _deck = SlideDeck.Newest(SlideDeck.LoadAll("Filee.Setup"), seen: null, SlideDeck.TryParseVersion(Version) ?? new Version(0, 0, 0));
+                _deck = SlideDeck.Newest(SlideDeck.LoadAll("Takaconv.Setup"), seen: null, SlideDeck.TryParseVersion(Version) ?? new Version(0, 0, 0));
             _deckRead = true;
             return _deck;
         }
@@ -280,9 +280,9 @@ public sealed partial class SetupViewModel : ObservableObject
         if (await PickFolder(Folder) is { } picked)
         {
             // A folder of its own, like Inno Setup: picking "D:\Apps" installs into "D:\Apps\Filee".
-            Folder = Path.GetFileName(Path.TrimEndingDirectorySeparator(picked)).Equals("Filee", StringComparison.OrdinalIgnoreCase)
+            Folder = Path.GetFileName(Path.TrimEndingDirectorySeparator(picked)).Equals("Takaconv", StringComparison.OrdinalIgnoreCase)
                 ? picked
-                : Path.Combine(picked, "Filee");
+                : Path.Combine(picked, "Takaconv");
         }
     }
 

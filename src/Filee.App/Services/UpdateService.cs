@@ -2,7 +2,8 @@
 // installed copy "Update" downloads the new installer, checks it against the release's SHA256SUMS file and that the
 // publisher who signed this copy signed it too (Authenticode), and runs it;
 // Setup closes Filee, updates it in place (settings are kept) and starts it again. A portable copy, a copy run from
-// source, or a failed download opens a download page instead. The check works in every build.
+// source, or a failed download opens a download page instead. A build names its repository in Directory.Build.props;
+// Takaconv names none, so its checks find nothing and never contact another project.
 
 using System.ComponentModel;
 using System.Diagnostics;
@@ -51,6 +52,12 @@ public sealed partial class UpdateService : ObservableObject
     /// </summary>
     internal const string InstallerArguments = "/SILENT /NORESTART";
 
+    /// <summary>
+    /// The repository a check asks. A build names it in Directory.Build.props; tests point it at a fake. Empty (a
+    /// private build such as Takaconv) means there is nothing to ask, so no check happens at all.
+    /// </summary>
+    internal string Repository { get; set; } = RepositoryUrl;
+
     private readonly ILogger<UpdateService> _log;
     private readonly HttpClient _http;
     private DispatcherTimer? _timer;
@@ -67,14 +74,23 @@ public sealed partial class UpdateService : ObservableObject
         _log = log;
         // Downloads use their own stall timeout (StallTimeout); this one covers the API call and the response headers.
         _http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(20) };
-        _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Filee", CurrentVersion));
+        _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Takaconv", CurrentVersion));
         _http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 
-    /// <summary>GitHub repository from Directory.Build.props (FileeRepositoryUrl).</summary>
+    /// <summary>
+    /// GitHub repository from Directory.Build.props (FileeRepositoryUrl). Empty when the build names none, which is
+    /// what a private build like Takaconv does: no release page to ask, no other project's releases to install.
+    /// </summary>
     public static string RepositoryUrl =>
         typeof(UpdateService).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-            .FirstOrDefault(a => a.Key == "RepositoryUrl")?.Value ?? "https://github.com/KnifeLemon/Filee";
+            .FirstOrDefault(a => a.Key == "RepositoryUrl")?.Value ?? "";
+
+    /// <summary>
+    /// Whether this build names a repository to check for releases. A private build (Takaconv) leaves it out, which
+    /// keeps the updater from contacting a project it isn't part of.
+    /// </summary>
+    public static bool HasRepository => RepositoryUrl.Length > 0;
 
     public static string CurrentVersion =>
         typeof(UpdateService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
@@ -103,10 +119,10 @@ public sealed partial class UpdateService : ObservableObject
 
     internal static bool IsLinuxInstalled(string baseDirectory)
     {
-        var marker = Path.Combine(baseDirectory, ".filee-package");
+        var marker = Path.Combine(baseDirectory, ".takaconv-package");
         try
         {
-            return File.Exists(marker) && File.ReadAllText(marker).Trim() == "com.filee.app";
+            return File.Exists(marker) && File.ReadAllText(marker).Trim() == "com.takaful.takaconv";
         }
         catch (Exception)
         {
@@ -227,9 +243,11 @@ public sealed partial class UpdateService : ObservableObject
     /// </summary>
     internal async Task<bool> RefreshAsync(bool announce, CancellationToken cancellationToken = default)
     {
+        if (Repository.Length == 0)
+            return false; // no release page to ask
         try
         {
-            var api = RepositoryUrl.TrimEnd('/').Replace("https://github.com/", "https://api.github.com/repos/", StringComparison.OrdinalIgnoreCase)
+            var api = Repository.TrimEnd('/').Replace("https://github.com/", "https://api.github.com/repos/", StringComparison.OrdinalIgnoreCase)
                       + "/releases/latest";
             using var response = await _http.GetAsync(api, cancellationToken);
             if (!response.IsSuccessStatusCode)
@@ -424,7 +442,7 @@ public sealed partial class UpdateService : ObservableObject
 
             var scriptPath = Path.Combine(payloadDir, "install.sh");
             var targetInstallDir = LinuxInstallDirectoryOverride ?? GetLinuxInstallDirectory();
-            var newExe = Path.Combine(targetInstallDir, "Filee");
+            var newExe = Path.Combine(targetInstallDir, "Takaconv");
             var currentPid = Environment.ProcessId;
             var logDir = Path.Combine(UserDataStore.DefaultDirectory, "logs");
             Directory.CreateDirectory(logDir);
@@ -893,7 +911,7 @@ public sealed partial class UpdateService : ObservableObject
         }
 
         var installSh = Path.Combine(payloadDir, "install.sh");
-        var fileeExe = Path.Combine(payloadDir, "Filee");
+        var fileeExe = Path.Combine(payloadDir, "Takaconv");
         if (!File.Exists(installSh) || !File.Exists(fileeExe))
         {
             throw new InvalidDataException("Archive is missing install.sh or Filee executable in the payload directory.");
@@ -903,7 +921,7 @@ public sealed partial class UpdateService : ObservableObject
         {
             EnsureExecutable(installSh);
             EnsureExecutable(fileeExe);
-            var cli = Path.Combine(payloadDir, "filee-cli");
+            var cli = Path.Combine(payloadDir, "takaconv-cli");
             if (File.Exists(cli))
                 EnsureExecutable(cli);
             var uninstall = Path.Combine(payloadDir, "uninstall.sh");
@@ -988,7 +1006,7 @@ public sealed partial class UpdateService : ObservableObject
             var root = !string.IsNullOrWhiteSpace(dataHome)
                 ? dataHome
                 : Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            return Path.Combine(root, "filee");
+            return Path.Combine(root, "takaconv");
         }
         return Path.GetTempPath();
     }
@@ -1169,7 +1187,7 @@ public sealed partial class UpdateService : ObservableObject
         var root = !string.IsNullOrWhiteSpace(dataHome)
             ? dataHome
             : Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        return Path.Combine(root, "filee", "application");
+        return Path.Combine(root, "takaconv", "application");
     }
 
     /// <summary>True when release tag <paramref name="tag"/> ("v1.2.0") is a higher version than <paramref name="current"/>.</summary>

@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
-using Avalonia.Platform;
 using Avalonia.VisualTree;
 using Filee.App.Controls;
 
@@ -8,6 +7,17 @@ namespace Filee.App.Tests;
 
 public class MarkdownViewTests
 {
+    private static string RepositoryRoot
+    {
+        get
+        {
+            var dir = AppContext.BaseDirectory;
+            while (!File.Exists(Path.Combine(dir, "Filee.slnx")))
+                dir = Path.GetDirectoryName(dir) ?? throw new InvalidOperationException("Repository root not found.");
+            return dir;
+        }
+    }
+
     private static MarkdownView Show(string markdown, bool skipTitle = true)
     {
         var view = new MarkdownView { Markdown = markdown, SkipTitle = skipTitle };
@@ -19,8 +29,7 @@ public class MarkdownViewTests
     public void Third_party_notices_render_as_headings_tables_and_links()
     {
         TestServices.EnsureInitialized("en");
-        using var reader = new StreamReader(AssetLoader.Open(new Uri("avares://Filee/Assets/THIRD-PARTY-NOTICES.md")));
-        var markdown = reader.ReadToEnd();
+        var markdown = File.ReadAllText(Path.Combine(RepositoryRoot, "THIRD-PARTY-NOTICES.md"));
 
         var view = Show(markdown);
 

@@ -4,8 +4,8 @@
         xmlns:vm="using:Filee.App.ViewModels"
         x:Class="Filee.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="Filee"
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Title="Takaconv"
+        Icon="avares://Takaconv/Assets/Icons/takaconv.ico"
         Width="1080" Height="760" MinWidth="820" MinHeight="560"
         WindowStartupLocation="CenterScreen">
   <Grid ColumnDefinitions="230,*">
@@ -13,9 +13,9 @@
     <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="0,0,1,0">
       <DockPanel Margin="14,18">
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="8,0,0,20">
-          <Image Source="avares://Filee/Assets/Icons/filee.png" Width="30" Height="30" />
+          <Image Source="avares://Takaconv/Assets/Icons/takaconv.png" Width="30" Height="30" />
           <StackPanel VerticalAlignment="Center">
-            <TextBlock Text="Filee" FontSize="18" FontWeight="Bold" />
+            <TextBlock Text="EL Djazair Takaful" FontSize="16" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
             <TextBlock Classes="caption" Text="{DynamicResource app.tagline}" />
           </StackPanel>
         </StackPanel>
@@ -41,21 +41,6 @@
               </StackPanel>
             </DockPanel>
           </Button>
-          <!-- The project on GitHub, and sponsoring it -->
-          <Grid ColumnDefinitions="*,6,*">
-            <Button Classes="navlink" HorizontalAlignment="Stretch" Click="OnOpenGitHub" ToolTip.Tip="{Binding RepositoryUrl}">
-              <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                <PathIcon Width="13" Height="13" Data="{StaticResource Icon.GitHub}" />
-                <TextBlock Text="GitHub" />
-              </StackPanel>
-            </Button>
-            <Button Grid.Column="2" Classes="navlink" HorizontalAlignment="Stretch" Click="OnSponsor">
-              <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                <PathIcon Width="13" Height="13" Data="{StaticResource Icon.Heart}" Foreground="#D4537E" />
-                <TextBlock Text="{DynamicResource about.sponsor}" />
-              </StackPanel>
-            </Button>
-          </Grid>
           <TextBlock x:Name="VersionLabel" Classes="caption" Margin="8,0,0,0" Text="{Binding VersionText}" />
         </StackPanel>
         <ListBox Classes="nav" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">

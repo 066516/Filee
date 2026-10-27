@@ -301,8 +301,8 @@ internal static class Program
     }
 }
 
-/// <summary>Embedded Noto fonts: <c>fonts:Filee#Noto Sans</c>, <c>#Noto Sans JP</c>, <c>#Noto Sans KR</c>,
+/// <summary>Embedded Noto fonts: <c>fonts:Takaconv#Noto Sans</c>, <c>#Noto Sans JP</c>, <c>#Noto Sans KR</c>,
 /// <c>#Noto Sans SC</c>, <c>#Noto Sans Devanagari</c>, <c>#Noto Sans Arabic</c>, <c>#Noto Sans Thai</c>.</summary>
 internal sealed class FileeFontCollection() : Avalonia.Media.Fonts.EmbeddedFontCollection(
-    new Uri("fonts:Filee", UriKind.Absolute),
-    new Uri("avares://Filee/Assets/Fonts", UriKind.Absolute));
+    new Uri("fonts:Takaconv", UriKind.Absolute),
+    new Uri("avares://Takaconv/Assets/Fonts", UriKind.Absolute));
