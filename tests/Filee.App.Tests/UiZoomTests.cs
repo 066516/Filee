@@ -270,7 +270,7 @@ public class UiZoomTests
             UiZoom.Set(1.5, remember: false);
             RenderTests.Pump();
             Assert.Equal(520 * 1.5, window.Width, 3);
-            RenderTests.Save(window, "window-libreoffice-options-zoom-150-ko.png");
+            RenderTests.Save(window, "window-libreoffice-options-zoom-150-ar.png");
             UiZoom.Set(1, remember: false);
             RenderTests.Pump();
             Assert.Equal(520, window.Width, 3);

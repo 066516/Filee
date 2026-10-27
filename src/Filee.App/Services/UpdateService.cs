@@ -107,7 +107,7 @@ public sealed partial class UpdateService : ObservableObject
 
     /// <summary>
     /// True when this copy was installed by Setup on Windows (uninstall.exe; the Inno Setup installer of 1.x put unins000.exe there)
-    /// or by install.sh on Linux (.filee-package marker containing com.filee.app).
+    /// or by install.sh on Linux (.takaconv-package marker containing com.takaful.takaconv).
     /// Only then can the new installer update it in place; the portable zip and a copy run from source have no uninstaller.
     /// </summary>
     public static bool IsInstalled { get; } =

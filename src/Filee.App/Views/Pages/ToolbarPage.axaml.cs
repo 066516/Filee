@@ -212,11 +212,28 @@ public partial class ToolbarPage : UserControl
         }
     }
 
-    /// <summary>Down / Up in the wrapped tab row: the tab on the next / previous row nearest below / above this one.</summary>
+    /// <summary>
+    /// Down / Up in the wrapped tab row: the tab on the next / previous row nearest below / above this one. In Arabic,
+    /// where the row reads right to left, the arrow pointing the way the text reads goes on (Left), since the list box
+    /// steps back on Left whatever the flow direction.
+    /// </summary>
     private void OnTabsKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key is not (Key.Down or Key.Up) || e.KeyModifiers != KeyModifiers.None ||
+        if (e.KeyModifiers != KeyModifiers.None ||
             (e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(includeSelf: true) is not { } from)
+            return;
+        if (e.Key is Key.Left or Key.Right && FlowDirection == Avalonia.Media.FlowDirection.RightToLeft)
+        {
+            var on = e.Key == Key.Left;
+            var next = PaletteTabs.IndexFromContainer(from) + (on ? 1 : -1);
+            if (next < 0 || next >= PaletteTabs.ItemCount)
+                return;
+            PaletteTabs.SelectedIndex = next;
+            PaletteTabs.ContainerFromIndex(next)?.Focus(NavigationMethod.Directional);
+            e.Handled = true;
+            return;
+        }
+        if (e.Key is not (Key.Down or Key.Up))
             return;
         var down = e.Key == Key.Down;
         var tabs = PaletteTabs.GetRealizedContainers().OfType<ListBoxItem>().ToList();

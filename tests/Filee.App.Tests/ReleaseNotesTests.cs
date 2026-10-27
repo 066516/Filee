@@ -85,7 +85,10 @@ public class ReleaseNotesTests
     [AvaloniaFact] // the check publishes its answer on the UI thread
     public async Task The_check_reads_the_notes_of_every_newer_release()
     {
-        var updates = new UpdateService(NullLogger<UpdateService>.Instance, new Releases());
+        var updates = new UpdateService(NullLogger<UpdateService>.Instance, new Releases())
+        {
+            Repository = "https://github.com/KnifeLemon/Filee", // a build that names one; Takaconv's own ships without
+        };
 
         Assert.True(await updates.RefreshAsync(announce: false));
 

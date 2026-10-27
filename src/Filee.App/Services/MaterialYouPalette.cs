@@ -83,7 +83,13 @@ public sealed class MaterialYouPalette
             var primary = l > 0.60 ? HslToRgb(h, sat, 0.45) : seed;
             var onPrimary = Luminance(primary) > 0.55 ? Color.Parse("#1F1E1D") : Colors.White;
             var primaryContainer = HslToRgb(h, Math.Min(sat * 0.5, 0.40), 0.90);
-            var onPrimaryContainer = HslToRgb(h, Math.Min(sat * 0.7, 0.60), 0.22);
+            // The same lightness reads brighter in green than in purple, so step down until the
+            // strong accent is dark enough to sit on a light surface, whatever the seed's hue.
+            var strongSat = Math.Min(sat * 0.7, 0.60);
+            var strongLightness = 0.22;
+            while (strongLightness > 0.10 && Luminance(HslToRgb(h, strongSat, strongLightness)) >= 0.25)
+                strongLightness -= 0.01;
+            var onPrimaryContainer = HslToRgb(h, strongSat, strongLightness);
 
             return new MaterialYouPalette
             {

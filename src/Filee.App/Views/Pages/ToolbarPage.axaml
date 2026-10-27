@@ -398,13 +398,15 @@
                 </ContentControl.ContentTemplate>
               </ContentControl>
 
-              <!-- Only a built-in profile has a default to go back to; the last mixed one can't be deleted. -->
-              <StackPanel x:Name="ProfileActions" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+              <!-- Only a built-in profile has a default to go back to; the last mixed one can't be deleted.
+                   French labels don't fit side by side in the narrow card: they wrap, right aligned. -->
+              <WrapPanel x:Name="ProfileActions" Orientation="Horizontal" HorizontalAlignment="Right"
+                         ItemsAlignment="End" ItemSpacing="8" LineSpacing="8">
                 <Button Content="{DynamicResource toolbar.reset_profile}" Command="{Binding ResetProfileCommand}"
                         IsVisible="{Binding CanReset}" />
                 <Button Content="{DynamicResource toolbar.delete_profile}" Command="{Binding DeleteProfileCommand}"
                         IsVisible="{Binding CanDelete}" />
-              </StackPanel>
+              </WrapPanel>
             </StackPanel>
           </Border>
 

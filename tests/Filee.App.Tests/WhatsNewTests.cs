@@ -371,15 +371,18 @@ public class WhatsNewTests
     public void Arrow_keys_move_and_escape_closes(string language)
     {
         var window = Open(language);
+        // Arabic reads right to left, so its Left goes on (see In_arabic_left_goes_on_and_next_sits_on_the_left).
+        var rtl = window.FlowDirection == Avalonia.Media.FlowDirection.RightToLeft;
+        var (on, back) = (rtl ? Key.Left : Key.Right, rtl ? Key.Right : Key.Left);
         try
         {
-            Press(window, Key.Right);
-            Press(window, Key.Right);
+            Press(window, on);
+            Press(window, on);
             Assert.Equal(2, window.SlideShow.Index);
-            Press(window, Key.Left);
+            Press(window, back);
             Assert.Equal(1, window.SlideShow.Index);
-            Press(window, Key.Left);
-            Press(window, Key.Left); // stays on the first
+            Press(window, back);
+            Press(window, back); // stays on the first
             Assert.Equal(0, window.SlideShow.Index);
             Press(window, Key.Escape);
             Assert.False(window.IsVisible);

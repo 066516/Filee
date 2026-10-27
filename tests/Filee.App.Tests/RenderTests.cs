@@ -534,9 +534,14 @@ public class RenderTests
             Pump();
 
             var engines = ((Filee.App.ViewModels.Pages.EnginesPageViewModel)vm.CurrentPage).Engines;
-            Assert.All(engines.Where(e => e.IsAvailable), e => Assert.False(string.IsNullOrWhiteSpace(e.Version)));
+            // An available engine shows either its version (the copies Filee installed itself) or where its program
+            // is (a copy already on the PC: Ghostscript, Tesseract, LibreOffice from the distribution, which report
+            // no version of their own).
+            Assert.All(engines.Where(e => e.IsAvailable),
+                e => Assert.True(!string.IsNullOrWhiteSpace(e.Version) || !string.IsNullOrWhiteSpace(e.Detail),
+                    $"{e.Converter.Id}: neither a version nor a path"));
             Assert.All(engines, e => Assert.False(string.IsNullOrWhiteSpace(e.Description)));
-            Save(window, "page-engines-downloading-ko.png");
+            Save(window, "page-engines-downloading-ar.png");
             window.Close();
         }
         finally
@@ -564,19 +569,25 @@ public class RenderTests
             page.SelectedProfile = page.Profiles.Single(p => p.Profile.Id == "images");
             Pump();
 
-            var actions = window.GetVisualDescendants().OfType<StackPanel>().Single(s => s.Name == "ProfileActions");
+            var actions = window.GetVisualDescendants().OfType<WrapPanel>().Single(p => p.Name == "ProfileActions");
             var reset = (Button)actions.Children[0];
             var delete = (Button)actions.Children[1];
             Assert.Same(page.ResetProfileCommand, reset.Command);
             Assert.Same(page.DeleteProfileCommand, delete.Command);
             Assert.True(reset.IsVisible && delete.IsVisible);
-            // On one row, reset first, both inside the profile card.
+            // Inside the profile card, reset before delete: side by side where both labels fit, stacked where they
+            // don't (French).
             var card = window.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "ProfileCard");
             var resetBox = Avalonia.VisualExtensions.TranslatePoint(reset, default, card)!.Value;
             var deleteBox = Avalonia.VisualExtensions.TranslatePoint(delete, default, card)!.Value;
-            Assert.Equal(resetBox.Y, deleteBox.Y);
-            Assert.True(resetBox.X + reset.Bounds.Width < deleteBox.X);
-            Assert.True(resetBox.X >= 0 && deleteBox.X + delete.Bounds.Width <= card.Bounds.Width);
+            var where = $"{language}: reset {resetBox} ({reset.Bounds.Width} wide), delete {deleteBox} ({delete.Bounds.Width} wide) in card {card.Bounds.Width} wide";
+            Assert.True(resetBox.X >= -0.5 && deleteBox.X >= -0.5 &&
+                        resetBox.X + reset.Bounds.Width <= card.Bounds.Width + 0.5 &&
+                        deleteBox.X + delete.Bounds.Width <= card.Bounds.Width + 0.5, where);
+            if (Math.Abs(resetBox.Y - deleteBox.Y) < 0.5)
+                Assert.True(deleteBox.X >= resetBox.X + reset.Bounds.Width - 0.5, where);
+            else
+                Assert.True(deleteBox.Y >= resetBox.Y + reset.Bounds.Height - 0.5, where);
             actions.BringIntoView();
             Pump();
             Save(window, $"toolbar-reset-profile-{language}.png");
@@ -615,7 +626,7 @@ public class RenderTests
         donut.InvalidateVisual();
         Pump();
         Assert.Equal(2, donut.SlotAt(DonutPoint(donut, 2, count + 1), count + 1));
-        Save(window, "toolbar-drop-preview-ko.png");
+        Save(window, "toolbar-drop-preview-ar.png");
 
         // Moving the first slice to slot 3: it leaves its place, the preview shows it at the new one.
         donut.SetDropPreview(3, donut.Items[0].Label, removed: 0);
@@ -623,7 +634,7 @@ public class RenderTests
             donut.Advance(1 / 60.0);
         donut.InvalidateVisual();
         Pump();
-        Save(window, "toolbar-move-preview-ko.png");
+        Save(window, "toolbar-move-preview-ar.png");
 
         donut.SetDropPreview(-1);
         window.Close();
@@ -888,7 +899,7 @@ public class RenderTests
         var window = new Filee.App.Views.LibreOfficeOptionsWindow { DataContext = vm };
         window.Show();
         Pump();
-        Save(window, "window-libreoffice-options-ko.png");
+        Save(window, "window-libreoffice-options-ar.png");
         window.Close();
     }
 
@@ -1014,15 +1025,15 @@ public class RenderTests
 
             Assert.Equal(Avalonia.Media.Color.Parse("#101820"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(window.Background).Color);
             Assert.Equal(Avalonia.Media.Color.Parse("#E8E4D8"), BrushColor(window, "TextPrimaryBrush"));
-            // Colours the file does not set, and the other variant, keep Filee's own.
-            Assert.Equal(Avalonia.Media.Color.Parse("#AEACA4"), BrushColor(window, "TextSecondaryBrush"));
-            Assert.Equal(Avalonia.Media.Color.Parse("#F6F5F1"), BrushColor(window, "PageBrush", Avalonia.Styling.ThemeVariant.Light));
+            // Colours the file does not set, and the other variant, keep Takaconv's own.
+            Assert.Equal(Avalonia.Media.Color.Parse("#A8BEB1"), BrushColor(window, "TextSecondaryBrush"));
+            Assert.Equal(Avalonia.Media.Color.Parse("#F4F8F4"), BrushColor(window, "PageBrush", Avalonia.Styling.ThemeVariant.Light));
             Save(window, "page-theme-custom.png");
 
             // Applying without a theme file (deleted, or emptied) restores the built-in colours on the open window.
             service.Apply(dark, "en");
             Pump();
-            Assert.Equal(Avalonia.Media.Color.Parse("#1B1B19"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(window.Background).Color);
+            Assert.Equal(Avalonia.Media.Color.Parse("#0E1512"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(window.Background).Color);
             window.Close();
 
             service.Apply(dark, "en", custom);
@@ -1063,7 +1074,7 @@ public class RenderTests
         window.Show();
         Pump();
 
-        Save(window, "preset-popup-ko.png");
+        Save(window, "preset-popup-ar.png");
         window.Close();
     }
 
@@ -1078,7 +1089,7 @@ public class RenderTests
         var window = new PresetEditorWindow { DataContext = vm, Height = 900 };
         window.Show();
         Pump();
-        Save(window, "preset-rotate-ko.png");
+        Save(window, "preset-rotate-ar.png");
         window.Close();
 
         // Rotate and convert in one: turn left, mirror, and make it a JPG.
@@ -1361,12 +1372,12 @@ public class RenderTests
         var vm = new PresetEditorViewModel(preset, loc);
         Assert.True(vm.ShowAnimationSpeed);
         Assert.Equal(1, vm.AnimationSpeed.Value);
-        Assert.Equal(["0.25×", "0.5×", "0.75×", "1× (original)", "1.5×", "2×", "4×"], vm.AnimationSpeeds.Select(s => s.Label));
+        Assert.Equal(["0.25×", "0.5×", "0.75×", "1× (الأصلية)", "1.5×", "2×", "4×"], vm.AnimationSpeeds.Select(s => s.Label));
         vm.AnimationSpeed = vm.AnimationSpeeds.Single(s => s.Value == 0.5);
         var window = new PresetEditorWindow { DataContext = vm, Height = 900 };
         window.Show();
         Pump();
-        Save(window, "preset-animation-speed-ko.png");
+        Save(window, "preset-animation-speed-ar.png");
         window.Close();
 
         foreach (var target in new[] { "webp", "apng", "mng", Filee.Core.Presets.BuiltInData.SameAsSource })
@@ -1408,7 +1419,7 @@ public class RenderTests
         var window = new PresetEditorWindow { DataContext = vm, Height = 900 };
         window.Show();
         Pump();
-        Save(window, "preset-remove-background-ko.png");
+        Save(window, "preset-remove-background-ar.png");
         window.Close();
 
         vm.BackgroundTolerance = 140; // out of range: clamped
@@ -1433,7 +1444,7 @@ public class RenderTests
         var window = new PresetEditorWindow { DataContext = vm, Height = 900 };
         window.Show();
         Pump();
-        Save(window, "preset-compress-pdf-ko.png");
+        Save(window, "preset-compress-pdf-ar.png");
         window.Close();
 
         vm.CompressionLevel = vm.CompressionLevels.Single(c => c.Value == Filee.Core.Presets.PdfCompression.Screen);
@@ -1978,6 +1989,8 @@ public class RenderTests
                 new Avalonia.Rect(v.Bounds.Size).TransformToAABB(Avalonia.VisualExtensions.TransformToVisual(v, window)!.Value);
             var columnBox = InWindow(column);
             var rowBox = InWindow(tabs);
+            // Arabic reads right to left: a row runs from its right end, and its Left key goes on.
+            var rtl = window.FlowDirection == Avalonia.Media.FlowDirection.RightToLeft;
             Assert.Equal(230, columnBox.Width, 0.5);
             var items = Enumerable.Range(0, tabs.ItemCount).Select(i => (ListBoxItem)tabs.ContainerFromIndex(i)!).ToList();
             var boxes = items.Select(InWindow).ToList();
@@ -1991,16 +2004,17 @@ public class RenderTests
                 Assert.True(text.TextLayout.WidthIncludingTrailingWhitespace <= text.Bounds.Width + 0.5, text.Text);
                 if (i == 0)
                     continue;
-                // Reading order: right of the previous tab on its row, or on a row below it.
+                // Reading order: after the previous tab on its row (left of it in Arabic), or on a row below it.
                 var previous = boxes[i - 1];
-                Assert.True(Math.Abs(box.Top - previous.Top) < 0.5 ? box.Left >= previous.Right - 0.5 : box.Top >= previous.Bottom - 0.5,
+                var after = rtl ? box.Right <= previous.Left + 0.5 : box.Left >= previous.Right - 0.5;
+                Assert.True(Math.Abs(box.Top - previous.Top) < 0.5 ? after : box.Top >= previous.Bottom - 0.5,
                     $"tab {i} {box} overlaps or precedes {previous}");
             }
             Assert.True(boxes.Select(b => Math.Round(b.Top)).Distinct().Count() >= 2);
             var suffix = dark ? "dark" : "light";
             Save(window, $"toolbar-tabs-{language}-{suffix}.png");
 
-            // Right along a row, Down at its end to the tab on the next row nearest below, up to the last tab.
+            // Right (Left in Arabic) along a row, Down at its end to the tab on the next row nearest below, up to the last tab.
             void Press(Key key, PhysicalKey physical)
             {
                 window.KeyPress(key, RawInputModifiers.None, physical, null);
@@ -2033,7 +2047,7 @@ public class RenderTests
             {
                 if (SameRow(current, current + 1))
                 {
-                    Press(Key.Right, PhysicalKey.ArrowRight);
+                    Press(rtl ? Key.Left : Key.Right, rtl ? PhysicalKey.ArrowLeft : PhysicalKey.ArrowRight);
                     current++;
                 }
                 else
@@ -2054,7 +2068,7 @@ public class RenderTests
             var scroller = window.FindControl<ScrollViewer>("PageScroller")!;
             Assert.True(last.IsEffectivelyVisible);
             Assert.True(InWindow(scroller).Intersects(InWindow(last)));
-            Assert.True(InWindow(last).Right <= InWindow(column).Right + 0.5);
+            Assert.True(InWindow(last).Left >= InWindow(column).Left - 0.5 && InWindow(last).Right <= InWindow(column).Right + 0.5);
             var chips = window.GetVisualDescendants().OfType<Border>().Where(b => b.DataContext is PaletteChip && b.Classes.Contains("chip"))
                 .Select(b => ((PaletteChip)b.DataContext!).PresetId).ToList();
             // The last tab is Font: font presets, no image or archive ones.
@@ -2071,15 +2085,15 @@ public class RenderTests
             Assert.False(SameRow(above, items.Count - 1));
 
             // From there Right reaches the tabs a Down skipped, then Left walks back over every tab, across the row ends,
-            // to the first.
+            // to the first (the other way round in Arabic).
             for (current = above; current < items.Count - 1; current++)
             {
-                Press(Key.Right, PhysicalKey.ArrowRight);
+                Press(rtl ? Key.Left : Key.Right, rtl ? PhysicalKey.ArrowLeft : PhysicalKey.ArrowRight);
                 Expect(current + 1);
             }
             for (current = items.Count - 1; current > 0; current--)
             {
-                Press(Key.Left, PhysicalKey.ArrowLeft);
+                Press(rtl ? Key.Right : Key.Left, rtl ? PhysicalKey.ArrowRight : PhysicalKey.ArrowLeft);
                 Expect(current - 1);
             }
             Assert.Equal(Enumerable.Range(0, items.Count), visited.Order());

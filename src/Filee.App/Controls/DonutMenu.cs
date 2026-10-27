@@ -14,6 +14,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
 using Avalonia.Threading;
 using Filee.App.Services;
 
@@ -1071,8 +1072,9 @@ public sealed partial class DonutMenu : Control
 
     /// <summary>
     /// The size a slice's name is drawn at: 13, or smaller (down to 10) when one of its words is wider than the slice
-    /// (<paramref name="width"/>), which would otherwise break in the middle ("Grayscal|e" on a thin slice). Words in
-    /// Chinese or Japanese are left out: those break between any two characters.
+    /// (<paramref name="width"/>), which would otherwise break in the middle ("Grayscal|e" on a thin slice), or when the
+    /// name still needs a third line at 13 (a long Arabic name on a two-line slice). Words in Chinese or Japanese are left
+    /// out: those break between any two characters, and keep their size.
     /// </summary>
     internal double LabelSize(string text, Typeface typeface, double width)
     {
@@ -1089,8 +1091,16 @@ public sealed partial class DonutMenu : Control
             .Max();
         // A pixel to spare: a word exactly as wide as the line still wraps.
         size = widest < line ? LabelFontSize : Math.Max(MinLabelFontSize, LabelFontSize * (line - 1) / widest);
+        while (widest > 0 && size > MinLabelFontSize && !WrapsInTwoLines(text, typeface, line, size))
+            size = Math.Max(MinLabelFontSize, size - 0.5);
         return _labelSizes[key] = size;
     }
+
+    /// <summary>Whether the name, drawn at <paramref name="size"/>, needs no more than the two lines a slice gives it.</summary>
+    private static bool WrapsInTwoLines(string text, Typeface typeface, double width, double size) =>
+        new TextLayout(text, typeface, size, null, textWrapping: TextWrapping.Wrap,
+            textTrimming: TextTrimming.CharacterEllipsis, maxWidth: Math.Max(10, width), maxLines: 3)
+        .TextLines.Count <= 2;
 
     /// <summary>Chinese characters, kana and the CJK symbols and full-width forms: a line may break between any two.</summary>
     private static bool IsHanOrKana(char c) =>

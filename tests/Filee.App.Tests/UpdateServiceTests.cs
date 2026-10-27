@@ -438,7 +438,7 @@ public class UpdateServiceTests
         var folder = TempFolder();
         Assert.False(UpdateService.IsLinuxInstalled(folder));
 
-        var marker = Path.Combine(folder, ".filee-package");
+        var marker = Path.Combine(folder, ".takaconv-package");
         File.WriteAllText(marker, "com.takaful.takaconv\n");
         Assert.True(UpdateService.IsLinuxInstalled(folder));
 

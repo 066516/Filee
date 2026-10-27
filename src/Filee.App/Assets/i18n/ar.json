@@ -359,7 +359,7 @@
   "preset.trace_svg": "تتبّع إلى SVG",
   "preset.trace_svg.donut": "تتبّع إلى SVG",
   "preset.trace_line_art": "رسم خطي إلى SVG",
-  "preset.trace_line_art.donut": "رسم خطي إلى SVG",
+  "preset.trace_line_art.donut": "رسم خطي",
   "preset.extract_frames_png": "استخراج الإطارات (PNG)",
   "preset.extract_frames_jpg": "استخراج الإطارات (JPG)",
   "preset.extract_motion": "استخراج فيديو Live Photo",
@@ -1176,5 +1176,5 @@
   "whats_new.2_0_0.languages.text": "تتوفر الآن الإسبانية والهندية واليابانية والروسية والعربية والبرتغالية البرازيلية، إلى جانب الإنجليزية والكورية والصينية والبولندية.",
   "whats_new.2_0_0.more.title": "والمزيد من التحسينات",
   "whats_new.2_0_0.more.text": "يمكنك إعادة قائمة دائرية واحدة إلى إعداداتها الافتراضية، والبحث في سجل التحويلات بالكامل، وتحويل المستندات الغوجاراتية والهندية والعربية باستخدام LibreOffice.",
-  "preset.extract_motion.donut": "استخراج فيديو Live Photo"
+  "preset.extract_motion.donut": "استخراج الفيديو"
 }
