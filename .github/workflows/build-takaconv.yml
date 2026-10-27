@@ -42,12 +42,13 @@ jobs:
       - name: Restore engine downloads
         uses: actions/cache@v5
         with:
-          path: build/.cache/portable-downloads
-          key: portable-engines-win-x64-${{ hashFiles('src/Filee.Engines/Infrastructure/engines.json') }}
+          path: build/.cache
+          key: win-engines-${{ hashFiles('src/Filee.Engines/Infrastructure/engines.json') }}
 
       - name: Build and test
         run: |
-          ./build/fetch-portable-engines.ps1 -Runtime win-x64 -Destination engines
+          # Windows engines (rhwp, 7-Zip, the C++ runtime) are fetched by build-installer.ps1 through
+          # fetch-engines.ps1; fetch-portable-engines.ps1 only serves linux/osx (no win-x64 in engines.json).
           dotnet build Filee.slnx -c Release
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # Not blocking yet: a red test still leaves the installer to download while the three-language cut settles.
