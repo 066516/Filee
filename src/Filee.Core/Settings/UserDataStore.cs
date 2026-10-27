@@ -26,9 +26,9 @@ public sealed class UserDataStore
     }
 
     /// <summary>
-    /// Environment variable that moves all of Filee's per-user data (settings, logs, downloaded engines) to another
+    /// Environment variable that moves all of Takaconv's per-user data (settings, logs, downloaded engines) to another
     /// folder and gives that copy its own single instance: a development or test copy then never touches, or talks
-    /// to, the Filee the user runs. A copy started with it also leaves the system integration alone.
+    /// to, the Takaconv the user runs. A copy started with it also leaves the system integration alone.
     /// </summary>
     public const string DirectoryVariable = "TAKACONV_DATA_DIR";
 
@@ -36,7 +36,7 @@ public sealed class UserDataStore
     public static string? OverrideDirectory => DirectoryFrom(Environment.GetEnvironmentVariable(DirectoryVariable));
 
     /// <summary>
-    /// Default data directory: %APPDATA%\Filee on Windows, ~/Library/Application Support/Filee on macOS, or the
+    /// Default data directory: %APPDATA%\Takaconv on Windows, ~/Library/Application Support/Takaconv on macOS, or the
     /// folder in <see cref="DirectoryVariable"/>.
     /// </summary>
     public static string DefaultDirectory =>

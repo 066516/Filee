@@ -51,8 +51,7 @@ jobs:
           # fetch-engines.ps1; fetch-portable-engines.ps1 only serves linux/osx (no win-x64 in engines.json).
           dotnet build Filee.slnx -c Release
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          # Not blocking yet: a red test still leaves the installer to download while the three-language cut settles.
-          # Add `if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }` after it once the suite is green.
+          # The last command's exit code is the step's, so a red test stops the run before anything is packaged.
           dotnet test Filee.slnx -c Release --no-build
 
       # No certificate: the build is internal, so nothing is signed.
