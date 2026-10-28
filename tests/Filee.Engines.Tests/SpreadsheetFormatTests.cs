@@ -606,9 +606,10 @@ public class SpreadsheetFormatTests(EngineFixture fx) : IClassFixture<EngineFixt
             Assert.True(sales.Get(4, 1)!.Text == "2,220,000원", $"{name}: {sales.Get(4, 1)!.Text}");
             Assert.True(new CellRange(0, 0, 0, 3) == Assert.Single(sales.Merges), name);
             Assert.True(sales.Get(1, 0)!.Style.Align == CellAlign.Center, name);
-            // LibreOffice measures character widths with its own fonts, so widths through ODS move by up to a fifth;
-            // XLS keeps Excel's own unit.
-            var tolerance = name.StartsWith("XLS", StringComparison.Ordinal) ? 0.01 : 0.25;
+            // LibreOffice measures character widths with its own fonts. XLS keeps Excel's own unit, but the number of
+            // characters that unit stands for still comes from those fonts (26.x writes 15.9 for our 14), so a width
+            // moves by up to a fifth either way. The ratio below is the check that doesn't depend on any font.
+            const double tolerance = 0.25;
             Assert.True(Math.Abs(sales.ColumnWidth(0) - 14) <= 14 * tolerance, $"{name}: {sales.ColumnWidth(0)}");
             Assert.True(Math.Abs(sales.ColumnWidth(0) / sales.ColumnWidth(1) - 14.0 / 12) < 0.02, $"{name}: {sales.ColumnWidth(0)} / {sales.ColumnWidth(1)}");
         }

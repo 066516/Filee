@@ -67,6 +67,7 @@ public class UninstallerTests
     [Fact]
     public void A_dll_explorer_has_loaded_is_moved_out_and_deleted_at_the_next_restart()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows keeps a loaded DLL from being deleted.");
         var (bench, record) = Installed();
         using var _ = bench;
         // Stand-in for FileeExplorerMenu.dll loaded by Explorer: a real DLL loaded into this process, which Windows
@@ -156,8 +157,8 @@ public class PreviousInstallTests
     public void Inno_setups_app_path_is_enough_and_the_scope_is_kept_apart()
     {
         using var temp = new TempFolder();
-        temp.Write(@"Filee\Takaconv.exe");
-        temp.Write(@"Filee\unins000.exe");
+        temp.Write("Filee/Takaconv.exe");
+        temp.Write("Filee/unins000.exe");
         var registry = new MemoryRegistry();
         registry.SetString(Hive.LocalMachine, SetupNames.UninstallKey, "Inno Setup: App Path", temp.Sub("Filee"));
         var previous = PreviousInstall.Find(registry, InstallScope.Machine)!;
@@ -173,12 +174,13 @@ public class PreviousInstallTests
     {
         using var temp = new TempFolder();
         var paths = SetupPaths.Sandbox(temp.Sub("pc"));
-        var folder = Path.GetDirectoryName(temp.Write(@"pc\Program Files\Filee\Takaconv.exe"))!;
+        var folder = Path.GetDirectoryName(temp.Write("pc/Program Files/Filee/Takaconv.exe"))!;
         var registry = new MemoryRegistry();
         registry.SetString(Hive.LocalMachine, SetupNames.UninstallKey, "InstallLocation", folder);
         // 1.x recorded the desktop icon and PATH, but the user deleted the shortcut since.
         registry.SetString(Hive.LocalMachine, SetupNames.UninstallKey, SetupNames.InnoTasksValue, @"contextmenu,startup,cli,desktopicon");
-        registry.SetString(Hive.LocalMachine, SetupNames.MachineEnvironmentKey, "Path", folder.ToUpperInvariant() + @"\CLI\");
+        registry.SetString(Hive.LocalMachine, SetupNames.MachineEnvironmentKey, "Path",
+            folder.ToUpperInvariant() + Path.DirectorySeparatorChar + "CLI" + Path.DirectorySeparatorChar);
         var system = new FakeSystem { ExplorerMenuSupported = true, MenuRegistered = false };
 
         var tasks = PreviousInstall.Find(registry, InstallScope.Machine)!.CurrentTasks(registry, system, paths);

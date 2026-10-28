@@ -53,5 +53,16 @@ public static class PathVariable
         (paths ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     private static bool Same(string entry, string folder) =>
-        string.Equals(Path.TrimEndingDirectorySeparator(entry.Trim()), Path.TrimEndingDirectorySeparator(folder), StringComparison.OrdinalIgnoreCase);
+        string.Equals(TrimSeparators(entry), TrimSeparators(folder), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// A PATH entry without its trailing separator. Both kinds go, since the entry is a Windows path even when Setup is
+    /// built (and its tests run) on another system, where <see cref="Path.TrimEndingDirectorySeparator"/> only knows "/".
+    /// A drive root ("C:\") keeps its separator.
+    /// </summary>
+    private static string TrimSeparators(string path)
+    {
+        var trimmed = path.Trim().TrimEnd('\\', '/');
+        return trimmed.Length == 0 || trimmed[^1] == ':' ? path.Trim() : trimmed;
+    }
 }

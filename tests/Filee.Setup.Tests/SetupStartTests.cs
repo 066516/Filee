@@ -23,7 +23,7 @@ public class SetupStartTests
     [InlineData("setup.exe")]
     public void A_setup_cut_off_in_its_payload_is_incomplete_not_the_uninstaller(string name)
     {
-        using var bench = new SetupBench(app: (temp, _) => temp.Write(@"app\data\big.bin", new string('z', 200_000)));
+        using var bench = new SetupBench(app: (temp, _) => temp.Write("app/data/big.bin", new string('z', 200_000)));
         var bytes = File.ReadAllBytes(bench.SetupExe);
         var cut = bench.Temp.Sub("Downloads", name);
         Directory.CreateDirectory(Path.GetDirectoryName(cut)!);
@@ -126,7 +126,7 @@ public class SetupStartTests
     /// <summary>A Setup.exe whose header points at a 512-byte certificate table at its end, as signtool leaves it.</summary>
     private static string SignedSetup(TempFolder temp)
     {
-        temp.Write(@"app\Takaconv.exe", "Filee");
+        temp.Write("app/Takaconv.exe", "Filee");
         var program = temp.Sub("program.exe");
         File.WriteAllBytes(program, PayloadTests.MinimalPe(0, 0));
         var unsigned = temp.Sub("unsigned.exe");

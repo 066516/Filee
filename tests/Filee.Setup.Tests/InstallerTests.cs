@@ -20,13 +20,13 @@ public class InstallerTests
         Assert.True(result.Succeeded, result.Error?.ToString());
         var folder = bench.InstallFolder;
 
-        foreach (var file in new[] { "Takaconv.exe", "Takaconv.dll", @"cli\takaconv.cmd", @"engines\rhwp\rhwp.exe", "uninstall.exe", "uninstall.json" })
+        foreach (var file in new[] { "Takaconv.exe", "Takaconv.dll", PayloadPath.Of("cli/takaconv.cmd"), PayloadPath.Of("engines/rhwp/rhwp.exe"), "uninstall.exe", "uninstall.json" })
             Assert.True(File.Exists(Path.Combine(folder, file)), file);
         Assert.Empty(Directory.EnumerateDirectories(folder, FileSwap.WorkFolderPrefix + "*"));
         var record = InstallRecord.Read(folder)!;
         Assert.Equal("2.0.0", record.Version);
         Assert.Contains("uninstall.exe", record.Files);
-        Assert.Contains(@"engines\rhwp\rhwp.exe", record.Files);
+        Assert.Contains(PayloadPath.Of("engines/rhwp/rhwp.exe"), record.Files);
 
         // Apps & Features: Inno Setup's key, with everything Windows shows.
         var registry = bench.Registry;
@@ -35,9 +35,9 @@ public class InstallerTests
         Assert.Equal("2.0.0", Value("DisplayVersion"));
         Assert.Equal("EL Djazair Takaful", Value("Publisher"));
         Assert.Equal(Path.Combine(folder, "Takaconv.exe"), Value("DisplayIcon"));
-        Assert.Equal(folder + "\\", Value("InstallLocation"));
-        Assert.Equal($"\"{folder}\\uninstall.exe\"", Value("UninstallString"));
-        Assert.Equal($"\"{folder}\\uninstall.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART", Value("QuietUninstallString"));
+        Assert.Equal(folder + Path.DirectorySeparatorChar, Value("InstallLocation"));
+        Assert.Equal($"\"{Path.Combine(folder, "uninstall.exe")}\"", Value("UninstallString"));
+        Assert.Equal($"\"{Path.Combine(folder, "uninstall.exe")}\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART", Value("QuietUninstallString"));
         Assert.Equal(1, registry.Get(Hive.LocalMachine, Key, "NoModify")?.Value);
         Assert.True((int)registry.Get(Hive.LocalMachine, Key, "EstimatedSize")!.Value > 0);
         Assert.Equal(2, registry.Get(Hive.LocalMachine, Key, "VersionMajor")?.Value);
@@ -59,6 +59,7 @@ public class InstallerTests
     [Fact]
     public void The_windows_11_menu_is_registered_when_ticked()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The menu package is registered by Windows only.");
         using var bench = new SetupBench();
         bench.System.ExplorerMenuSupported = true;
         Assert.True(bench.Install().Succeeded);
@@ -68,6 +69,7 @@ public class InstallerTests
     [Fact]
     public void A_fresh_install_without_the_top_menu_removes_an_old_registration()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The menu package is registered by Windows only.");
         using var bench = new SetupBench();
         bench.System.ExplorerMenuSupported = true;
         bench.System.MenuRegistered = true;
@@ -79,6 +81,7 @@ public class InstallerTests
     [Fact]
     public void A_failed_menu_registration_is_a_warning_not_a_failure()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The menu package is registered by Windows only.");
         using var bench = new SetupBench();
         bench.System.ExplorerMenuSupported = true;
         bench.System.RegisterError = "0x80073CF3 the package failed update";
@@ -112,17 +115,18 @@ public class InstallerTests
         // Filee 1.12.0 as Inno Setup installed it: its files, unins000.*, the key with Inno's values, its PATH entry,
         // the desktop shortcut and the registered top menu.
         var temp = bench.Temp;
-        foreach (var file in new[] { "Takaconv.exe", "Takaconv.dll", "OldOnly.dll", @"cli\takaconv.cmd", @"runtimes\win-x64\native\old.dll", "unins000.exe", "unins000.dat", "unins000.msg" })
+        foreach (var file in new[] { "Takaconv.exe", "Takaconv.dll", "OldOnly.dll", PayloadPath.Of("cli/takaconv.cmd"), PayloadPath.Of("runtimes/win-x64/native/old.dll"), "unins000.exe", "unins000.dat", "unins000.msg" })
             temp.Write(Path.Combine(Path.GetRelativePath(temp.Path, folder), file), "1.12");
         var registry = bench.Registry;
         registry.SetString(Hive.LocalMachine, Key, "Inno Setup: Setup Version", "7.1.0");
         registry.SetString(Hive.LocalMachine, Key, "Inno Setup: App Path", folder);
-        registry.SetString(Hive.LocalMachine, Key, "InstallLocation", folder + "\\");
+        registry.SetString(Hive.LocalMachine, Key, "InstallLocation", folder + Path.DirectorySeparatorChar);
         registry.SetString(Hive.LocalMachine, Key, "Inno Setup: Selected Tasks", "cli,desktopicon");
         registry.SetString(Hive.LocalMachine, Key, "Inno Setup: Language", "ko");
         registry.SetString(Hive.LocalMachine, Key, "DisplayVersion", "1.12.0");
-        registry.SetString(Hive.LocalMachine, Key, "UninstallString", $"\"{folder}\\unins000.exe\"");
-        registry.SetString(Hive.LocalMachine, SetupNames.MachineEnvironmentKey, "Path", @"%SystemRoot%\system32;" + folder + @"\cli", expandable: true);
+        registry.SetString(Hive.LocalMachine, Key, "UninstallString", $"\"{Path.Combine(folder, "unins000.exe")}\"");
+        registry.SetString(Hive.LocalMachine, SetupNames.MachineEnvironmentKey, "Path",
+            @"%SystemRoot%\system32;" + Path.Combine(folder, "cli"), expandable: true);
         temp.Write(Path.Combine(Path.GetRelativePath(temp.Path, bench.Paths.CommonDesktop), "Takaconv.lnk"), "old shortcut");
         bench.System.ExplorerMenuSupported = true;
         bench.System.MenuRegistered = true;
@@ -144,7 +148,7 @@ public class InstallerTests
         Assert.Contains("run Takaconv.exe --quit", bench.System.Calls);
         Assert.Contains("kill 4242", bench.System.Calls);
         // Inno's uninstaller and the files 2.0 doesn't have are gone; the new files are in.
-        foreach (var gone in new[] { "unins000.exe", "unins000.dat", "unins000.msg", "OldOnly.dll", @"runtimes\win-x64\native\old.dll" })
+        foreach (var gone in new[] { "unins000.exe", "unins000.dat", "unins000.msg", "OldOnly.dll", PayloadPath.Of("runtimes/win-x64/native/old.dll") })
             Assert.False(File.Exists(Path.Combine(folder, gone)), gone);
         Assert.False(Directory.Exists(Path.Combine(folder, "runtimes")));
         Assert.Equal("Filee 2", File.ReadAllText(Path.Combine(folder, "Takaconv.exe")));
@@ -152,12 +156,14 @@ public class InstallerTests
         // One uninstall entry, now ours: no "Inno Setup: …" values left.
         Assert.DoesNotContain(registry.ValueNames(Hive.LocalMachine, Key), n => n.StartsWith("Inno Setup", StringComparison.Ordinal));
         Assert.Equal("2.0.0", registry.Get(Hive.LocalMachine, Key, "DisplayVersion")?.Text);
-        Assert.Equal($"\"{folder}\\uninstall.exe\"", registry.Get(Hive.LocalMachine, Key, "UninstallString")?.Text);
+        Assert.Equal($"\"{Path.Combine(folder, "uninstall.exe")}\"", registry.Get(Hive.LocalMachine, Key, "UninstallString")?.Text);
         // The user's choices stay: PATH once, the desktop shortcut, the top menu refreshed in place.
         var path = registry.Get(Hive.LocalMachine, SetupNames.MachineEnvironmentKey, "Path")!.Text!;
-        Assert.Equal(@"%SystemRoot%\system32;" + folder + @"\cli", path);
+        Assert.Equal(@"%SystemRoot%\system32;" + Path.Combine(folder, "cli"), path);
         Assert.True(File.Exists(Path.Combine(bench.Paths.CommonDesktop, "Takaconv.lnk")));
-        Assert.Contains($"register-menu {folder} False", bench.System.Calls);
+        // Registering the top menu is Windows' own work (UpdateExplorerMenu does nothing elsewhere).
+        if (OperatingSystem.IsWindows())
+            Assert.Contains($"register-menu {folder} False", bench.System.Calls);
         // Back to the tray, as before the update, with the new version's "What's new" slides.
         Assert.Equal("--background --whats-new=1.12.0", result.Launch!.Arguments);
     }
@@ -287,10 +293,11 @@ public class InstallerTests
     {
         using var bench = new SetupBench();
         var root = VelopackInstall.Root(bench.Paths);
-        bench.Temp.Write(Path.Combine(Path.GetRelativePath(bench.Temp.Path, root), "Update.exe"));
-        bench.Temp.Write(Path.Combine(Path.GetRelativePath(bench.Temp.Path, root), @"current\Takaconv.exe"));
-        bench.Temp.Write(Path.Combine(Path.GetRelativePath(bench.Temp.Path, root), @"packages\Filee-1.1.0-full.nupkg"));
-        var engine = bench.Temp.Write(Path.Combine(Path.GetRelativePath(bench.Temp.Path, root), @"engines\pandoc\.filee-component"));
+        var relative = Path.GetRelativePath(bench.Temp.Path, root);
+        bench.Temp.Write(Path.Combine(relative, "Update.exe"));
+        bench.Temp.Write(Path.Combine(relative, "current/Takaconv.exe"));
+        bench.Temp.Write(Path.Combine(relative, "packages/Filee-1.1.0-full.nupkg"));
+        var engine = bench.Temp.Write(Path.Combine(relative, "engines/pandoc/.filee-component"));
         bench.Registry.SetString(Hive.CurrentUser, SetupNames.VelopackUninstallKey, "DisplayName", "Filee");
         Assert.True(VelopackInstall.Exists(bench.Paths));
 

@@ -53,6 +53,15 @@ public sealed class TempFolder : IDisposable
     }
 }
 
+/// <summary>
+/// A payload path in the separator of the system the payload was built on: <see cref="Filee.Setup.Payload.SetupPayload.Write"/>
+/// records <see cref="System.IO.Path.GetRelativePath"/>'s answer, which is a backslash on Windows.
+/// </summary>
+public static class PayloadPath
+{
+    public static string Of(string path) => path.Replace('/', System.IO.Path.DirectorySeparatorChar);
+}
+
 /// <summary>Records what Setup asks Windows to do; never touches the PC.</summary>
 public sealed class FakeSystem : ISetupSystem
 {
@@ -140,13 +149,14 @@ public sealed class SetupBench : IDisposable
     /// <summary>The published app: Takaconv.exe, the "filee" command, an engine and a few more files.</summary>
     private void WriteApp(Action<TempFolder, string>? app)
     {
-        _temp.Write(@"app\Takaconv.exe", "Filee 2");
-        _temp.Write(@"app\Takaconv.dll", new string('a', 20_000));
-        _temp.Write(@"app\cli\takaconv.cmd", "@\"%~dp0..\\takaconv-cli.exe\" %*");
-        _temp.Write(@"app\takaconv-cli.exe", "cli");
-        _temp.Write(@"app\engines\rhwp\rhwp.exe", "rhwp");
-        _temp.Write(@"app\FileeExplorerMenu.dll", "menu");
-        _temp.Write(@"app\FileeExplorerMenu.msix", "package");
+        // Forward slashes: a file name with a backslash in it is a real file on Linux, not a folder.
+        _temp.Write("app/Takaconv.exe", "Filee 2");
+        _temp.Write("app/Takaconv.dll", new string('a', 20_000));
+        _temp.Write("app/cli/takaconv.cmd", "@\"%~dp0..\\takaconv-cli.exe\" %*");
+        _temp.Write("app/takaconv-cli.exe", "cli");
+        _temp.Write("app/engines/rhwp/rhwp.exe", "rhwp");
+        _temp.Write("app/FileeExplorerMenu.dll", "menu");
+        _temp.Write("app/FileeExplorerMenu.msix", "package");
         app?.Invoke(_temp, AppFolder);
     }
 

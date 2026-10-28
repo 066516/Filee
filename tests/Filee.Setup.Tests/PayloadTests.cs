@@ -15,7 +15,7 @@ public class PayloadTests
         using var payload = SetupPayload.Open(bench.SetupExe)!;
         Assert.Equal("2.0.0", payload.Manifest.Version);
         Assert.Contains(payload.Manifest.Files, f => f.Path == "Takaconv.exe");
-        Assert.Contains(payload.Manifest.Files, f => f.Path == @"engines\rhwp\rhwp.exe");
+        Assert.Contains(payload.Manifest.Files, f => f.Path == PayloadPath.Of("engines/rhwp/rhwp.exe"));
         Assert.Equal("pandoc", Assert.Single(payload.Manifest.Engines).Id);
         Assert.Equal(".filee-component", payload.Manifest.EngineMarker);
 
@@ -42,6 +42,7 @@ public class PayloadTests
     [InlineData("random")]
     public void The_x86_filter_gives_back_the_exact_bytes(string file)
     {
+        Assert.SkipUnless(file == "random" || OperatingSystem.IsWindows(), "Reads Windows' own programs.");
         var original = file == "random"
             ? System.Security.Cryptography.RandomNumberGenerator.GetBytes(1_000_000)
             : File.ReadAllBytes(Path.Combine(Environment.SystemDirectory, file));
@@ -60,13 +61,14 @@ public class PayloadTests
     [Fact]
     public void Programs_go_through_the_x86_filter()
     {
-        using var bench = new SetupBench(app: (temp, _) => File.Copy(Path.Combine(Environment.SystemDirectory, "kernel32.dll"), temp.Sub(@"app\native.dll")));
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Needs a Windows program to copy.");
+        using var bench = new SetupBench(app: (temp, _) => File.Copy(Path.Combine(Environment.SystemDirectory, "kernel32.dll"), temp.Sub("app/native.dll")));
         using var payload = SetupPayload.Open(bench.SetupExe)!;
         Assert.Equal(PayloadFile.X86, payload.Manifest.Files.Single(f => f.Path == "native.dll").Filter);
-        Assert.Equal("", payload.Manifest.Files.Single(f => f.Path == @"cli\takaconv.cmd").Filter);
+        Assert.Equal("", payload.Manifest.Files.Single(f => f.Path == PayloadPath.Of("cli/takaconv.cmd")).Filter);
         var target = bench.Temp.Sub("out");
         payload.ExtractTo(target, cancellation: TestContext.Current.CancellationToken);
-        Assert.Equal(File.ReadAllBytes(bench.Temp.Sub(@"app\native.dll")), File.ReadAllBytes(Path.Combine(target, "native.dll")));
+        Assert.Equal(File.ReadAllBytes(bench.Temp.Sub("app/native.dll")), File.ReadAllBytes(Path.Combine(target, "native.dll")));
     }
 
     [Fact]
@@ -74,8 +76,8 @@ public class PayloadTests
     {
         using var bench = new SetupBench(app: (temp, _) =>
         {
-            temp.Write(@"app\a.bin", new string('a', (int)(SetupPayload.FastSegmentSize + 1000)));
-            temp.Write(@"app\b.bin", new string('b', 2_000_000));
+            temp.Write("app/a.bin", new string('a', (int)(SetupPayload.FastSegmentSize + 1000)));
+            temp.Write("app/b.bin", new string('b', 2_000_000));
         });
         using var payload = SetupPayload.Open(bench.SetupExe)!;
         Assert.True(payload.Manifest.Segments.Count >= 2);
@@ -179,7 +181,7 @@ public class PayloadTests
         // A minimal PE32+ header whose certificate table (security directory) is the last 512 bytes of the file, as
         // signtool leaves a signed Setup: the payload sits right before it.
         var app = temp.Sub("app");
-        temp.Write(@"app\Takaconv.exe", "Filee");
+        temp.Write("app/Takaconv.exe", "Filee");
         var program = temp.Sub("program.exe");
         File.WriteAllBytes(program, MinimalPe(0, 0));
         var unsigned = temp.Sub("unsigned.exe");
@@ -205,7 +207,7 @@ public class PayloadTests
         // A release signs the Setup program, then Setup.exe: Setup.exe's header no longer points to the program's
         // signature (its own goes at the end), and the uninstaller copied out of it points to it again.
         using var temp = new TempFolder();
-        temp.Write(@"app\Takaconv.exe", "Filee");
+        temp.Write("app/Takaconv.exe", "Filee");
         var program = temp.Sub("program.exe");
         var bytes = MinimalPe(0, 0);
         var pe = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(0x3C));

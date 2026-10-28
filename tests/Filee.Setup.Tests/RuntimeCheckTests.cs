@@ -9,6 +9,7 @@ public class RuntimeCheckTests
     [Fact]
     public void Imports_of_a_windows_program_are_read()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Reads Windows' own cmd.exe.");
         // Windows' own programs import system DLLs (some through API sets).
         var imports = RuntimeCheck.ImportedDlls(Path.Combine(Environment.SystemDirectory, "cmd.exe"));
         Assert.NotEmpty(imports);
@@ -39,13 +40,14 @@ public class RuntimeCheckTests
         File.WriteAllBytes(Path.Combine(app, "engines", "rhwp", "rhwp.exe"), PeImporting("VCRUNTIME140.dll", "KERNEL32.dll"));
 
         var missing = Assert.Single(RuntimeCheck.FindMissing(app, system));
-        Assert.Equal(@"engines\rhwp\rhwp.exe", missing.Program);
+        Assert.Equal(PayloadPath.Of("engines/rhwp/rhwp.exe"), missing.Program);
         Assert.Equal("vcruntime140.dll", missing.Dll);
 
         // App-local copies next to it (what fix/rhwp-vc-runtime ships) or the Redistributable in System32 both do.
-        File.WriteAllText(Path.Combine(app, "engines", "rhwp", "vcruntime140.dll"), "");
+        // The names are the import's, so they match on a system that compares file names case-sensitively too.
+        File.WriteAllText(Path.Combine(app, "engines", "rhwp", "VCRUNTIME140.dll"), "");
         Assert.Empty(RuntimeCheck.FindMissing(app, system));
-        File.Delete(Path.Combine(app, "engines", "rhwp", "vcruntime140.dll"));
+        File.Delete(Path.Combine(app, "engines", "rhwp", "VCRUNTIME140.dll"));
         File.WriteAllText(Path.Combine(system, "VCRUNTIME140.dll"), "");
         Assert.Empty(RuntimeCheck.FindMissing(app, system));
     }
